@@ -11,8 +11,9 @@ def plot_lidar_from_file(file_path):
             line = line.strip()
             if line.startswith("Car Position:"):
                 # Extract car position
-                position = line.split(":")[1].strip("()").split(", ")
-                car_positions.append((float(position[0]), float(position[1])))
+                position = line.split(":")[1].strip("() \n")
+                x_str, y_str = [p.strip() for p in position.split(",")]
+                car_positions.append((float(x_str), float(y_str)))
             elif line.startswith("\t("):
                 # Extract wall points
                 point = line.strip("()\t").split(", ")
@@ -33,5 +34,5 @@ def plot_lidar_from_file(file_path):
     plt.show()
 
 if __name__ == "__main__":
-    file_path = ''
+    file_path = '/home/anyone/new_repo/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_lidar_1970-01-01 13:40:55.txt'
     plot_lidar_from_file(file_path)
