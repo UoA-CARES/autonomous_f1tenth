@@ -32,8 +32,10 @@ def plot_lidar_scan(csv_file):
         idx = (time - current_time).abs().idxmin()
         
         scan_values = scans[idx]
+        averaged_scan_values = avg_lidar(scan_values, 10)
         
         angles = np.linspace(-120 * np.pi / 180, 120 * np.pi / 180, len(scan_values))
+        avg_angles = np.linspace(-120 * np.pi / 180, 120 * np.pi / 180, len(averaged_scan_values))
         
         # Separate valid and NaN values
         valid_indices = ~np.isnan(scan_values)
@@ -44,27 +46,48 @@ def plot_lidar_scan(csv_file):
         
         invalid_angles = angles[invalid_indices]
         
-        # Compute valid x, y coordinates
         x = valid_scan_values * np.cos(valid_angles)
         y = valid_scan_values * np.sin(valid_angles)
         
-        # Update valid points
+        avg_x = averaged_scan_values * np.cos(avg_angles)
+        avg_y = averaged_scan_values * np.sin(avg_angles)
+        
+        max_x = np.max(np.abs(x)) + 1
+        max_y = np.max(np.abs(y)) + 1
+        max_range = max(max_x, max_y)
+        ax.set_xlim(min(0, -max_range), max_range)
+        ax.set_ylim(min(0, -max_range), max_range)
+        
         line.set_xdata(x)
         line.set_ydata(y)
         
-        # Clear previous red lines
+        # Clear previous
         [line.remove() for line in ax.lines[1:]]
         
         # Draw red lines for NaN values
         for angle in invalid_angles:
             ax.plot([0, 10 * np.cos(angle)], [0, 10 * np.sin(angle)], 'r-')
         
+        ax.plot(avg_x, avg_y, 'yo')
+        
         fig.canvas.draw_idle()
 
     slider.on_changed(update)
     plt.show()
-    
+
+def avg_lidar(lidar, num_points: int):
+        step = len(lidar) // num_points
+        averaged_lidar = []
+        
+        for i in range(num_points):
+            start = i * step
+            end = start + step if i < num_points - 1 else len(lidar)
+            segment = lidar[start:end]
+            segment = np.nan_to_num(segment, nan=10)
+            averaged_lidar.append(np.mean(segment))
+        
+        return np.array(averaged_lidar)
     
 if __name__ == "__main__":
-    csv_file = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/lidar_2025-08-18_13_11_43.csv'
+    csv_file = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/lidar_2025-08-18_14_04_25.csv'
     plot_lidar_scan(csv_file)
