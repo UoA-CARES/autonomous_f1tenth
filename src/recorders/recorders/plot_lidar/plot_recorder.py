@@ -14,9 +14,7 @@ def plot_lidar_from_file(file_path):
                 position = line.split(":")[1].strip("() \n")
                 x_str, y_str = [p.strip() for p in position.split(",")]
                 car_positions.append((float(x_str), float(y_str)))
-            elif line.startswith("Wall Points:"):
-                pass
-            else:
+            elif line.startswith("\t("):
                 # Extract wall points
                 line = line.strip("(), \t\n")
                 x_str, y_str = [p.strip() for p in line.split(",")]
