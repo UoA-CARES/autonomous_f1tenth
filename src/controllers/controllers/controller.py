@@ -37,7 +37,7 @@ class Controller(Node):
         self.NAME = car_name
         self.STEP_LENGTH = step_length
         self.LIDAR_POINTS = lidar_points
-        self.LIDAR_PROCESSING:Literal["avg","avg_w_consensus","pretrained_ae", "raw"] = 'raw'
+        self.LIDAR_PROCESSING:Literal["avg","avg_w_consensus","pretrained_ae", "raw"] = 'avg'
         
         # Pub/Sub ----------------------------------------------------
         # Ackermann pub only works for physical version
