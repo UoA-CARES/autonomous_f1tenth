@@ -14,10 +14,14 @@ def plot_lidar_from_file(file_path):
                 position = line.split(":")[1].strip("() \n")
                 x_str, y_str = [p.strip() for p in position.split(",")]
                 car_positions.append((float(x_str), float(y_str)))
-            elif line.startswith("\t("):
+            elif line.startswith("Wall Points:"):
+                pass
+            else:
                 # Extract wall points
-                point = line.strip("()\t").split(", ")
-                wall_points.append((float(point[0]), float(point[1])))
+                line = line.strip("(), \t\n")
+                x_str, y_str = [p.strip() for p in line.split(",")]
+                wall_points.append((float(x_str), float(y_str)))
+
 
     # Plot the data
     plt.figure(figsize=(10, 6))
