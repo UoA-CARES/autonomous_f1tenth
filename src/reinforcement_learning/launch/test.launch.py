@@ -16,7 +16,8 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
-
+    pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
+    
     ros_gz_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -54,6 +55,7 @@ def generate_launch_description():
 
     
     return LaunchDescription([
+        SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
         gz_sim,
         ros_gz_bridge,
         car_goal,
