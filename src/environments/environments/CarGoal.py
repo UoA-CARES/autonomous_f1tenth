@@ -7,9 +7,11 @@ rclpy.init()
 def main():
     services = SimulationServices('empty')
 
-    sdf = get_package_share_directory('environments')
-
-    services.spawn(f"{}")
+    pkg_environments = get_package_share_directory('environments')
+    pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
+    
+    services.spawn(sdf_filename=f"{pkg_environments}/sdf/goal.sdf")
+    services.spawn(sdf_filename=f"{pkg_f1tenth_description}/sdf/goal.sdf")
     
 
 

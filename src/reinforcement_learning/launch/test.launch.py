@@ -46,9 +46,16 @@ def generate_launch_description():
             arguments = ['world_path', 'world_name']
     )
 
+    car_goal = Node(
+            package='environments',
+            executable='CarGoal',
+            output='screen',
+    )
+
     
     return LaunchDescription([
         gz_sim,
         ros_gz_bridge,
+        car_goal,
         training
 ])

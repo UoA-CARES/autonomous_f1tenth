@@ -1,0 +1,3 @@
+[submodule "src/f1tenth"]
+	path = src/f1tenth
+	url = https://github.com/UOA-FSAE/f1tenth.git
