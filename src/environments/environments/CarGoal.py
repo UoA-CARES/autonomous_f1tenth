@@ -42,6 +42,11 @@ def main():
             f'\nInfo: {info}'
         )
 
+        state = next_state
+
+        if terminated or truncated:
+            state, _ = cargoal.reset()
+
 
     
 
