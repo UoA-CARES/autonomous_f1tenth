@@ -18,6 +18,7 @@ import random
 import numpy as np
 import time
 import subprocess
+import math
 
 class CarGoalEnvironment(Node):
 
@@ -25,11 +26,11 @@ class CarGoalEnvironment(Node):
         super().__init__('car_goal_environment')
         
         # Env Details ------------------------------------------------
-        self.name = car_name
-        self.reward_range = reward_range
-        self.max_steps = max_steps
-        self.collision_range = collision_range
-        self.step_length = step_length
+        self.NAME = car_name
+        self.REWARD_RANGE = reward_range
+        self.MAX_STEPS = max_steps
+        self.COLLISION_RANGE = collision_range
+        self.STEP_LENGTH = step_length
 
         self.step_counter = 0
         
@@ -39,13 +40,13 @@ class CarGoalEnvironment(Node):
         # Pub/Sub ----------------------------------------------------
         self.cmd_vel_pub = self.create_publisher(
                 Twist,
-                f'/model/{self.name}/cmd_vel',
+                f'/model/{self.NAME}/cmd_vel',
                 10
             )
 
         self.pose_sub = self.create_subscription(
             Odometry,
-            f'/model/{self.name}/odometry',
+            f'/model/{self.NAME}/odometry',
             self.pose_callback,
             10
             )
@@ -86,17 +87,7 @@ class CarGoalEnvironment(Node):
         return future.result()
     
     def process_odom(self, odom: Odometry):
-        """
-        Transforms the raw odometer data into a more digestible format. Here, we only use the following:
-            Position:
-                x and y
-            Quaternion:
-                z and w
-            Velocity:
-                linear and angular
-        :param odom: Raw odometer data
-        :return: the processed odometer data
-        """
+
         pose = odom.pose.pose
         position = pose.position
         orientation = pose.orientation
@@ -117,10 +108,11 @@ class CarGoalEnvironment(Node):
         return odom + self.goal_position
 
     def reset(self):
-        
+        self.step_counter = 0
+
         # Call reset Service
 
-        time.sleep(self.step_length)
+        time.sleep(self.STEP_LENGTH)
         
         observation = self.get_obs()
         
@@ -128,6 +120,46 @@ class CarGoalEnvironment(Node):
 
         return observation, info
 
+    def step(self, action):
+        self.step_counter += 1
+
+        state = self.get_obs()
+
+        lin_vel, ang_vel = action
+        self.set_velocity(lin_vel, ang_vel)
+
+        time.sleep(self.STEP_LENGTH)
         
+        next_state = self.get_obs()
+        reward = self.compute_reward(state, next_state)
+        terminated = self.is_terminated(next_state)
+        truncated = self.step_counter >= self.MAX_STEPS
+        info = {}
+
+        return next_state, reward, terminated, truncated, info
+
+    def is_terminated(self, observation):
+        current_distance = math.dist(observation[-2:], observation[:2])
+        return current_distance <= self.REWARD_RANGE
+    
+    def compute_reward(self, state, next_state):
+
+        goal_position = state[-2:]
+
+        old_distance = math.dist(goal_position, state[:2])
+        current_distance = math.dist(goal_position, next_state[:2])
+
+        delta_distance = old_distance - current_distance
+
+        reward = 0
+
+        if current_distance < self.REWARD_RANGE:
+            reward += 100
+
+        reward += delta_distance * 10
+
+        return reward
+
+    
 
         
