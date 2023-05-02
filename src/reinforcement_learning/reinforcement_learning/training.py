@@ -2,7 +2,7 @@ from environments import CarGoal
 
 import rclpy
 
-rclpy.init()
+# rclpy.init()
 
 def main():
     print('Hi from reinforcement_learning.')

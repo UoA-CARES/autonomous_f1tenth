@@ -18,7 +18,7 @@ def generate_launch_description():
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
     
-    ros_gz_bridge = Node(
+    service_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
         output='screen',
@@ -30,6 +30,25 @@ def generate_launch_description():
         ]
     )
 
+    car_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        output='screen',
+        arguments=[
+            f'/model/car/pose@geometry_msgs/msg/Pose@gz.msgs.Pose',
+        ]
+    )
+
+    f1tenth = Node(
+        package='ros_gz_bridge',
+        executable='create',
+        output='screen',
+        arguments=[
+                '-world', world,
+                '-name', name,
+                '-topic', topic,
+        ],
+    )
     gz_sim = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
@@ -40,24 +59,22 @@ def generate_launch_description():
 
     # TODO: add RL environment spin up here
 
-    training = Node(
-            package='reinforcement_learning',
-            executable='training',
-            output='screen',
-            arguments = ['world_path', 'world_name']
-    )
-
     car_goal = Node(
             package='environments',
             executable='CarGoal',
             output='screen',
+            emulate_tty=True,
+            arguments={
+                'hello': 'wporld'
+            }.items()
     )
 
     
     return LaunchDescription([
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
         gz_sim,
-        ros_gz_bridge,
+        service_bridge,
+        car_bridge,
         car_goal,
-        training
+        # training
 ])
