@@ -27,9 +27,20 @@ def main():
     cargoal = CarGoalEnvironment('f1tenth')
 
     cargoal.set_velocity(1, 1)
-    
+
+    state, _ = cargoal.reset()
+
     while True:
-        cargoal.reset()
+        next_state, reward, terminated, truncated, info = cargoal.step([1, 1])
+
+        print(
+            f'State: {state}'
+            f'\nNext State: {next_state}'
+            f'\nReward: {reward}'
+            f'\nTerminated: {terminated}'
+            f'\nTruncated: {truncated}'
+            f'\nInfo: {info}'
+        )
 
 
     
