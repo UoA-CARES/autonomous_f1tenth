@@ -2,6 +2,8 @@ from launch import LaunchDescription
 from launch_ros.actions import Node 
 import launch
 import os
+import json
+import xacro
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -39,16 +41,6 @@ def generate_launch_description():
         ]
     )
 
-    f1tenth = Node(
-        package='ros_gz_bridge',
-        executable='create',
-        output='screen',
-        arguments=[
-                '-world', world,
-                '-name', name,
-                '-topic', topic,
-        ],
-    )
     gz_sim = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
@@ -56,9 +48,8 @@ def generate_launch_description():
             'gz_args': '-r empty.sdf',
         }.items()
     )
-
-    # TODO: add RL environment spin up here
-
+    
+    # Launch the Environment
     car_goal = Node(
             package='environments',
             executable='CarGoal',
@@ -69,12 +60,39 @@ def generate_launch_description():
             }.items()
     )
 
+    # F1tenth Spawning
+    # TODO: move into own launch file - f1tenth_simulation.launch.py
+
+    xacro_file = os.path.join(pkg_f1tenth_description, 'urdf', 'robot.urdf.xacro')
+    robot_description = xacro.process_file(xacro_file).toxml()
+
+    spawn_args = {'entity_factory': {'name': 'car', 'sdf_filename': f'{pkg_f1tenth_description}/urdf/robot.urdf.xacro'}}
+    spawn_args = json.dumps(spawn_args)
+
+    f1tenth_ros = ExecuteProcess(
+            cmd=['ros2', 'service', 'call', '/world/empty/create', 'ros_gz_interfaces/srv/SpawnEntity', spawn_args],
+            output='screen')
     
+    f1tenth_gz = ExecuteProcess(
+            cmd=['gz', 'service', '-s', '/world/empty/create', '--reqtype', 'gz.msgs.EntityFactory', '--reptype', 'gz.msgs.Boolean', '--timeout', '1000', '--req', f'sdf: \"{robot_description}\", name: \"cool_car\"'],
+            output='screen')
+    
+    f1tenth_ros_gz = Node(
+            package='ros_gz_sim', executable='create',
+            arguments=[
+                '-world', 'empty',
+                '-name', 'f1tenth',
+                '-string', robot_description,
+            ],
+            output='screen'
+        )
+
     return LaunchDescription([
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
         gz_sim,
         service_bridge,
         car_bridge,
         car_goal,
-        # training
+        f1tenth_ros_gz,
+        # OpaqueFunction(function=spawn_func)
 ])
