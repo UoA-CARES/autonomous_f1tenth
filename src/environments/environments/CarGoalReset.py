@@ -46,7 +46,13 @@ class ResetService(Node):
         pass
 
 
+def main():
+    print('Reset Node')
 
+
+
+if __name__ == '__main__':
+    main()
 
     
 
