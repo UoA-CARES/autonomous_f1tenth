@@ -32,12 +32,14 @@ def generate_launch_description():
         ]
     )
 
+    # TODO: remove the hardcoding of topic name
     car_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
         output='screen',
         arguments=[
             f'/model/f1tenth/odometry@nav_msgs/msg/Odometry@gz.msgs.Odometry',
+            f'/model/f1tenth/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist',
         ]
     )
         # f'/model/{name}/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist',

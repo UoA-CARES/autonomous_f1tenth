@@ -26,6 +26,8 @@ def main():
     time.sleep(3)
     cargoal = CarGoalEnvironment('f1tenth')
 
+    cargoal.set_velocity(1, 1)
+    
     while True:
         cargoal.reset()
 
