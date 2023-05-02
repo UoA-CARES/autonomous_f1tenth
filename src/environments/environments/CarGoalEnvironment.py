@@ -2,6 +2,7 @@ from time import sleep
 
 import rclpy
 from rclpy.node import Node
+from rclpy import Future
 from rclpy.subscription import Subscription
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 
@@ -41,23 +42,26 @@ class CarGoalEnvironment(Node):
             )
 
         self.pose_sub = self.create_subscription(
-            Pose,
-            f'/model/{self.name}/pose',
+            Odometry,
+            f'/model/{self.name}/odometry',
             self.pose_callback,
             10
             )
         
+        self.pose_future = Future()
+
         self.reset_client = self.create_client(
             Trigger,
             'car_goal_reset'
         )
 
+        time.sleep(5)
         # while not self.reset_client.wait_for_service(timeout_sec=1.0):
         #     self.get_logger().info('reset service not available, waiting again...')
 
     def pose_callback(self, pose):
         self.get_logger().info('pose logged')
-        self.pose = pose
+        self.pose_future.set_result(pose)
 
     def set_velocity(self, linear: float, angular: float):
         velocity_msg = Twist()
@@ -66,13 +70,19 @@ class CarGoalEnvironment(Node):
 
         self.cmd_vel_pub.publish(velocity_msg)
 
+    def get_pose(self):
+        rclpy.spin_until_future_complete(self, self.pose_future)
+        future = self.pose_future
+        self.pose_future = Future()
+        return future.result()
+    
     def reset(self):
         
         time.sleep(self.step_length)
+        
+        thing = self.get_pose()
 
-        rclpy.spin_once(self)
-
-        self.get_logger().info(f'{self.pose}')
+        self.get_logger().info(f'{thing}')
 
         
 

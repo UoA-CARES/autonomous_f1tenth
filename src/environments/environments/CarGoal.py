@@ -23,9 +23,11 @@ def main():
 
     services.spawn(sdf_filename=f"{pkg_environments}/sdf/goal.sdf", pose=[1, 1, 1], name='goal')
 
-    # time.sleep(3)
-    # cargoal = CarGoalEnvironment('car')
-    # cargoal.reset()
+    time.sleep(3)
+    cargoal = CarGoalEnvironment('f1tenth')
+
+    while True:
+        cargoal.reset()
 
 
     
