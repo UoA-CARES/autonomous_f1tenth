@@ -17,65 +17,38 @@ from launch.actions import ExecuteProcess, DeclareLaunchArgument, OpaqueFunction
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
+    pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
     pkg_environments = get_package_share_directory('environments')
 
-
-    # TODO: remove the hardcoding of topic name
-    car_bridge = Node(
-        package='ros_gz_bridge',
-        executable='parameter_bridge',
-        output='screen',
-        arguments=[
-            f'/model/f1tenth/odometry@nav_msgs/msg/Odometry@gz.msgs.Odometry',
-            f'/model/f1tenth/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist',
-        ]
-    )
-        # f'/model/{name}/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist',
-        # f'/lidar@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan',
-        # f'/model/{name}/odometry@nav_msgs/msg/Odometry@gz.msgs.Odometry',
-        # # f'/model/{name}/tf@tf2_msgs/msg/TFMessage@gz.msgs.Pose_V',
-        # f'/world/{world}/model/{name}/joint_state@sensor_msgs/msg/JointState@gz.msgs.Model',
-        # f'/model/{name}/pose@geometry_msgs/msg/Pose@gz.msgs.Pose',
-
-    car_goal =  IncludeLaunchDescription(
+    environment =  IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_environments, 'cargoal.launch.py')),
+            os.path.join(pkg_environments, 'carwall.launch.py')),
         launch_arguments={
             'car_name': 'f1tenth',
         }.items() #TODO: this doesn't do anything
     )
     
-    # Launch the Environment
-    car_goal_main = Node(
-            package='environments',
-            executable='CarGoal',
-            output='screen',
-            emulate_tty=True,
-            arguments={
-                'hello': 'wporld'
-            }.items()
+    f1tenth = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            os.path.join(pkg_f1tenth_bringup, 'f1tenth_simulation.launch.py')),
+        launch_arguments={
+            'car_name': 'f1tenth',
+        }.items() #TODO: this doesn't do anything
     )
 
-    # F1tenth Spawning
-    # TODO: move into own launch file - f1tenth_simulation.launch.py
-    xacro_file = os.path.join(pkg_f1tenth_description, 'urdf', 'robot.urdf.xacro')
-    robot_description = xacro.process_file(xacro_file).toxml()
-    
-    f1tenth_ros_gz = Node(
-            package='ros_gz_sim', executable='create',
-            arguments=[
-                '-name', 'f1tenth',
-                '-string', robot_description,
-            ],
-            output='screen'
-        )
+    # Launch the Environment
+    main = Node(
+            package='reinforcement_learning',
+            executable='training',
+            output='screen',
+            emulate_tty=True, # Allows python print to show
+    )
 
     return LaunchDescription([
+        #TODO: Find a way to remove this
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
-        car_bridge,
-        car_goal,
-        car_goal_main,
-        f1tenth_ros_gz,
+        environment,
+        f1tenth,
+        main
 ])
