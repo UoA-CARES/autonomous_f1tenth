@@ -1,20 +1,9 @@
-from launch import LaunchDescription 
-from launch_ros.actions import Node 
-import launch
 import os
-import json
-import xacro
-
-from ament_index_python.packages import get_package_share_directory
-
 from ament_index_python import get_package_share_directory
+from launch_ros.actions import Node 
 from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
-from launch.actions import ExecuteProcess, DeclareLaunchArgument, OpaqueFunction, IncludeLaunchDescription, \
-    SetEnvironmentVariable
-
-from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription
 
 def generate_launch_description():
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')

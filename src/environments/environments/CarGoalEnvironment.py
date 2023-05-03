@@ -1,24 +1,15 @@
-from time import sleep
+import time
+import math
 
 import rclpy
 from rclpy.node import Node
 from rclpy import Future
-from rclpy.subscription import Subscription
-from message_filters import Subscriber, ApproximateTimeSynchronizer
 
-from geometry_msgs.msg import Twist, Pose
+from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import LaserScan
-
-from rclpy.executors import SingleThreadedExecutor
-from threading import Thread
 from std_srvs.srv import Trigger
 
-import random
-import numpy as np
-import time
-import subprocess
-import math
+
 
 class CarGoalEnvironment(Node):
     """

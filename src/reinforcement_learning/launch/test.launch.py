@@ -1,20 +1,9 @@
-from launch import LaunchDescription 
-from launch_ros.actions import Node 
-import launch
 import os
-import json
-import xacro
-
-from ament_index_python.packages import get_package_share_directory
-
 from ament_index_python import get_package_share_directory
+from launch_ros.actions import Node 
 from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
-from launch.actions import ExecuteProcess, DeclareLaunchArgument, OpaqueFunction, IncludeLaunchDescription, \
-    SetEnvironmentVariable
-
-from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
 
 def generate_launch_description():
     pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
@@ -23,7 +12,7 @@ def generate_launch_description():
 
     environment =  IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_environments, 'carwall.launch.py')),
+            os.path.join(pkg_environments, 'cargoal.launch.py')),
         launch_arguments={
             'car_name': 'f1tenth',
         }.items() #TODO: this doesn't do anything

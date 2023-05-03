@@ -1,12 +1,8 @@
 from simulation.simulation_services import SimulationServices #, ResetServices
+from environments.CarGoalEnvironment import CarGoalEnvironment
 import rclpy
 from ament_index_python import get_package_share_directory
-import os
-import xacro
-import sys
-import logging
 import time
-from environments.CarGoalEnvironment import CarGoalEnvironment
 
 def main():
     rclpy.init()
