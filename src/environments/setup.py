@@ -25,8 +25,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'CarGoal = environments.CarGoal:main',
-            'CarGoalReset = environments.CarGoalReset:main'
+            'CarGoalReset = environments.CarGoalReset:main',
+            'CarWallReset = environments.CarWallReset:main'
         ],
     },
 )
