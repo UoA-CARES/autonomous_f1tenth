@@ -34,9 +34,8 @@ def generate_launch_description():
     #TODO: Create CarWall Reset
     reset = Node(
             package='environments',
-            executable='CarGoalReset',
+            executable='CarWallReset',
             output='screen',
-            arguments=['-car_name', 'f1tenth']
     )
 
     return LaunchDescription([

@@ -1,6 +1,7 @@
 import time
 import math
 import numpy as np
+import random
 
 import rclpy
 from rclpy.node import Node
@@ -39,7 +40,7 @@ class CarWallEnvironment(Node):
             When the number of steps surpasses MAX_STEPS
     """
 
-    def __init__(self, car_name, reward_range=1, max_steps=15, collision_range=0.5, step_length=0.5):
+    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5):
         super().__init__('car_goal_environment')
         
         # Environment Details ----------------------------------------
@@ -83,11 +84,11 @@ class CarWallEnvironment(Node):
         # Reset Client -----------------------------------------------
         self.reset_client = self.create_client(
             Reset,
-            'car_goal_reset'
+            'car_wall_reset'
         )
 
-        # while not self.reset_client.wait_for_service(timeout_sec=1.0):
-        #     self.get_logger().info('reset service not available, waiting again...')
+        while not self.reset_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('reset service not available, waiting again...')
 
         time.sleep(2)
 
@@ -99,7 +100,12 @@ class CarWallEnvironment(Node):
     def reset(self):
         self.step_counter = 0
 
-        # Call reset Service
+
+        #TODO: Ensure the goal doesn't spawn too close to the car
+        #TODO: Remove Hard coded-ness of 10x10
+        #TODO: Ensure the goal doesn't spawn too close to the car
+        self.goal_position = list(np.random.uniform(low=-10, high=10, size=(2,))) 
+        self.call_reset_service()
 
         time.sleep(self.STEP_LENGTH)
         
@@ -126,6 +132,19 @@ class CarWallEnvironment(Node):
         info = {}
 
         return next_state, reward, terminated, truncated, info
+
+    def call_reset_service(self):
+        x, y = self.goal_position
+
+        request = Reset.Request()
+        request.x = x 
+        request.y = y
+
+        future = self.reset_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+
+        print(f'Reset Response Recieved: {future.result()}')
+        return future.result()
 
     def get_observation(self):
 
