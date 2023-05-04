@@ -10,7 +10,7 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from std_srvs.srv import Trigger
 from sensor_msgs.msg import LaserScan
-
+from environment_interfaces.srv import Reset
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 
 class CarWallEnvironment(Node):
@@ -82,7 +82,7 @@ class CarWallEnvironment(Node):
 
         # Reset Client -----------------------------------------------
         self.reset_client = self.create_client(
-            Trigger,
+            Reset,
             'car_goal_reset'
         )
 
