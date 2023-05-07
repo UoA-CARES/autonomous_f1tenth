@@ -9,12 +9,6 @@ def main():
     rclpy.init()
     
     # Share Directories
-    pkg_environments = get_package_share_directory('environments')
-    pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
-
-    services = SimulationServices('empty')
-
-    services.spawn(sdf_filename=f"{pkg_environments}/sdf/goal.sdf", pose=[1, 1, 1], name='goal')
 
     time.sleep(3)
     # env = CarGoalEnvironment('f1tenth')

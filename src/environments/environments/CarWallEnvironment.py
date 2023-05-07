@@ -40,7 +40,7 @@ class CarWallEnvironment(Node):
             When the number of steps surpasses MAX_STEPS
     """
 
-    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5):
+    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.5, step_length=0.5):
         super().__init__('car_goal_environment')
         
         # Environment Details ----------------------------------------
@@ -100,7 +100,7 @@ class CarWallEnvironment(Node):
     def reset(self):
         self.step_counter = 0
 
-
+        self.set_velocity(0, 0)
         #TODO: Ensure the goal doesn't spawn too close to the car
         #TODO: Remove Hard coded-ness of 10x10
         #TODO: Ensure the goal doesn't spawn too close to the car
@@ -168,6 +168,7 @@ class CarWallEnvironment(Node):
         reached_goal = current_distance <= self.REWARD_RANGE
 
         collided_wall = self.has_collided(observation[9:-2])
+
         return reached_goal or collided_wall
     
     def has_collided(self, lidar_ranges):
@@ -224,7 +225,7 @@ class CarWallEnvironment(Node):
         intensities = list(lidar.intensities)
         return ranges, intensities
 
-    def set_velocity(self, linear: float, angular: float):
+    def set_velocity(self, linear, angular):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
