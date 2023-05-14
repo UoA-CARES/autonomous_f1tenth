@@ -9,6 +9,7 @@ import random
 from cares_reinforcement_learning.algorithm import TD3
 from cares_reinforcement_learning.util import MemoryBuffer, helpers as hlp
 from cares_reinforcement_learning.util.Plot import Plot
+from .DataManager import DataManager
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 
 import numpy as np
@@ -61,8 +62,9 @@ def main():
     train(env=env, agent=agent)
 
 def train(env, agent: TD3):
-    plot = Plot(title=f'{TRAINING_NAME}_episode' ,plot_freq=100, checkpoint_freq=100)
-    step = Plot(title=f"{TRAINING_NAME}_steps", plot_freq=MAX_STEPS_TRAINING, checkpoint_freq=1_000)
+    ep = DataManager(name=f'{TRAINING_NAME}_episode' , checkpoint_freq=100)
+    step = DataManager(name=f"{TRAINING_NAME}_steps", checkpoint_freq=1_000)
+    
     memory = MemoryBuffer()
 
     episode_timesteps = 0
@@ -106,7 +108,7 @@ def train(env, agent: TD3):
             historical_reward["step"].append(total_step_counter)
             historical_reward["episode_reward"].append(episode_reward)
 
-            plot.post(episode_reward)
+            ep.post(episode_reward)
             # Reset environment
             state, _ = env.reset()
             episode_reward    = 0
@@ -114,9 +116,8 @@ def train(env, agent: TD3):
             episode_num += 1
 
     agent.save_models(TRAINING_NAME)
-    plot.save_csv()
+    ep.save_csv()
     step.save_csv()
-    plot.plot_average()
 
 if __name__ == '__main__':
     main()

@@ -24,7 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'car_goal_training = reinforcement_learning.car_goal_training:main',
-            'car_wall_testing= reinforcement_learning.car_wall_testing:main',
+            'car_goal_testing= reinforcement_learning.car_goal_testing:main',
             'car_wall_training = reinforcement_learning.car_wall_training:main'
         ],
     },

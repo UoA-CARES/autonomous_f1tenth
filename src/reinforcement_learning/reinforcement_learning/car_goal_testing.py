@@ -55,12 +55,16 @@ def main():
         action_num=ACTION_NUM,
         device=DEVICE
     )
-
+    
+    agent.load_models('training_logs/12-may-training-cargoal-success/', '12-may-cargoal-step-675000')
     test(env=env, agent=agent)
 
 def test(env, agent: TD3):
     state, _ = env.reset()    
-
+    episode_timesteps = 0
+    episode_reward = 0
+    episode_num = 0
+    
     for total_step_counter in range(int(MAX_TESTING_STEPS)):
         episode_timesteps += 1
 
