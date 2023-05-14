@@ -12,7 +12,7 @@ def generate_launch_description():
 
     environment =  IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_environments, 'carwall.launch.py')),
+            os.path.join(pkg_environments, 'cargoal.launch.py')),
         launch_arguments={
             'car_name': 'f1tenth',
         }.items() #TODO: this doesn't do anything
@@ -29,7 +29,7 @@ def generate_launch_description():
     # Launch the Environment
     main = Node(
             package='reinforcement_learning',
-            executable='training',
+            executable='car_goal_training',
             output='screen',
             emulate_tty=True, # Allows python print to show
     )

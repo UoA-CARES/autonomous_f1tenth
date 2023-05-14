@@ -32,7 +32,7 @@ def generate_launch_description():
     #TODO: This doesn't work yet
     reset = Node(
             package='environments',
-            executable='CarGoalReset',
+            executable='CarWallReset',
             output='screen',
             arguments=['-car_name', 'f1tenth']
     )

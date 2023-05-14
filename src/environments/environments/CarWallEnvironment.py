@@ -40,7 +40,7 @@ class CarWallEnvironment(Node):
             When the number of steps surpasses MAX_STEPS
     """
 
-    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.5, step_length=0.5):
+    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=1, step_length=0.5):
         super().__init__('car_goal_environment')
         
         # Environment Details ----------------------------------------
@@ -93,7 +93,7 @@ class CarWallEnvironment(Node):
         time.sleep(2)
 
         # TODO: generate goal
-        self.goal_position = [0, 0] # x and y
+        self.goal_position = [10, 10] # x and y
 
         time.sleep(5)
         
@@ -104,10 +104,10 @@ class CarWallEnvironment(Node):
         #TODO: Ensure the goal doesn't spawn too close to the car
         #TODO: Remove Hard coded-ness of 10x10
         #TODO: Ensure the goal doesn't spawn too close to the car
-        self.goal_position = list(np.random.uniform(low=-10, high=10, size=(2,))) 
+        self.goal_position = list(np.random.uniform(low=-8, high=8, size=(2,))) 
         self.call_reset_service()
 
-        time.sleep(self.STEP_LENGTH)
+        time.sleep(self.STEP_LENGTH * 2)
         
         observation = self.get_observation()
         
@@ -143,7 +143,7 @@ class CarWallEnvironment(Node):
         future = self.reset_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
-        print(f'Reset Response Recieved: {future.result()}')
+        # print(f'Reset Response Recieved: {future.result()}')
         return future.result()
 
     def get_observation(self):
@@ -153,8 +153,10 @@ class CarWallEnvironment(Node):
         odom = self.process_odom(odom)
         ranges, _ = self.process_lidar(lidar)
 
+        reduced_range = self.avg_reduce_lidar(lidar)
+        # print(reduced_range)
         # Get Goal Position
-        return odom + ranges + self.goal_position 
+        return odom + reduced_range + self.goal_position 
 
     def is_terminated(self, observation):
         """
@@ -190,9 +192,9 @@ class CarWallEnvironment(Node):
             reward += 100
 
         if self.has_collided(next_state[9:-2]):
-            reward -= 50 # TODO: find optimal value for this
+            reward -= 25 # TODO: find optimal value for this
         
-        reward += delta_distance * 10
+        reward += delta_distance
 
         return reward
 
@@ -224,6 +226,19 @@ class CarWallEnvironment(Node):
 
         intensities = list(lidar.intensities)
         return ranges, intensities
+
+    def avg_reduce_lidar(self, lidar: LaserScan):
+        ranges = lidar.ranges
+        ranges = np.nan_to_num(ranges, posinf=float(10))
+        ranges = list(ranges)
+        
+        reduced_range = []
+
+        for i in range(10):
+            avg = sum(ranges[i * 64 : i * 64 + 64]) / 64
+            reduced_range.append(avg)
+
+        return reduced_range
 
     def set_velocity(self, linear, angular):
         """

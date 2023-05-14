@@ -32,7 +32,7 @@ class CarWallReset(Node):
 
     def service_callback(self, request, response):
 
-        self.get_logger().info(f'Reset Service Request Received: relocating goal to x={request.x} y={request.y}')
+        # self.get_logger().info(f'Reset Service Request Received: relocating goal to x={request.x} y={request.y}')
 
         goal_req = self.create_request('goal', x=request.x, y=request.y, z=1)
         car_req = self.create_request('f1tenth')
@@ -44,7 +44,7 @@ class CarWallReset(Node):
         self.set_pose_client.call(goal_req)
         self.set_pose_client.call(car_req)
 
-        self.get_logger().info('Successfully Reset')
+        # self.get_logger().info('Successfully Reset')
         response.success = True
 
         return response
@@ -77,7 +77,7 @@ def main():
     services.spawn(sdf_filename=f"{pkg_environments}/sdf/goal.sdf", pose=[1, 1, 1], name='goal')
 
     reset_service.get_logger().info('Environment Spawning Complete')
-    
+
     executor = MultiThreadedExecutor()
     executor.add_node(reset_service)
     

@@ -57,7 +57,7 @@ class LidarActor(nn.Module):
         return x
     
 class Actor(nn.Module):
-    def __init__(self, observation_size, num_actions, learning_rate, max_action):
+    def __init__(self, observation_size, num_actions, learning_rate):
         super(Actor, self).__init__()
 
         if torch.cuda.is_available():
@@ -65,9 +65,7 @@ class Actor(nn.Module):
         else:
             self.device = torch.device('cpu')
 
-        self.max_action = max_action
-
-        self.hidden_size = [128, 64, 32]
+        self.hidden_size = [1024, 1024, 1024]
 
         self.h_linear_1 = nn.Linear(in_features=observation_size, out_features=self.hidden_size[0])
         self.h_linear_2 = nn.Linear(in_features=self.hidden_size[0], out_features=self.hidden_size[1])

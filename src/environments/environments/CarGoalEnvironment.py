@@ -1,5 +1,7 @@
 import time
 import math
+import numpy as np
+import random
 
 import rclpy
 from rclpy.node import Node
@@ -8,7 +10,7 @@ from rclpy import Future
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from std_srvs.srv import Trigger
-
+from environment_interfaces.srv import Reset
 
 
 class CarGoalEnvironment(Node):
@@ -35,7 +37,7 @@ class CarGoalEnvironment(Node):
             When the number of steps surpasses MAX_STEPS
     """
 
-    def __init__(self, car_name, reward_range=1, max_steps=15, collision_range=0.5, step_length=0.5):
+    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.5, step_length=0.5):
         super().__init__('car_goal_environment')
         
         # Environment Details ----------------------------------------
@@ -65,24 +67,30 @@ class CarGoalEnvironment(Node):
 
         # Reset Client -----------------------------------------------
         self.reset_client = self.create_client(
-            Trigger,
-            'car_goal_reset'
+            Reset,
+            'car_wall_reset'
         )
 
-        # while not self.reset_client.wait_for_service(timeout_sec=1.0):
-        #     self.get_logger().info('reset service not available, waiting again...')
+        while not self.reset_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('reset service not available, waiting again...')
 
         time.sleep(2)
 
         # TODO: generate goal
         self.goal_position = [0, 0] # x and y
 
-        time.sleep(5)
         
     def reset(self):
         self.step_counter = 0
 
         # Call reset Service
+        self.set_velocity(0, 0)
+        
+        self.goal_position = self.generate_goal()
+
+        time.sleep(self.STEP_LENGTH)
+
+        self.call_reset_service()
 
         time.sleep(self.STEP_LENGTH)
         
@@ -91,6 +99,18 @@ class CarGoalEnvironment(Node):
         info = {}
 
         return observation, info
+
+    def generate_goal(self, inner_bound=3, outer_bound=7):
+        inner_bound = float(inner_bound)
+        outer_bound = float(outer_bound)
+
+        x_pos = random.uniform(-outer_bound, outer_bound)
+        x_pos = x_pos + inner_bound if x_pos >= 0 else x_pos - inner_bound
+        y_pos = random.uniform(-outer_bound, outer_bound)
+        y_pos = y_pos + inner_bound if y_pos >= 0 else y_pos - inner_bound
+
+        return [x_pos, y_pos]
+
 
     def step(self, action):
         self.step_counter += 1
@@ -119,6 +139,19 @@ class CarGoalEnvironment(Node):
         # Get Goal Position
         return odom + self.goal_position
 
+    def call_reset_service(self):
+        x, y = self.goal_position
+
+        request = Reset.Request()
+        request.x = x 
+        request.y = y
+
+        future = self.reset_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+
+        # print(f'Reset Response Recieved: {future.result()}')
+        return future.result()
+    
     def is_terminated(self, observation):
         current_distance = math.dist(observation[-2:], observation[:2])
         return current_distance <= self.REWARD_RANGE
@@ -132,12 +165,13 @@ class CarGoalEnvironment(Node):
 
         delta_distance = old_distance - current_distance
 
-        reward = 0
+        reward = -0.25
+        reward += next_state[6] / 5
 
         if current_distance < self.REWARD_RANGE:
             reward += 100
 
-        reward += delta_distance * 10
+        reward += delta_distance
 
         return reward
     
