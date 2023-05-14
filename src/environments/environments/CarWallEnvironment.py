@@ -101,19 +101,32 @@ class CarWallEnvironment(Node):
         self.step_counter = 0
 
         self.set_velocity(0, 0)
-        #TODO: Ensure the goal doesn't spawn too close to the car
+
         #TODO: Remove Hard coded-ness of 10x10
-        #TODO: Ensure the goal doesn't spawn too close to the car
-        self.goal_position = list(np.random.uniform(low=-8, high=8, size=(2,))) 
+        self.goal_position = self.generate_goal()
+
+        time.sleep(self.STEP_LENGTH)
+
         self.call_reset_service()
 
-        time.sleep(self.STEP_LENGTH * 2)
+        time.sleep(self.STEP_LENGTH)
         
         observation = self.get_observation()
         
         info = {}
 
         return observation, info
+
+    def generate_goal(self, inner_bound=3, outer_bound=7):
+        inner_bound = float(inner_bound)
+        outer_bound = float(outer_bound)
+
+        x_pos = random.uniform(-outer_bound, outer_bound)
+        x_pos = x_pos + inner_bound if x_pos >= 0 else x_pos - inner_bound
+        y_pos = random.uniform(-outer_bound, outer_bound)
+        y_pos = y_pos + inner_bound if y_pos >= 0 else y_pos - inner_bound
+
+        return [x_pos, y_pos]
 
     def step(self, action):
         self.step_counter += 1
@@ -186,7 +199,8 @@ class CarWallEnvironment(Node):
 
         delta_distance = old_distance - current_distance
 
-        reward = 0
+        reward = -0.25
+        reward += next_state[6] / 5
 
         if current_distance < self.REWARD_RANGE:
             reward += 100

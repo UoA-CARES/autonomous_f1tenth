@@ -24,7 +24,7 @@ def generate_launch_description():
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
         launch_arguments={
-            'gz_args': '-r empty.sdf',
+            'gz_args': '-s -r empty.sdf',
         }.items()
     )
 
