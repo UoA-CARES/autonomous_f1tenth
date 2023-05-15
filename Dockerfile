@@ -22,9 +22,8 @@ RUN . /opt/ros/humble/setup.bash && \
 
 RUN git clone https://github.com/UoA-CARES/cares_reinforcement_learning.git
 
-WORKDIR /ws/cares_reinforcement_learning
-
-RUN pip3 install -r requirements.txt && \
+RUN cd cares_reinforcement_learning && \
+    pip3 install -r requirements.txt && \
     pip3 install --editable .
 
 RUN echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && \
