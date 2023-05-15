@@ -27,7 +27,7 @@ class DataManager:
         self.y_data.append(y_point)
 
         if self.plot_num % self.checkpoint_freq == 0:
-            self.save_csv(f'{self.name}-checkpoint-{len(self.x_data)}.csv')
+            self.save_csv(f'{self.name}-checkpoint.csv')
 
     def save_csv(self, file_name=str(uuid.uuid4().hex)):
         dir_exists = os.path.exists("data")
