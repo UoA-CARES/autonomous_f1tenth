@@ -3,7 +3,6 @@ install
 log
 data
 notes
-models
 training_logs
 checkpoint
 cares_reinforcement_learning
