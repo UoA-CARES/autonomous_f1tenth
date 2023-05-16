@@ -2,6 +2,7 @@ build
 install
 log
 data
+models
 notes
 training_logs
 checkpoint
