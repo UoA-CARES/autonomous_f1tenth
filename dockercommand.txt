@@ -1,0 +1,1 @@
+docker run --rm -it --network host --gpus all -e DISPLAY -e GZ_PARTITION=10 -v "$PWD/data:/ws/data" -v "$PWD/models:/ws/models" -v "$PWD/figures:/ws/figures" autonomous_f1tenth:latest bash

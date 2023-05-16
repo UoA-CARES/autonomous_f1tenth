@@ -12,7 +12,6 @@ xhost +
 docker run --rm -it \
     --network host \
     --gpus all \
-    --privileged \
     -e NVIDIA_VISIBLE_DEVICES=all \
     -e NVIDIA_DRIVER_COMPABILITIES=all \
     -e QT_X11_NO_MITSHM=1 \
@@ -24,7 +23,6 @@ docker run --rm -it \
     -v "$PWD/models:/ws/models" \
     -v "$PWD/figures:/ws/figures" \
     -v "$PWD/src:/ws/src" \
-    -v "/tmp/.X11-unix/:/tmp/.X11-unix" \
     autonomous_f1tenth:latest \
     bash
  
