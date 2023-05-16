@@ -11,6 +11,7 @@ from cares_reinforcement_learning.util import MemoryBuffer, helpers as hlp
 from cares_reinforcement_learning.util.Plot import Plot
 from .DataManager import DataManager
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
+from datetime import datetime
 
 import numpy as np
 
@@ -36,7 +37,7 @@ OBSERVATION_SIZE = 8 + 10 + 2 # Car position + Lidar rays + goal position
 ACTION_NUM = 2
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-TRAINING_NAME = 'carwall_training'
+TRAINING_NAME = 'carwall_training-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
 
 def main():
     rclpy.init()
