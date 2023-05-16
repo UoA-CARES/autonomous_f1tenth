@@ -15,21 +15,50 @@ from datetime import datetime
 
 import numpy as np
 
-MAX_STEPS_TRAINING = 1_000_000
-MAX_STEPS_EXPLORATION = 100_000
+rclpy.init()
 
-GAMMA = 0.95
-TAU = 0.005
-G = 10
+param_node = rclpy.create_node('params')
+param_node.declare_parameters(
+    '',
+    [
+        ('gamma', 0.95),
+        ('tau', 0.005),
+        ('g', 10),
+        ('batch_size', 32),
+        ('buffer_size', 32),
+        ('seed', 123), #TODO: This doesn't do anything yet
+        ('actor_lr', 1e-4),
+        ('critic_lr', 1e-3),
+        ('max_steps_training', 1_000_000),
+        ('max_steps_exploration', 1_000)
+    ]
+)
 
-BATCH_SIZE = 32
-BUFFER_SIZE = 1_000_000
+params = param_node.get_parameters([
+    'max_steps_training',
+    'max_steps_exploration', 
+    'gamma', 
+    'tau', 
+    'g', 
+    'batch_size', 
+    'buffer_size', 
+    'seed', 
+    'actor_lr', 
+    'critic_lr'
+    ])
 
-SEED = 123
+MAX_STEPS_TRAINING,\
+MAX_STEPS_EXPLORATION,\
+GAMMA,\
+TAU,\
+G,\
+BATCH_SIZE,\
+BUFFER_SIZE,\
+SEED,\
+ACTOR_LR,\
+CRITIC_LR = [param.value for param in params]
 
-ACTOR_LR = 1e-4
-CRITIC_LR = 1e-3
-
+print(GAMMA, G, MAX_STEPS_TRAINING)
 MAX_ACTIONS = np.asarray([3, 1])
 MIN_ACTIONS = np.asarray([0, -1])
 
@@ -40,12 +69,8 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 TRAINING_NAME = 'carwall_training-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
 
 def main():
-    rclpy.init()
-    
-    # Share Directories
-
     time.sleep(3)
-    # env = CarGoalEnvironment('f1tenth', step_length=0.25, max_steps=100)
+
     env = CarWallEnvironment('f1tenth', step_length=0.25, max_steps=100)
     
     actor = Actor(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=ACTOR_LR)
@@ -95,8 +120,8 @@ def train(env, agent: TD3):
 
         step.post(reward)
 
-        if total_step_counter % 25_000 == 0:
-            agent.save_models(f'{TRAINING_NAME}-{total_step_counter}')
+        if total_step_counter % 50_000 == 0:
+            agent.save_models(f'{TRAINING_NAME}_{total_step_counter}')
 
         if total_step_counter >= MAX_STEPS_EXPLORATION:
                 for _ in range(G):

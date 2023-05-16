@@ -26,10 +26,19 @@ def generate_launch_description():
         }.items() #TODO: this doesn't do anything
     )
 
+    config = os.path.join(
+        get_package_share_directory('reinforcement_learning'),
+        'car_wall.yaml'
+    )
+
     # Launch the Environment
     main = Node(
             package='reinforcement_learning',
             executable='car_wall_training',
+            parameters=[
+                config
+            ],
+            name='car_wall_training',
             output='screen',
             emulate_tty=True, # Allows python print to show
     )
