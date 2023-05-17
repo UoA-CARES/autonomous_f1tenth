@@ -89,7 +89,7 @@ def main():
 
 def train(env, agent: TD3):
     ep = DataManager(name=f'{TRAINING_NAME}_episode' , checkpoint_freq=100)
-    step = DataManager(name=f"{TRAINING_NAME}_steps", checkpoint_freq=1_000)
+    step = DataManager(name=f"{TRAINING_NAME}_steps", checkpoint_freq=10_000)
     
     memory = MemoryBuffer()
 
