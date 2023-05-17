@@ -1,5 +1,3 @@
-# car_wall_training:
-#   ros__parameters:
-#     gamma: 239.32
-#     g: 213
-#     max_steps_training: 123456
+car_wall_training:
+  ros__parameters:
+    max_steps_exploration: 1000
