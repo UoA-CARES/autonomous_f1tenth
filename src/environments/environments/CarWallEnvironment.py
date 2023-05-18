@@ -235,7 +235,7 @@ class CarWallEnvironment(Node):
 
     def process_lidar(self, lidar: LaserScan):
         ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(10))
+        ranges = np.nan_to_num(ranges, posinf=float(-1))
         ranges = list(ranges)
 
         intensities = list(lidar.intensities)
