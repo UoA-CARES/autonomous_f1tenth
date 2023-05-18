@@ -117,7 +117,7 @@ class CarWallEnvironment(Node):
 
         return observation, info
 
-    def generate_goal(self, inner_bound=3, outer_bound=7):
+    def generate_goal(self, inner_bound=3, outer_bound=5):
         inner_bound = float(inner_bound)
         outer_bound = float(outer_bound)
 
