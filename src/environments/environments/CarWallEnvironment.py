@@ -187,7 +187,7 @@ class CarWallEnvironment(Node):
         return reached_goal or collided_wall
     
     def has_collided(self, lidar_ranges):
-        return any(ray < self.COLLISION_RANGE for ray in lidar_ranges)
+        return any(0 < ray < self.COLLISION_RANGE for ray in lidar_ranges)
         
     
     def compute_reward(self, state, next_state):
