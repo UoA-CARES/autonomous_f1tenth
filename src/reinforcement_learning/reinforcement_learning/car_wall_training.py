@@ -101,6 +101,7 @@ def train(env, agent: TD3):
 
     historical_reward = {"step": [], "episode_reward": []}    
 
+
     for total_step_counter in range(int(MAX_STEPS_TRAINING)):
         episode_timesteps += 1
 
@@ -119,6 +120,8 @@ def train(env, agent: TD3):
         episode_reward += reward
 
         step.post(reward)
+
+        # rate.sleep()
 
         if total_step_counter % 50_000 == 0:
             agent.save_models(f'{TRAINING_NAME}_{total_step_counter}')
