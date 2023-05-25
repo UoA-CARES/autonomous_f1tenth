@@ -198,9 +198,8 @@ class CarWallEnvironment(Node):
         current_distance = math.dist(goal_position, next_state[:2])
 
         delta_distance = old_distance - current_distance
-
-        reward = -0.25
-        # reward += next_state[6] / 5
+        
+        reward = 0
 
         if current_distance < self.REWARD_RANGE:
             reward += 100
