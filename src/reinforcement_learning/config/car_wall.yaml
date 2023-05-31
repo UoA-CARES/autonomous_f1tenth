@@ -1,3 +1,4 @@
 car_wall_training:
   ros__parameters:
     max_steps_exploration: 1000
+    g: 5
