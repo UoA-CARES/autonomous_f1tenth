@@ -128,8 +128,8 @@ def train(env, agent: TD3):
             agent.save_models(f'{TRAINING_NAME}_{total_step_counter}')
 
         if total_step_counter >= MAX_STEPS_EXPLORATION:
-                for _ in range(G):
-                    experiences = memory.sample(BATCH_SIZE * MAX_STEPS)
+                for _ in range(G * MAX_STEPS):
+                    experiences = memory.sample(BATCH_SIZE)
                     agent.train_policy(experiences)
 
         if done or truncated:
