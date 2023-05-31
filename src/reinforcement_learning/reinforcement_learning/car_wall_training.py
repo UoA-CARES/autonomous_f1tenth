@@ -127,13 +127,14 @@ def train(env, agent: TD3):
         if total_step_counter % 50_000 == 0:
             agent.save_models(f'{TRAINING_NAME}_{total_step_counter}')
 
-        if total_step_counter >= MAX_STEPS_EXPLORATION:
+        
+
+        if done or truncated:
+            if total_step_counter >= MAX_STEPS_EXPLORATION:
                 for _ in range(G * MAX_STEPS):
                     experiences = memory.sample(BATCH_SIZE)
                     agent.train_policy(experiences)
-
-        if done or truncated:
-
+                    
             print(f"Total T:{total_step_counter+1} Episode {episode_num+1} was completed with {episode_timesteps} steps taken and a Reward= {episode_reward:.3f}")
 
             historical_reward["step"].append(total_step_counter)
