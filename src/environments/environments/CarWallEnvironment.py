@@ -40,7 +40,7 @@ class CarWallEnvironment(Node):
             When the number of steps surpasses MAX_STEPS
     """
 
-    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5):
+    def __init__(self, car_name, reward_range=0.2, max_steps=50, collision_range=0.2, step_length=0.5):
         super().__init__('car_goal_environment')
         
         # Environment Details ----------------------------------------
@@ -207,7 +207,7 @@ class CarWallEnvironment(Node):
         if self.has_collided(next_state[9:-2]):
             reward -= 25 # TODO: find optimal value for this
         
-        reward += delta_distance
+        # reward += delta_distance
 
         return reward
 
