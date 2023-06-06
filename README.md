@@ -17,7 +17,7 @@ Build the docker container
 
 Spin up the container using:
 ```bash
-docker run --rm -it --network host --gpus all -e DISPLAY -e GZ_PARTITION=<partition num> ROS_DOMAIN_ID=<domain_id> -v "$PWD/data:/ws/data" -v "$PWD/models:/ws/models" -v "$PWD/figures:/ws/figures" autonomous_f1tenth:latest bash
+docker run --rm -it --network host --gpus all -e DISPLAY -e GZ_PARTITION=<partition num> -e ROS_DOMAIN_ID=<domain_id> -v "$PWD/data:/ws/data" -v "$PWD/models:/ws/models" -v "$PWD/figures:/ws/figures" autonomous_f1tenth:latest bash
 
 # By convention, GZ_PARTITION and ROS_DOMAIN_ID are the same
 ```
