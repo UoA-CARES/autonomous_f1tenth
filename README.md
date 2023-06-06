@@ -32,5 +32,5 @@ Source the underlay:
 Use ros2 to launch the simulation:
 ```bash
 # Example: If I wanted to launch the cargoal training
-ros2 launch reinforcement_learning cargoal.launch.py
+ros2 launch reinforcement_learning car_goal.launch.py
 ```
