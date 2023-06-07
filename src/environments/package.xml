@@ -13,6 +13,7 @@
   <test_depend>python3-pytest</test_depend>
   <depend>simulation</depend>
   <depend>f1tenth_description</depend>
+  <depend>f1tenth_control</depend>
   <export>
     <build_type>ament_python</build_type>
   </export>
