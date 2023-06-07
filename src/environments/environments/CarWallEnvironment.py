@@ -55,14 +55,14 @@ class CarWallEnvironment(Node):
         # Pub/Sub ----------------------------------------------------
         self.cmd_vel_pub = self.create_publisher(
                 Twist,
-                f'/model/{self.NAME}/cmd_vel',
+                f'/{self.NAME}/cmd_vel',
                 10
             )
         
         self.odom_sub = Subscriber(
             self,
             Odometry,
-            f'/model/{self.NAME}/odometry',
+            f'/{self.NAME}/odometry',
         )
         # TODO: Map the lidar to a dynamic topic => of the form /model/<name>/lidar
         self.lidar_sub = Subscriber(
@@ -133,7 +133,8 @@ class CarWallEnvironment(Node):
 
         state = self.get_observation()
 
-        lin_vel, ang_vel = action
+        lin_vel, left, right = action
+        ang_vel = left - right
         self.set_velocity(lin_vel, ang_vel)
 
         time.sleep(self.STEP_LENGTH)

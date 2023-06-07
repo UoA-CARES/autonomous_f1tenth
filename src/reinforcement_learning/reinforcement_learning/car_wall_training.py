@@ -131,6 +131,8 @@ def train(env, agent: TD3):
         if total_step_counter >= MAX_STEPS_EXPLORATION:
                 for _ in range(G):
                     experiences = memory.sample(BATCH_SIZE)
+                    experiences = (experiences['state'], experiences['action'], experiences['reward'], experiences['next_state'], experiences['done'])
+                    # print(experiences)
                     agent.train_policy(experiences)
 
         if done or truncated:
