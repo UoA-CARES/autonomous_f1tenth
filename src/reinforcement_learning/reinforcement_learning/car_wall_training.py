@@ -30,7 +30,8 @@ param_node.declare_parameters(
         ('actor_lr', 1e-4),
         ('critic_lr', 1e-3),
         ('max_steps_training', 1_000_000),
-        ('max_steps_exploration', 1_000)
+        ('max_steps_exploration', 1_000),
+        ('max_steps', 100)
     ]
 )
 
@@ -44,7 +45,8 @@ params = param_node.get_parameters([
     'buffer_size', 
     'seed', 
     'actor_lr', 
-    'critic_lr'
+    'critic_lr',
+    'max_steps'
     ])
 
 MAX_STEPS_TRAINING,\
@@ -56,9 +58,22 @@ BATCH_SIZE,\
 BUFFER_SIZE,\
 SEED,\
 ACTOR_LR,\
-CRITIC_LR = [param.value for param in params]
+CRITIC_LR,\
+MAX_STEPS = [param.value for param in params]
 
-print(GAMMA, G, MAX_STEPS_TRAINING)
+print(
+    f'Exploration Steps: {MAX_STEPS_EXPLORATION}\n',
+    f'Training Steps: {MAX_STEPS_TRAINING}\n',
+    f'Gamma: {GAMMA}\n',
+    f'Tau: {TAU}\n',
+    f'G: {G}\n',
+    f'Batch Size: {BATCH_SIZE}\n',
+    f'Buffer Size: {BUFFER_SIZE}\n',
+    f'Seed: {SEED}\n',
+    f'Actor LR: {ACTOR_LR}\n',
+    f'Critic LR: {CRITIC_LR}\n',
+    f'Steps per Episode: {MAX_STEPS}\n'
+)
 MAX_ACTIONS = np.asarray([3, 1, 1])
 MIN_ACTIONS = np.asarray([0, 0, 0])
 
@@ -67,7 +82,6 @@ ACTION_NUM = 3
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 TRAINING_NAME = 'carwall_training-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
-MAX_STEPS = 100
 
 def main():
     time.sleep(3)
