@@ -74,11 +74,11 @@ print(
     f'Critic LR: {CRITIC_LR}\n',
     f'Steps per Episode: {MAX_STEPS}\n'
 )
-MAX_ACTIONS = np.asarray([3, 1, 1])
-MIN_ACTIONS = np.asarray([0, 0, 0])
+MAX_ACTIONS = np.asarray([3, 1])
+MIN_ACTIONS = np.asarray([0, -1])
 
 OBSERVATION_SIZE = 8 + 10 + 2 # Car position + Lidar rays + goal position
-ACTION_NUM = 3
+ACTION_NUM = 2
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 TRAINING_NAME = 'carwall_training-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
@@ -122,7 +122,7 @@ def train(env, agent: TD3):
 
         if total_step_counter < MAX_STEPS_EXPLORATION:
             print(f"Running Exploration Steps {total_step_counter}/{MAX_STEPS_EXPLORATION}")
-            action_env = np.asarray([random.uniform(0, 3), random.uniform(0, 1), random.uniform(0, 1)]) # action range the env uses [e.g. -2 , 2 for pendulum]
+            action_env = np.asarray([random.uniform(0, 3), random.uniform(-1, 1)]) # action range the env uses [e.g. -2 , 2 for pendulum]
             action = hlp.normalize(action_env, MAX_ACTIONS, MIN_ACTIONS)  # algorithm range [-1, 1]
         else:
             action = agent.select_action_from_policy(state) # algorithm range [-1, 1]

@@ -133,8 +133,7 @@ class CarWallEnvironment(Node):
 
         state = self.get_observation()
 
-        lin_vel, left, right = action
-        ang_vel = left - right
+        lin_vel, ang_vel = action
         self.set_velocity(lin_vel, ang_vel)
 
         time.sleep(self.STEP_LENGTH)
