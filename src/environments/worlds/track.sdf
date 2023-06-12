@@ -74,7 +74,7 @@
     </model>
     <model name="track">
         <static>true</static>
-        <pose>0 0 0 0 0 0</pose>
+        <pose>0 0 -9 0 0 0</pose>
         <link name="track">
             <visual name='track_vis'>
                 <geometry>
