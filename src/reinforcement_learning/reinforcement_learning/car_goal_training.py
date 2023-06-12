@@ -25,7 +25,7 @@ param_node.declare_parameters(
         ('tau', 0.005),
         ('g', 10),
         ('batch_size', 32),
-        ('buffer_size', 32),
+        ('buffer_size', 1000000),
         ('seed', 123), #TODO: This doesn't do anything yet
         ('actor_lr', 1e-4),
         ('critic_lr', 1e-3),

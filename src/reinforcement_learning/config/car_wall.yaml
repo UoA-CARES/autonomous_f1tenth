@@ -1,4 +1,14 @@
 car_wall_training:
   ros__parameters:
     max_steps_exploration: 5000
-    g: 5
+    max_steps_training: 1000000
+    # gamma: 0.95
+    # tau: 0.005
+    # g: 5
+    # batch_size: 32
+    # buffer_size: 1000000
+    # actor_lr: 0.0001
+    # critic_lr: 0.001
+    # max_steps: 100
+    # step_length: 0.25
+    # seed: 123
