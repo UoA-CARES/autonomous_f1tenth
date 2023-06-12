@@ -90,12 +90,12 @@ class CarWallEnvironment(Node):
         while not self.reset_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('reset service not available, waiting again...')
 
-        time.sleep(2)
-
         self.goal_position = [10, 10] # x and y
 
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
+
+        self.get_logger().info('Environment Setup Complete')
     
     def timer_cb(self):
         self.timer_future.set_result(True)
