@@ -92,11 +92,14 @@ class CarWallEnvironment(Node):
 
         time.sleep(2)
 
-        # TODO: generate goal
         self.goal_position = [10, 10] # x and y
 
-        time.sleep(5)
-        
+        self.timer = self.create_timer(0.25, self.timer_cb)
+        self.timer_future = Future()
+    
+    def timer_cb(self):
+        self.timer_future.set_result(True)
+
     def reset(self):
         self.step_counter = 0
 
@@ -105,11 +108,17 @@ class CarWallEnvironment(Node):
         #TODO: Remove Hard coded-ness of 10x10
         self.goal_position = self.generate_goal()
 
-        time.sleep(self.STEP_LENGTH)
+        # time.sleep(self.STEP_LENGTH)
+
+        # print('Entering sleep')
+        while not self.timer_future.done():
+            rclpy.spin_once(self)
+        
+        # print('Exiting Sleep')
+        self.timer_future = Future()
 
         self.call_reset_service()
 
-        time.sleep(self.STEP_LENGTH)
         
         observation = self.get_observation()
         
@@ -136,7 +145,10 @@ class CarWallEnvironment(Node):
         lin_vel, ang_vel = action
         self.set_velocity(lin_vel, ang_vel)
 
-        time.sleep(self.STEP_LENGTH)
+        while not self.timer_future.done():
+            rclpy.spin_once(self)
+
+        self.timer_future = Future()
         
         next_state = self.get_observation()
         reward = self.compute_reward(state, next_state)
