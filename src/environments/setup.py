@@ -15,6 +15,7 @@ setup(
         (os.path.join('share', package_name), glob('launch/*launch.[pxy][yma]*')),
         (os.path.join('share', package_name, 'sdf'), glob('sdf/*')),
         (os.path.join('share', package_name, 'worlds'), glob('worlds/*')),
+        (os.path.join('share', package_name, 'meshes'), glob('meshes/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
