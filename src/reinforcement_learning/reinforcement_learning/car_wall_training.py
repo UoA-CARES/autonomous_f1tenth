@@ -31,7 +31,8 @@ param_node.declare_parameters(
         ('critic_lr', 1e-3),
         ('max_steps_training', 1_000_000),
         ('max_steps_exploration', 1_000),
-        ('max_steps', 100)
+        ('max_steps', 100),
+        ('step_length', 0.25)
     ]
 )
 
@@ -46,7 +47,8 @@ params = param_node.get_parameters([
     'seed', 
     'actor_lr', 
     'critic_lr',
-    'max_steps'
+    'max_steps',
+    'step_length',
     ])
 
 MAX_STEPS_TRAINING,\
@@ -59,7 +61,8 @@ BUFFER_SIZE,\
 SEED,\
 ACTOR_LR,\
 CRITIC_LR,\
-MAX_STEPS = [param.value for param in params]
+MAX_STEPS,\
+STEP_LENGTH = [param.value for param in params]
 
 print(
     f'Exploration Steps: {MAX_STEPS_EXPLORATION}\n',
@@ -72,7 +75,8 @@ print(
     f'Seed: {SEED}\n',
     f'Actor LR: {ACTOR_LR}\n',
     f'Critic LR: {CRITIC_LR}\n',
-    f'Steps per Episode: {MAX_STEPS}\n'
+    f'Steps per Episode: {MAX_STEPS}\n',
+    f'Step Length: {STEP_LENGTH}\n'
 )
 MAX_ACTIONS = np.asarray([3, 5])
 MIN_ACTIONS = np.asarray([0, -5])
@@ -86,7 +90,7 @@ TRAINING_NAME = 'carwall_training-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S
 def main():
     time.sleep(3)
 
-    env = CarWallEnvironment('f1tenth', step_length=0.25, max_steps=MAX_STEPS)
+    env = CarWallEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS)
     
     actor = Actor(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=ACTOR_LR)
     critic = Critic(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=CRITIC_LR)
