@@ -1,6 +1,6 @@
 import os
 from ament_index_python import get_package_share_directory
-from launch_ros.actions import Node 
+from launch_ros.actions import Node, SetParameter
 from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
@@ -47,6 +47,7 @@ def generate_launch_description():
     return LaunchDescription([
         #TODO: Find a way to remove this
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
+        SetParameter(name='use_sim_time', value=True),
         environment,
         f1tenth,
         main

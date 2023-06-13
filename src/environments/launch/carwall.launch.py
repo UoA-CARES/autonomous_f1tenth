@@ -18,7 +18,11 @@ def generate_launch_description():
             f'/world/empty/create@ros_gz_interfaces/srv/SpawnEntity',
             f'/world/empty/remove@ros_gz_interfaces/srv/DeleteEntity',
             f'/world/empty/set_pose@ros_gz_interfaces/srv/SetEntityPose',
-        ]
+            f'/world/empty/clock@rosgraph_msgs/msg/Clock@gz.msgs.Clock'
+        ],
+        remappings=[
+            (f'/world/empty/clock', f'/clock'),
+        ],
     )
 
     gz_sim = IncludeLaunchDescription(
