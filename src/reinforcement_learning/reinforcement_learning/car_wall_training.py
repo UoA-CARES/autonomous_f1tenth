@@ -25,14 +25,14 @@ param_node.declare_parameters(
         ('tau', 0.005),
         ('g', 10),
         ('batch_size', 32),
-        ('buffer_size', 32),
+        ('buffer_size', 1_000_000),
         ('seed', 123), #TODO: This doesn't do anything yet
         ('actor_lr', 1e-4),
         ('critic_lr', 1e-3),
         ('max_steps_training', 1_000_000),
         ('max_steps_exploration', 1_000),
         ('max_steps', 100),
-        ('step_length', 1)
+        ('step_length', 0.25)
     ]
 )
 
@@ -78,9 +78,8 @@ print(
     f'Steps per Episode: {MAX_STEPS}\n',
     f'Step Length: {STEP_LENGTH}\n'
 )
-
-MAX_ACTIONS = np.asarray([3, 1])
-MIN_ACTIONS = np.asarray([0, -1])
+MAX_ACTIONS = np.asarray([3, 5])
+MIN_ACTIONS = np.asarray([0, -5])
 
 OBSERVATION_SIZE = 8 + 10 + 2 # Car position + Lidar rays + goal position
 ACTION_NUM = 2
@@ -127,7 +126,7 @@ def train(env, agent: TD3):
 
         if total_step_counter < MAX_STEPS_EXPLORATION:
             print(f"Running Exploration Steps {total_step_counter}/{MAX_STEPS_EXPLORATION}")
-            action_env = np.asarray([random.uniform(0, 3), random.uniform(-1, 1)]) # action range the env uses [e.g. -2 , 2 for pendulum]
+            action_env = np.asarray([random.uniform(MIN_ACTIONS[0], MAX_ACTIONS[0]), random.uniform(MIN_ACTIONS[1], MAX_ACTIONS[1])]) # action range the env uses [e.g. -2 , 2 for pendulum]
             action = hlp.normalize(action_env, MAX_ACTIONS, MIN_ACTIONS)  # algorithm range [-1, 1]
         else:
             action = agent.select_action_from_policy(state) # algorithm range [-1, 1]

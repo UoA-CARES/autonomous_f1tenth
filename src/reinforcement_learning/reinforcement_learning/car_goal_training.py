@@ -10,25 +10,74 @@ from cares_reinforcement_learning.algorithm.policy import TD3
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.memory import MemoryBuffer
 from cares_reinforcement_learning.util.Plot import Plot
+from .DataManager import DataManager
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 
 import numpy as np
 
-MAX_STEPS_TRAINING = 1_000_000
-MAX_STEPS_EXPLORATION = 100_000
+rclpy.init()
 
-GAMMA = 0.95
-TAU = 0.005
-G = 10
+param_node = rclpy.create_node('params')
+param_node.declare_parameters(
+    '',
+    [
+        ('gamma', 0.95),
+        ('tau', 0.005),
+        ('g', 10),
+        ('batch_size', 32),
+        ('buffer_size', 1000000),
+        ('seed', 123), #TODO: This doesn't do anything yet
+        ('actor_lr', 1e-4),
+        ('critic_lr', 1e-3),
+        ('max_steps_training', 1_000_000),
+        ('max_steps_exploration', 1_000),
+        ('max_steps', 100),
+        ('step_length', 0.25)
+    ]
+)
 
-BATCH_SIZE = 32
-BUFFER_SIZE = 1_000_000
+params = param_node.get_parameters([
+    'max_steps_training',
+    'max_steps_exploration', 
+    'gamma', 
+    'tau', 
+    'g', 
+    'batch_size', 
+    'buffer_size', 
+    'seed', 
+    'actor_lr', 
+    'critic_lr',
+    'max_steps',
+    'step_length',
+    ])
 
-SEED = 123
+MAX_STEPS_TRAINING,\
+MAX_STEPS_EXPLORATION,\
+GAMMA,\
+TAU,\
+G,\
+BATCH_SIZE,\
+BUFFER_SIZE,\
+SEED,\
+ACTOR_LR,\
+CRITIC_LR,\
+MAX_STEPS,\
+STEP_LENGTH = [param.value for param in params]
 
-ACTOR_LR = 1e-4
-CRITIC_LR = 1e-3
-
+print(
+    f'Exploration Steps: {MAX_STEPS_EXPLORATION}\n',
+    f'Training Steps: {MAX_STEPS_TRAINING}\n',
+    f'Gamma: {GAMMA}\n',
+    f'Tau: {TAU}\n',
+    f'G: {G}\n',
+    f'Batch Size: {BATCH_SIZE}\n',
+    f'Buffer Size: {BUFFER_SIZE}\n',
+    f'Seed: {SEED}\n',
+    f'Actor LR: {ACTOR_LR}\n',
+    f'Critic LR: {CRITIC_LR}\n',
+    f'Steps per Episode: {MAX_STEPS}\n',
+    f'Step Length: {STEP_LENGTH}\n'
+)
 MAX_ACTIONS = np.asarray([3, 1])
 MIN_ACTIONS = np.asarray([0, -1])
 
@@ -38,13 +87,9 @@ ACTION_NUM = 2
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 TRAINING_NAME = 'cargoal_training'
 def main():
-    rclpy.init()
-    
-    # Share Directories
 
     time.sleep(3)
-    env = CarGoalEnvironment('f1tenth', step_length=0.25, max_steps=100)
-    # env = CarWallEnvironment('f1tenth', step_length=0.25)
+    env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS)
     
     actor = Actor(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=ACTOR_LR)
     critic = Critic(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=CRITIC_LR)
@@ -61,8 +106,8 @@ def main():
     train(env=env, agent=agent)
 
 def train(env, agent: TD3):
-    plot = Plot(title=f'{TRAINING_NAME}-episode' ,plot_freq=100, checkpoint_freq=100)
-    step = Plot(title=f"{TRAINING_NAME}-steps", plot_freq=MAX_STEPS_TRAINING, checkpoint_freq=1_000)
+    ep = DataManager(name=f'{TRAINING_NAME}_episode' , checkpoint_freq=100)
+    step = DataManager(name=f"{TRAINING_NAME}_steps", checkpoint_freq=10_000)
     memory = MemoryBuffer()
 
     episode_timesteps = 0
@@ -106,7 +151,7 @@ def train(env, agent: TD3):
             historical_reward["step"].append(total_step_counter)
             historical_reward["episode_reward"].append(episode_reward)
 
-            plot.post(episode_reward)
+            ep.post(episode_reward)
             # Reset environment
             state, _ = env.reset()
             episode_reward    = 0
@@ -114,9 +159,8 @@ def train(env, agent: TD3):
             episode_num += 1
 
     agent.save_models(TRAINING_NAME)
-    plot.save_csv()
+    ep.save_csv()
     step.save_csv()
-    plot.plot_average()
 
 if __name__ == '__main__':
     main()

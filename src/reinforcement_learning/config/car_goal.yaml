@@ -1,4 +1,4 @@
-car_wall_training:
+car_goal_training:
   ros__parameters:
     max_steps_exploration: 5000
     max_steps_training: 1000000

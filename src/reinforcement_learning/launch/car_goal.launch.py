@@ -28,7 +28,7 @@ def generate_launch_description(): #TODO: include the train launch file here
 
     config = os.path.join(
         get_package_share_directory('reinforcement_learning'),
-        'car_wall.yaml'
+        'car_goal.yaml'
     )
 
     # Launch the Environment

@@ -90,13 +90,16 @@ class CarWallEnvironment(Node):
         while not self.reset_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('reset service not available, waiting again...')
 
-        time.sleep(2)
-
-        # TODO: generate goal
         self.goal_position = [10, 10] # x and y
 
-        time.sleep(5)
-        
+        self.timer = self.create_timer(step_length, self.timer_cb)
+        self.timer_future = Future()
+
+        self.get_logger().info('Environment Setup Complete')
+    
+    def timer_cb(self):
+        self.timer_future.set_result(True)
+
     def reset(self):
         self.step_counter = 0
 
@@ -105,11 +108,12 @@ class CarWallEnvironment(Node):
         #TODO: Remove Hard coded-ness of 10x10
         self.goal_position = self.generate_goal()
 
-        time.sleep(self.STEP_LENGTH)
+        while not self.timer_future.done():
+            rclpy.spin_once(self)
+        
+        self.timer_future = Future()
 
         self.call_reset_service()
-
-        time.sleep(self.STEP_LENGTH)
         
         observation = self.get_observation()
         
@@ -136,7 +140,10 @@ class CarWallEnvironment(Node):
         lin_vel, ang_vel = action
         self.set_velocity(lin_vel, ang_vel)
 
-        time.sleep(self.STEP_LENGTH)
+        while not self.timer_future.done():
+            rclpy.spin_once(self)
+
+        self.timer_future = Future()
         
         next_state = self.get_observation()
         reward = self.compute_reward(state, next_state)
