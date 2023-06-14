@@ -133,7 +133,10 @@ def train(env, agent: TD3):
             action_env = hlp.denormalize(action, MAX_ACTIONS, MIN_ACTIONS)  # mapping to env range [e.g. -2 , 2 for pendulum]
 
         next_state, reward, done, truncated, info = env.step(action_env)
-        memory.add(state=state, action=action, reward=reward, next_state=nex1.5
+        memory.add(state=state, action=action, reward=reward, next_state=next_state, done=done)
+
+        state = next_state
+        episode_reward += reward
 
         step.post(reward)
 
