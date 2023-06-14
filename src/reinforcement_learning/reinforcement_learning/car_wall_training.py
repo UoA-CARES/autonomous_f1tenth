@@ -78,8 +78,8 @@ print(
     f'Steps per Episode: {MAX_STEPS}\n',
     f'Step Length: {STEP_LENGTH}\n'
 )
-MAX_ACTIONS = np.asarray([3, 5])
-MIN_ACTIONS = np.asarray([0, -5])
+MAX_ACTIONS = np.asarray([3, 3.14])
+MIN_ACTIONS = np.asarray([-0.5, -3.14])
 
 OBSERVATION_SIZE = 8 + 10 + 2 # Car position + Lidar rays + goal position
 ACTION_NUM = 2
@@ -133,10 +133,7 @@ def train(env, agent: TD3):
             action_env = hlp.denormalize(action, MAX_ACTIONS, MIN_ACTIONS)  # mapping to env range [e.g. -2 , 2 for pendulum]
 
         next_state, reward, done, truncated, info = env.step(action_env)
-        memory.add(state=state, action=action, reward=reward, next_state=next_state, done=done)
-
-        state = next_state
-        episode_reward += reward
+        memory.add(state=state, action=action, reward=reward, next_state=nex1.5
 
         step.post(reward)
 

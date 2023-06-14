@@ -94,8 +94,8 @@ linear_vel = 0
 angular_vel = 0
 offset = 0.05
 MAX_SPEED = 3
-MIN_SPEED = 0
-MAX_ANGULAR = 10
+NETURAL_SPEED = 0
+MAX_ANGULAR = 3.14
 LEFT_ANGULAR = MAX_ANGULAR
 RIGHT_ANGULAR = -MAX_ANGULAR
 NETURAL_ANGULAR = 0
@@ -116,7 +116,7 @@ def keyboard_on_key_release(key):
     global linear_vel, angular_vel
 
     if key in [Key.up] or (hasattr(key, 'char') and key.char in ["w", "s"]):
-        linear_vel = MIN_SPEED  # Stop linear movement
+        linear_vel = NETURAL_SPEED  # Stop linear movement
     elif key in [Key.left, Key.right] or (hasattr(key, 'char') and key.char in ["a", "d"]):
         angular_vel = NETURAL_ANGULAR  # Stop angular movement
 
@@ -135,14 +135,14 @@ def joystick_check():
             # Left Trigger
             if event.axis == 2:
                 if event.value < -1 + offset:
-                    linear_vel = MIN_SPEED
+                    linear_vel = NETURAL_SPEED
                 else:
                     linear_vel = (event.value + 1) / 2 * ((-MAX_SPEED) / 2)
 
             # Right Trigger
             if event.axis == 5:
                 if event.value < -1 + offset:
-                    linear_vel = MIN_SPEED
+                    linear_vel = NETURAL_SPEED
                 else:
                     linear_vel = (event.value + 1) / 2 * MAX_SPEED
         
@@ -158,7 +158,7 @@ def joystick_check():
                     angular_vel = LEFT_ANGULAR
 
                 if y_value == 0:
-                    linear_vel = MIN_SPEED
+                    linear_vel = NETURAL_SPEED
                 elif y_value == 1:
                     linear_vel = MAX_SPEED
                 elif y_value == -1:
