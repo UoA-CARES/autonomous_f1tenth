@@ -37,21 +37,24 @@ class CarTrackReset(Node):
         # self.get_logger().info(f'Reset Service Request Received: relocating goal to x={request.x} y={request.y}')
 
         goal_req = self.create_request('goal', x=request.x, y=request.y, z=1)
-        car_req = self.create_request('f1tenth')
+        car_req = self.create_request('f1tenth', x=-15.0 ,y=0, z=0, yaw=3.14 * 1.4)
 
         while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('set_pose service not available, waiting again...')
 
         #TODO: Call async and wait for both to execute
-        self.set_pose_client.call(goal_req)
-        self.set_pose_client.call(car_req)
+        if (request.flag == "goal_only"):
+            self.set_pose_client.call(goal_req)
+        else:
+            self.set_pose_client.call(goal_req)
+            self.set_pose_client.call(car_req)
 
         # self.get_logger().info('Successfully Reset')
         response.success = True
 
         return response
 
-    def create_request(self, name, x=0, y=0, z=0):
+    def create_request(self, name, x=0, y=0, z=0, roll=0, pitch=0, yaw=0):
         req = SetEntityPose.Request()
 
         req.entity = Entity()
@@ -64,6 +67,12 @@ class CarTrackReset(Node):
         req.pose.position.x = float(x)
         req.pose.position.y = float(y)
         req.pose.position.z = float(z)
+
+        orientation = get_quaternion_from_euler(roll, pitch, yaw)
+        req.pose.orientation.x = orientation[0] 
+        req.pose.orientation.y = orientation[1] 
+        req.pose.orientation.z = orientation[2] 
+        req.pose.orientation.w = orientation[3] 
 
         return req
 

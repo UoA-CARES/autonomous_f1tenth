@@ -28,9 +28,9 @@ param_node.declare_parameters(
         ('seed', 123), #TODO: This doesn't do anything yet
         ('actor_lr', 1e-4),
         ('critic_lr', 1e-3),
-        ('max_steps_training', 1_000_000),
+        ('max_steps_training', 2_000_000),
         ('max_steps_exploration', 1_000),
-        ('max_steps', 100),
+        ('max_steps', 1000),
         ('step_length', 0.25)
     ]
 )
@@ -89,7 +89,7 @@ TRAINING_NAME = 'cartrack_training-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%
 def main():
     time.sleep(3)
 
-    env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=0.4)
+    env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=2)
     
     actor = Actor(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=ACTOR_LR)
     critic = Critic(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=CRITIC_LR)

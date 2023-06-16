@@ -41,7 +41,7 @@ class CarTrackEnvironment(Node):
     """
 
     def __init__(self, car_name, reward_range=0.2, max_steps=50, collision_range=0.2, step_length=0.5):
-        super().__init__('car_goal_environment')
+        super().__init__('car_track_environment')
         
         # Environment Details ----------------------------------------
         self.NAME = car_name
@@ -106,7 +106,8 @@ class CarTrackEnvironment(Node):
         self.set_velocity(0, 0)
 
         #TODO: Remove Hard coded-ness of 10x10
-        self.goal_position = self.generate_goal()
+        self.goal_position = self.generate_goal(0)
+        self.goal_number = 0
 
         while not self.timer_future.done():
             rclpy.spin_once(self)
@@ -121,11 +122,15 @@ class CarTrackEnvironment(Node):
 
         return observation, info
 
-    def generate_goal(self, inner_bound=3, outer_bound=5):
-        # return [10.0, 0.0]  # Top
-        # return [0.0, 6.0]  # Left
-        # return [0.0, -9.0]  # Right
-        return [-15.0, 0.0]  # Bottom
+    def generate_goal(self, number):
+        goals = [
+            [0.0, -9.0],  # Right
+            [10.0, 0.0],  # Top
+            [0.0, 6.0],  # Left
+            [-15.0, 0.0]  # Bottom
+        ]
+
+        return goals[number]
 
     def step(self, action):
         self.step_counter += 1
@@ -141,8 +146,8 @@ class CarTrackEnvironment(Node):
         self.timer_future = Future()
         
         next_state = self.get_observation()
-        reward = self.compute_reward(state, next_state)
         terminated = self.is_terminated(next_state)
+        reward = self.compute_reward(state, next_state)
         truncated = self.step_counter >= self.MAX_STEPS
         info = {}
 
@@ -154,12 +159,28 @@ class CarTrackEnvironment(Node):
         request = Reset.Request()
         request.x = x 
         request.y = y
+        request.flag = "car_and_goal"
 
         future = self.reset_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
         # print(f'Reset Response Recieved: {future.result()}')
         return future.result()
+
+    def update_goal_service(self, number):
+        x, y = self.generate_goal(number)
+        self.goal_position = [x, y]
+
+        request = Reset.Request()
+        request.x = x
+        request.y = y
+        request.flag = "goal_only"
+
+        future = self.reset_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+
+        return future.result()
+
 
     def get_observation(self):
 
@@ -180,13 +201,13 @@ class CarTrackEnvironment(Node):
             -1 to -2 => goal x, y
             9 to -3 => lidar
         """
-        current_distance = math.dist(observation[-2:], observation[:2])
+        current_distance = math.dist(self.goal_position, observation[:2])
 
-        reached_goal = current_distance <= self.REWARD_RANGE
+        reached_final_goal = current_distance <= self.REWARD_RANGE and self.goal_number == 3
 
         collided_wall = self.has_collided(observation[9:-2])
 
-        return reached_goal or collided_wall
+        return reached_final_goal or collided_wall
     
     def has_collided(self, lidar_ranges):
         return any(0 < ray < self.COLLISION_RANGE for ray in lidar_ranges)
@@ -194,7 +215,7 @@ class CarTrackEnvironment(Node):
     
     def compute_reward(self, state, next_state):
 
-        goal_position = state[-2:]
+        goal_position = self.goal_position
 
         old_distance = math.dist(goal_position, state[:2])
         current_distance = math.dist(goal_position, next_state[:2])
@@ -205,7 +226,10 @@ class CarTrackEnvironment(Node):
 
         if current_distance < self.REWARD_RANGE:
             reward += 100
-
+            if (self.goal_number < 3):               
+                self.goal_number += 1 
+                self.update_goal_service(self.goal_number)
+            
         if self.has_collided(next_state[9:-2]):
             reward -= 25 # TODO: find optimal value for this
         
