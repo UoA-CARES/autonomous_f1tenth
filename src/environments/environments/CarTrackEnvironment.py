@@ -47,6 +47,7 @@ class CarTrackEnvironment(Node):
         self.NAME = car_name
         self.REWARD_RANGE = reward_range
         self.MAX_STEPS = max_steps
+        self.MAX_STEPS_PER_GOAL = max_steps
         self.COLLISION_RANGE = collision_range
         self.STEP_LENGTH = step_length
 
@@ -228,6 +229,7 @@ class CarTrackEnvironment(Node):
             reward += 100
             if (self.goal_number < 3):               
                 self.goal_number += 1 
+                self.MAX_STEPS += self.MAX_STEPS_PER_GOAL
                 self.update_goal_service(self.goal_number)
             
         if self.has_collided(next_state[9:-2]):
