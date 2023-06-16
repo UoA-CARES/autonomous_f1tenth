@@ -27,7 +27,8 @@ setup(
     entry_points={
         'console_scripts': [
             'CarGoalReset = environments.CarGoalReset:main',
-            'CarWallReset = environments.CarWallReset:main'
+            'CarWallReset = environments.CarWallReset:main',
+            'CarTrackReset = environments.CarTrackReset:main'
         ],
     },
 )
