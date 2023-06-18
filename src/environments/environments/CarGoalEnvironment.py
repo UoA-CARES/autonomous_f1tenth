@@ -52,13 +52,13 @@ class CarGoalEnvironment(Node):
         # Pub/Sub ----------------------------------------------------
         self.cmd_vel_pub = self.create_publisher(
                 Twist,
-                f'/model/{self.NAME}/cmd_vel',
+                f'/{self.NAME}/cmd_vel',
                 10
             )
 
         self.odom_sub = self.create_subscription(
             Odometry,
-            f'/model/{self.NAME}/odometry',
+            f'/{self.NAME}/odometry',
             self.odom_callback,
             10
             )

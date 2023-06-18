@@ -21,10 +21,11 @@ def generate_launch_description(): #TODO: include the train launch file here
     
     f1tenth = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_f1tenth_bringup, 'f1tenth_simulation.launch.py')),
+            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
         launch_arguments={
-            'car_name': 'f1tenth',
-        }.items() #TODO: this doesn't do anything
+            'name': 'f1tenth',
+            'world': 'empty',
+        }.items()
     )
     
     config_path = os.path.join(
