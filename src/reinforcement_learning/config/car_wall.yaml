@@ -1,6 +1,6 @@
 meta:
   ros__parameters:
-    mode: training
+    mode: evaluation # training
 
 car_wall_training:
   ros__parameters:

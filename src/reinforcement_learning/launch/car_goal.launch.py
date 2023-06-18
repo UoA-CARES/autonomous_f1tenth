@@ -4,6 +4,7 @@ from launch_ros.actions import Node
 from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
+import yaml
 
 def generate_launch_description(): #TODO: include the train launch file here
     pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
@@ -25,20 +26,23 @@ def generate_launch_description(): #TODO: include the train launch file here
             'car_name': 'f1tenth',
         }.items() #TODO: this doesn't do anything
     )
-
-    config = os.path.join(
+    
+    config_path = os.path.join(
         get_package_share_directory('reinforcement_learning'),
         'car_goal.yaml'
     )
 
+    config = yaml.load(open(config_path))
+    mode = config['meta']['ros__parameters']['mode']
+
     # Launch the Environment
     main = Node(
             package='reinforcement_learning',
-            executable='car_goal_training',
+            executable='car_goal_training' if mode != 'evaluation' else 'car_goal_testing',
             parameters=[
-                config
+                config_path
             ],
-            name='car_goal_training',
+            name='car_goal_training' if mode != 'evaluation' else 'car_goal_testing',
             output='screen',
             emulate_tty=True, # Allows python print to show
     )

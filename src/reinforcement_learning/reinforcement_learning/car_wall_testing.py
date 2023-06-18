@@ -72,7 +72,7 @@ def main():
     actor.load_state_dict(torch.load(ACTOR_PATH))
     critic.load_state_dict(torch.load(CRITIC_PATH))
 
-    print('SuccessfullylLoaded models')
+    print('Successfully Loaded models')
     
     agent = TD3(
         actor_network=actor,
