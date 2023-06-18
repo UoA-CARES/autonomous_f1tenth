@@ -1,3 +1,7 @@
+meta:
+  ros__parameters:
+    mode: evaluation # training
+
 car_wall_training:
   ros__parameters:
     max_steps_exploration: 5000
@@ -12,3 +16,9 @@ car_wall_training:
     # max_steps: 100
     # step_length: 0.25
     # seed: 123
+
+car_wall_testing:
+  ros__parameters:
+    max_steps_evaluation: 1000000
+    actor_path: models/carwall_training-13-06-2023-23:24:07_0_actor.pht
+    critic_path: models/carwall_training-13-06-2023-23:24:07_0_critic.pht

@@ -1,4 +1,3 @@
-from simulation.simulation_services import SimulationServices #, ResetServices
 from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
 import rclpy
@@ -7,13 +6,10 @@ import time
 import torch
 import random
 from cares_reinforcement_learning.algorithm.policy import TD3
-from cares_reinforcement_learning.memory import MemoryBuffer
 from cares_reinforcement_learning.util import helpers as hlp
-from cares_reinforcement_learning.util.Plot import Plot
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 
 import numpy as np
-
 
 rclpy.init()
 
@@ -54,39 +50,38 @@ print(
 if ACTOR_PATH is '' or CRITIC_PATH is '':
     raise Exception('Actor or Critic path not provided')
 
+
 MAX_ACTIONS = np.asarray([3, 1])
 MIN_ACTIONS = np.asarray([0, -1])
 
-OBSERVATION_SIZE = 8 + 0 + 2 # Car position + Lidar rays + goal position
+OBSERVATION_SIZE = 8 + 10 + 2 # Car position + Lidar rays + goal position
 ACTION_NUM = 2
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def main():
-    
     # Share Directories
 
     time.sleep(3)
-    env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS)
+    env = CarWallEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS)
     
-    actor = Actor(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=0.001)
-    critic = Critic(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=0.001)
+    actor = Actor(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=0.1)
+    critic = Critic(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=0.1)
 
     print('Reading saved models into actor and critic')
     actor.load_state_dict(torch.load(ACTOR_PATH))
     critic.load_state_dict(torch.load(CRITIC_PATH))
 
     print('Successfully Loaded models')
-
+    
     agent = TD3(
         actor_network=actor,
         critic_network=critic,
-        gamma=0.001,
-        tau=0.001,
+        gamma=0.999,
+        tau=0.002,
         action_num=ACTION_NUM,
         device=DEVICE
     )
-    
 
     test(env=env, agent=agent)
 
@@ -95,7 +90,9 @@ def test(env, agent: TD3):
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
-    
+
+    print('Beginning Evaluation')
+
     for total_step_counter in range(int(MAX_STEPS_EVALUATION)):
         episode_timesteps += 1
 

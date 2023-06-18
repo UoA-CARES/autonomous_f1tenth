@@ -27,7 +27,9 @@ setup(
             'car_goal_training = reinforcement_learning.car_goal_training:main',
             'car_goal_testing= reinforcement_learning.car_goal_testing:main',
             'car_wall_training = reinforcement_learning.car_wall_training:main',
-            'sanity_check = reinforcement_learning.sanity_check:main'
+            'car_wall_testing = reinforcement_learning.car_wall_testing:main',
+            'sanity_check = reinforcement_learning.sanity_check:main',
+            
         ],
     },
 )
