@@ -8,7 +8,7 @@ import random
 from cares_reinforcement_learning.algorithm.policy import TD3
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.memory import MemoryBuffer
-from cares_reinforcement_learning.util.Plot import Plot
+# from cares_reinforcement_learning.util.Plot import Plot
 from .DataManager import DataManager
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 from datetime import datetime

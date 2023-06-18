@@ -4,6 +4,7 @@ from launch_ros.actions import Node, SetParameter
 from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
+import yaml
 
 def generate_launch_description():
     pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
@@ -17,7 +18,7 @@ def generate_launch_description():
             'car_name': 'f1tenth',
         }.items() #TODO: this doesn't do anything
     )
-    
+
     f1tenth = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
@@ -27,19 +28,24 @@ def generate_launch_description():
         }.items()
     )
 
-    config = os.path.join(
+    config_path = os.path.join(
         get_package_share_directory('reinforcement_learning'),
         'car_wall.yaml'
     )
 
+    
+    
+    config = yaml.load(open(config_path))
+    mode = config['meta']['ros__parameters']['mode']
+
     # Launch the Environment
     main = Node(
             package='reinforcement_learning',
-            executable='car_wall_training',
+            executable='car_wall_training' if mode != 'evaluation' else 'car_wall_testing',
             parameters=[
-                config
+                config_path
             ],
-            name='car_wall_training',
+            name='car_wall_training' if mode != 'evaluation' else 'car_wall_testing',
             output='screen',
             emulate_tty=True, # Allows python print to show
     )

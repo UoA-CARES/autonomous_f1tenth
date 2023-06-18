@@ -1,3 +1,7 @@
+meta:
+  ros__parameters:
+    mode: evaluation # training
+
 car_goal_training:
   ros__parameters:
     max_steps_exploration: 5000
@@ -12,3 +16,9 @@ car_goal_training:
     # max_steps: 100
     # step_length: 0.25
     # seed: 123
+
+car_goal_testing:
+  ros__parameters:
+    max_steps_evaluation: 1000000
+    actor_path: models/cargoal_training-0_actor.pht
+    critic_path: models/cargoal_training-0_critic.pht
