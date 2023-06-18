@@ -1,19 +1,17 @@
-from simulation.simulation_services import SimulationServices #, ResetServices
-from environments.CarGoalEnvironment import CarGoalEnvironment
-from environments.CarWallEnvironment import CarWallEnvironment
 import rclpy
-from ament_index_python import get_package_share_directory
 import time
 import torch
 import random
+import numpy as np
+
 from cares_reinforcement_learning.algorithm.policy import TD3
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.memory import MemoryBuffer
-from cares_reinforcement_learning.util.Plot import Plot
-from .DataManager import DataManager
+from cares_reinforcement_learning.util import Record
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 
-import numpy as np
+from environments.CarGoalEnvironment import CarGoalEnvironment
+
 
 rclpy.init()
 
@@ -85,7 +83,7 @@ OBSERVATION_SIZE = 8 + 0 + 2 # Car position + Lidar rays + goal position
 ACTION_NUM = 2
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-TRAINING_NAME = 'cargoal_training'
+
 def main():
 
     time.sleep(3)
@@ -103,12 +101,27 @@ def main():
         device=DEVICE
     )
 
-    train(env=env, agent=agent)
+    networks = {'actor': actor, 'critic': critic}
+    config = {
+        'max_steps_training':MAX_STEPS_TRAINING,
+        'max_steps_exploration': MAX_STEPS_EXPLORATION, 
+        'gamma': GAMMA, 
+        'tau': TAU, 
+        'g': G, 
+        'batch_size': BATCH_SIZE, 
+        'buffer_size': BUFFER_SIZE, 
+        'seed': SEED, 
+        'actor_lr': ACTOR_LR, 
+        'critic_lr': CRITIC_LR,
+        'max_steps': MAX_STEPS,
+        'step_length': STEP_LENGTH,
+    }
+    record = Record(networks=networks, checkpoint_freq=MAX_STEPS_TRAINING / 10, config=config)
+    train(env=env, agent=agent, record=record)
 
-def train(env, agent: TD3):
-    ep = DataManager(name=f'{TRAINING_NAME}_episode' , checkpoint_freq=100)
-    step = DataManager(name=f"{TRAINING_NAME}_steps", checkpoint_freq=10_000)
+def train(env, agent: TD3, record: Record):
     memory = MemoryBuffer()
+    
 
     episode_timesteps = 0
     episode_reward    = 0
@@ -135,32 +148,30 @@ def train(env, agent: TD3):
         state = next_state
         episode_reward += reward
 
-        step.post(reward)
-
-        if total_step_counter % 25_000 == 0:
-            agent.save_models(f'{TRAINING_NAME}-{total_step_counter}')
-
         if total_step_counter >= MAX_STEPS_EXPLORATION:
                 for _ in range(G):
                     experiences = memory.sample(BATCH_SIZE)
+                    experiences = (experiences['state'], experiences['action'], experiences['reward'], experiences['next_state'], experiences['done'])
                     agent.train_policy(experiences)
 
+        record.log(
+            out=done or truncated,
+            Step=total_step_counter,
+            Episode=episode_num,
+            Step_Reward=reward,
+            Episode_Reward=episode_reward if (done or truncated) else None,
+        )
+
         if done or truncated:
-            print(f"Total T:{total_step_counter+1} Episode {episode_num+1} was completed with {episode_timesteps} steps taken and a Reward= {episode_reward:.3f}")
 
             historical_reward["step"].append(total_step_counter)
             historical_reward["episode_reward"].append(episode_reward)
 
-            ep.post(episode_reward)
             # Reset environment
             state, _ = env.reset()
             episode_reward    = 0
             episode_timesteps = 0
             episode_num += 1
-
-    agent.save_models(TRAINING_NAME)
-    ep.save_csv()
-    step.save_csv()
 
 if __name__ == '__main__':
     main()
