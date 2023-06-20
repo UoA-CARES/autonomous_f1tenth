@@ -29,7 +29,9 @@ param_node.declare_parameters(
         ('max_steps_training', 1_000_000),
         ('max_steps_exploration', 1_000),
         ('max_steps', 100),
-        ('step_length', 0.25)
+        ('step_length', 0.25),
+        ('reward_range', 0.2),
+        ('collision_range', 0.2)
     ]
 )
 
@@ -46,6 +48,8 @@ params = param_node.get_parameters([
     'critic_lr',
     'max_steps',
     'step_length',
+    'reward_range',
+    'collision_range'
     ])
 
 MAX_STEPS_TRAINING,\
@@ -59,21 +63,27 @@ SEED,\
 ACTOR_LR,\
 CRITIC_LR,\
 MAX_STEPS,\
-STEP_LENGTH = [param.value for param in params]
+STEP_LENGTH,\
+REWARD_RANGE,\
+COLLISION_RANGE = [param.value for param in params]
 
 print(
-    f'Exploration Steps: {MAX_STEPS_EXPLORATION}\n',
-    f'Training Steps: {MAX_STEPS_TRAINING}\n',
-    f'Gamma: {GAMMA}\n',
-    f'Tau: {TAU}\n',
-    f'G: {G}\n',
-    f'Batch Size: {BATCH_SIZE}\n',
-    f'Buffer Size: {BUFFER_SIZE}\n',
-    f'Seed: {SEED}\n',
-    f'Actor LR: {ACTOR_LR}\n',
-    f'Critic LR: {CRITIC_LR}\n',
-    f'Steps per Episode: {MAX_STEPS}\n',
+    f'---------------------------------------------\n'
+    f'Exploration Steps: {MAX_STEPS_EXPLORATION}\n'
+    f'Training Steps: {MAX_STEPS_TRAINING}\n'
+    f'Gamma: {GAMMA}\n'
+    f'Tau: {TAU}\n'
+    f'G: {G}\n'
+    f'Batch Size: {BATCH_SIZE}\n'
+    f'Buffer Size: {BUFFER_SIZE}\n'
+    f'Seed: {SEED}\n'
+    f'Actor LR: {ACTOR_LR}\n'
+    f'Critic LR: {CRITIC_LR}\n'
+    f'Steps per Episode: {MAX_STEPS}\n'
     f'Step Length: {STEP_LENGTH}\n'
+    f'Reward Range: {REWARD_RANGE}\n'
+    f'Collision Range: {COLLISION_RANGE}\n'
+    f'---------------------------------------------\n'
 )
 MAX_ACTIONS = np.asarray([3, 3.14])
 MIN_ACTIONS = np.asarray([-0.5, -3.14])
@@ -86,7 +96,7 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def main():
     time.sleep(3)
 
-    env = CarWallEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS)
+    env = CarWallEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
     
     actor = Actor(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=ACTOR_LR)
     critic = Critic(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=CRITIC_LR)

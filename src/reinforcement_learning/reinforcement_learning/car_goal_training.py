@@ -30,7 +30,8 @@ param_node.declare_parameters(
         ('max_steps_training', 1_000_000),
         ('max_steps_exploration', 1_000),
         ('max_steps', 100),
-        ('step_length', 0.25)
+        ('step_length', 0.25),
+        ('reward_range', 0.2)
     ]
 )
 
@@ -47,6 +48,7 @@ params = param_node.get_parameters([
     'critic_lr',
     'max_steps',
     'step_length',
+    'reward_range'
     ])
 
 MAX_STEPS_TRAINING,\
@@ -60,21 +62,25 @@ SEED,\
 ACTOR_LR,\
 CRITIC_LR,\
 MAX_STEPS,\
-STEP_LENGTH = [param.value for param in params]
+STEP_LENGTH,\
+REWARD_RANGE = [param.value for param in params]
 
 print(
-    f'Exploration Steps: {MAX_STEPS_EXPLORATION}\n',
-    f'Training Steps: {MAX_STEPS_TRAINING}\n',
-    f'Gamma: {GAMMA}\n',
-    f'Tau: {TAU}\n',
-    f'G: {G}\n',
-    f'Batch Size: {BATCH_SIZE}\n',
-    f'Buffer Size: {BUFFER_SIZE}\n',
-    f'Seed: {SEED}\n',
-    f'Actor LR: {ACTOR_LR}\n',
-    f'Critic LR: {CRITIC_LR}\n',
-    f'Steps per Episode: {MAX_STEPS}\n',
+    f'---------------------------------------------\n'
+    f'Exploration Steps: {MAX_STEPS_EXPLORATION}\n'
+    f'Training Steps: {MAX_STEPS_TRAINING}\n'
+    f'Gamma: {GAMMA}\n'
+    f'Tau: {TAU}\n'
+    f'G: {G}\n'
+    f'Batch Size: {BATCH_SIZE}\n'
+    f'Buffer Size: {BUFFER_SIZE}\n'
+    f'Seed: {SEED}\n'
+    f'Actor LR: {ACTOR_LR}\n'
+    f'Critic LR: {CRITIC_LR}\n'
+    f'Steps per Episode: {MAX_STEPS}\n'
     f'Step Length: {STEP_LENGTH}\n'
+    f'Reward Range: {REWARD_RANGE}\n'
+    f'---------------------------------------------\n'
 )
 MAX_ACTIONS = np.asarray([3, 1])
 MIN_ACTIONS = np.asarray([0, -1])
