@@ -35,7 +35,7 @@ def generate_launch_description():
 
     
     
-    config = yaml.load(open(config_path))
+    config = yaml.load(open(config_path), Loader=yaml.Loader)
     mode = config['meta']['ros__parameters']['mode']
 
     # Launch the Environment

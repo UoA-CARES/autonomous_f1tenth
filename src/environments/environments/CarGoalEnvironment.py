@@ -37,14 +37,13 @@ class CarGoalEnvironment(Node):
             When the number of steps surpasses MAX_STEPS
     """
 
-    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.5, step_length=0.5):
+    def __init__(self, car_name, reward_range=1, max_steps=50, step_length=0.5):
         super().__init__('car_goal_environment')
         
         # Environment Details ----------------------------------------
         self.NAME = car_name
         self.REWARD_RANGE = reward_range
         self.MAX_STEPS = max_steps
-        self.COLLISION_RANGE = collision_range
         self.STEP_LENGTH = step_length
 
         self.step_counter = 0

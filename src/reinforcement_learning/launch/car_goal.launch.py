@@ -33,7 +33,7 @@ def generate_launch_description(): #TODO: include the train launch file here
         'car_goal.yaml'
     )
 
-    config = yaml.load(open(config_path))
+    config = yaml.load(open(config_path), Loader=yaml.Loader)
     mode = config['meta']['ros__parameters']['mode']
 
     # Launch the Environment
