@@ -36,7 +36,7 @@ class CarBlockReset(Node):
  
 
     def service_callback(self, request, response):
-
+        
         # self.get_logger().info(f'Reset Service Request Received: relocating goal to x={request.x} y={request.y}')
 
         # Move the goal to new position & car back to origin
@@ -50,7 +50,7 @@ class CarBlockReset(Node):
         self.set_pose_client.call(goal_req)
         self.set_pose_client.call(car_req)
         
-        self.set_pose_client.call_async(goal_req)
+        self.set_pose_client.call(self.create_request('small_1', x=5, y=3, ya=200))
         
 
         response.success = True
@@ -69,7 +69,7 @@ class CarBlockReset(Node):
             self.set_pose_client.call(self.create_request(f'large_{i}',z=-10))
 
 
-    def create_request(self, name, x=0, y=0, z=0):
+    def create_request(self, name, x=0, y=0, z=0, r=0, p=0, ya=0):
         req = SetEntityPose.Request()
 
         req.entity = Entity()
@@ -83,6 +83,13 @@ class CarBlockReset(Node):
         req.pose.position.y = float(y)
         req.pose.position.z = float(z)
 
+        q_x, q_y, q_z, q_w = get_quaternion_from_euler(r, p, ya)
+
+        req.pose.orientation.x = q_x
+        req.pose.orientation.y = q_y
+        req.pose.orientation.z = q_z
+        req.pose.orientation.w = q_w
+        
         return req
 
 def main():
