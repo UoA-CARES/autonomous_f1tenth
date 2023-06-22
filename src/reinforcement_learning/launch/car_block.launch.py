@@ -30,7 +30,7 @@ def generate_launch_description():
 
     config_path = os.path.join(
         get_package_share_directory('reinforcement_learning'),
-        'car_wall.yaml'
+        'car_block.yaml'
     )
 
     
@@ -41,11 +41,11 @@ def generate_launch_description():
     # Launch the Environment
     main = Node(
             package='reinforcement_learning',
-            executable='car_block_training' if mode != 'evaluation' else 'car_wall_testing',
+            executable='car_block_training' if mode != 'evaluation' else 'car_block_testing',
             parameters=[
                 config_path
             ],
-            name='car_block_training' if mode != 'evaluation' else 'car_wall_testing',
+            name='car_block_training' if mode != 'evaluation' else 'car_block_testing',
             output='screen',
             emulate_tty=True, # Allows python print to show
     )
