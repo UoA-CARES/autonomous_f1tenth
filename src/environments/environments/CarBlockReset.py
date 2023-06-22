@@ -3,6 +3,8 @@ import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
+import numpy as np
+import random
 
 from environment_interfaces.srv import Reset
 from f1tenth_control.SimulationServices import SimulationServices
@@ -12,7 +14,7 @@ from geometry_msgs.msg import Pose, Point
 
 from ament_index_python import get_package_share_directory
 
-from .util import get_quaternion_from_euler
+from .util import get_quaternion_from_euler, generate_position
 
 class CarBlockReset(Node):
     def __init__(self):
@@ -50,7 +52,11 @@ class CarBlockReset(Node):
         self.set_pose_client.call(goal_req)
         self.set_pose_client.call(car_req)
         
-        self.set_pose_client.call(self.create_request('small_1', x=5, y=3, ya=200))
+        self.reset_obstacles()
+
+        sm, md, lg = np.random.randint(low=0, high=3, size=(3,))
+        
+        self.set_obstacles(small=sm, medium=md, large=lg)
         
 
         response.success = True
@@ -68,6 +74,20 @@ class CarBlockReset(Node):
         for i in range(1, 4):
             self.set_pose_client.call(self.create_request(f'large_{i}',z=-10))
 
+
+    def set_obstacles(self, small, medium, large):
+        
+        for i in range(small):
+            x, y = generate_position(inner_bound=6, outer_bound=10)
+            self.set_pose_client.call(self.create_request(f'small_{i + 1}',x=x, y=y, ya=random.randint(0, 360)))
+        
+        for i in range(medium):
+            x, y = generate_position(inner_bound=6, outer_bound=10)
+            self.set_pose_client.call(self.create_request(f'medium_{i + 1}',x=x, y=y, ya=random.randint(0, 360)))
+        
+        for i in range(large):
+            x, y = generate_position(inner_bound=6, outer_bound=10)
+            self.set_pose_client.call(self.create_request(f'large_{i + 1}',x=x, y=y, ya=random.randint(0, 360)))
 
     def create_request(self, name, x=0, y=0, z=0, r=0, p=0, ya=0):
         req = SetEntityPose.Request()
@@ -89,7 +109,7 @@ class CarBlockReset(Node):
         req.pose.orientation.y = q_y
         req.pose.orientation.z = q_z
         req.pose.orientation.w = q_w
-        
+
         return req
 
 def main():
