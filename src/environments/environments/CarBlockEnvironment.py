@@ -106,7 +106,7 @@ class CarBlockEnvironment(Node):
         self.set_velocity(0, 0)
 
         #TODO: Remove Hard coded-ness of 10x10
-        self.goal_position = self.generate_goal(10, 13)
+        self.goal_position = self.generate_goal(11, 3)
 
         while not self.timer_future.done():
             rclpy.spin_once(self)

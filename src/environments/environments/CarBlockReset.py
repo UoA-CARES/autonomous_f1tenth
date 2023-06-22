@@ -54,7 +54,7 @@ class CarBlockReset(Node):
         
         self.reset_obstacles()
 
-        sm, md, lg = np.random.randint(low=0, high=3, size=(3,))
+        sm, md, lg = np.random.randint(low=2, high=5, size=(3,))
         
         self.set_obstacles(small=sm, medium=md, large=lg)
         
@@ -78,15 +78,15 @@ class CarBlockReset(Node):
     def set_obstacles(self, small, medium, large):
         
         for i in range(small):
-            x, y = generate_position(inner_bound=6, outer_bound=10)
+            x, y = generate_position(inner_bound=5, outer_bound=8)
             self.set_pose_client.call(self.create_request(f'small_{i + 1}',x=x, y=y, ya=random.randint(0, 360)))
         
         for i in range(medium):
-            x, y = generate_position(inner_bound=6, outer_bound=10)
+            x, y = generate_position(inner_bound=6, outer_bound=8)
             self.set_pose_client.call(self.create_request(f'medium_{i + 1}',x=x, y=y, ya=random.randint(0, 360)))
         
         for i in range(large):
-            x, y = generate_position(inner_bound=6, outer_bound=10)
+            x, y = generate_position(inner_bound=6, outer_bound=8)
             self.set_pose_client.call(self.create_request(f'large_{i + 1}',x=x, y=y, ya=random.randint(0, 360)))
 
     def create_request(self, name, x=0, y=0, z=0, r=0, p=0, ya=0):
@@ -126,14 +126,20 @@ def main():
     services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle_small.sdf", pose=[1, 1, -10], name='small_1')
     services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle_small.sdf", pose=[1, 1, -10], name='small_2')
     services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle_small.sdf", pose=[1, 1, -10], name='small_3')
+    services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle_small.sdf", pose=[1, 1, -10], name='small_4')
+    services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle_small.sdf", pose=[1, 1, -10], name='small_5')
 
     services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle.sdf", pose=[1, 1, -10], name='medium_1')
     services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle.sdf", pose=[1, 1, -10], name='medium_2')
     services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle.sdf", pose=[1, 1, -10], name='medium_3')
+    services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle.sdf", pose=[1, 1, -10], name='medium_4')
+    services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle.sdf", pose=[1, 1, -10], name='medium_5')
 
     services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle_large.sdf", pose=[1, 1, -10], name='large_1')
     services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle_large.sdf", pose=[1, 1, -10], name='large_2')
     services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle_large.sdf", pose=[1, 1, -10], name='large_3')
+    services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle_large.sdf", pose=[1, 1, -10], name='large_4')
+    services.spawn(sdf_filename=f"{pkg_environments}/sdf/obstacle_large.sdf", pose=[1, 1, -10], name='large_5')
 
     reset_service.get_logger().info('Environment Spawning Complete')
 
