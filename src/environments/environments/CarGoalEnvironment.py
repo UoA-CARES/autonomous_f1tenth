@@ -46,6 +46,11 @@ class CarGoalEnvironment(Node):
         self.MAX_STEPS = max_steps
         self.STEP_LENGTH = step_length
 
+        self.MAX_ACTIONS = np.asarray([3, 1])
+        self.MIN_ACTIONS = np.asarray([0, -1])
+
+        self.OBSERVATION_SIZE = 8 + 0 + 2 # Car position + Lidar rays + goal position
+        self.ACTION_NUM = 2
         self.step_counter = 0
 
         # Pub/Sub ----------------------------------------------------
