@@ -145,7 +145,7 @@ def train(env, agent: TD3, record: Record):
 
         if total_step_counter < MAX_STEPS_EXPLORATION:
             print(f"Running Exploration Steps {total_step_counter}/{MAX_STEPS_EXPLORATION}")
-            action_env = np.asarray([random.uniform(env.MIN_ACTIONS[0], env.MAX_ACTIONS[0]), random.uniform(MIN_ACTIONS[1], MAX_ACTIONS[1])]) # action range the env uses [e.g. -2 , 2 for pendulum]
+            action_env = np.asarray([random.uniform(env.MIN_ACTIONS[0], env.MAX_ACTIONS[0]), random.uniform(env.MIN_ACTIONS[1], env.MAX_ACTIONS[1])]) # action range the env uses [e.g. -2 , 2 for pendulum]
             action = hlp.normalize(action_env, env.MAX_ACTIONS,env.MIN_ACTIONS)  # algorithm range [-1, 1]
         else:
             action = agent.select_action_from_policy(state) # algorithm range [-1, 1]
