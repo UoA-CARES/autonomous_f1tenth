@@ -1,0 +1,6 @@
+test:
+  ros__parameters:
+    environment: 'CarWall'
+    max_steps_evaluation: 1000000
+    actor_path: models/carwall_training-13-06-2023-23:24:07_0_actor.pht
+    critic_path: models/carwall_training-13-06-2023-23:24:07_0_critic.pht

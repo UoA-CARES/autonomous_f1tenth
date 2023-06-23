@@ -49,6 +49,12 @@ class CarWallEnvironment(Node):
         self.MAX_STEPS = max_steps
         self.COLLISION_RANGE = collision_range
         self.STEP_LENGTH = step_length
+        
+        self.MAX_ACTIONS = np.asarray([3, 3.14])
+        self.MIN_ACTIONS = np.asarray([-0.5, -3.14])
+
+        self.OBSERVATION_SIZE = 8 + 10 + 2 # Car position + Lidar rays + goal position
+        self.ACTION_NUM = 2
 
         self.step_counter = 0
 
