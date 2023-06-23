@@ -30,6 +30,7 @@ setup(
             'car_wall_testing = reinforcement_learning.car_wall_testing:main',
             'car_block_training = reinforcement_learning.car_block_training:main',
             'sanity_check = reinforcement_learning.sanity_check:main',
+            'train = reinforcement_learning.train:main'
             
         ],
     },
