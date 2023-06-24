@@ -91,7 +91,7 @@ class CarTrackEnvironment(Node):
         while not self.reset_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('reset service not available, waiting again...')
 
-        self.goal_position = [10, 10] # x and y
+        self.goal_position = [10, 10]  # x and y
         self.all_goals = [
             [-16.5, -5.0],
             [-13.0, -7.0],
