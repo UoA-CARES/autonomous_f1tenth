@@ -51,7 +51,7 @@ print(
     f'Actor Path: {ACTOR_PATH}'
 )
 
-if ACTOR_PATH is '' or CRITIC_PATH is '':
+if ACTOR_PATH == '' or CRITIC_PATH == '':
     raise Exception('Actor or Critic path not provided')
 
 MAX_ACTIONS = np.asarray([3, 1])
