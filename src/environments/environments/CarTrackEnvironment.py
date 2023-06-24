@@ -130,6 +130,7 @@ class CarTrackEnvironment(Node):
         return observation, info
 
     def generate_goal(self, number):
+        print("Goal", number, "spawned =================================================")
         return self.all_goals[number]
 
     def step(self, action):
@@ -226,7 +227,7 @@ class CarTrackEnvironment(Node):
 
         if current_distance < self.REWARD_RANGE:
             reward += 100
-            if self.goal_number < len(self.all_goals):
+            if self.goal_number < len(self.all_goals) - 1:
                 self.goal_number += 1 
                 self.MAX_STEPS += self.MAX_STEPS_PER_GOAL
                 self.update_goal_service(self.goal_number)
