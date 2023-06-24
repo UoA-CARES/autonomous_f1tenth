@@ -1,5 +1,6 @@
 from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
+from environments.CarTrackEnvironment import CarTrackEnvironment
 import rclpy
 from ament_index_python import get_package_share_directory
 import time
@@ -34,7 +35,7 @@ param_node.declare_parameters(
         ('critic_lr', 1e-3),
         ('max_steps_training', 1_000_000),
         ('max_steps_exploration', 1_000),
-        ('max_steps', 100)
+        ('max_steps', 1000)
     ]
 )
 
@@ -181,7 +182,7 @@ def main():
 
     time.sleep(3)
 
-    env = CarWallEnvironment('f1tenth', step_length=0.25, max_steps=MAX_STEPS)
+    env = CarTrackEnvironment('f1tenth', step_length=0.25, max_steps=MAX_STEPS)
 
     env.reset()
     i = 0
@@ -189,18 +190,15 @@ def main():
     while True:
         joystick_check()
 
-        if (linear_vel < 0):
-            _, _, done, truncated, _ = env.step([linear_vel, -1 * angular_vel])
+        if linear_vel < 0:
+            _, r, done, truncated, _ = env.step([linear_vel, -1 * angular_vel])
 
         else:
-            _, _, done, truncated, _ = env.step([linear_vel, angular_vel])
-
-        # print("Linear velocity:", linear_vel)
-        # print("Angular velocity:", angular_vel)
+            _, r, done, truncated, _ = env.step([linear_vel, angular_vel])
 
         if truncated or done:
+            print("Its done bitch -", r)
             env.reset()
-
 
 
 if __name__ == '__main__':
