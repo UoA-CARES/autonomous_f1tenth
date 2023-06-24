@@ -37,28 +37,32 @@ class CarGoalEnvironment(Node):
             When the number of steps surpasses MAX_STEPS
     """
 
-    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.5, step_length=0.5):
+    def __init__(self, car_name, reward_range=1, max_steps=50, step_length=0.5):
         super().__init__('car_goal_environment')
         
         # Environment Details ----------------------------------------
         self.NAME = car_name
         self.REWARD_RANGE = reward_range
         self.MAX_STEPS = max_steps
-        self.COLLISION_RANGE = collision_range
         self.STEP_LENGTH = step_length
 
+        self.MAX_ACTIONS = np.asarray([3, 1])
+        self.MIN_ACTIONS = np.asarray([0, -1])
+
+        self.OBSERVATION_SIZE = 8 + 0 + 2 # Car position + Lidar rays + goal position
+        self.ACTION_NUM = 2
         self.step_counter = 0
 
         # Pub/Sub ----------------------------------------------------
         self.cmd_vel_pub = self.create_publisher(
                 Twist,
-                f'/model/{self.NAME}/cmd_vel',
+                f'/{self.NAME}/cmd_vel',
                 10
             )
 
         self.odom_sub = self.create_subscription(
             Odometry,
-            f'/model/{self.NAME}/odometry',
+            f'/{self.NAME}/odometry',
             self.odom_callback,
             10
             )

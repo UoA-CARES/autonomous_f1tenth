@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 def get_quaternion_from_euler(roll, pitch, yaw):
   """
@@ -18,3 +19,14 @@ def get_quaternion_from_euler(roll, pitch, yaw):
   qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
  
   return [qx, qy, qz, qw]
+
+def generate_position(inner_bound=3, outer_bound=5):
+        inner_bound = float(inner_bound)
+        outer_bound = float(outer_bound)
+
+        x_pos = random.uniform(-outer_bound, outer_bound)
+        x_pos = x_pos + inner_bound if x_pos >= 0 else x_pos - inner_bound
+        y_pos = random.uniform(-outer_bound, outer_bound)
+        y_pos = y_pos + inner_bound if y_pos >= 0 else y_pos - inner_bound
+
+        return [x_pos, y_pos]

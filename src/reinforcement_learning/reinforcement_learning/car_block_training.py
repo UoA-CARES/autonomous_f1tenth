@@ -10,7 +10,7 @@ from cares_reinforcement_learning.memory import MemoryBuffer
 from cares_reinforcement_learning.util import Record
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 
-from environments.CarWallEnvironment import CarWallEnvironment
+from environments.CarBlockEnvironment import CarBlockEnvironment
 
 rclpy.init()
 
@@ -85,28 +85,26 @@ print(
     f'Collision Range: {COLLISION_RANGE}\n'
     f'---------------------------------------------\n'
 )
-MAX_ACTIONS = np.asarray([3, 3.14])
-MIN_ACTIONS = np.asarray([-0.5, -3.14])
 
-OBSERVATION_SIZE = 8 + 10 + 2 # Car position + Lidar rays + goal position
-ACTION_NUM = 2
+
+
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def main():
     time.sleep(3)
 
-    env = CarWallEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
+    env = CarBlockEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
     
-    actor = Actor(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=ACTOR_LR)
-    critic = Critic(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=CRITIC_LR)
+    actor = Actor(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=ACTOR_LR)
+    critic = Critic(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=CRITIC_LR)
 
     agent = TD3(
         actor_network=actor,
         critic_network=critic,
         gamma=GAMMA,
         tau=TAU,
-        action_num=ACTION_NUM,
+        action_num=env.ACTION_NUM,
         device=DEVICE
     )
 
@@ -147,11 +145,11 @@ def train(env, agent: TD3, record: Record):
 
         if total_step_counter < MAX_STEPS_EXPLORATION:
             print(f"Running Exploration Steps {total_step_counter}/{MAX_STEPS_EXPLORATION}")
-            action_env = np.asarray([random.uniform(MIN_ACTIONS[0], MAX_ACTIONS[0]), random.uniform(MIN_ACTIONS[1], MAX_ACTIONS[1])]) # action range the env uses [e.g. -2 , 2 for pendulum]
-            action = hlp.normalize(action_env, MAX_ACTIONS, MIN_ACTIONS)  # algorithm range [-1, 1]
+            action_env = np.asarray([random.uniform(env.MIN_ACTIONS[0], env.MAX_ACTIONS[0]), random.uniform(env.MIN_ACTIONS[1], env.MAX_ACTIONS[1])]) # action range the env uses [e.g. -2 , 2 for pendulum]
+            action = hlp.normalize(action_env, env.MAX_ACTIONS,env.MIN_ACTIONS)  # algorithm range [-1, 1]
         else:
             action = agent.select_action_from_policy(state) # algorithm range [-1, 1]
-            action_env = hlp.denormalize(action, MAX_ACTIONS, MIN_ACTIONS)  # mapping to env range [e.g. -2 , 2 for pendulum]
+            action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)  # mapping to env range [e.g. -2 , 2 for pendulum]
 
         next_state, reward, done, truncated, info = env.step(action_env)
         memory.add(state=state, action=action, reward=reward, next_state=next_state, done=done)

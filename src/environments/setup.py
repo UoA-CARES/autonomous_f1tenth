@@ -28,6 +28,7 @@ setup(
         'console_scripts': [
             'CarGoalReset = environments.CarGoalReset:main',
             'CarWallReset = environments.CarWallReset:main',
+            'CarBlockReset = environments.CarBlockReset:main',
             'CarTrackReset = environments.CarTrackReset:main'
         ],
     },

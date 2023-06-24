@@ -14,7 +14,7 @@ from sensor_msgs.msg import LaserScan
 from environment_interfaces.srv import Reset
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 
-class CarWallEnvironment(Node):
+class CarBlockEnvironment(Node):
     """
     CarWall Reinforcement Learning Environment:
 
@@ -49,13 +49,13 @@ class CarWallEnvironment(Node):
         self.MAX_STEPS = max_steps
         self.COLLISION_RANGE = collision_range
         self.STEP_LENGTH = step_length
-        
+
         self.MAX_ACTIONS = np.asarray([3, 3.14])
         self.MIN_ACTIONS = np.asarray([-0.5, -3.14])
 
         self.OBSERVATION_SIZE = 8 + 10 + 2 # Car position + Lidar rays + goal position
         self.ACTION_NUM = 2
-
+        
         self.step_counter = 0
 
         # Pub/Sub ----------------------------------------------------
@@ -90,7 +90,7 @@ class CarWallEnvironment(Node):
         # Reset Client -----------------------------------------------
         self.reset_client = self.create_client(
             Reset,
-            'car_wall_reset'
+            'car_block_reset'
         )
 
         while not self.reset_client.wait_for_service(timeout_sec=1.0):
@@ -112,7 +112,7 @@ class CarWallEnvironment(Node):
         self.set_velocity(0, 0)
 
         #TODO: Remove Hard coded-ness of 10x10
-        self.goal_position = self.generate_goal()
+        self.goal_position = self.generate_goal(11, 3)
 
         while not self.timer_future.done():
             rclpy.spin_once(self)
@@ -169,7 +169,6 @@ class CarWallEnvironment(Node):
         future = self.reset_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
-        # print(f'Reset Response Recieved: {future.result()}')
         return future.result()
 
     def get_observation(self):
@@ -180,7 +179,7 @@ class CarWallEnvironment(Node):
         ranges, _ = self.process_lidar(lidar)
 
         reduced_range = self.avg_reduce_lidar(lidar)
-        # print(reduced_range)
+    
         # Get Goal Position
         return odom + reduced_range + self.goal_position 
 
@@ -219,8 +218,6 @@ class CarWallEnvironment(Node):
 
         if self.has_collided(next_state[9:-2]):
             reward -= 25 # TODO: find optimal value for this
-        
-        # reward += delta_distance
 
         return reward
 
