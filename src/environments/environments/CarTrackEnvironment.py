@@ -92,6 +92,12 @@ class CarTrackEnvironment(Node):
             self.get_logger().info('reset service not available, waiting again...')
 
         self.goal_position = [10, 10] # x and y
+        self.all_goals = [
+            [0.0, -9.0],  # Right
+            [10.0, 0.0],  # Top
+            [0.0, 6.0],  # Left
+            [-15.0, 0.0]  # Bottom
+        ]
 
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
@@ -107,8 +113,8 @@ class CarTrackEnvironment(Node):
         self.set_velocity(0, 0)
 
         #TODO: Remove Hard coded-ness of 10x10
-        self.goal_position = self.generate_goal(0)
         self.goal_number = 0
+        self.goal_position = self.generate_goal(self.goal_number)
 
         while not self.timer_future.done():
             rclpy.spin_once(self)
@@ -124,14 +130,7 @@ class CarTrackEnvironment(Node):
         return observation, info
 
     def generate_goal(self, number):
-        goals = [
-            [0.0, -9.0],  # Right
-            [10.0, 0.0],  # Top
-            [0.0, 6.0],  # Left
-            [-15.0, 0.0]  # Bottom
-        ]
-
-        return goals[number]
+        return self.all_goals[number]
 
     def step(self, action):
         self.step_counter += 1
@@ -227,7 +226,7 @@ class CarTrackEnvironment(Node):
 
         if current_distance < self.REWARD_RANGE:
             reward += 100
-            if (self.goal_number < 3):               
+            if self.goal_number < len(self.all_goals):
                 self.goal_number += 1 
                 self.MAX_STEPS += self.MAX_STEPS_PER_GOAL
                 self.update_goal_service(self.goal_number)
