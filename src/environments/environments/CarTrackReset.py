@@ -36,8 +36,8 @@ class CarTrackReset(Node):
 
         # self.get_logger().info(f'Reset Service Request Received: relocating goal to x={request.x} y={request.y}')
 
-        goal_req = self.create_request('goal', x=request.x, y=request.y, z=1)
-        car_req = self.create_request('f1tenth', x=-15.0 ,y=0, z=0, yaw=3.14 * 1.4)
+        goal_req = self.create_request('goal', x=request.gx, y=request.gy, z=1)
+        car_req = self.create_request('f1tenth', x=request.cx, y=request.cy, z=0, yaw=request.cyaw)
 
         while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('set_pose service not available, waiting again...')

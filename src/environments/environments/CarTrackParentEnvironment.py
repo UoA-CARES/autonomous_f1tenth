@@ -94,6 +94,12 @@ class CarTrackParentEnvironment(Node):
         self.goal_position = [10, 10]  # x and y
         self.all_goals = []
 
+        self.car_reset_positions = {
+            'x': 0.0,
+            'y': 0.0,
+            'yaw': 0.0
+        }
+
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
 
@@ -153,10 +159,12 @@ class CarTrackParentEnvironment(Node):
         x, y = self.goal_position
 
         request = Reset.Request()
-        request.x = x 
-        request.y = y
+        request.gx = x
+        request.gy = y
+        request.cx = self.car_reset_positions['x']
+        request.cy = self.car_reset_positions['y']
+        request.cyaw = self.car_reset_positions['yaw']
         request.flag = "car_and_goal"
-
         future = self.reset_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
@@ -168,8 +176,8 @@ class CarTrackParentEnvironment(Node):
         self.goal_position = [x, y]
 
         request = Reset.Request()
-        request.x = x
-        request.y = y
+        request.gx = x
+        request.gy = y
         request.flag = "goal_only"
 
         future = self.reset_client.call_async(request)
@@ -199,7 +207,7 @@ class CarTrackParentEnvironment(Node):
         """
         current_distance = math.dist(self.goal_position, observation[:2])
 
-        reached_final_goal = current_distance <= self.REWARD_RANGE and self.goal_number == 3
+        reached_final_goal = current_distance <= self.REWARD_RANGE and self.goal_number == len(self.all_goals) - 1
 
         collided_wall = self.has_collided(observation[9:-2])
 

@@ -2,12 +2,13 @@ from environments.CarTrackParentEnvironment import CarTrackParentEnvironment
 
 
 class CarTrackOriginalEnvironment(CarTrackParentEnvironment):
+    """
+    track_original.sdf
+    """
+
     def __init__(self, car_name, reward_range=0.2, max_steps=50, collision_range=0.2, step_length=0.5):
         super().__init__(car_name, reward_range, max_steps, collision_range, step_length)
 
-        """
-        track_original.sdf
-        """
         self.all_goals = [
             [-16.5, -5.0],
             [-13.0, -7.0],
@@ -30,3 +31,9 @@ class CarTrackOriginalEnvironment(CarTrackParentEnvironment):
             [-11.5, 13.0],
             [-15.0, 0.0]  # Bottom
         ]
+
+        self.car_reset_positions = {
+            'x': -15.0,
+            'y': 0.0,
+            'yaw': 3.14 * 1.4
+        }
