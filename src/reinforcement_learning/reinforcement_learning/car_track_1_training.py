@@ -125,7 +125,7 @@ def train(env, agent: TD3):
                                      MIN_ACTIONS)  # mapping to env range [e.g. -2 , 2 for pendulum]
 
         next_state, reward, done, truncated, info = env.step(action_env)
-        print("step: ", total_step_counter)
+        # print("step: ", total_step_counter)
 
         memory.add(state=state, action=action, reward=reward, next_state=next_state, done=done)
 
