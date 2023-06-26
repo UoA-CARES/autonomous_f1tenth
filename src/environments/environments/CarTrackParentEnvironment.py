@@ -131,7 +131,7 @@ class CarTrackParentEnvironment(Node):
         return observation, info
 
     def generate_goal(self, number):
-        # print("Goal", number, "spawned =================================================")
+        print("Goal", number, "spawned")
         return self.all_goals[number % len(self.all_goals)]
 
     def step(self, action):
@@ -206,13 +206,22 @@ class CarTrackParentEnvironment(Node):
             9 to -3 => lidar
         """
         collided_wall = self.has_collided(observation[9:-2])
+        flipped_over = self.flip_over(observation)
 
-        return  collided_wall
+        if collided_wall:
+            print("Collided with wall")
+        if flipped_over:
+            print("Flipped over")
+
+        return collided_wall or flipped_over
     
     def has_collided(self, lidar_ranges):
         return any(0 < ray < self.COLLISION_RANGE for ray in lidar_ranges)
-        
-    
+
+    def flip_over(self, observation):
+        w, x, y, z = observation[2:6]
+        return abs(x) > 0.5 or abs(y) > 0.5
+
     def compute_reward(self, state, next_state):
 
         # TESTING ONLY
@@ -232,8 +241,9 @@ class CarTrackParentEnvironment(Node):
         current_distance = math.dist(goal_position, next_state[:2])
 
         if current_distance < self.REWARD_RANGE:
-            reward += 100
-            self.goal_number += 1 
+            reward += 50
+            self.goal_number += 1
+            self.step_counter = 0
             self.MAX_STEPS += self.MAX_STEPS_PER_GOAL
             self.update_goal_service(self.goal_number)
             
