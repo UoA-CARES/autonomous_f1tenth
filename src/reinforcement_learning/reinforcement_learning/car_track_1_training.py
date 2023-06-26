@@ -22,14 +22,14 @@ param_node.declare_parameters(
     [
         ('gamma', 0.95),
         ('tau', 0.005),
-        ('g', 10),
+        ('g', 5),
         ('batch_size', 32),
         ('buffer_size', 1_000_000),
         ('seed', 123),  # TODO: This doesn't do anything yet
         ('actor_lr', 1e-4),
         ('critic_lr', 1e-3),
         ('max_steps_training', 2_000_000),
-        ('max_steps', 100),
+        ('max_steps', 300),
         ('step_length', 0.25)
     ]
 )

@@ -51,7 +51,6 @@ class CarTrackParentEnvironment(Node):
         self.COLLISION_RANGE = collision_range
         self.STEP_LENGTH = step_length
 
-        self.step_counter = 0
 
         # Pub/Sub ----------------------------------------------------
         self.cmd_vel_pub = self.create_publisher(
@@ -110,6 +109,7 @@ class CarTrackParentEnvironment(Node):
         self.timer_future.set_result(True)
 
     def reset(self):
+        self.step_counter = 0
 
         self.set_velocity(0, 0)
 
@@ -150,6 +150,7 @@ class CarTrackParentEnvironment(Node):
         next_state = self.get_observation()
         reward = self.compute_reward(state, next_state)
         terminated = self.is_terminated(next_state)
+        print(self.step_counter, self.MAX_STEPS)
         truncated = self.step_counter >= self.MAX_STEPS
         info = {}
 
@@ -244,7 +245,6 @@ class CarTrackParentEnvironment(Node):
             reward += 50
             self.goal_number += 1
             self.step_counter = 0
-            self.MAX_STEPS += self.MAX_STEPS_PER_GOAL
             self.update_goal_service(self.goal_number)
             
         if self.has_collided(next_state[9:-2]):
@@ -278,6 +278,8 @@ class CarTrackParentEnvironment(Node):
     def process_lidar(self, lidar: LaserScan):
         ranges = lidar.ranges
         ranges = np.nan_to_num(ranges, posinf=float(-1))
+        ranges = np.clip(ranges, 0, 10)
+
         ranges = list(ranges)
 
         intensities = list(lidar.intensities)
