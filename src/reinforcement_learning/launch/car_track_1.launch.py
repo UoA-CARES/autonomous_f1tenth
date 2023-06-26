@@ -35,11 +35,11 @@ def generate_launch_description():
     # Launch the Environment
     main = Node(
             package='reinforcement_learning',
-            executable='car_track_training',
+            executable='car_track_1_training',
             parameters=[
                 config
             ],
-            name='car_track_training',
+            name='car_track_1_training',
             output='screen',
             emulate_tty=True, # Allows python print to show
     )

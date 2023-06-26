@@ -30,7 +30,7 @@ param_node.declare_parameters(
         ('critic_lr', 1e-3),
         ('max_steps_training', 2_000_000),
         ('max_steps_exploration', 1_000),
-        ('max_steps', 1000),
+        ('max_steps', 100),
         ('step_length', 0.25)
     ]
 )
@@ -84,7 +84,7 @@ OBSERVATION_SIZE = 8 + 10 + 2 # Car position + Lidar rays + goal position
 ACTION_NUM = 2
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-TRAINING_NAME = 'cartrack_training-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
+TRAINING_NAME = 'cartrack_1_training-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
 
 def main():
     time.sleep(3)
