@@ -136,6 +136,7 @@ class CarTrackEnvironment(Node):
 
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
+        self.step_counter = 0
 
         self.get_logger().info('Environment Setup Complete')
     
@@ -143,7 +144,6 @@ class CarTrackEnvironment(Node):
         self.timer_future.set_result(True)
 
     def reset(self):
-        self.step_counter = 0
 
         self.set_velocity(0, 0)
 
@@ -165,8 +165,8 @@ class CarTrackEnvironment(Node):
         return observation, info
 
     def generate_goal(self, number):
-        print("Goal", number, "spawned =================================================")
-        return self.all_goals[number]
+        # print("Goal", number, "spawned =================================================")
+        return self.all_goals[number % len(self.all_goals)]
 
     def step(self, action):
         self.step_counter += 1
@@ -182,8 +182,8 @@ class CarTrackEnvironment(Node):
         self.timer_future = Future()
         
         next_state = self.get_observation()
-        terminated = self.is_terminated(next_state)
         reward = self.compute_reward(state, next_state)
+        terminated = self.is_terminated(next_state)
         truncated = self.step_counter >= self.MAX_STEPS
         info = {}
 
@@ -237,13 +237,9 @@ class CarTrackEnvironment(Node):
             -1 to -2 => goal x, y
             9 to -3 => lidar
         """
-        current_distance = math.dist(self.goal_position, observation[:2])
-
-        reached_final_goal = current_distance <= self.REWARD_RANGE and self.goal_number == 3
-
         collided_wall = self.has_collided(observation[9:-2])
 
-        return reached_final_goal or collided_wall
+        return  collided_wall
     
     def has_collided(self, lidar_ranges):
         return any(0 < ray < self.COLLISION_RANGE for ray in lidar_ranges)
@@ -261,22 +257,17 @@ class CarTrackEnvironment(Node):
         # self.update_goal_service(self.goal_number)
         # ==============================================================
 
+        reward = 0
 
         goal_position = self.goal_position
 
-        old_distance = math.dist(goal_position, state[:2])
         current_distance = math.dist(goal_position, next_state[:2])
-
-        delta_distance = old_distance - current_distance
-
-        reward = 10 * (delta_distance / old_distance)
 
         if current_distance < self.REWARD_RANGE:
             reward += 100
-            if self.goal_number < len(self.all_goals) - 1:
-                self.goal_number += 1 
-                self.MAX_STEPS += self.MAX_STEPS_PER_GOAL
-                self.update_goal_service(self.goal_number)
+            self.goal_number += 1 
+            self.MAX_STEPS += self.MAX_STEPS_PER_GOAL
+            self.update_goal_service(self.goal_number)
             
         if self.has_collided(next_state[9:-2]):
             reward -= 25 # TODO: find optimal value for this

@@ -29,7 +29,6 @@ param_node.declare_parameters(
         ('actor_lr', 1e-4),
         ('critic_lr', 1e-3),
         ('max_steps_training', 2_000_000),
-        ('max_steps_exploration', 1_000),
         ('max_steps', 1000),
         ('step_length', 0.25)
     ]
@@ -37,7 +36,6 @@ param_node.declare_parameters(
 
 params = param_node.get_parameters([
     'max_steps_training',
-    'max_steps_exploration', 
     'gamma', 
     'tau', 
     'g', 
@@ -51,7 +49,6 @@ params = param_node.get_parameters([
     ])
 
 MAX_STEPS_TRAINING,\
-MAX_STEPS_EXPLORATION,\
 GAMMA,\
 TAU,\
 G,\
@@ -64,7 +61,6 @@ MAX_STEPS,\
 STEP_LENGTH = [param.value for param in params]
 
 print(
-    f'Exploration Steps: {MAX_STEPS_EXPLORATION}\n',
     f'Training Steps: {MAX_STEPS_TRAINING}\n',
     f'Gamma: {GAMMA}\n',
     f'Tau: {TAU}\n',
@@ -78,7 +74,7 @@ print(
     f'Step Length: {STEP_LENGTH}\n'
 )
 MAX_ACTIONS = np.asarray([3, 3.14])
-MIN_ACTIONS = np.asarray([-0.5, -3.14])
+MIN_ACTIONS = np.asarray([0, -3.14])
 
 OBSERVATION_SIZE = 8 + 10 # Car position + Lidar rays + goal position
 ACTION_NUM = 2
@@ -123,21 +119,12 @@ def train(env, agent: TD3):
     for total_step_counter in range(int(MAX_STEPS_TRAINING)):
         episode_timesteps += 1
 
-        if total_step_counter < MAX_STEPS_EXPLORATION:
-            print(f"Running Exploration Steps {total_step_counter}/{MAX_STEPS_EXPLORATION}")
-            action_env = np.asarray([random.uniform(MIN_ACTIONS[0], MAX_ACTIONS[0]), random.uniform(MIN_ACTIONS[1], MAX_ACTIONS[1])]) # action range the env uses [e.g. -2 , 2 for pendulum]
-            action = hlp.normalize(action_env, MAX_ACTIONS, MIN_ACTIONS)  # algorithm range [-1, 1]
-        else:
-            action = agent.select_action_from_policy(state) # algorithm range [-1, 1]
-            action_env = hlp.denormalize(action, MAX_ACTIONS, MIN_ACTIONS)  # mapping to env range [e.g. -2 , 2 for pendulum]
+        action = agent.select_action_from_policy(state) # algorithm range [-1, 1]
+        action_env = hlp.denormalize(action, MAX_ACTIONS, MIN_ACTIONS)  # mapping to env range [e.g. -2 , 2 for pendulum]
 
         next_state, reward, done, truncated, info = env.step(action_env)
-        # reward going forward
-        if action_env[0] > 0.5:
-            reward += 1
+        print("step: ", total_step_counter)
         
-        # small penalty for time taken
-        reward -= 0.3
         memory.add(state=state, action=action, reward=reward, next_state=next_state, done=done)
 
         state = next_state
@@ -150,12 +137,11 @@ def train(env, agent: TD3):
         if total_step_counter % 50_000 == 0:
             agent.save_models(f'{TRAINING_NAME}_{total_step_counter}')
 
-        if total_step_counter >= MAX_STEPS_EXPLORATION:
-                for _ in range(G):
-                    experiences = memory.sample(BATCH_SIZE)
-                    experiences = (experiences['state'], experiences['action'], experiences['reward'], experiences['next_state'], experiences['done'])
-                    # print(experiences)
-                    agent.train_policy(experiences)
+        for _ in range(G):
+            experiences = memory.sample(BATCH_SIZE)
+            experiences = (experiences['state'], experiences['action'], experiences['reward'], experiences['next_state'], experiences['done'])
+            # print(experiences)
+            agent.train_policy(experiences)
 
         if done or truncated:
             print(f"Total T:{total_step_counter+1} Episode {episode_num+1} was completed with {episode_timesteps} steps taken and a Reward= {episode_reward:.3f}")
