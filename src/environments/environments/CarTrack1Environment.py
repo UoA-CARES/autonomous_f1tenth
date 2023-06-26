@@ -2,11 +2,11 @@ from environments.CarTrackParentEnvironment import CarTrackParentEnvironment
 
 
 class CarTrack1Environment(CarTrackParentEnvironment):
-    def __init__(self, car_name, reward_range=0.2, max_steps=50, collision_range=0.2, step_length=0.5):
+    """
+    track1.sdf
+    """
 
-        """
-        track1.sdf
-        """
+    def __init__(self, car_name, reward_range=0.2, max_steps=50, collision_range=0.2, step_length=0.5):
         super().__init__(car_name, reward_range, max_steps, collision_range, step_length)
         self.all_goals = [
             [-4.5, -5.0],
