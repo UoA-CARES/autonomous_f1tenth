@@ -228,7 +228,7 @@ class CarTrackEnvironment(Node):
         reduced_range = self.sample_reduce_lidar(lidar)
         # print(reduced_range)
         # Get Goal Position
-        return odom + reduced_range + self.goal_position 
+        return odom + reduced_range 
 
     def is_terminated(self, observation):
         """

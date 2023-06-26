@@ -80,7 +80,7 @@ print(
 MAX_ACTIONS = np.asarray([3, 3.14])
 MIN_ACTIONS = np.asarray([-0.5, -3.14])
 
-OBSERVATION_SIZE = 8 + 10 + 2 # Car position + Lidar rays + goal position
+OBSERVATION_SIZE = 8 + 10 # Car position + Lidar rays + goal position
 ACTION_NUM = 2
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
