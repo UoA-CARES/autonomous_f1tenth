@@ -94,9 +94,9 @@ TRAINING_NAME = 'carwall_training-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S
 linear_vel = 0
 angular_vel = 0
 offset = 0.05
-MAX_SPEED = 3
+MAX_SPEED = 1.5
 NETURAL_SPEED = 0
-MAX_ANGULAR = 3.14
+MAX_ANGULAR = 1
 LEFT_ANGULAR = MAX_ANGULAR
 RIGHT_ANGULAR = -MAX_ANGULAR
 NETURAL_ANGULAR = 0
@@ -182,7 +182,7 @@ def main():
 
     time.sleep(3)
 
-    env = CarTrackEnvironment('f1tenth', step_length=0.25, max_steps=MAX_STEPS)
+    env = CarTrackEnvironment('f1tenth', step_length=0.25, max_steps=MAX_STEPS, reward_range=4)
 
     env.reset()
     i = 0

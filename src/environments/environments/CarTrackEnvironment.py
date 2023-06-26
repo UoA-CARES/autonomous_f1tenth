@@ -92,6 +92,11 @@ class CarTrackEnvironment(Node):
             self.get_logger().info('reset service not available, waiting again...')
 
         self.goal_position = [10, 10]  # x and y
+        self.all_goals = []
+
+        """
+        track.sdf
+        """
         self.all_goals = [
             [-16.5, -5.0],
             [-13.0, -7.0],
@@ -114,6 +119,20 @@ class CarTrackEnvironment(Node):
             [-11.5, 13.0],
             [-15.0, 0.0]  # Bottom
         ]
+
+        """
+        track1.sdf
+        """
+        # self.all_goals = [
+        #     [-4.5, -5.0],
+        #     [-3.0, -7.0],
+        #     [0.0, -7.5],  # Right
+        #     [3.0, -7.0],
+        #     [6.0, -7.0],
+        #     [7.0, 0.0],  # Top
+        #     [0.0, 6.0],  # Left
+        #     [-4.5, 0.0]  # Bottom
+        # ]
 
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
@@ -231,6 +250,17 @@ class CarTrackEnvironment(Node):
         
     
     def compute_reward(self, state, next_state):
+
+        # TESTING ONLY
+
+        # if self.goal_number < len(self.all_goals) - 1:
+        #     self.goal_number += 1
+        # else:
+        #     self.goal_number = 0
+
+        # self.update_goal_service(self.goal_number)
+        # ==============================================================
+
 
         goal_position = self.goal_position
 
