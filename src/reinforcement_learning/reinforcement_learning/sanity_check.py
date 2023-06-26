@@ -1,6 +1,7 @@
 from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
-from environments.CarTrackEnvironment import CarTrackEnvironment
+from environments.CarTrackOriginalEnvironment import CarTrackOriginalEnvironment
+from environments.CarTrack1Environment import CarTrack1Environment
 import rclpy
 from ament_index_python import get_package_share_directory
 import time
@@ -182,7 +183,7 @@ def main():
 
     time.sleep(3)
 
-    env = CarTrackEnvironment('f1tenth', step_length=0.25, max_steps=MAX_STEPS, reward_range=4)
+    env = CarTrack1Environment('f1tenth', step_length=0.25, max_steps=MAX_STEPS, reward_range=4)
 
     env.reset()
     i = 0
