@@ -184,7 +184,7 @@ def main():
 
     time.sleep(3)
 
-    env = CarTrack2Environment('f1tenth', step_length=0.25, max_steps=MAX_STEPS, reward_range=4)
+    env = CarTrack2Environment('f1tenth', step_length=0.25, max_steps=MAX_STEPS, reward_range=2)
 
     env.reset()
     i = 0
