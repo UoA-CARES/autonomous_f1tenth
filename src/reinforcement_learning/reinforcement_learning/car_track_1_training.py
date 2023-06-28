@@ -124,6 +124,13 @@ def train(env, agent: TD3):
         action_env = hlp.denormalize(action, MAX_ACTIONS,
                                      MIN_ACTIONS)  # mapping to env range [e.g. -2 , 2 for pendulum]
 
+        # If action is nan, then we have a problem
+        if np.isnan(action_env).any():
+            # print state and action and action_env
+            print("State: ", state)
+            print("Action: ", action)
+            break
+
         next_state, reward, done, truncated, info = env.step(action_env)
         # print("step: ", total_step_counter)
 
