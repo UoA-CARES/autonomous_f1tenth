@@ -144,7 +144,7 @@ def train(env, agent: TD3):
         # rate.sleep()
 
         if total_step_counter % 50_000 == 0:
-            agent.save_models(f'{TRAINING_NAME}_{total_step_counter}')
+            agent.save_models(f'{TRAINING_NAME}_{total_step_counter}_{episode_num}')
 
         for _ in range(G):
             experiences = memory.sample(BATCH_SIZE)
