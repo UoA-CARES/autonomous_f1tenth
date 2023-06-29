@@ -1,6 +1,7 @@
 from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
 from environments.CarBlockEnvironment import CarBlockEnvironment
+from environments.CarTrack1Environment import CarTrack1Environment
 import rclpy
 from ament_index_python import get_package_share_directory
 import time
@@ -18,11 +19,11 @@ param_node = rclpy.create_node('params')
 param_node.declare_parameters(
     '',
     [
-        ('environment', 'CarGoal'),
+        ('environment', 'CarTrack1'),
         ('max_steps_evaluation', 1_000_000),
-        ('max_steps', 100),
+        ('max_steps', 300),
         ('step_length', 0.25),
-        ('reward_range', 0.2),
+        ('reward_range', 2),
         ('collision_range', 0.2),
         ('actor_path', ''),
         ('critic_path', '')
@@ -77,6 +78,8 @@ def main():
             env = CarWallEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case 'CarBlock':
             env = CarBlockEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
+        case 'CarTrack1':
+            env = CarTrack1Environment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case _:
             env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
     

@@ -9,7 +9,8 @@ import yaml
 env_launch = {
     'CarGoal': 'cargoal',
     'CarWall': 'carwall',
-    'CarBlock': 'carblock'
+    'CarBlock': 'carblock',
+    'CarTrack1': 'cartrack1'
 }
 
 def generate_launch_description():
