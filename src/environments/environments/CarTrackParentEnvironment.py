@@ -212,7 +212,7 @@ class CarTrackParentEnvironment(Node):
             9 to -3 => lidar
         """
         collided_wall = self.has_collided(observation[9:-2])
-        flipped_over = self.flip_over(observation)
+        flipped_over = self.has_flipped_over(observation)
 
         if collided_wall:
             print("Collided with wall")
@@ -221,12 +221,12 @@ class CarTrackParentEnvironment(Node):
 
         return collided_wall or flipped_over
     
-    def has_collided(self, lidar_ranges):
-        return any(0 < ray < self.COLLISION_RANGE for ray in lidar_ranges)
-
-    def flip_over(self, observation):
+    def has_flipped_over(self, observation):
         w, x, y, z = observation[2:6]
         return abs(x) > 0.5 or abs(y) > 0.5
+    
+    def has_collided(self, lidar_ranges):
+        return any(0 < ray < self.COLLISION_RANGE for ray in lidar_ranges)
 
     def compute_reward(self, state, next_state):
 
@@ -252,8 +252,9 @@ class CarTrackParentEnvironment(Node):
             self.step_counter = 0
             self.update_goal_service(self.goal_number)
             
-        if self.has_collided(next_state[9:-2]):
+        if self.has_collided(next_state[9:-2]) or self.has_flipped_over(next_state):
             reward -= 25 # TODO: find optimal value for this
+        
         
         # reward += delta_distance
 
