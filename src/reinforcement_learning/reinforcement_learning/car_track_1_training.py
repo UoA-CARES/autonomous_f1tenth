@@ -29,9 +29,8 @@ param_node.declare_parameters(
         ('actor_lr', 1e-4),
         ('critic_lr', 1e-3),
         ('max_steps_training', 2_000_000),
-        ('max_explore_steps', 10_00)
         ('max_steps', 300),
-        ('step_length', 0.1)
+        ('step_length', 0.25)
     ]
 )
 
@@ -46,7 +45,6 @@ params = param_node.get_parameters([
     'actor_lr',
     'critic_lr',
     'max_steps',
-    'max_explore_steps',
     'step_length',
 ])
 
@@ -60,7 +58,6 @@ MAX_STEPS_TRAINING, \
     ACTOR_LR, \
     CRITIC_LR, \
     MAX_STEPS, \
-    MAX_EXPLORE_STEPS, \
     STEP_LENGTH = [param.value for param in params]
 
 print(
@@ -76,12 +73,10 @@ print(
     f'Steps per Episode: {MAX_STEPS}\n',
     f'Step Length: {STEP_LENGTH}\n'
 )
-
-MAX_ACTIONS = np.asarray([-0.5, 3.14])
-MAX_ACTIONS_EXPLORE = np.asarray([1, 3.14])
+MAX_ACTIONS = np.asarray([1, 3.14])
 MIN_ACTIONS = np.asarray([3, -3.14])
 
-OBSERVATION_SIZE = 10  # Car position + Lidar rays
+OBSERVATION_SIZE = 8 + 10  # Car position + Lidar rays + goal position
 ACTION_NUM = 2
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -125,12 +120,9 @@ def train(env, agent: TD3):
     for total_step_counter in range(int(MAX_STEPS_TRAINING)):
         episode_timesteps += 1
 
-            
         action = agent.select_action_from_policy(state)  # algorithm range [-1, 1]
-        if (total_step_counter < MAX_EXPLORE_STEPS):
-            action_env = hlp.denormalize(action, MAX_ACTIONS_EXPLORE, MIN_ACTIONS)
-        else:
-            action_env = hlp.denormalize(action, MAX_ACTIONS, MIN_ACTIONS)
+        action_env = hlp.denormalize(action, MAX_ACTIONS,
+                                     MIN_ACTIONS)  # mapping to env range [e.g. -2 , 2 for pendulum]
 
         # If action is nan, then we have a problem
         if np.isnan(action_env).any():

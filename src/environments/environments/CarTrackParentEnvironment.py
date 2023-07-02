@@ -196,13 +196,13 @@ class CarTrackParentEnvironment(Node):
 
         # Get Position and Orientation of F1tenth
         odom, lidar = self.get_data()
-        # odom = self.process_odom(odom)
+        odom = self.process_odom(odom)
         # ranges, _ = self.process_lidar(lidar)
 
         reduced_range = self.sample_reduce_lidar(lidar)
         # print(reduced_range)
         # Get Goal Position
-        return reduced_range 
+        return odom + reduced_range 
 
     def is_terminated(self, observation):
         """
