@@ -1,4 +1,4 @@
-from environments.CarTrack1Environment import CarTrack1Environment
+from environments.CarTrack2Environment import CarTrack2Environment
 import rclpy
 from ament_index_python import get_package_share_directory
 import time
@@ -86,7 +86,7 @@ TRAINING_NAME = 'cartrack_2_training-' + datetime.now().strftime("%d-%m-%Y-%H:%M
 def main():
     time.sleep(3)
 
-    env = CarTrack1Environment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=2)
+    env = CarTrack2Environment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=2)
 
     actor = Actor(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=ACTOR_LR)
     critic = Critic(observation_size=OBSERVATION_SIZE, num_actions=ACTION_NUM, learning_rate=CRITIC_LR)
