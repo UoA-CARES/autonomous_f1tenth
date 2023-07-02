@@ -73,8 +73,8 @@ print(
     f'Steps per Episode: {MAX_STEPS}\n',
     f'Step Length: {STEP_LENGTH}\n'
 )
-MAX_ACTIONS = np.asarray([3, 3.14])
-MIN_ACTIONS = np.asarray([0, -3.14])
+MAX_ACTIONS = np.asarray([0, 3.14])
+MIN_ACTIONS = np.asarray([3, -3.14])
 
 OBSERVATION_SIZE = 8 + 10  # Car position + Lidar rays + goal position
 ACTION_NUM = 2
@@ -129,6 +129,8 @@ def train(env, agent: TD3):
             # print state and action and action_env
             print("State: ", state)
             print("Action: ", action)
+            action = agent.select_action_from_policy(state)  # algorithm range [-1, 1]
+            print("New Action: ", action)
             break
 
         next_state, reward, done, truncated, info = env.step(action_env)
