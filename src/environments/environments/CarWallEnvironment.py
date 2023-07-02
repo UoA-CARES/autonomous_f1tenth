@@ -247,7 +247,7 @@ class CarWallEnvironment(Node):
 
     def process_lidar(self, lidar: LaserScan):
         ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(-1))
+        ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
         ranges = list(ranges)
 
         intensities = list(lidar.intensities)
@@ -255,7 +255,7 @@ class CarWallEnvironment(Node):
 
     def avg_reduce_lidar(self, lidar: LaserScan):
         ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(10))
+        ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
         ranges = list(ranges)
         
         reduced_range = []

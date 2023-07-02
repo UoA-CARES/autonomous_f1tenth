@@ -178,7 +178,7 @@ class CarBlockEnvironment(Node):
         odom = self.process_odom(odom)
         ranges, _ = self.process_lidar(lidar)
 
-        reduced_range = self.avg_reduce_lidar(lidar)
+        reduced_range = self.reduce_lidar(lidar)
     
         # Get Goal Position
         return odom + reduced_range + self.goal_position 
@@ -244,22 +244,22 @@ class CarBlockEnvironment(Node):
 
     def process_lidar(self, lidar: LaserScan):
         ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(-1))
+        ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
         ranges = list(ranges)
 
         intensities = list(lidar.intensities)
         return ranges, intensities
 
-    def avg_reduce_lidar(self, lidar: LaserScan):
+    def reduce_lidar(self, lidar: LaserScan):
         ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(10))
+        ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
         ranges = list(ranges)
         
         reduced_range = []
 
         for i in range(10):
-            avg = sum(ranges[i * 64 : i * 64 + 64]) / 64
-            reduced_range.append(avg)
+            sample = ranges[i * 64]
+            reduced_range.append(sample)
 
         return reduced_range
 
