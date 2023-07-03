@@ -1,3 +1,6 @@
+float64 x
+float64 y
+
 float64 gx
 float64 gy
 float64 cx
