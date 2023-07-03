@@ -1,20 +1,13 @@
-import time
 import math
+
 import numpy as np
-import random
-
 import rclpy
-from rclpy.node import Node
 from rclpy import Future
-
-from geometry_msgs.msg import Twist
-from nav_msgs.msg import Odometry
-from std_srvs.srv import Trigger
 from sensor_msgs.msg import LaserScan
-from environment_interfaces.srv import Reset
-from message_filters import Subscriber, ApproximateTimeSynchronizer
 
+from environment_interfaces.srv import Reset
 from environments.ParentCarEnvironment import ParentCarEnvironment
+
 
 class CarTrackParentEnvironment(ParentCarEnvironment):
     """
@@ -63,25 +56,25 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
         self.step_counter = 0
 
         self.get_logger().info('Environment Setup Complete')
-    
+
     def reset(self):
         self.step_counter = 0
 
         self.set_velocity(0, 0)
 
-        #TODO: Remove Hard coded-ness of 10x10
+        # TODO: Remove Hard coded-ness of 10x10
         self.goal_number = 0
         self.goal_position = self.generate_goal(self.goal_number)
 
         while not self.timer_future.done():
             rclpy.spin_once(self)
-        
+
         self.timer_future = Future()
 
         self.call_reset_service()
-        
+
         observation = self.get_observation()
-        
+
         info = {}
 
         return observation, info
@@ -120,7 +113,6 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
 
         return future.result()
 
-
     def get_observation(self):
 
         # Get Position and Orientation of F1tenth
@@ -131,7 +123,7 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
         reduced_range = self.sample_reduce_lidar(lidar)
 
         # Get Goal Position
-        return odom + reduced_range 
+        return odom + reduced_range
 
     def is_terminated(self, observation):
         """
@@ -173,10 +165,10 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
             self.goal_number += 1
             self.step_counter = 0
             self.update_goal_service(self.goal_number)
-            
+
         if self.has_collided(next_state) or self.has_flipped_over(next_state):
-            reward -= 25 # TODO: find optimal value for this
-        
+            reward -= 25  # TODO: find optimal value for this
+
         return reward
 
     def process_lidar(self, lidar: LaserScan):
@@ -194,11 +186,11 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
         ranges = np.nan_to_num(ranges, posinf=float(10))
         ranges = np.clip(ranges, 0, 10)
         ranges = list(ranges)
-        
+
         reduced_range = []
 
         for i in range(10):
-            sample = ranges[i*64] 
+            sample = ranges[i * 64]
             reduced_range.append(sample)
 
         return reduced_range

@@ -1,18 +1,15 @@
-import time
 import math
+
 import numpy as np
-import random
-
 import rclpy
-from rclpy.node import Node
-from rclpy import Future
-
 from geometry_msgs.msg import Twist
-from nav_msgs.msg import Odometry
-from std_srvs.srv import Trigger
-from sensor_msgs.msg import LaserScan
-from environment_interfaces.srv import Reset
 from message_filters import Subscriber, ApproximateTimeSynchronizer
+from nav_msgs.msg import Odometry
+from rclpy import Future
+from rclpy.node import Node
+from sensor_msgs.msg import LaserScan
+
+from environment_interfaces.srv import Reset
 
 
 class ParentCarEnvironment(Node):
@@ -201,4 +198,3 @@ class ParentCarEnvironment(Node):
         velocity_msg.linear.x = float(linear)
 
         self.cmd_vel_pub.publish(velocity_msg)
-
