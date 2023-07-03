@@ -73,7 +73,7 @@ print(
     f'Steps per Episode: {MAX_STEPS}\n',
     f'Step Length: {STEP_LENGTH}\n'
 )
-MAX_ACTIONS = np.asarray([0, 3.14])
+MAX_ACTIONS = np.asarray([1, 3.14])
 MIN_ACTIONS = np.asarray([3, -3.14])
 
 OBSERVATION_SIZE = 8 + 10  # Car position + Lidar rays + goal position
