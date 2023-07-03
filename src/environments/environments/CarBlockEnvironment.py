@@ -36,6 +36,7 @@ class CarBlockEnvironment(ParentCarEnvironment):
 
     def __init__(self, car_name, reward_range=0.2, max_steps=50, collision_range=0.2, step_length=0.5):
         super().__init__('car_block', car_name, reward_range, max_steps, collision_range, step_length)
+        self.get_logger().info('Environment Setup Complete')
 
     def reset(self):
         self.step_counter = 0

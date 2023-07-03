@@ -77,8 +77,6 @@ class ParentCarEnvironment(Node):
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
 
-        self.get_logger().info('Environment Setup Complete')
-
     def timer_cb(self):
         self.timer_future.set_result(True)
 
@@ -101,6 +99,7 @@ class ParentCarEnvironment(Node):
         next_state = self.get_observation()
         reward = self.compute_reward(state, next_state)
         terminated = self.is_terminated(next_state)
+        print(self.step_counter, self.MAX_STEPS)
         truncated = self.step_counter >= self.MAX_STEPS
         info = {}
 
@@ -108,7 +107,7 @@ class ParentCarEnvironment(Node):
 
     def call_reset_service(self):
         x, y = self.goal_position
-
+        # TODO: Change x and y to gx and gy
         request = Reset.Request()
         request.x = x
         request.y = y
@@ -129,15 +128,20 @@ class ParentCarEnvironment(Node):
             9 to -3 => lidar
         """
         current_distance = math.dist(observation[-2:], observation[:2])
-
         reached_goal = current_distance <= self.REWARD_RANGE
 
-        collided_wall = self.has_collided(observation[9:-2])
+        collided_wall = self.has_collided(observation)
+        flipped_over = self.has_flipped_over(observation)
 
-        return reached_goal or collided_wall
+        return reached_goal or collided_wall or flipped_over
 
-    def has_collided(self, lidar_ranges):
+    def has_collided(self, observation):
+        lidar_ranges = observation[9:-2]
         return any(0 < ray < self.COLLISION_RANGE for ray in lidar_ranges)
+
+    def has_flipped_over(self, observation):
+        w, x, y, z = observation[2:6]
+        return abs(x) > 0.5 or abs(y) > 0.5
 
     def compute_reward(self, state, next_state):
 
@@ -153,7 +157,7 @@ class ParentCarEnvironment(Node):
         if current_distance < self.REWARD_RANGE:
             reward += 100
 
-        if self.has_collided(next_state[9:-2]):
+        if self.has_collided(next_state) or self.has_flipped_over(next_state):
             reward -= 25  # TODO: find optimal value for this
 
         return reward
