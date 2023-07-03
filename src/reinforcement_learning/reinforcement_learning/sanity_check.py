@@ -1,5 +1,8 @@
 from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
+from environments.CarTrackOriginalEnvironment import CarTrackOriginalEnvironment
+from environments.CarTrack1Environment import CarTrack1Environment
+from environments.CarTrack2Environment import CarTrack2Environment
 import rclpy
 from ament_index_python import get_package_share_directory
 import time
@@ -34,7 +37,7 @@ param_node.declare_parameters(
         ('critic_lr', 1e-3),
         ('max_steps_training', 1_000_000),
         ('max_steps_exploration', 1_000),
-        ('max_steps', 100)
+        ('max_steps', 1000)
     ]
 )
 
@@ -93,9 +96,9 @@ TRAINING_NAME = 'carwall_training-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S
 linear_vel = 0
 angular_vel = 0
 offset = 0.05
-MAX_SPEED = 3
+MAX_SPEED = 1.5
 NETURAL_SPEED = 0
-MAX_ANGULAR = 3.14
+MAX_ANGULAR = 1
 LEFT_ANGULAR = MAX_ANGULAR
 RIGHT_ANGULAR = -MAX_ANGULAR
 NETURAL_ANGULAR = 0
@@ -181,7 +184,7 @@ def main():
 
     time.sleep(3)
 
-    env = CarWallEnvironment('f1tenth', step_length=0.25, max_steps=MAX_STEPS)
+    env = CarTrack2Environment('f1tenth', step_length=0.25, max_steps=MAX_STEPS, reward_range=2)
 
     env.reset()
     i = 0
@@ -189,18 +192,15 @@ def main():
     while True:
         joystick_check()
 
-        if (linear_vel < 0):
-            _, _, done, truncated, _ = env.step([linear_vel, -1 * angular_vel])
+        if linear_vel < 0:
+            _, r, done, truncated, _ = env.step([linear_vel, -1 * angular_vel])
 
         else:
-            _, _, done, truncated, _ = env.step([linear_vel, angular_vel])
-
-        # print("Linear velocity:", linear_vel)
-        # print("Angular velocity:", angular_vel)
+            _, r, done, truncated, _ = env.step([linear_vel, angular_vel])
 
         if truncated or done:
+            print("Reached the goal -", r)
             env.reset()
-
 
 
 if __name__ == '__main__':

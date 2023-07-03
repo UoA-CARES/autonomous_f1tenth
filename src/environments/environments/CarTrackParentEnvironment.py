@@ -14,9 +14,9 @@ from sensor_msgs.msg import LaserScan
 from environment_interfaces.srv import Reset
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 
-class CarWallEnvironment(Node):
+class CarTrackParentEnvironment(Node):
     """
-    CarWall Reinforcement Learning Environment:
+    CarTrack Reinforcement Learning Environment:
 
         Task:
             Here the agent learns to drive the f1tenth car to a goal position
@@ -41,22 +41,21 @@ class CarWallEnvironment(Node):
     """
 
     def __init__(self, car_name, reward_range=0.2, max_steps=50, collision_range=0.2, step_length=0.5):
-        super().__init__('car_goal_environment')
+        super().__init__('car_track_environment')
         
         # Environment Details ----------------------------------------
         self.NAME = car_name
         self.REWARD_RANGE = reward_range
         self.MAX_STEPS = max_steps
+        self.MAX_STEPS_PER_GOAL = max_steps
         self.COLLISION_RANGE = collision_range
         self.STEP_LENGTH = step_length
-        
-        self.MAX_ACTIONS = np.asarray([3, 3.14])
-        self.MIN_ACTIONS = np.asarray([-0.5, -3.14])
 
-        self.OBSERVATION_SIZE = 8 + 10 + 2 # Car position + Lidar rays + goal position
+        self.MAX_ACTIONS = np.asarray([3, 3.14])
+        self.MIN_ACTIONS = np.asarray([0, -3.14])
+        self.OBSERVATION_SIZE = 8 + 10  # Car position + Lidar rays + goal position
         self.ACTION_NUM = 2
 
-        self.step_counter = 0
 
         # Pub/Sub ----------------------------------------------------
         self.cmd_vel_pub = self.create_publisher(
@@ -90,16 +89,24 @@ class CarWallEnvironment(Node):
         # Reset Client -----------------------------------------------
         self.reset_client = self.create_client(
             Reset,
-            'car_wall_reset'
+            'car_track_reset'
         )
 
         while not self.reset_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('reset service not available, waiting again...')
 
-        self.goal_position = [10, 10] # x and y
+        self.goal_position = [10, 10]  # x and y
+        self.all_goals = []
+
+        self.car_reset_positions = {
+            'x': 0.0,
+            'y': 0.0,
+            'yaw': 0.0
+        }
 
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
+        self.step_counter = 0
 
         self.get_logger().info('Environment Setup Complete')
     
@@ -112,7 +119,8 @@ class CarWallEnvironment(Node):
         self.set_velocity(0, 0)
 
         #TODO: Remove Hard coded-ness of 10x10
-        self.goal_position = self.generate_goal()
+        self.goal_number = 0
+        self.goal_position = self.generate_goal(self.goal_number)
 
         while not self.timer_future.done():
             rclpy.spin_once(self)
@@ -127,16 +135,9 @@ class CarWallEnvironment(Node):
 
         return observation, info
 
-    def generate_goal(self, inner_bound=3, outer_bound=5):
-        inner_bound = float(inner_bound)
-        outer_bound = float(outer_bound)
-
-        x_pos = random.uniform(-outer_bound, outer_bound)
-        x_pos = x_pos + inner_bound if x_pos >= 0 else x_pos - inner_bound
-        y_pos = random.uniform(-outer_bound, outer_bound)
-        y_pos = y_pos + inner_bound if y_pos >= 0 else y_pos - inner_bound
-
-        return [x_pos, y_pos]
+    def generate_goal(self, number):
+        print("Goal", number, "spawned")
+        return self.all_goals[number % len(self.all_goals)]
 
     def step(self, action):
         self.step_counter += 1
@@ -154,6 +155,7 @@ class CarWallEnvironment(Node):
         next_state = self.get_observation()
         reward = self.compute_reward(state, next_state)
         terminated = self.is_terminated(next_state)
+        print(self.step_counter, self.MAX_STEPS)
         truncated = self.step_counter >= self.MAX_STEPS
         info = {}
 
@@ -163,26 +165,44 @@ class CarWallEnvironment(Node):
         x, y = self.goal_position
 
         request = Reset.Request()
-        request.x = x 
-        request.y = y
-
+        request.gx = x
+        request.gy = y
+        request.cx = self.car_reset_positions['x']
+        request.cy = self.car_reset_positions['y']
+        request.cyaw = self.car_reset_positions['yaw']
+        request.flag = "car_and_goal"
         future = self.reset_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
         # print(f'Reset Response Recieved: {future.result()}')
         return future.result()
 
+    def update_goal_service(self, number):
+        x, y = self.generate_goal(number)
+        self.goal_position = [x, y]
+
+        request = Reset.Request()
+        request.gx = x
+        request.gy = y
+        request.flag = "goal_only"
+
+        future = self.reset_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+
+        return future.result()
+
+
     def get_observation(self):
 
         # Get Position and Orientation of F1tenth
         odom, lidar = self.get_data()
         odom = self.process_odom(odom)
-        ranges, _ = self.process_lidar(lidar)
+        # ranges, _ = self.process_lidar(lidar)
 
-        reduced_range = self.avg_reduce_lidar(lidar)
+        reduced_range = self.sample_reduce_lidar(lidar)
         # print(reduced_range)
         # Get Goal Position
-        return odom + reduced_range + self.goal_position 
+        return odom + reduced_range 
 
     def is_terminated(self, observation):
         """
@@ -191,34 +211,50 @@ class CarWallEnvironment(Node):
             -1 to -2 => goal x, y
             9 to -3 => lidar
         """
-        current_distance = math.dist(observation[-2:], observation[:2])
-
-        reached_goal = current_distance <= self.REWARD_RANGE
-
         collided_wall = self.has_collided(observation[9:-2])
+        flipped_over = self.has_flipped_over(observation)
 
-        return reached_goal or collided_wall
+        if collided_wall:
+            print("Collided with wall")
+        if flipped_over:
+            print("Flipped over")
+
+        return collided_wall or flipped_over
+    
+    def has_flipped_over(self, observation):
+        w, x, y, z = observation[2:6]
+        return abs(x) > 0.5 or abs(y) > 0.5
     
     def has_collided(self, lidar_ranges):
         return any(0 < ray < self.COLLISION_RANGE for ray in lidar_ranges)
-        
-    
+
     def compute_reward(self, state, next_state):
 
-        goal_position = state[-2:]
+        # TESTING ONLY
 
-        old_distance = math.dist(goal_position, state[:2])
+        # if self.goal_number < len(self.all_goals) - 1:
+        #     self.goal_number += 1
+        # else:
+        #     self.goal_number = 0
+
+        # self.update_goal_service(self.goal_number)
+        # ==============================================================
+
+        reward = 0
+
+        goal_position = self.goal_position
+
         current_distance = math.dist(goal_position, next_state[:2])
 
-        delta_distance = old_distance - current_distance
-
-        reward = 10 * (delta_distance / old_distance)
-
         if current_distance < self.REWARD_RANGE:
-            reward += 100
-
-        if self.has_collided(next_state[9:-2]):
+            reward += 50
+            self.goal_number += 1
+            self.step_counter = 0
+            self.update_goal_service(self.goal_number)
+            
+        if self.has_collided(next_state[9:-2]) or self.has_flipped_over(next_state):
             reward -= 25 # TODO: find optimal value for this
+        
         
         # reward += delta_distance
 
@@ -247,22 +283,25 @@ class CarWallEnvironment(Node):
 
     def process_lidar(self, lidar: LaserScan):
         ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
+        ranges = np.nan_to_num(ranges, posinf=float(-1))
+        ranges = np.clip(ranges, 0, 10)
+
         ranges = list(ranges)
 
         intensities = list(lidar.intensities)
         return ranges, intensities
 
-    def avg_reduce_lidar(self, lidar: LaserScan):
+    def sample_reduce_lidar(self, lidar: LaserScan):
         ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
+        ranges = np.nan_to_num(ranges, posinf=float(10))
+        ranges = np.clip(ranges, 0, 10)
         ranges = list(ranges)
         
         reduced_range = []
 
         for i in range(10):
-            avg = sum(ranges[i * 64 : i * 64 + 64]) / 64
-            reduced_range.append(avg)
+            sample = ranges[i*64] 
+            reduced_range.append(sample)
 
         return reduced_range
 
