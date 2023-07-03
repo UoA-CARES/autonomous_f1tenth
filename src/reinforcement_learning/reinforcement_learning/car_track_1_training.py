@@ -136,6 +136,8 @@ def train(env, agent: TD3):
         next_state, reward, done, truncated, info = env.step(action_env)
         # print("step: ", total_step_counter)
 
+        reward -= 1
+
         memory.add(state=state, action=action, reward=reward, next_state=next_state, done=done)
 
         state = next_state
