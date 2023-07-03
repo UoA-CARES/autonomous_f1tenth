@@ -16,7 +16,7 @@ from message_filters import Subscriber, ApproximateTimeSynchronizer
 
 
 class ParentCarEnvironment(Node):
-    def __init__(self, env_name, car_name, reward_range=0.2, max_steps=50, collision_range=0.2, step_length=0.5):
+    def __init__(self, env_name, car_name, reward_range, max_steps, collision_range, step_length):
         super().__init__(env_name + '_environment')
 
         # Environment Details ----------------------------------------
@@ -83,36 +83,7 @@ class ParentCarEnvironment(Node):
         self.timer_future.set_result(True)
 
     def reset(self):
-        self.step_counter = 0
-
-        self.set_velocity(0, 0)
-
-        # TODO: Remove Hard coded-ness of 10x10
-        self.goal_position = self.generate_goal()
-
-        while not self.timer_future.done():
-            rclpy.spin_once(self)
-
-        self.timer_future = Future()
-
-        self.call_reset_service()
-
-        observation = self.get_observation()
-
-        info = {}
-
-        return observation, info
-
-    def generate_goal(self, inner_bound=3, outer_bound=5):
-        inner_bound = float(inner_bound)
-        outer_bound = float(outer_bound)
-
-        x_pos = random.uniform(-outer_bound, outer_bound)
-        x_pos = x_pos + inner_bound if x_pos >= 0 else x_pos - inner_bound
-        y_pos = random.uniform(-outer_bound, outer_bound)
-        y_pos = y_pos + inner_bound if y_pos >= 0 else y_pos - inner_bound
-
-        return [x_pos, y_pos]
+        raise NotImplementedError('reset() not implemented')
 
     def step(self, action):
         self.step_counter += 1
@@ -145,20 +116,10 @@ class ParentCarEnvironment(Node):
         future = self.reset_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
-        # print(f'Reset Response Recieved: {future.result()}')
         return future.result()
 
     def get_observation(self):
-
-        # Get Position and Orientation of F1tenth
-        odom, lidar = self.get_data()
-        odom = self.process_odom(odom)
-        ranges, _ = self.process_lidar(lidar)
-
-        reduced_range = self.avg_reduce_lidar(lidar)
-        # print(reduced_range)
-        # Get Goal Position
-        return odom + reduced_range + self.goal_position
+        raise NotImplementedError('get_observation() not implemented')
 
     def is_terminated(self, observation):
         """
@@ -195,8 +156,6 @@ class ParentCarEnvironment(Node):
         if self.has_collided(next_state[9:-2]):
             reward -= 25  # TODO: find optimal value for this
 
-        # reward += delta_distance
-
         return reward
 
     def message_filter_callback(self, odom: Odometry, lidar: LaserScan):
@@ -228,19 +187,6 @@ class ParentCarEnvironment(Node):
 
         intensities = list(lidar.intensities)
         return ranges, intensities
-
-    def avg_reduce_lidar(self, lidar: LaserScan):
-        ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
-        ranges = list(ranges)
-
-        reduced_range = []
-
-        for i in range(10):
-            avg = sum(ranges[i * 64: i * 64 + 64]) / 64
-            reduced_range.append(avg)
-
-        return reduced_range
 
     def set_velocity(self, linear, angular):
         """

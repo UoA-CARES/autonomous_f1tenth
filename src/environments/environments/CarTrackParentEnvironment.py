@@ -40,7 +40,7 @@ class CarTrackParentEnvironment(Node):
             When the number of steps surpasses MAX_STEPS
     """
 
-    def __init__(self, car_name, reward_range=0.2, max_steps=50, collision_range=0.2, step_length=0.5):
+    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5):
         super().__init__('car_track_environment')
         
         # Environment Details ----------------------------------------
