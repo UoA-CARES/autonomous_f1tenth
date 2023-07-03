@@ -199,7 +199,7 @@ def main():
             _, r, done, truncated, _ = env.step([linear_vel, angular_vel])
 
         if truncated or done:
-            print("Its done bitch -", r)
+            print("Reached the goal -", r)
             env.reset()
 
 
