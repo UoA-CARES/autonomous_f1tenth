@@ -1,9 +1,8 @@
-import numpy as np
 import random
 
+import numpy as np
 import rclpy
 from rclpy import Future
-
 from sensor_msgs.msg import LaserScan
 
 from environments.ParentCarEnvironment import ParentCarEnvironment
@@ -48,13 +47,13 @@ class CarWallEnvironment(ParentCarEnvironment):
 
         while not self.timer_future.done():
             rclpy.spin_once(self)
-        
+
         self.timer_future = Future()
 
         self.call_reset_service()
-        
+
         observation = self.get_observation()
-        
+
         info = {}
 
         return observation, info
@@ -86,12 +85,11 @@ class CarWallEnvironment(ParentCarEnvironment):
         ranges = lidar.ranges
         ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
         ranges = list(ranges)
-        
+
         reduced_range = []
 
         for i in range(10):
-            avg = sum(ranges[i * 64 : i * 64 + 64]) / 64
+            avg = sum(ranges[i * 64: i * 64 + 64]) / 64
             reduced_range.append(avg)
 
         return reduced_range
-        
