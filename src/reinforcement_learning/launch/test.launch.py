@@ -10,7 +10,9 @@ env_launch = {
     'CarGoal': 'cargoal',
     'CarWall': 'carwall',
     'CarBlock': 'carblock',
-    'CarTrack1': 'cartrack1'
+    'CarTrack': 'cartrack',
+    'CarTrack1': 'cartrack1',
+    'CarTrack2': 'cartrack2'
 }
 
 def generate_launch_description():

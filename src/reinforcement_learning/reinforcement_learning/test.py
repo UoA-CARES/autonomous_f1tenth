@@ -1,7 +1,10 @@
 from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
 from environments.CarBlockEnvironment import CarBlockEnvironment
+from environments.CarTrackOriginalEnvironment import CarTrackOriginalEnvironment
 from environments.CarTrack1Environment import CarTrack1Environment
+from environments.CarTrack2Environment import CarTrack2Environment
+
 import rclpy
 from ament_index_python import get_package_share_directory
 import time
@@ -13,63 +16,39 @@ from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 
 import numpy as np
 
-rclpy.init()
-
-param_node = rclpy.create_node('params')
-param_node.declare_parameters(
-    '',
-    [
-        ('environment', 'CarTrack1'),
-        ('max_steps_evaluation', 1_000_000),
-        ('max_steps', 300),
-        ('step_length', 0.25),
-        ('reward_range', 2),
-        ('collision_range', 0.2),
-        ('actor_path', ''),
-        ('critic_path', '')
-    ]
-)
-
-params = param_node.get_parameters([
-    'environment',
-    'max_steps_evaluation',
-    'max_steps',
-    'step_length',
-    'reward_range',
-    'collision_range',
-    'actor_path',
-    'critic_path',
-    ])
-
-ENVIRONMENT,\
-MAX_STEPS_EVALUATION, \
-MAX_STEPS,\
-STEP_LENGTH,\
-REWARD_RANGE,\
-COLLISION_RANGE,\
-ACTOR_PATH,\
-CRITIC_PATH = [param.value for param in params]
-
-print(
-    f'---------------------------------------------\n'
-    f'Environment: {ENVIRONMENT}\n'
-    f'Evaluation Steps: {MAX_STEPS_EVALUATION}\n'
-    f'Steps per Episode: {MAX_STEPS}\n'
-    f'Step Length: {STEP_LENGTH}\n'
-    f'Reward Range: {REWARD_RANGE}\n'
-    f'Collision Range: {COLLISION_RANGE}\n'
-    f'Critic Path: {CRITIC_PATH}\n'
-    f'Actor Path: {ACTOR_PATH}\n'
-    f'---------------------------------------------\n'
-)
-
-if ACTOR_PATH == '' or CRITIC_PATH == '':
-    raise Exception('Actor or Critic path not provided')
-
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def main():
-    # Share Directories
+
+    rclpy.init()
+
+    params = get_params()
+
+    ENVIRONMENT,\
+    MAX_STEPS_EVALUATION, \
+    MAX_STEPS,\
+    STEP_LENGTH,\
+    REWARD_RANGE,\
+    COLLISION_RANGE,\
+    ACTOR_PATH,\
+    CRITIC_PATH = [param.value for param in params]
+
+    print(
+        f'---------------------------------------------\n'
+        f'Environment: {ENVIRONMENT}\n'
+        f'Evaluation Steps: {MAX_STEPS_EVALUATION}\n'
+        f'Steps per Episode: {MAX_STEPS}\n'
+        f'Step Length: {STEP_LENGTH}\n'
+        f'Reward Range: {REWARD_RANGE}\n'
+        f'Collision Range: {COLLISION_RANGE}\n'
+        f'Critic Path: {CRITIC_PATH}\n'
+        f'Actor Path: {ACTOR_PATH}\n'
+        f'---------------------------------------------\n'
+    )
+
+    if ACTOR_PATH == '' or CRITIC_PATH == '':
+        raise Exception('Actor or Critic path not provided')
+
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     time.sleep(3)
 
@@ -78,8 +57,12 @@ def main():
             env = CarWallEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case 'CarBlock':
             env = CarBlockEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
+        case 'CarTrack':
+            env = CarTrackOriginalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case 'CarTrack1':
             env = CarTrack1Environment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
+        case 'CarTrack2':
+            env = CarTrack2Environment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case _:
             env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
     
@@ -130,6 +113,40 @@ def test(env, agent: TD3):
             episode_reward    = 0
             episode_timesteps = 0
             episode_num += 1
+
+
+
+def get_params():
+    '''
+    This function fetches the hyperparameters passed in through the launch files
+    - The hyperparameters below are defaults, to change them, you should change the train.yaml config
+    '''
+
+    param_node = rclpy.create_node('params')
+    param_node.declare_parameters(
+        '',
+        [
+            ('environment', 'CarTrack1'),
+            ('max_steps_evaluation', 1_000_000),
+            ('max_steps', 100),
+            ('step_length', 0.25),
+            ('reward_range', 0.2),
+            ('collision_range', 0.2),
+            ('actor_path', ''),
+            ('critic_path', '')
+        ]
+    )
+
+    return param_node.get_parameters([
+        'environment',
+        'max_steps_evaluation',
+        'max_steps',
+        'step_length',
+        'reward_range',
+        'collision_range',
+        'actor_path',
+        'critic_path',
+        ])
 
 if __name__ == '__main__':
     main()
