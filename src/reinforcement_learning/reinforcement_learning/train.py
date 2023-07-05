@@ -21,6 +21,11 @@ def main():
     rclpy.init()
 
     params = get_params()
+    
+    global MAX_STEPS_TRAINING
+    global MAX_STEPS_EXPLORATION
+    global G
+    global BATCH_SIZE
 
     ENVIRONMENT,\
     MAX_STEPS_TRAINING,\

@@ -17,11 +17,15 @@ from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 import numpy as np
 
 
+
 def main():
 
     rclpy.init()
 
     params = get_params()
+
+    global MAX_STEPS_EVALUATION
+    global MAX_STEPS
 
     ENVIRONMENT,\
     MAX_STEPS_EVALUATION, \
