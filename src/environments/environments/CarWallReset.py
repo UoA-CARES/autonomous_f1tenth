@@ -36,7 +36,7 @@ class CarWallReset(Node):
 
         # self.get_logger().info(f'Reset Service Request Received: relocating goal to x={request.x} y={request.y}')
 
-        goal_req = self.create_request('goal', x=request.x, y=request.y, z=1)
+        goal_req = self.create_request('goal', x=request.gx, y=request.gy, z=1)
         car_req = self.create_request('f1tenth')
 
         while not self.set_pose_client.wait_for_service(timeout_sec=1.0):

@@ -1,11 +1,8 @@
-float64 x
-float64 y
-
-float64 gx
-float64 gy
-float64 cx
-float64 cy
-float64 cyaw
-string flag
+float64 gx      # goal x
+float64 gy      # goal y
+float64 cx      # car x
+float64 cy      # car y
+float64 cyaw    # car yaw
+string flag     # flag
 ---
 bool success
