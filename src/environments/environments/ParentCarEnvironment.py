@@ -31,6 +31,8 @@ class ParentCarEnvironment(Node):
 
         self.step_counter = 0
 
+        self.check_goal = True
+
         # Pub/Sub ----------------------------------------------------
         self.cmd_vel_pub = self.create_publisher(
             Twist,
@@ -124,13 +126,25 @@ class ParentCarEnvironment(Node):
             -1 to -2 => goal x, y
             9 to -3 => lidar
         """
-        current_distance = math.dist(observation[-2:], observation[:2])
-        reached_goal = current_distance <= self.REWARD_RANGE
 
         collided_wall = self.has_collided(observation)
         flipped_over = self.has_flipped_over(observation)
 
-        return reached_goal or collided_wall or flipped_over
+        if collided_wall:
+            print("Collided with wall")
+        if flipped_over:
+            print("Flipped over")
+
+        if self.check_goal:
+            current_distance = math.dist(observation[-2:], observation[:2])
+            reached_goal = current_distance <= self.REWARD_RANGE
+
+            if reached_goal:
+                print("Reached goal")
+
+            return reached_goal or collided_wall or flipped_over
+        else:
+            return collided_wall or flipped_over
 
     def has_collided(self, observation):
         lidar_ranges = observation[9:-2]
@@ -141,23 +155,7 @@ class ParentCarEnvironment(Node):
         return abs(x) > 0.5 or abs(y) > 0.5
 
     def compute_reward(self, state, next_state):
-
-        goal_position = state[-2:]
-
-        old_distance = math.dist(goal_position, state[:2])
-        current_distance = math.dist(goal_position, next_state[:2])
-
-        delta_distance = old_distance - current_distance
-
-        reward = 10 * (delta_distance / old_distance)
-
-        if current_distance < self.REWARD_RANGE:
-            reward += 100
-
-        if self.has_collided(next_state) or self.has_flipped_over(next_state):
-            reward -= 25  # TODO: find optimal value for this
-
-        return reward
+        raise NotImplementedError('compute_reward() not implemented')
 
     def message_filter_callback(self, odom: Odometry, lidar: LaserScan):
         self.observation_future.set_result({'odom': odom, 'lidar': lidar})

@@ -1,3 +1,4 @@
+import math
 import random
 
 import numpy as np
@@ -81,6 +82,25 @@ class CarBlockEnvironment(ParentCarEnvironment):
 
         # Get Goal Position
         return odom + reduced_range + self.goal_position
+
+    def compute_reward(self, state, next_state):
+
+        goal_position = state[-2:]
+
+        old_distance = math.dist(goal_position, state[:2])
+        current_distance = math.dist(goal_position, next_state[:2])
+
+        delta_distance = old_distance - current_distance
+
+        reward = 10 * (delta_distance / old_distance)
+
+        if current_distance < self.REWARD_RANGE:
+            reward += 100
+
+        if self.has_collided(next_state) or self.has_flipped_over(next_state):
+            reward -= 25  # TODO: find optimal value for this
+
+        return reward
 
     def reduce_lidar(self, lidar: LaserScan):
         ranges = lidar.ranges

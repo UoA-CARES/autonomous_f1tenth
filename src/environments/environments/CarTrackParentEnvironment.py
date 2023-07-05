@@ -43,6 +43,8 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
         self.MIN_ACTIONS = np.asarray([0, -3.14])
         self.OBSERVATION_SIZE = 8 + 10  # Car position + Lidar rays
 
+        self.check_goal = False
+
         # Reset Client -----------------------------------------------
         self.goal_number = 0
         self.all_goals = []
@@ -125,23 +127,6 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
         # Get Goal Position
         return odom + reduced_range
 
-    def is_terminated(self, observation):
-        """
-        Observation (ranges all inclusive):
-            0 to 8 => odom
-            -1 to -2 => goal x, y
-            9 to -3 => lidar
-        """
-        collided_wall = self.has_collided(observation)
-        flipped_over = self.has_flipped_over(observation)
-
-        if collided_wall:
-            print("Collided with wall")
-        if flipped_over:
-            print("Flipped over")
-
-        return collided_wall or flipped_over
-
     def compute_reward(self, state, next_state):
 
         # TESTING ONLY
@@ -170,16 +155,6 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
             reward -= 25  # TODO: find optimal value for this
 
         return reward
-
-    def process_lidar(self, lidar: LaserScan):
-        ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(-1))
-        ranges = np.clip(ranges, 0, 10)
-
-        ranges = list(ranges)
-
-        intensities = list(lidar.intensities)
-        return ranges, intensities
 
     def sample_reduce_lidar(self, lidar: LaserScan):
         ranges = lidar.ranges
