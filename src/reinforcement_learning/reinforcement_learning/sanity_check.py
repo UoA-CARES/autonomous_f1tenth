@@ -184,7 +184,7 @@ def main():
 
     time.sleep(3)
 
-    env = CarWallEnvironment('f1tenth', step_length=0.25, max_steps=MAX_STEPS, reward_range=2)
+    env = CarGoalEnvironment('f1tenth', step_length=0.25, max_steps=MAX_STEPS, reward_range=2)
 
     env.reset()
     i = 0
@@ -199,7 +199,7 @@ def main():
             _, r, done, truncated, _ = env.step([linear_vel, angular_vel])
 
         if truncated or done:
-            print("Reached the goal -", r)
+            print("Finished -", r)
             env.reset()
 
 
