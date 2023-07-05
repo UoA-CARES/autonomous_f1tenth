@@ -147,8 +147,8 @@ class CarGoalEnvironment(Node):
         x, y = self.goal_position
 
         request = Reset.Request()
-        request.x = x 
-        request.y = y
+        request.gx = x
+        request.gy = y
 
         future = self.reset_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)

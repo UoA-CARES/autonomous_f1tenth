@@ -87,7 +87,7 @@ OBSERVATION_SIZE = 8 + 10 + 2 # Car position + Lidar rays + goal position
 ACTION_NUM = 2
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-TRAINING_NAME = 'carwall_training-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
+TRAINING_NAME = 'sanity-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
 
 
 
@@ -184,7 +184,7 @@ def main():
 
     time.sleep(3)
 
-    env = CarTrack2Environment('f1tenth', step_length=0.25, max_steps=MAX_STEPS, reward_range=2)
+    env = CarGoalEnvironment('f1tenth', step_length=0.25, max_steps=MAX_STEPS, reward_range=2)
 
     env.reset()
     i = 0
@@ -199,7 +199,7 @@ def main():
             _, r, done, truncated, _ = env.step([linear_vel, angular_vel])
 
         if truncated or done:
-            print("Reached the goal -", r)
+            print("Finished -", r)
             env.reset()
 
 
