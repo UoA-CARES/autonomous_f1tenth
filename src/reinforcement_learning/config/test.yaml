@@ -4,3 +4,7 @@ test:
     max_steps_evaluation: 1000000
     actor_path: models/cartrack_1_training-26-06-2023-06:50:49_150000_actor.pht
     critic_path: models/cartrack_1_training-26-06-2023-06:50:49_150000_critic.pht
+    max_steps: 100
+    step_length: 0.25
+    reward_range: 0.2
+    collision_range: 0.2
