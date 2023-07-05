@@ -86,6 +86,10 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
         return self.all_goals[number % len(self.all_goals)]
 
     def call_reset_service(self):
+        """
+        Reset the car and goal position
+        """
+
         x, y = self.goal_position
 
         request = Reset.Request()
@@ -102,6 +106,10 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
         return future.result()
 
     def update_goal_service(self, number):
+        """
+        Reset the goal position
+        """
+
         x, y = self.generate_goal(number)
         self.goal_position = [x, y]
 
