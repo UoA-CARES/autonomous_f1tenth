@@ -23,7 +23,7 @@ class ParentCarEnvironment(Node):
         self.COLLISION_RANGE = collision_range
         self.STEP_LENGTH = step_length
 
-        self.MAX_ACTIONS = np.asarray([6, 3.14])
+        self.MAX_ACTIONS = np.asarray([3, 3.14])
         self.MIN_ACTIONS = np.asarray([-0.5, -3.14])
 
         self.OBSERVATION_SIZE = 8 + 10 + 2  # Car position + Lidar rays + goal position
