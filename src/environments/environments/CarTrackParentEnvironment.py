@@ -155,6 +155,8 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
         current_distance = math.dist(goal_position, next_state[:2])
         
         reward += prev_distance - current_distance
+
+        reward -= 1
         
         if current_distance < self.REWARD_RANGE:
             reward += 50
