@@ -24,7 +24,7 @@ docker run --rm -it --network host --gpus all -e DISPLAY -e GZ_PARTITION=<partit
 
 Use this command to run the docker, it will automatically pull if not found locally:
 ```
-docker run --rm -it --network host --gpus all -e DISPLAY -e GZ_PARTITION=<partition num> -e ROS_DOMAIN_ID=<domain_id> -v "$PWD/data:/ws/data" -v "$PWD/models:/ws/models" -v "$PWD/figures:/ws/figures" caresrl/autonomous_f1tenth:latest bash
+docker run --rm -it --network host --gpus all -e DISPLAY -e GZ_PARTITION=12 -e ROS_DOMAIN_ID=12 -v "$PWD/rl_logs:/ws/rl_logs" caresrl/autonomous_f1tenth:latest bash
 ```
 **Note: it is important to have a different GZ_PARITION for every container you plan on running**
 P6000 Machines – 10, 11, 12, 13
