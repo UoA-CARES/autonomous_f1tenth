@@ -110,7 +110,7 @@ def main():
         'reward_range': REWARD_RANGE,
         'collision_range': COLLISION_RANGE
     }
-    record = Record(networks=networks, checkpoint_freq=MAX_STEPS_TRAINING / 10, config=config)
+    record = Record(networks=networks, checkpoint_freq=100, config=config)
 
     train(env=env, agent=agent, record=record)
 
