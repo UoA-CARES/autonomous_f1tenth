@@ -40,7 +40,6 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
 
         # Environment Details ----------------------------------------
         self.MAX_STEPS_PER_GOAL = max_steps
-        self.MIN_ACTIONS = np.asarray([0, -3.14])
         self.OBSERVATION_SIZE = 8 + 10  # Car position + Lidar rays
 
         self.check_goal = False
