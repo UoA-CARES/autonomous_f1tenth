@@ -49,7 +49,7 @@ class ParentCarEnvironment(Node):
         self.lidar_sub = Subscriber(
             self,
             LaserScan,
-            f'/lidar',
+            f'/{self.NAME}/scan',
         )
 
         self.message_filter = ApproximateTimeSynchronizer(
