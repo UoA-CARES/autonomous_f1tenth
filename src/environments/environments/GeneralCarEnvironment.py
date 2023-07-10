@@ -12,7 +12,7 @@ from sensor_msgs.msg import LaserScan
 from environment_interfaces.srv import Reset
 
 
-class ParentCarEnvironment(Node):
+class GeneralCarEnvironment(Node):
     def __init__(self, env_name, car_name, reward_range, max_steps, collision_range, step_length):
         super().__init__(env_name + '_environment')
 

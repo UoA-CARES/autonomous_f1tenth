@@ -6,10 +6,10 @@ import rclpy
 from rclpy import Future
 from sensor_msgs.msg import LaserScan
 
-from environments.ParentCarEnvironment import ParentCarEnvironment
+from environments.GeneralCarEnvironment import GeneralCarEnvironment
 
 
-class CarBlockEnvironment(ParentCarEnvironment):
+class CarBlockEnvironment(GeneralCarEnvironment):
     """
     CarWall Reinforcement Learning Environment:
 
