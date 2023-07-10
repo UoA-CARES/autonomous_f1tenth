@@ -2,9 +2,9 @@ test:
   ros__parameters:
     environment: 'CarTrack1'
     max_steps_evaluation: 1000000
-    actor_path: models/cartrack_1_training-26-06-2023-06:50:49_150000_actor.pht
-    critic_path: models/cartrack_1_training-26-06-2023-06:50:49_150000_critic.pht
-    max_steps: 100
+    actor_path: models/23_07_05_03:52:58/models/actor_checkpoint.pht
+    critic_path: models/23_07_05_03:52:58/models/critic_checkpoint.pht
+    max_steps: 300
     step_length: 0.25
-    reward_range: 0.2
+    reward_range: 2.0
     collision_range: 0.2

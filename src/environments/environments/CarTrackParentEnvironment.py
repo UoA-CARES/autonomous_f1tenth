@@ -40,7 +40,6 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
 
         # Environment Details ----------------------------------------
         self.MAX_STEPS_PER_GOAL = max_steps
-        self.MIN_ACTIONS = np.asarray([0, -3.14])
         self.OBSERVATION_SIZE = 8 + 10  # Car position + Lidar rays
 
         self.check_goal = False
@@ -151,8 +150,11 @@ class CarTrackParentEnvironment(ParentCarEnvironment):
 
         goal_position = self.goal_position
 
+        prev_distance = math.dist(goal_position, state[:2])
         current_distance = math.dist(goal_position, next_state[:2])
-
+        
+        reward += prev_distance - current_distance
+        
         if current_distance < self.REWARD_RANGE:
             reward += 50
             self.goal_number += 1
