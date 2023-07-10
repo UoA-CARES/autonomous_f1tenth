@@ -1,7 +1,7 @@
-from environments.CarTrackParentEnvironment import CarTrackParentEnvironment
+from environments.CarTrackGeneralEnvironment import CarTrackGeneralEnvironment
 
 
-class CarTrack1Environment(CarTrackParentEnvironment):
+class CarTrack1Environment(CarTrackGeneralEnvironment):
     """
     track1.sdf
     """

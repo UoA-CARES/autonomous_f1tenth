@@ -6,10 +6,10 @@ from rclpy import Future
 from sensor_msgs.msg import LaserScan
 
 from environment_interfaces.srv import Reset
-from environments.ParentCarEnvironment import ParentCarEnvironment
+from environments.GeneralCarEnvironment import GeneralCarEnvironment
 
 
-class CarTrackParentEnvironment(ParentCarEnvironment):
+class CarTrackGeneralEnvironment(GeneralCarEnvironment):
     """
     CarTrack Reinforcement Learning Environment:
 
