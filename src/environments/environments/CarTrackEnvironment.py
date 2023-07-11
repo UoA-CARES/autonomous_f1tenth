@@ -9,8 +9,9 @@ from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from .termination import has_collided, has_flipped_over
 from .util import process_odom, reduce_lidar
+from .track_reset import track_info
 
-class CarTrackGeneralEnvironment(F1tenthEnvironment):
+class CarTrackEnvironment(F1tenthEnvironment):
     """
     CarTrack Reinforcement Learning Environment:
 
@@ -36,7 +37,7 @@ class CarTrackGeneralEnvironment(F1tenthEnvironment):
             When the number of steps surpasses MAX_STEPS
     """
 
-    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5):
+    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1'):
         super().__init__('car_track', car_name, max_steps, step_length)
 
         # Environment Details ----------------------------------------
@@ -47,13 +48,9 @@ class CarTrackGeneralEnvironment(F1tenthEnvironment):
 
         # Reset Client -----------------------------------------------
         self.goal_number = 0
-        self.all_goals = []
+        self.all_goals = track_info[track]['goals']
 
-        self.car_reset_positions = {
-            'x': 0.0,
-            'y': 0.0,
-            'yaw': 0.0
-        }
+        self.car_reset_positions = track_info[track]['reset']
 
         self.get_logger().info('Environment Setup Complete')
 

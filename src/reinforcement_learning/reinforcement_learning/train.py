@@ -13,9 +13,9 @@ from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
 from environments.CarBlockEnvironment import CarBlockEnvironment
-from environments.CarTrackOriginalEnvironment import CarTrackOriginalEnvironment
-from environments.CarTrack1Environment import CarTrack1Environment
-from environments.CarTrack2Environment import CarTrack2Environment
+from environments.CarTrackEnvironment import CarTrackEnvironment
+# from environments.CarTrack1Environment import CarTrack1Environment
+# from environments.CarTrack2Environment import CarTrack2Environment
 
 def main():
     rclpy.init()
@@ -28,6 +28,7 @@ def main():
     global BATCH_SIZE
 
     ENVIRONMENT,\
+    TRACK,\
     MAX_STEPS_TRAINING,\
     MAX_STEPS_EXPLORATION,\
     GAMMA,\
@@ -72,11 +73,7 @@ def main():
         case 'CarBlock':
             env = CarBlockEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case 'CarTrack':
-            env = CarTrackOriginalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
-        case 'CarTrack1':
-            env = CarTrack1Environment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
-        case 'CarTrack2':
-            env = CarTrack2Environment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
+            env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
         case _:
             env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
     
@@ -110,6 +107,10 @@ def main():
         'reward_range': REWARD_RANGE,
         'collision_range': COLLISION_RANGE
     }
+
+    if (ENVIRONMENT == 'CarTrack'):
+        config['track'] = TRACK
+    
     record = Record(networks=networks, checkpoint_freq=100, config=config)
 
     train(env=env, agent=agent, record=record)
@@ -180,6 +181,7 @@ def get_params():
         '',
         [
             ('environment', 'CarGoal'),
+            ('track', 'track_1'),
             ('gamma', 0.95),
             ('tau', 0.005),
             ('g', 10),
@@ -199,6 +201,7 @@ def get_params():
 
     return param_node.get_parameters([
         'environment',
+        'track',
         'max_steps_training',
         'max_steps_exploration', 
         'gamma', 
