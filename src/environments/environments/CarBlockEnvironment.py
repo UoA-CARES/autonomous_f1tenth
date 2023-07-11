@@ -8,7 +8,7 @@ from sensor_msgs.msg import LaserScan
 
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
-
+ 
 from .util import reduce_lidar, process_odom, generate_position
 from .termination import reached_goal, has_collided, has_flipped_over
 
