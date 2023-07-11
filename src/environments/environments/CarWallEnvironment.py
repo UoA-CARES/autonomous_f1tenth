@@ -16,7 +16,8 @@ class CarWallEnvironment(F1tenthEnvironment):
     CarWall Reinforcement Learning Environment:
 
         Task:
-            Here the agent learns to drive the f1tenth car to a goal position
+            Here the agent learns to drive the f1tenth car to a goal position.
+            This happens all within a 10x10 box
 
         Observation:
             It's position (x, y), orientation (w, x, y, z), lidar points (approx. ~600 rays) and the goal's position (x, y)
@@ -30,15 +31,15 @@ class CarWallEnvironment(F1tenthEnvironment):
             -50 if it collides with the wall
 
         Termination Conditions:
-            When the agent is within REWARD_RANGE units or,
-            When the agent is within COLLISION_RANGE units
+            When the agent is within REWARD_RANGE units of the goal or,
+            When the agent is within COLLISION_RANGE units of a wall
         
         Truncation Condition:
             When the number of steps surpasses MAX_STEPS
     """
 
     def __init__(self, car_name, reward_range=0.2, max_steps=50, collision_range=0.2, step_length=0.5):
-        super().__init__('car_wall', car_name, reward_range, max_steps, collision_range, step_length)
+        super().__init__('car_wall', car_name, max_steps, step_length)
         
         self.OBSERVATION_SIZE = 8 + 10 + 2 # odom + lidar + goal_position
         self.COLLISION_RANGE = collision_range
@@ -53,7 +54,6 @@ class CarWallEnvironment(F1tenthEnvironment):
 
         self.set_velocity(0, 0)
 
-        # TODO: Remove Hard coded-ness of 10x10
         self.goal_position = generate_position()
 
         self.sleep()
