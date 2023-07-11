@@ -22,7 +22,7 @@ def get_quaternion_from_euler(roll, pitch, yaw):
  
   return [qx, qy, qz, qw]
 
-def generate_position(inner_bound=3, outer_bound=5):
+def generate_position(inner_bound=3, outer_bound=8):
         inner_bound = float(inner_bound)
         outer_bound = float(outer_bound)
 
