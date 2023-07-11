@@ -1,6 +1,6 @@
 train:
   ros__parameters:
-    environment: 'CarBlock'
+    environment: 'CarGoal'
     max_steps_exploration: 5000
     max_steps_training: 1000000
     reward_range: 1.0

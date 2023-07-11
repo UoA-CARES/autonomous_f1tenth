@@ -1,61 +1,91 @@
-from rclpy.node import Node
-from std_srvs.srv import Trigger
 import sys
+import rclpy
+from rclpy.node import Node
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 
-print(sys.argv)
+from environment_interfaces.srv import Reset
+from f1tenth_control.SimulationServices import SimulationServices
+from ros_gz_interfaces.srv import SetEntityPose
+from ros_gz_interfaces.msg import Entity
+from geometry_msgs.msg import Pose, Point
 
-class ResetService(Node):
-    """
-    Calls the ResetServices class
+from ament_index_python import get_package_share_directory
 
-    This makes the car move back to the original position which is [0,0,0]
-       To make the car move back to original position, need to get current position of car into an array
-       and get the car to move back from that position to [0,0,0]
-    And this make the goal move to a random position on the grid
-       To make the goal move to a random position, need to set max. x, y, z values of the grid and get the goal
-       in a randomly generated postition
+from .util import get_quaternion_from_euler
 
-    Need clarification of where the current position is stored and if there is already an array for it 
-    And where the maximum values of the x, y, z values of the grid are located 
-    """
-
-    """
-    Reti's Notes:
-    This is a reset service that does two things:
-        - Moves the car back to 0, 0 
-            To do this, use the SimulationServices class - it has a set pose method, that can set the pose of gazebo objects
-        - Moves the goal to a random position
-            Use the same service
-    
-    Notes:
-        For now, we can hard code the boundaries of where you're spawning the goal - this is not an issue,
-        as it can simply by an environmental factor
-        
-        To help a bit more, I've scaffolded what the service node should look like
-    """
-    
+class CarGoalReset(Node):
     def __init__(self):
-        super()._init_('reset service')
-        self.srv = self.create_service(srv_type=Trigger, srv_name='car_goal_reset', callback=self.reset)
+        super().__init__('car_goal_reset')
 
-        self.original_pos_car = [0,0,0]
-       # x,y,z = self.current_pos_car #find current position of car 
+        srv_cb_group = MutuallyExclusiveCallbackGroup()
+        self.srv = self.create_service(Reset, 'car_goal_reset', callback=self.service_callback, callback_group=srv_cb_group)
+
+        set_pose_cb_group = MutuallyExclusiveCallbackGroup()
+        self.set_pose_client = self.create_client(
+            SetEntityPose,
+            f'world/empty/set_pose',
+            callback_group=set_pose_cb_group
+        )
+
+        while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('set_pose service not available, waiting again...')
+ 
+
+    def service_callback(self, request, response):
+
+        goal_req = self.create_request('goal', x=request.gx, y=request.gy, z=1)
+        car_req = self.create_request('f1tenth')
+
+        while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('set_pose service not available, waiting again...')
+
+        #TODO: Call async and wait for both to execute
+        self.set_pose_client.call(goal_req)
+        self.set_pose_client.call(car_req)
+
+        # self.get_logger().info('Successfully Reset')
+        response.success = True
+
+        return response
+
+    def create_request(self, name, x=0, y=0, z=0):
+        req = SetEntityPose.Request()
+
+        req.entity = Entity()
+        req.entity.name = name
+        req.entity.type = 2 # M
         
-    def reset(self):
-        # Here, Implement the reset
-        pass
+        req.pose = Pose()
+        req.pose.position = Point()
+        
+        req.pose.position.x = float(x)
+        req.pose.position.y = float(y)
+        req.pose.position.z = float(z)
 
+        return req
 
 def main():
-    print('Reset Node')
+    rclpy.init()
+    pkg_environments = get_package_share_directory('environments')
 
+    reset_service = CarGoalReset()
+
+    services = SimulationServices('empty')
+
+    services.spawn(sdf_filename=f"{pkg_environments}/sdf/goal.sdf", pose=[1, 1, 1], name='goal')
+
+    reset_service.get_logger().info('Environment Spawning Complete')
+
+    executor = MultiThreadedExecutor()
+    executor.add_node(reset_service)
+    
+    executor.spin()
+
+    # rclpy.spin(reset_service)
+    reset_service.destroy_node()
+    rclpy.shutdown()
 
 
 if __name__ == '__main__':
     main()
-
-    
-
-#create services node
-#make car move back to (0,0) position
-#make goal move to a random postion
