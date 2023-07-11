@@ -7,7 +7,8 @@ from sensor_msgs.msg import LaserScan
 
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
-
+from .termination import has_collided, has_flipped_over
+from .util import process_odom, reduce_lidar
 
 class CarTrackGeneralEnvironment(F1tenthEnvironment):
     """
@@ -36,13 +37,13 @@ class CarTrackGeneralEnvironment(F1tenthEnvironment):
     """
 
     def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5):
-        super().__init__('car_track', car_name, reward_range, max_steps, collision_range, step_length)
+        super().__init__('car_track', car_name, max_steps, step_length)
 
         # Environment Details ----------------------------------------
         self.MAX_STEPS_PER_GOAL = max_steps
         self.OBSERVATION_SIZE = 8 + 10  # Car position + Lidar rays
-
-        self.check_goal = False
+        self.COLLISION_RANGE = collision_range
+        self.REWARD_RANGE = reward_range
 
         # Reset Client -----------------------------------------------
         self.goal_number = 0
@@ -53,8 +54,6 @@ class CarTrackGeneralEnvironment(F1tenthEnvironment):
             'y': 0.0,
             'yaw': 0.0
         }
-
-        self.step_counter = 0
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -79,6 +78,10 @@ class CarTrackGeneralEnvironment(F1tenthEnvironment):
         info = {}
 
         return observation, info
+
+    def is_terminated(self, state):
+        return has_collided(state[8:], self.COLLISION_RANGE) \
+            or has_flipped_over(state[2:6])
 
     def generate_goal(self, number):
         print("Goal", number, "spawned")
@@ -126,10 +129,9 @@ class CarTrackGeneralEnvironment(F1tenthEnvironment):
 
         # Get Position and Orientation of F1tenth
         odom, lidar = self.get_data()
-        odom = self.process_odom(odom)
-        # ranges, _ = self.process_lidar(lidar)
+        odom = process_odom(odom)
 
-        reduced_range = self.sample_reduce_lidar(lidar)
+        reduced_range = reduce_lidar(lidar)
 
         # Get Goal Position
         return odom + reduced_range
@@ -161,21 +163,7 @@ class CarTrackGeneralEnvironment(F1tenthEnvironment):
             self.step_counter = 0
             self.update_goal_service(self.goal_number)
 
-        if self.has_collided(next_state) or self.has_flipped_over(next_state):
+        if has_collided(next_state[8:-2], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25  # TODO: find optimal value for this
 
         return reward
-
-    def sample_reduce_lidar(self, lidar: LaserScan):
-        ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(10))
-        ranges = np.clip(ranges, 0, 10)
-        ranges = list(ranges)
-
-        reduced_range = []
-
-        for i in range(10):
-            sample = ranges[i * 64]
-            reduced_range.append(sample)
-
-        return reduced_range
