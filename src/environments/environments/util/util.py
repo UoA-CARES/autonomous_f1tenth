@@ -52,3 +52,16 @@ def process_lidar(lidar: LaserScan):
 
     intensities = list(lidar.intensities)
     return ranges, intensities
+
+def avg_reduce_lidar(lidar: LaserScan):
+        ranges = lidar.ranges
+        ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
+        ranges = list(ranges)
+
+        reduced_range = []
+
+        for i in range(10):
+            avg = sum(ranges[i * 64: i * 64 + 64]) / 64
+            reduced_range.append(avg)
+
+        return reduced_range
