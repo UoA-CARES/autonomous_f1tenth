@@ -14,7 +14,7 @@ from geometry_msgs.msg import Pose, Point
 
 from ament_index_python import get_package_share_directory
 
-from .util.util import get_quaternion_from_euler, generate_position
+from .util import get_quaternion_from_euler, generate_position
 
 class CarBlockReset(Node):
     def __init__(self):

@@ -40,6 +40,7 @@ def generate_launch_description():
             package='environments',
             executable='CarWallReset',
             output='screen',
+            emulate_tty=True,
     )
 
     return LaunchDescription([

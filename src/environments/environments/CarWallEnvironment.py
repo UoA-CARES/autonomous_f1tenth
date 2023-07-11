@@ -5,8 +5,8 @@ import numpy as np
 import rclpy
 from rclpy import Future
 from sensor_msgs.msg import LaserScan
-from .util.util import process_odom, avg_reduce_lidar, generate_position
-from .util.termination import has_collided, has_flipped_over, reached_goal
+from .util import process_odom, avg_reduce_lidar, generate_position
+from .termination import has_collided, has_flipped_over, reached_goal
 from environments.F1tenthEnvironment import F1tenthEnvironment
 
 from environment_interfaces.srv import Reset
@@ -71,7 +71,10 @@ class CarWallEnvironment(F1tenthEnvironment):
         return observation, info
 
     def is_terminated(self, state):
-        return reached_goal(state[:2], state[-2:],self.REWARD_RANGE) or has_collided(state[8:-2]) or has_flipped_over(state[2:8])
+        return \
+            reached_goal(state[:2], state[-2:],self.REWARD_RANGE) \
+            or has_collided(state[8:-2], self.COLLISION_RANGE) \
+            or has_flipped_over(state[2:6])
     
     def call_reset_service(self, goal_x, goal_y):
         req = Reset.Request()
@@ -79,10 +82,10 @@ class CarWallEnvironment(F1tenthEnvironment):
         req.gx = goal_x
         req.gy = goal_y
         
-        self.reset_client.call(req)
+        future = self.reset_client.call_async(req)
+        rclpy.spin_until_future_complete(future=future, node=self)
         
     def get_observation(self):
-
         odom, lidar = self.get_data()
         odom = process_odom(odom)
 
@@ -104,7 +107,7 @@ class CarWallEnvironment(F1tenthEnvironment):
         if current_distance < self.REWARD_RANGE:
             reward += 100
 
-        if has_collided(next_state[8:-2]) or has_flipped_over(next_state[2:6]):
+        if has_collided(next_state[8:-2], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25
 
         return reward
