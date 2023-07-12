@@ -1,5 +1,7 @@
 import numpy as np
 import random
+from sensor_msgs.msg import LaserScan
+from nav_msgs.msg import Odometry
 
 def get_quaternion_from_euler(roll, pitch, yaw):
   """
@@ -20,7 +22,7 @@ def get_quaternion_from_euler(roll, pitch, yaw):
  
   return [qx, qy, qz, qw]
 
-def generate_position(inner_bound=3, outer_bound=5):
+def generate_position(inner_bound=3, outer_bound=8):
         inner_bound = float(inner_bound)
         outer_bound = float(outer_bound)
 
@@ -30,3 +32,49 @@ def generate_position(inner_bound=3, outer_bound=5):
         y_pos = y_pos + inner_bound if y_pos >= 0 else y_pos - inner_bound
 
         return [x_pos, y_pos]
+      
+def process_odom(odom: Odometry):
+        pose = odom.pose.pose
+        position = pose.position
+        orientation = pose.orientation
+
+        twist = odom.twist.twist
+        lin_vel = twist.linear
+        ang_vel = twist.angular
+
+        return [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x,
+                ang_vel.z]
+
+def process_lidar(lidar: LaserScan):
+    ranges = lidar.ranges
+    ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
+    ranges = list(ranges)
+
+    intensities = list(lidar.intensities)
+    return ranges, intensities
+
+def avg_reduce_lidar(lidar: LaserScan):
+        ranges = lidar.ranges
+        ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
+        ranges = list(ranges)
+
+        reduced_range = []
+
+        for i in range(10):
+            avg = sum(ranges[i * 64: i * 64 + 64]) / 64
+            reduced_range.append(avg)
+
+        return reduced_range
+
+def reduce_lidar(lidar: LaserScan):
+        ranges = lidar.ranges
+        ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
+        ranges = list(ranges)
+
+        reduced_range = []
+
+        for i in range(10):
+            sample = ranges[i * 64]
+            reduced_range.append(sample)
+
+        return reduced_range
