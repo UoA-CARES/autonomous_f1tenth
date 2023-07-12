@@ -109,7 +109,7 @@ def greatestGap(env):
 
     for total_step_counter in range(int(MAX_STEPS_TRAINING)):
         episode_timesteps += 1
-        action_env = np.asarray([random.uniform(env.MIN_ACTIONS[0], env.MAX_ACTIONS[0]), random.uniform(env.MIN_ACTIONS[1], env.MAX_ACTIONS[1])]) # action range the env uses [e.g. -2 , 2 for pendulum]
+        action_env = np.asarray([5, 0]) # Select action
         action = hlp.normalize(action_env, env.MAX_ACTIONS, env.MIN_ACTIONS)
         next_state, reward, done, truncated, info = env.step(action_env)
         state = next_state
