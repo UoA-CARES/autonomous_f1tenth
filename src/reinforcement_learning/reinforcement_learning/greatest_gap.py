@@ -15,6 +15,7 @@ from environments.CarBlockEnvironment import CarBlockEnvironment
 from environments.CarTrackOriginalEnvironment import CarTrackOriginalEnvironment
 from environments.CarTrack1Environment import CarTrack1Environment
 from environments.CarTrack2Environment import CarTrack2Environment
+from environments.follow_the_gap import FollowTheGapNode
 
 def main():
     rclpy.init()
@@ -106,10 +107,11 @@ def greatestGap(env):
     episode_timesteps = 0
     episode_reward    = 0
     episode_num       = 0
+    calcMethod = FollowTheGapNode()
 
     for total_step_counter in range(int(MAX_STEPS_TRAINING)):
         episode_timesteps += 1
-        action_env = np.asarray([5, 0]) # Select action
+        action_env = FollowTheGapNode.select_action(state) # Select action
         action = hlp.normalize(action_env, env.MAX_ACTIONS, env.MIN_ACTIONS)
         next_state, reward, done, truncated, info = env.step(action_env)
         state = next_state
