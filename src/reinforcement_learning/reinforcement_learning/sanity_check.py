@@ -7,7 +7,10 @@ import rclpy
 import torch
 from pynput.keyboard import Key, Listener
 
+from environments.CarBlockEnvironment import CarBlockEnvironment
 from environments.CarGoalEnvironment import CarGoalEnvironment
+from environments.CarTrackEnvironment import CarTrackEnvironment
+from environments.CarWallEnvironment import CarWallEnvironment
 
 rclpy.init()
 
@@ -89,6 +92,16 @@ print(
     f'Collision Range: {COLLISION_RANGE}\n'
     f'---------------------------------------------\n'
 )
+
+match ENVIRONMENT:
+    case 'CarWall':
+        env = CarWallEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
+    case 'CarBlock':
+        env = CarBlockEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
+    case 'CarTrack':
+        env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
+    case _:
+        env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
 
 MAX_ACTIONS = np.asarray([3, 1])
 MIN_ACTIONS = np.asarray([0, -1])
@@ -195,8 +208,6 @@ def main():
     listener.start()
 
     time.sleep(3)
-
-    env = CarGoalEnvironment('f1tenth', step_length=0.25, max_steps=MAX_STEPS, reward_range=2)
 
     env.reset()
     i = 0
