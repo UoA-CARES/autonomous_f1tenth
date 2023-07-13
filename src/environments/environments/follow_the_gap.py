@@ -12,8 +12,3 @@ class FollowTheGapNode(Node):
         action = np.asarray([lin, ang])
         return action
 
-def main(args):
-    rclpy.init()
-    node = FollowTheGapNode()
-    while True:
-        node.select_action()
