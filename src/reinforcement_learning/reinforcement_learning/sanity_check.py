@@ -1,25 +1,13 @@
-from environments.CarGoalEnvironment import CarGoalEnvironment
-from environments.CarWallEnvironment import CarWallEnvironment
-from environments.CarTrackOriginalEnvironment import CarTrackOriginalEnvironment
-from environments.CarTrack1Environment import CarTrack1Environment
-from environments.CarTrack2Environment import CarTrack2Environment
-import rclpy
-from ament_index_python import get_package_share_directory
 import time
-import torch
-import random
-from cares_reinforcement_learning.algorithm.policy import TD3
-from cares_reinforcement_learning.util import helpers as hlp
-from cares_reinforcement_learning.memory import MemoryBuffer
-from cares_reinforcement_learning.util.Plot import Plot
-from .DataManager import DataManager
-from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 from datetime import datetime
-import pygame as pygame
-from pynput.keyboard import Key, Listener
-import time
-import random
+
 import numpy as np
+import pygame as pygame
+import rclpy
+import torch
+from pynput.keyboard import Key, Listener
+
+from environments.CarGoalEnvironment import CarGoalEnvironment
 
 rclpy.init()
 
@@ -32,7 +20,7 @@ param_node.declare_parameters(
         ('g', 10),
         ('batch_size', 32),
         ('buffer_size', 32),
-        ('seed', 123), #TODO: This doesn't do anything yet
+        ('seed', 123),  # TODO: This doesn't do anything yet
         ('actor_lr', 1e-4),
         ('critic_lr', 1e-3),
         ('max_steps_training', 1_000_000),
@@ -43,28 +31,28 @@ param_node.declare_parameters(
 
 params = param_node.get_parameters([
     'max_steps_training',
-    'max_steps_exploration', 
-    'gamma', 
-    'tau', 
-    'g', 
-    'batch_size', 
-    'buffer_size', 
-    'seed', 
-    'actor_lr', 
+    'max_steps_exploration',
+    'gamma',
+    'tau',
+    'g',
+    'batch_size',
+    'buffer_size',
+    'seed',
+    'actor_lr',
     'critic_lr',
     'max_steps'
-    ])
+])
 
-MAX_STEPS_TRAINING,\
-MAX_STEPS_EXPLORATION,\
-GAMMA,\
-TAU,\
-G,\
-BATCH_SIZE,\
-BUFFER_SIZE,\
-SEED,\
-ACTOR_LR,\
-CRITIC_LR,\
+MAX_STEPS_TRAINING, \
+MAX_STEPS_EXPLORATION, \
+GAMMA, \
+TAU, \
+G, \
+BATCH_SIZE, \
+BUFFER_SIZE, \
+SEED, \
+ACTOR_LR, \
+CRITIC_LR, \
 MAX_STEPS = [param.value for param in params]
 
 print(
@@ -83,15 +71,11 @@ print(
 MAX_ACTIONS = np.asarray([3, 1])
 MIN_ACTIONS = np.asarray([0, -1])
 
-OBSERVATION_SIZE = 8 + 10 + 2 # Car position + Lidar rays + goal position
+OBSERVATION_SIZE = 8 + 10 + 2  # Car position + Lidar rays + goal position
 ACTION_NUM = 2
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 TRAINING_NAME = 'sanity-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
-
-
-
-
 
 linear_vel = 0
 angular_vel = 0
@@ -102,6 +86,7 @@ MAX_ANGULAR = 1
 LEFT_ANGULAR = MAX_ANGULAR
 RIGHT_ANGULAR = -MAX_ANGULAR
 NETURAL_ANGULAR = 0
+
 
 def keyboard_on_key_press(key):
     global linear_vel, angular_vel
@@ -114,7 +99,8 @@ def keyboard_on_key_press(key):
         angular_vel = LEFT_ANGULAR  # Set angular velocity to left
     elif key == Key.right or (hasattr(key, 'char') and key.char == "d"):
         angular_vel = RIGHT_ANGULAR  # Set angular velocity to right
-                
+
+
 def keyboard_on_key_release(key):
     global linear_vel, angular_vel
 
@@ -122,6 +108,7 @@ def keyboard_on_key_release(key):
         linear_vel = NETURAL_SPEED  # Stop linear movement
     elif key in [Key.left, Key.right] or (hasattr(key, 'char') and key.char in ["a", "d"]):
         angular_vel = NETURAL_ANGULAR  # Stop angular movement
+
 
 def joystick_check():
     global linear_vel, angular_vel
@@ -148,11 +135,11 @@ def joystick_check():
                     linear_vel = NETURAL_SPEED
                 else:
                     linear_vel = (event.value + 1) / 2 * MAX_SPEED
-        
+
         if event.type == pygame.JOYHATMOTION:
             if event.hat == 0:
                 x_value, y_value = event.value
-                
+
                 if x_value == 0:
                     angular_vel = NETURAL_ANGULAR
                 elif x_value == 1:  # Right
@@ -166,8 +153,6 @@ def joystick_check():
                     linear_vel = MAX_SPEED
                 elif y_value == -1:
                     linear_vel = (-MAX_SPEED) / 2
-
-        
 
 
 def main():

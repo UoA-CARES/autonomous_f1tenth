@@ -1,23 +1,18 @@
-from environments.CarGoalEnvironment import CarGoalEnvironment
-from environments.CarWallEnvironment import CarWallEnvironment
-from environments.CarBlockEnvironment import CarBlockEnvironment
-from environments.CarTrackEnvironment import CarTrackEnvironment
+import time
 
 import rclpy
-from ament_index_python import get_package_share_directory
-import time
 import torch
-import random
 from cares_reinforcement_learning.algorithm.policy import TD3
-from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
+from cares_reinforcement_learning.util import helpers as hlp
 
-import numpy as np
-
+from environments.CarBlockEnvironment import CarBlockEnvironment
+from environments.CarGoalEnvironment import CarGoalEnvironment
+from environments.CarTrackEnvironment import CarTrackEnvironment
+from environments.CarWallEnvironment import CarWallEnvironment
 
 
 def main():
-
     rclpy.init()
 
     params = get_params()
@@ -25,14 +20,14 @@ def main():
     global MAX_STEPS_EVALUATION
     global MAX_STEPS
 
-    ENVIRONMENT,\
-    TRACK,\
+    ENVIRONMENT, \
+    TRACK, \
     MAX_STEPS_EVALUATION, \
-    MAX_STEPS,\
-    STEP_LENGTH,\
-    REWARD_RANGE,\
-    COLLISION_RANGE,\
-    ACTOR_PATH,\
+    MAX_STEPS, \
+    STEP_LENGTH, \
+    REWARD_RANGE, \
+    COLLISION_RANGE, \
+    ACTOR_PATH, \
     CRITIC_PATH = [param.value for param in params]
 
     print(
@@ -55,7 +50,7 @@ def main():
 
     time.sleep(3)
 
-    match(ENVIRONMENT):
+    match ENVIRONMENT:
         case 'CarWall':
             env = CarWallEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case 'CarBlock':
@@ -64,7 +59,7 @@ def main():
             env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
         case _:
             env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
-    
+
     actor = Actor(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=0.1)
     critic = Critic(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=0.1)
 
@@ -73,7 +68,7 @@ def main():
     critic.load_state_dict(torch.load(CRITIC_PATH))
 
     print('Successfully Loaded models')
-    
+
     agent = TD3(
         actor_network=actor,
         critic_network=critic,
@@ -85,8 +80,9 @@ def main():
 
     test(env=env, agent=agent)
 
+
 def test(env, agent: TD3):
-    state, _ = env.reset()    
+    state, _ = env.reset()
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
@@ -105,21 +101,20 @@ def test(env, agent: TD3):
         episode_reward += reward
 
         if done or truncated:
-            print(f"Total T:{total_step_counter+1} Episode {episode_num+1} was completed with {episode_timesteps} steps taken and a Reward= {episode_reward:.3f}")
+            print(f"Total T:{total_step_counter + 1} Episode {episode_num + 1} was completed with {episode_timesteps} steps taken and a Reward= {episode_reward:.3f}")
 
             # Reset environment
             state, _ = env.reset()
-            episode_reward    = 0
+            episode_reward = 0
             episode_timesteps = 0
             episode_num += 1
 
 
-
 def get_params():
-    '''
+    """
     This function fetches the hyperparameters passed in through the launch files
     - The hyperparameters below are defaults, to change them, you should change the train.yaml config
-    '''
+    """
 
     param_node = rclpy.create_node('params')
     param_node.declare_parameters(
@@ -147,7 +142,8 @@ def get_params():
         'collision_range',
         'actor_path',
         'critic_path',
-        ])
+    ])
+
 
 if __name__ == '__main__':
     main()
