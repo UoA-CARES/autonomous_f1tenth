@@ -160,7 +160,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.step_counter = 0
             self.update_goal_service(self.goal_number)
 
-        if has_collided(next_state[8:-2], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+        if has_collided(next_state[8:], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25  # TODO: find optimal value for this
 
         return reward
