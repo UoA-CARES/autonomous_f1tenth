@@ -1,20 +1,37 @@
 import os
 from ament_index_python import get_package_share_directory
-from launch_ros.actions import Node 
+from launch_ros.actions import Node, SetParameter
 from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
+from launch.substitutions import TextSubstitution
+import yaml
+
+env_launch = {
+    'CarGoal': 'cargoal',
+    'CarWall': 'carwall',
+    'CarBlock': 'carblock',
+    'CarTrack': 'cartrack'
+}
 
 def generate_launch_description():
     pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
     pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
     pkg_environments = get_package_share_directory('environments')
 
+    config_path = os.path.join(
+        get_package_share_directory('reinforcement_learning'),
+        'train.yaml'
+    )
+
+    config = yaml.load(open(config_path), Loader=yaml.Loader)
+    env = config['train']['ros__parameters']['environment']
+
     environment =  IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_environments, 'cargoal.launch.py')),
+            os.path.join(pkg_environments, f'{env_launch[env]}.launch.py')),
         launch_arguments={
-            'car_name': 'f1tenth',
+            'track': TextSubstitution(text=str(config['train']['ros__parameters']['track'])),
         }.items() #TODO: this doesn't do anything
     )
     
@@ -27,17 +44,12 @@ def generate_launch_description():
         }.items()
     )
 
-    config = os.path.join(
-        get_package_share_directory('reinforcement_learning'),
-        'train.yaml'
-    )
-
     # Launch the Environment
     main = Node(
             package='reinforcement_learning',
             executable='sanity_check',
             parameters=[
-                config
+                config_path
             ],
             name='sanity_check',
             output='screen',
@@ -47,6 +59,7 @@ def generate_launch_description():
     return LaunchDescription([
         #TODO: Find a way to remove this
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
+        SetParameter(name='use_sim_time', value=True),
         environment,
         f1tenth,
         main
