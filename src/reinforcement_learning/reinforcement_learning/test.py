@@ -1,9 +1,7 @@
 from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
 from environments.CarBlockEnvironment import CarBlockEnvironment
-from environments.CarTrackOriginalEnvironment import CarTrackOriginalEnvironment
-from environments.CarTrack1Environment import CarTrack1Environment
-from environments.CarTrack2Environment import CarTrack2Environment
+from environments.CarTrackEnvironment import CarTrackEnvironment
 
 import rclpy
 from ament_index_python import get_package_share_directory
@@ -28,6 +26,7 @@ def main():
     global MAX_STEPS
 
     ENVIRONMENT,\
+    TRACK,\
     MAX_STEPS_EVALUATION, \
     MAX_STEPS,\
     STEP_LENGTH,\
@@ -62,11 +61,7 @@ def main():
         case 'CarBlock':
             env = CarBlockEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case 'CarTrack':
-            env = CarTrackOriginalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
-        case 'CarTrack1':
-            env = CarTrack1Environment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
-        case 'CarTrack2':
-            env = CarTrack2Environment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
+            env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
         case _:
             env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
     
@@ -130,7 +125,8 @@ def get_params():
     param_node.declare_parameters(
         '',
         [
-            ('environment', 'CarTrack1'),
+            ('environment', 'CarTrack'),
+            ('track', 'track_1'),
             ('max_steps_evaluation', 1_000_000),
             ('max_steps', 100),
             ('step_length', 0.25),
@@ -143,6 +139,7 @@ def get_params():
 
     return param_node.get_parameters([
         'environment',
+        'track',
         'max_steps_evaluation',
         'max_steps',
         'step_length',

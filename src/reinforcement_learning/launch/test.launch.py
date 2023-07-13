@@ -4,6 +4,7 @@ from launch_ros.actions import Node, SetParameter
 from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
+from launch.substitutions import TextSubstitution
 import yaml
 
 env_launch = {
@@ -32,7 +33,7 @@ def generate_launch_description():
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_environments, f'{env_launch[env]}.launch.py')),
         launch_arguments={
-            'car_name': 'f1tenth',
+            'track': TextSubstitution(text=str(config['test']['ros__parameters']['track'])),
         }.items() #TODO: this doesn't do anything
     )
 
