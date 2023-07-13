@@ -30,7 +30,7 @@ class F1tenthEnvironment(Node):
         self.STEP_LENGTH = step_length
 
         self.MAX_ACTIONS = np.asarray([3, 3.14])
-        self.MIN_ACTIONS = np.asarray([-0.5, -3.14])
+        self.MIN_ACTIONS = np.asarray([0, -3.14])
  
         self.ACTION_NUM = 2
 
