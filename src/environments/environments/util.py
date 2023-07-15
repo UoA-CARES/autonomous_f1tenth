@@ -68,7 +68,7 @@ def avg_reduce_lidar(lidar: LaserScan):
 
 def reduce_lidar(lidar: LaserScan):
         ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
+        ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
         ranges = list(ranges)
 
         reduced_range = []
