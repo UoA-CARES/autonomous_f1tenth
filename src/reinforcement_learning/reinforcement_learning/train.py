@@ -1,47 +1,46 @@
-import rclpy
-import time
-import torch
 import random
+import time
+
 import numpy as np
-
+import rclpy
+import torch
 from cares_reinforcement_learning.algorithm.policy import TD3
-from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.memory import MemoryBuffer
-from cares_reinforcement_learning.util import Record
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
+from cares_reinforcement_learning.util import Record
+from cares_reinforcement_learning.util import helpers as hlp
 
-from environments.CarGoalEnvironment import CarGoalEnvironment
-from environments.CarWallEnvironment import CarWallEnvironment
 from environments.CarBlockEnvironment import CarBlockEnvironment
+from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarTrackEnvironment import CarTrackEnvironment
-# from environments.CarTrack1Environment import CarTrack1Environment
-# from environments.CarTrack2Environment import CarTrack2Environment
+from environments.CarWallEnvironment import CarWallEnvironment
+
 
 def main():
     rclpy.init()
 
     params = get_params()
-    
+
     global MAX_STEPS_TRAINING
     global MAX_STEPS_EXPLORATION
     global G
     global BATCH_SIZE
 
-    ENVIRONMENT,\
-    TRACK,\
-    MAX_STEPS_TRAINING,\
-    MAX_STEPS_EXPLORATION,\
-    GAMMA,\
-    TAU,\
-    G,\
-    BATCH_SIZE,\
-    BUFFER_SIZE,\
-    SEED,\
-    ACTOR_LR,\
-    CRITIC_LR,\
-    MAX_STEPS,\
-    STEP_LENGTH,\
-    REWARD_RANGE,\
+    ENVIRONMENT, \
+    TRACK, \
+    MAX_STEPS_TRAINING, \
+    MAX_STEPS_EXPLORATION, \
+    GAMMA, \
+    TAU, \
+    G, \
+    BATCH_SIZE, \
+    BUFFER_SIZE, \
+    SEED, \
+    ACTOR_LR, \
+    CRITIC_LR, \
+    MAX_STEPS, \
+    STEP_LENGTH, \
+    REWARD_RANGE, \
     COLLISION_RANGE = [param.value for param in params]
 
     print(
@@ -67,7 +66,7 @@ def main():
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     time.sleep(3)
 
-    match(ENVIRONMENT):
+    match ENVIRONMENT:
         case 'CarWall':
             env = CarWallEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case 'CarBlock':
@@ -76,7 +75,7 @@ def main():
             env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
         case _:
             env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
-    
+
     actor = Actor(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=ACTOR_LR)
     critic = Critic(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=CRITIC_LR)
 
@@ -92,15 +91,15 @@ def main():
     networks = {'actor': actor, 'critic': critic}
     config = {
         'environment': ENVIRONMENT,
-        'max_steps_training':MAX_STEPS_TRAINING,
-        'max_steps_exploration': MAX_STEPS_EXPLORATION, 
-        'gamma': GAMMA, 
-        'tau': TAU, 
-        'g': G, 
-        'batch_size': BATCH_SIZE, 
-        'buffer_size': BUFFER_SIZE, 
-        'seed': SEED, 
-        'actor_lr': ACTOR_LR, 
+        'max_steps_training': MAX_STEPS_TRAINING,
+        'max_steps_exploration': MAX_STEPS_EXPLORATION,
+        'gamma': GAMMA,
+        'tau': TAU,
+        'g': G,
+        'batch_size': BATCH_SIZE,
+        'buffer_size': BUFFER_SIZE,
+        'seed': SEED,
+        'actor_lr': ACTOR_LR,
         'critic_lr': CRITIC_LR,
         'max_steps': MAX_STEPS,
         'step_length': STEP_LENGTH,
@@ -110,33 +109,32 @@ def main():
 
     if (ENVIRONMENT == 'CarTrack'):
         config['track'] = TRACK
-    
+
     record = Record(networks=networks, checkpoint_freq=100, config=config)
 
     train(env=env, agent=agent, record=record)
 
+
 def train(env, agent: TD3, record: Record):
-    
     memory = MemoryBuffer()
 
     episode_timesteps = 0
-    episode_reward    = 0
-    episode_num       = 0
+    episode_reward = 0
+    episode_num = 0
 
     state, _ = env.reset()
 
-    historical_reward = {"step": [], "episode_reward": []}    
-
+    historical_reward = {"step": [], "episode_reward": []}
 
     for total_step_counter in range(int(MAX_STEPS_TRAINING)):
         episode_timesteps += 1
 
         if total_step_counter < MAX_STEPS_EXPLORATION:
             print(f"Running Exploration Steps {total_step_counter}/{MAX_STEPS_EXPLORATION}")
-            action_env = np.asarray([random.uniform(env.MIN_ACTIONS[0], env.MAX_ACTIONS[0]), random.uniform(env.MIN_ACTIONS[1], env.MAX_ACTIONS[1])]) # action range the env uses [e.g. -2 , 2 for pendulum]
+            action_env = np.asarray([random.uniform(env.MIN_ACTIONS[0], env.MAX_ACTIONS[0]), random.uniform(env.MIN_ACTIONS[1], env.MAX_ACTIONS[1])])  # action range the env uses [e.g. -2 , 2 for pendulum]
             action = hlp.normalize(action_env, env.MAX_ACTIONS, env.MIN_ACTIONS)  # algorithm range [-1, 1]
         else:
-            action = agent.select_action_from_policy(state) # algorithm range [-1, 1]
+            action = agent.select_action_from_policy(state)  # algorithm range [-1, 1]
             action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)  # mapping to env range [e.g. -2 , 2 for pendulum]
 
         next_state, reward, done, truncated, info = env.step(action_env)
@@ -146,10 +144,10 @@ def train(env, agent: TD3, record: Record):
         episode_reward += reward
 
         if total_step_counter >= MAX_STEPS_EXPLORATION:
-                for _ in range(G):
-                    experiences = memory.sample(BATCH_SIZE)
-                    experiences = (experiences['state'], experiences['action'], experiences['reward'], experiences['next_state'], experiences['done'])
-                    agent.train_policy(experiences)
+            for _ in range(G):
+                experiences = memory.sample(BATCH_SIZE)
+                experiences = (experiences['state'], experiences['action'], experiences['reward'], experiences['next_state'], experiences['done'])
+                agent.train_policy(experiences)
 
         record.log(
             out=done or truncated,
@@ -160,13 +158,12 @@ def train(env, agent: TD3, record: Record):
         )
 
         if done or truncated:
-
             historical_reward["step"].append(total_step_counter)
             historical_reward["episode_reward"].append(episode_reward)
 
             # Reset environment
             state, _ = env.reset()
-            episode_reward    = 0
+            episode_reward = 0
             episode_timesteps = 0
             episode_num += 1
 
@@ -187,7 +184,7 @@ def get_params():
             ('g', 10),
             ('batch_size', 32),
             ('buffer_size', 1_000_000),
-            ('seed', 123), #TODO: This doesn't do anything yet
+            ('seed', 123),  # TODO: This doesn't do anything yet
             ('actor_lr', 1e-4),
             ('critic_lr', 1e-3),
             ('max_steps_training', 1_000_000),
@@ -203,20 +200,21 @@ def get_params():
         'environment',
         'track',
         'max_steps_training',
-        'max_steps_exploration', 
-        'gamma', 
-        'tau', 
-        'g', 
-        'batch_size', 
-        'buffer_size', 
-        'seed', 
-        'actor_lr', 
+        'max_steps_exploration',
+        'gamma',
+        'tau',
+        'g',
+        'batch_size',
+        'buffer_size',
+        'seed',
+        'actor_lr',
         'critic_lr',
         'max_steps',
         'step_length',
         'reward_range',
         'collision_range'
-        ])
+    ])
+
 
 if __name__ == '__main__':
     main()
