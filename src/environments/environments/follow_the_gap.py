@@ -28,28 +28,24 @@ class FollowTheGapNode(Node):
         lidar_poss_angles = np.linspace(-1.396, 1.396, 640)
 
         # each value in lidar_angles corresponds to a lidar range
-        lidar_angles = []
-        for i in range(10):
-            sample = lidar_poss_angles[i*64]
-            lidar_angles.append(sample)
-
-        obstacles = []
-        obstacles_index = []
+        obstacles_angles = []
+        obstacles_ranges = []
         for i in range(10):
             if (state[8+i] > min_lidar_range) & (state[8+i]<max_lidar_range):
-                obstacles.append(state[8+i])
-                obstacles_index.append(i)
-
+                obstacles_ranges.append(state[8+i])
+                sample = lidar_poss_angles[i*64]
+                obstacles_angles.append(sample)
+                
 
         # Add obstacle border values to gap array
-        border_values = []
-        angle_array = []
-        for i in obstacles:
-            border_dist = self.calc_border_distances(obstacles[i])
-            border_angle = np.arccos(border_dist/obstacles[i])
-            border_values.append(border_dist)
-            angle_array.append(lidar_angles[i]+border_angle)
-            angle_array.append(lidar_angles[i]-border_angle)
+        border_ranges = []
+        border_angles = []
+        for i in obstacles_ranges:
+            border_dist = self.calc_border_distances(obstacles_ranges[i])
+            angle = np.arccos(border_dist/obstacles_ranges[i])
+            border_ranges.append(border_dist)
+            border_angles.append(obstacles_angles[i]+angle)
+            border_angles.append(obstacles_angles[i]-angle)
 
         # Calculate nonholonomic edge constraints
 
