@@ -6,16 +6,23 @@ class FollowTheGapNode(Node):
     def __init__(self):
         super().__init__('follow_the_gap')
 
-    def calc_func():
+    def calc_func(self):
         turn_angle = 0.4667
         min_turn_radius = 0.625
         lidar_angle=1.396
         meeting_point= np.sqrt(2*min_turn_radius**2-2*min_turn_radius**2*np.cos(2*lidar_angle))
         return meeting_point
     
-    def select_action(state):
+    def calc_border_distances(self,range):
+        obstacle_buffer = 0.0001 # value needs to be tinkered with
+        chassis_width = 0.18
+        d_n = np.sqrt(range**2-(obstacle_buffer+chassis_width)**2)
+        return d_n
+    
+    def select_action(self,state):
         # Current x: state[0], current y: state[1], current z: state[2], orientation x: state[3], orientation y: state[4], orientation z: state[5]
         # linear vel x: state[6], angular vel z: state[7], LIDAR points 1-10: state[8-17] where each entry is the 64th LIDAR point
+        lin = 5
         min_lidar_range = 0.08
         max_lidar_range = 10
         lidar_poss_angles = np.linspace(-1.396, 1.396, 640)
@@ -26,9 +33,6 @@ class FollowTheGapNode(Node):
             sample = lidar_poss_angles[i*64]
             lidar_angles.append(sample)
 
-
-        lin = 5
-
         obstacles = []
         obstacles_index = []
         for i in range(10):
@@ -38,7 +42,14 @@ class FollowTheGapNode(Node):
 
 
         # Add obstacle border values to gap array
-
+        border_values = []
+        angle_array = []
+        for i in obstacles:
+            border_dist = self.calc_border_distances(obstacles[i])
+            border_angle = np.arccos(border_dist/obstacles[i])
+            border_values.append(border_dist)
+            angle_array.append(lidar_angles[i]+border_angle)
+            angle_array.append(lidar_angles[i]-border_angle)
 
         # Calculate nonholonomic edge constraints
 
