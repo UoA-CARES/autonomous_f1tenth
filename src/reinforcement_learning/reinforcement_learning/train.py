@@ -45,6 +45,9 @@ def main():
     ACTOR_PATH, \
     CRITIC_PATH = [param.value for param in params]
 
+    if ACTOR_PATH != '' and CRITIC_PATH != '':
+        MAX_STEPS_EXPLORATION = 0
+
     print(
         f'---------------------------------------------\n'
         f'Environment: {ENVIRONMENT}\n'
