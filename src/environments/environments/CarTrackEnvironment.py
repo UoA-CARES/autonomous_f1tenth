@@ -37,14 +37,32 @@ class CarTrackEnvironment(F1tenthEnvironment):
             When the number of steps surpasses MAX_STEPS
     """
 
-    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1'):
+    def __init__(self, 
+                 car_name, 
+                 reward_range=1, 
+                 max_steps=50, 
+                 collision_range=0.2, 
+                 step_length=0.5, 
+                 track='track_1',
+                 observation_mode='full'
+                 ):
         super().__init__('car_track', car_name, max_steps, step_length)
 
         # Environment Details ----------------------------------------
         self.MAX_STEPS_PER_GOAL = max_steps
-        self.OBSERVATION_SIZE = 8 + 10  # Car position + Lidar rays
+        
+        match observation_mode:
+            case 'no_position':
+                self.OBSERVATION_SIZE = 6 + 10
+            case 'lidar_only':
+                self.OBSERVATION_SIZE = 10
+            case _:
+                self.OBSERVATION_SIZE = 8 + 10
+
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
+
+        self.observation_mode = observation_mode
 
         # Reset Client -----------------------------------------------
         self.goal_number = 0
@@ -131,7 +149,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
         reduced_range = reduce_lidar(lidar)
 
         # Get Goal Position
-        return odom + reduced_range
+        
+        match (self.observation_mode):
+            case 'no_position':
+                state = odom[2:] + reduced_range
+            case 'lidar_only':
+                state = reduced_range
+            case _:
+                state = odom + reduced_range
+
+        return state
 
     def compute_reward(self, state, next_state):
 
