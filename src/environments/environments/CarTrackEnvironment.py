@@ -88,11 +88,32 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.call_reset_service()
 
-        observation = self.get_observation()
+        observation, _ = self.get_observation()
 
         info = {}
 
         return observation, info
+
+    def step(self, action):
+        self.step_counter += 1
+
+        _, full_state = self.get_observation()
+
+        lin_vel, ang_vel = action
+        self.set_velocity(lin_vel, ang_vel)
+
+        while not self.timer_future.done():
+            rclpy.spin_once(self)
+
+        self.timer_future = Future()
+
+        next_state, full_next_state = self.get_observation()
+        reward = self.compute_reward(full_state, full_next_state)
+        terminated = self.is_terminated(full_next_state)
+        truncated = self.step_counter >= self.MAX_STEPS
+        info = {}
+
+        return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state):
         return has_collided(state[8:], self.COLLISION_RANGE) \
@@ -158,7 +179,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
             case _:
                 state = odom + reduced_range
 
-        return state
+        full_state = odom + reduced_range
+
+        return state, full_state
 
     def compute_reward(self, state, next_state):
 
