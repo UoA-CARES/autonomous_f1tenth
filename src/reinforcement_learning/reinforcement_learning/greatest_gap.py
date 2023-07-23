@@ -111,7 +111,8 @@ def greatestGap(env):
 
     for total_step_counter in range(int(MAX_STEPS_TRAINING)):
         episode_timesteps += 1
-        action_env = FollowTheGapNode.select_action(state) # Select action
+        action_env = calcMethod.select_action(state, env.goal_position) # Select action
+        print(f"Current action:{action_env[0]}, {action_env[1]}")
         action = hlp.normalize(action_env, env.MAX_ACTIONS, env.MIN_ACTIONS)
         next_state, reward, done, truncated, info = env.step(action_env)
         state = next_state
