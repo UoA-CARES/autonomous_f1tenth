@@ -175,7 +175,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             case 'no_position':
                 state = odom[2:] + reduced_range
             case 'lidar_only':
-                state = reduced_range
+                state = odom[-2:] + reduced_range 
             case _:
                 state = odom + reduced_range
 
