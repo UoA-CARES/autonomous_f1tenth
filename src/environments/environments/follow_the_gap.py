@@ -25,7 +25,7 @@ class FollowTheGapNode(Node):
     def select_action(self,state,goal_pos):
         # Current x: state[0], current y: state[1], current z: state[2], orientation x: state[3], orientation y: state[4], orientation z: state[5]
         # linear vel x: state[6], angular vel z: state[7], LIDAR points 1-10: state[8-17] where each entry is the 64th LIDAR point
-        lin = 0.4
+        lin = 1
         turn_angle = 0.4667
         min_turn_radius = 0.625
         lidar_angle=1.396
@@ -38,13 +38,14 @@ class FollowTheGapNode(Node):
         # each value in lidar_angles corresponds to a lidar range
         obstacles_angles = []
         obstacles_ranges = []
+        obstacle_max_val = 2
         for i in range(10):
-            if (state[8+i] > min_lidar_range) & (state[8+i]<max_lidar_range):
+            if (state[8+i] > min_lidar_range) & (state[8+i]<obstacle_max_val):
                 obstacles_ranges.append(state[8+i])
                 sample = lidar_poss_angles[i*64]
                 obstacles_angles.append(sample)
                 
-
+        # print(f"Obstacles are at: {obstacles_angles}")
         # Add obstacle border values to array
         border_ranges = []
         border_angles = []

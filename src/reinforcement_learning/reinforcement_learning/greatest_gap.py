@@ -111,6 +111,7 @@ def greatestGap(env):
 
     for total_step_counter in range(int(MAX_STEPS_TRAINING)):
         episode_timesteps += 1
+        # print(f"LIDAR ranges: {state[8:18]}")
         action_env = calcMethod.select_action(state, env.goal_position) # Select action
         print(f"Current action:{action_env[0]}, {action_env[1]}")
         action = hlp.normalize(action_env, env.MAX_ACTIONS, env.MIN_ACTIONS)
