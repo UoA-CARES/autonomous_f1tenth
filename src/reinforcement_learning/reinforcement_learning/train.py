@@ -41,7 +41,12 @@ def main():
     MAX_STEPS, \
     STEP_LENGTH, \
     REWARD_RANGE, \
-    COLLISION_RANGE = [param.value for param in params]
+    COLLISION_RANGE, \
+    ACTOR_PATH, \
+    CRITIC_PATH = [param.value for param in params]
+
+    if ACTOR_PATH != '' and CRITIC_PATH != '':
+        MAX_STEPS_EXPLORATION = 0
 
     print(
         f'---------------------------------------------\n'
@@ -60,6 +65,8 @@ def main():
         f'Step Length: {STEP_LENGTH}\n'
         f'Reward Range: {REWARD_RANGE}\n'
         f'Collision Range: {COLLISION_RANGE}\n'
+        f'Critic Path: {CRITIC_PATH}\n'
+        f'Actor Path: {ACTOR_PATH}\n'
         f'---------------------------------------------\n'
     )
 
@@ -78,6 +85,12 @@ def main():
 
     actor = Actor(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=ACTOR_LR)
     critic = Critic(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=CRITIC_LR)
+
+    if ACTOR_PATH != '' and CRITIC_PATH != '':
+        print('Reading saved models into actor and critic')
+        actor.load_state_dict(torch.load(ACTOR_PATH))
+        critic.load_state_dict(torch.load(CRITIC_PATH))
+        print('Successfully Loaded models')
 
     agent = TD3(
         actor_network=actor,
@@ -192,7 +205,9 @@ def get_params():
             ('max_steps', 100),
             ('step_length', 0.25),
             ('reward_range', 0.2),
-            ('collision_range', 0.2)
+            ('collision_range', 0.2),
+            ('actor_path', ''),
+            ('critic_path', '')
         ]
     )
 
@@ -212,7 +227,9 @@ def get_params():
         'max_steps',
         'step_length',
         'reward_range',
-        'collision_range'
+        'collision_range',
+        'actor_path',
+        'critic_path',
     ])
 
 
