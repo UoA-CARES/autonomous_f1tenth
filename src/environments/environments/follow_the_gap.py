@@ -57,11 +57,12 @@ class FollowTheGapNode(Node):
             border_angles.append(obstacles_angles[i]-angle)
             border_angles.append(obstacles_angles[i]+angle)
 
+        #print(f"Obstacles are at: {border_angles}")
         # Calculate nonholonomic edge constraints
         if (border_ranges[0] < meeting_dist):
-            angle_constraint_l = turn_angle
+            angle_constraint_l = turn_angle*-1
         else:
-            angle_constraint_l = lidar_angle
+            angle_constraint_l = lidar_angle*-1
 
         if (border_ranges[-1] < meeting_dist):
             angle_constraint_r = turn_angle
@@ -74,13 +75,20 @@ class FollowTheGapNode(Node):
         G = []
         angle_entry = angle_constraint_l-border_angles[0]
         G.append(np.abs(angle_entry))
-        for i in range(len(border_angles)-1):
-            angle_entry = border_angles[i]-border_angles[i+1]
+        for i in range(1, len(border_angles)-1, 2):
+            if (border_angles[i] < border_angles[i+1]):
+                angle_entry = border_angles[i]-border_angles[i+1]
+            else:
+                angle_entry = 0
             G.append(np.abs(angle_entry))
         angle_entry = border_angles[-1]-angle_constraint_r
         G.append(np.abs(angle_entry))
         greatest_gap = max(G) 
         greatest_gap_index = G.index(greatest_gap)
+
+        #print(f"Gap array: {G}")
+        #print(f"Greatest gap: {greatest_gap}")
+        #print(f"Index: {greatest_gap_index}")
 
         # Find max gap centre angle
         if greatest_gap_index < 1:
@@ -94,12 +102,13 @@ class FollowTheGapNode(Node):
             theta1 = border_angles[-1]
             theta2 = angle_constraint_r
         else:
-            d1 = border_ranges[greatest_gap_index-1]
-            d2 = border_ranges[greatest_gap_index-2]
-            theta1 = border_angles[greatest_gap_index-1]
-            theta2 = border_angles[greatest_gap_index-2]
+            d1 = border_ranges[greatest_gap_index*2]
+            d2 = border_ranges[greatest_gap_index*2-1]
+            theta1 = border_angles[greatest_gap_index*2]
+            theta2 = border_angles[greatest_gap_index*2-1]
         gap_centre_angle = np.arccos((d1+d2*np.cos(theta1+theta2))/(np.sqrt(d1**2+d2**2+2*d1*d2*np.cos(theta1+theta2))))-theta1
-        
+        print(f"Right obstacle: {theta1}")
+        print(f"Left obstacle: {theta2}")
         # Calculate final heading angle
         dmin = min(border_ranges)
         alpha = 4
