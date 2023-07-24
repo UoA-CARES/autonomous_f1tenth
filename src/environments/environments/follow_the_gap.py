@@ -20,12 +20,12 @@ class FollowTheGapNode(Node):
         return d_n
     
     def angle_to_ang_vel(self, driving_angle, lin):
-        return driving_angle*lin
+        return driving_angle*lin*0.5
     
     def select_action(self,state,goal_pos):
         # Current x: state[0], current y: state[1], current z: state[2], orientation x: state[3], orientation y: state[4], orientation z: state[5]
         # linear vel x: state[6], angular vel z: state[7], LIDAR points 1-10: state[8-17] where each entry is the 64th LIDAR point
-        lin = 1
+        lin = 0.1
         turn_angle = 0.4667
         min_turn_radius = 0.625
         lidar_angle=1.396
@@ -33,8 +33,20 @@ class FollowTheGapNode(Node):
         max_lidar_range = 10
         lidar_poss_angles = np.linspace(-1.396, 1.396, 640)
         meeting_dist = self.calc_func()
-        goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - state[5]
-
+        if (goal_pos[0] > state[0]):
+            if (goal_pos[1] > state[1]):
+                goal_angle = np.pi/2+np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - state[5]
+            else:
+                goal_angle = abs(np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))) - state[5]
+        else:
+            if (goal_pos[1] > state[1]):
+                goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - state[5] - np.pi
+            else:
+                goal_angle = np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))*-1 - state[5]
+        goal_angle -= 1
+        #print(f"Car Position: {state[0]}, {state[1]}")
+        #print(f"Goal Position: {goal_pos}")
+        #print(f"Rotation: {state[5]}")
         # each value in lidar_angles corresponds to a lidar range
         obstacles_angles = []
         obstacles_ranges = []
@@ -50,7 +62,7 @@ class FollowTheGapNode(Node):
             action = np.asarray([lin, ang])
             return action
 
-        print(f"Obstacles are at: {obstacles_angles}")
+        #print(f"Obstacles are at: {obstacles_angles}")
         # Add obstacle border values to array
         border_ranges = []
         border_angles = []
@@ -62,7 +74,7 @@ class FollowTheGapNode(Node):
             border_angles.append(obstacles_angles[i]-angle)
             border_angles.append(obstacles_angles[i]+angle)
 
-        print(f"Obstacles are at: {border_angles}")
+        #print(f"Obstacles are at: {border_angles}")
         # Calculate nonholonomic edge constraints
         if (border_ranges[0] < meeting_dist):
             angle_constraint_l = turn_angle*-1
@@ -91,9 +103,9 @@ class FollowTheGapNode(Node):
         greatest_gap = max(G) 
         greatest_gap_index = G.index(greatest_gap)
 
-        print(f"Gap array: {G}")
-        print(f"Greatest gap: {greatest_gap}")
-        print(f"Index: {greatest_gap_index}")
+        #print(f"Gap array: {G}")
+        #print(f"Greatest gap: {greatest_gap}")
+        #print(f"Index: {greatest_gap_index}")
 
         # Find max gap centre angle
         if greatest_gap_index < 1:
@@ -114,11 +126,13 @@ class FollowTheGapNode(Node):
         gap_centre_angle = np.arccos((d1+d2*np.cos(theta1+theta2))/(np.sqrt(d1**2+d2**2+2*d1*d2*np.cos(theta1+theta2))))-theta1
         print(f"Right obstacle: {theta1}")
         print(f"Left obstacle: {theta2}")
+        print(f"Gap centre angle: {gap_centre_angle}")
+        print(f"Goal Angle: {goal_angle}")
         # Calculate final heading angle
         dmin = min(border_ranges)
         alpha = 4
         final_heading_angle = ((alpha/dmin)*gap_centre_angle+goal_angle)/((alpha/dmin)+1)
-
+        #print(f"Final angle: {final_heading_angle}")
         # Convert to angular velocity
         ang = self.angle_to_ang_vel(final_heading_angle, lin)
         #ang = self.angle_to_ang_vel(-2)

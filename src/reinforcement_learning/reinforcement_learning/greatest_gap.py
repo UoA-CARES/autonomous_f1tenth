@@ -203,7 +203,7 @@ def get_params():
             ('critic_lr', 1e-3),
             ('max_steps_training', 1_000_000),
             ('max_steps_exploration', 1_000),
-            ('max_steps', 100),
+            ('max_steps', 10000),
             ('step_length', 0.25),
             ('reward_range', 0.2),
             ('collision_range', 0.2)
