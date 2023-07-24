@@ -33,7 +33,7 @@ class FollowTheGapNode(Node):
         max_lidar_range = 10
         lidar_poss_angles = np.linspace(-1.396, 1.396, 640)
         meeting_dist = self.calc_func()
-        goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0]))
+        goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - state[5]
 
         # each value in lidar_angles corresponds to a lidar range
         obstacles_angles = []
@@ -44,8 +44,13 @@ class FollowTheGapNode(Node):
                 obstacles_ranges.append(state[8+i])
                 sample = lidar_poss_angles[i*64]
                 obstacles_angles.append(sample)
-                
-        # print(f"Obstacles are at: {obstacles_angles}")
+
+        if (len(obstacles_angles) < 1):
+            ang = self.angle_to_ang_vel(goal_angle, lin)
+            action = np.asarray([lin, ang])
+            return action
+
+        print(f"Obstacles are at: {obstacles_angles}")
         # Add obstacle border values to array
         border_ranges = []
         border_angles = []
@@ -57,7 +62,7 @@ class FollowTheGapNode(Node):
             border_angles.append(obstacles_angles[i]-angle)
             border_angles.append(obstacles_angles[i]+angle)
 
-        #print(f"Obstacles are at: {border_angles}")
+        print(f"Obstacles are at: {border_angles}")
         # Calculate nonholonomic edge constraints
         if (border_ranges[0] < meeting_dist):
             angle_constraint_l = turn_angle*-1
@@ -86,9 +91,9 @@ class FollowTheGapNode(Node):
         greatest_gap = max(G) 
         greatest_gap_index = G.index(greatest_gap)
 
-        #print(f"Gap array: {G}")
-        #print(f"Greatest gap: {greatest_gap}")
-        #print(f"Index: {greatest_gap_index}")
+        print(f"Gap array: {G}")
+        print(f"Greatest gap: {greatest_gap}")
+        print(f"Index: {greatest_gap_index}")
 
         # Find max gap centre angle
         if greatest_gap_index < 1:
@@ -96,7 +101,7 @@ class FollowTheGapNode(Node):
             d2 = dist_constraint_l
             theta1 = border_angles[0]
             theta2 = angle_constraint_l
-        elif greatest_gap_index > (len(border_angles)):
+        elif (greatest_gap_index*2 > (len(border_angles)-1)):
             d1 = dist_constraint_r
             d2 = border_ranges[-1]
             theta1 = border_angles[-1]
