@@ -2,11 +2,13 @@ train:
   ros__parameters:
     environment: 'CarTrack' # CarGoal, CarWall, CarBlock, CarTrack
     track: 'track_2' # track_1, track_2, track_3 -> only applies for CarTrack
-    max_steps_exploration: 32
+    max_steps_exploration: 1000
     max_steps_training: 1000000
     reward_range: 1.0
     collision_range: 0.2
     observation_mode: 'no_position'
+    # actor_path: 'rl_logs/23_07_17_01:50:30/models/actor_checkpoint.pht'
+    # critic_path: 'rl_logs/23_07_17_01:50:30/models/critic_checkpoint.pht'
     # gamma: 0.95
     # tau: 0.005
     # g: 5
