@@ -234,7 +234,7 @@ def get_params():
         'step_length',
         'reward_range',
         'collision_range',
-        'observation_mode'
+        'observation_mode',
         'actor_path',
         'critic_path',
     ])
