@@ -28,7 +28,6 @@ fi
 # Rerun every $1 time
 while true; do
 	colcon build
-	timeout "$1" gz sim -g &
 	timeout "$1" ros2 launch reinforcement_learning train.launch.py
 
   # Get the latest folder in rl_logs
