@@ -19,8 +19,6 @@ fi
 # Set the partition number
 if [ -n "$2" ]; then
 	export GZ_PARTITION="$2"
-else
-	export GZ_PARTITION=150
 fi
 
 . install/setup.bash
