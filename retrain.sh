@@ -26,7 +26,7 @@ fi
 # Rerun every $1 time
 while true; do
 	colcon build
-	timeout "$1" ros2 launch reinforcement_learning train.launch.py
+	timeout "$1" -s SIGKILL ros2 launch reinforcement_learning train.launch.py
 
   # Get the latest folder in rl_logs
 	latest_folder=$(ls -lt ./rl_logs | grep '^d' | head -n 1 | awk '{print $NF}')
