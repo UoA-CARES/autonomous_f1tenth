@@ -12,9 +12,7 @@ from cares_reinforcement_learning.util import Record
 from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
 from environments.CarBlockEnvironment import CarBlockEnvironment
-from environments.CarTrackOriginalEnvironment import CarTrackOriginalEnvironment
-from environments.CarTrack1Environment import CarTrack1Environment
-from environments.CarTrack2Environment import CarTrack2Environment
+from environments.CarTrackEnvironment import CarTrackEnvironment
 from environments.follow_the_gap import FollowTheGapNode
 
 def main():
@@ -72,11 +70,7 @@ def main():
         case 'CarBlock':
             env = CarBlockEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case 'CarTrack':
-            env = CarTrackOriginalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
-        case 'CarTrack1':
-            env = CarTrack1Environment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
-        case 'CarTrack2':
-            env = CarTrack2Environment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
+            env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case _:
             env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
    
@@ -113,7 +107,7 @@ def greatestGap(env):
         episode_timesteps += 1
         # print(f"LIDAR ranges: {state[8:18]}")
         action_env = calcMethod.select_action(state, env.goal_position) # Select action
-        print(f"Current action:{action_env[0]}, {action_env[1]}")
+        #print(f"Current action:{action_env[0]}, {action_env[1]}")
         action = hlp.normalize(action_env, env.MAX_ACTIONS, env.MIN_ACTIONS)
         next_state, reward, done, truncated, info = env.step(action_env)
         state = next_state

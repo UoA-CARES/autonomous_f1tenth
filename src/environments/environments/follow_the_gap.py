@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 import numpy as np
+#from tf2.transformations import euler_from_quaternion
 
 class FollowTheGapNode(Node):
     def __init__(self):
@@ -23,9 +24,9 @@ class FollowTheGapNode(Node):
         return driving_angle*lin*0.5
     
     def select_action(self,state,goal_pos):
-        # Current x: state[0], current y: state[1], current z: state[2], orientation x: state[3], orientation y: state[4], orientation z: state[5]
+        # Current x: state[0], current y: state[1], orientation w: state[2], orientation x: state[3], orientation y: state[4], orientation z: state[5]
         # linear vel x: state[6], angular vel z: state[7], LIDAR points 1-10: state[8-17] where each entry is the 64th LIDAR point
-        lin = 0.1
+        lin = 0.3
         turn_angle = 0.4667
         min_turn_radius = 0.625
         lidar_angle=1.396
@@ -33,20 +34,21 @@ class FollowTheGapNode(Node):
         max_lidar_range = 10
         lidar_poss_angles = np.linspace(-1.396, 1.396, 640)
         meeting_dist = self.calc_func()
+        #roll, pitch, rotation = euler_from_quaternion(state[2], state[3], state[4], state[5])
+
+
+        rotation = np.arctan2((2*(state[2]*state[5]+state[3]*state[4])),(1-2*(state[4]**2+state[5]**2)))
         if (goal_pos[0] > state[0]):
             if (goal_pos[1] > state[1]):
-                goal_angle = np.pi/2+np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - state[5]
+                goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - rotation
             else:
-                goal_angle = abs(np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))) - state[5]
+                goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - rotation
         else:
             if (goal_pos[1] > state[1]):
-                goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - state[5] - np.pi
+                goal_angle = abs(np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))) - rotation + np.pi/2
             else:
-                goal_angle = np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))*-1 - state[5]
-        goal_angle -= 1
-        #print(f"Car Position: {state[0]}, {state[1]}")
-        #print(f"Goal Position: {goal_pos}")
-        #print(f"Rotation: {state[5]}")
+                goal_angle = np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))*-1 - rotation - np.pi/2
+
         # each value in lidar_angles corresponds to a lidar range
         obstacles_angles = []
         obstacles_ranges = []
@@ -124,10 +126,10 @@ class FollowTheGapNode(Node):
             theta1 = border_angles[greatest_gap_index*2]
             theta2 = border_angles[greatest_gap_index*2-1]
         gap_centre_angle = np.arccos((d1+d2*np.cos(theta1+theta2))/(np.sqrt(d1**2+d2**2+2*d1*d2*np.cos(theta1+theta2))))-theta1
-        print(f"Right obstacle: {theta1}")
-        print(f"Left obstacle: {theta2}")
-        print(f"Gap centre angle: {gap_centre_angle}")
-        print(f"Goal Angle: {goal_angle}")
+        #print(f"Right obstacle: {theta1}")
+        #print(f"Left obstacle: {theta2}")
+        #print(f"Gap centre angle: {gap_centre_angle}")
+        #print(f"Goal Angle: {goal_angle}")
         # Calculate final heading angle
         dmin = min(border_ranges)
         alpha = 4
