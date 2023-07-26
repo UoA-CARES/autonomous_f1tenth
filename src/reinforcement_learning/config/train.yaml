@@ -1,6 +1,6 @@
 train:
   ros__parameters:
-    environment: 'CarWall' # CarGoal, CarWall, CarBlock, CarTrack
+    environment: 'CarBeat' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat
     max_steps_exploration: 5000
     track: 'track_2' # track_1, track_2, track_3 -> only applies for CarTrack
     max_steps_training: 1000000
