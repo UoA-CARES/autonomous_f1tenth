@@ -87,9 +87,25 @@ class FollowTheGapNode(Node):
             angle_constraint_r = turn_angle*-1
         else:
             angle_constraint_r = lidar_angle*-1
+        
+        del_index = -1
+        for i in range(1, len(border_angles), 2): # Implement on left
+            if (border_angles[i]<angle_constraint_r):
+                del_index = i-1
+        if (del_index>0):
+            print(f"Pre-deletion: {border_angles}")
+            print(f"Del index: {del_index}")
+            del border_angles[0:del_index]
+            del border_ranges[0:del_index]
+            print(f"Post-deletion: {border_angles}")
+
         dist_constraint_l = border_ranges[-1]*np.cos(angle_constraint_l)
         dist_constraint_r = border_ranges[0]*np.cos(angle_constraint_r)
-
+    
+        if (len(border_ranges) < 1):
+            ang = self.angle_to_ang_vel(goal_angle, lin)
+            action = np.asarray([lin, ang])
+            return action
         # Generate complete gap array, find max
         G = []
         angle_entry = angle_constraint_r-border_angles[0]
@@ -118,8 +134,8 @@ class FollowTheGapNode(Node):
         elif (greatest_gap_index*2 > (len(border_angles)-1)): # Between leftmost obstacle and left constraint
             d1 = border_ranges[-1]
             d2 = dist_constraint_l
-            theta1 = angle_constraint_l
-            theta2 = border_angles[-1]
+            theta1 = border_angles[-1]
+            theta2 = angle_constraint_l
         else:
             d1 = border_ranges[greatest_gap_index*2-1]
             d2 = border_ranges[greatest_gap_index*2]
@@ -153,13 +169,6 @@ class FollowTheGapNode(Node):
 
             else: # Turning left
                 gap_centre_angle = np.arccos((d1**2+h**2-l**2)/(2*d1*h))-abs(theta1)
-        print(f"Right dist: {d1}")
-        print(f"Left dist: {d2}")
-        print(f"Right obstacle: {theta1}")
-        print(f"Left obstacle: {theta2}")
-        print(f"phi: {phi}")
-        print(f"l: {l}")
-        print(f"h: {h}")
         print(f"Gap centre angle: {gap_centre_angle}")
         #print(f"Goal Angle: {goal_angle}")
         # Calculate final heading angle
