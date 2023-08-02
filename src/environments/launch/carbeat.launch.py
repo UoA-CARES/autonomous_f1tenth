@@ -52,8 +52,8 @@ def generate_launch_description():
         launch_arguments={
             'name': 'f1tenth_one',
             'world': 'empty',
-            'x': '-5',
-            'y': '-5',
+            'x': '0',
+            'y': '0',
             'z': '1',
         }.items()
     )
@@ -64,9 +64,9 @@ def generate_launch_description():
         launch_arguments={
             'name': 'f1tenth_two',
             'world': 'empty',
-            'x': '5',
-            'y': '5',
-            'z': '0.4',
+            'x': '0',
+            'y': '1',
+            'z': '1',
         }.items()
     )
 
