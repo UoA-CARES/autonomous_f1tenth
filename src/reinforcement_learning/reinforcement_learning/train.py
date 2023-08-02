@@ -181,6 +181,7 @@ def train(env, agent: TD3, record: Record):
             episode_reward = 0
             episode_timesteps = 0
             episode_num += 1
+            
 
 
 def get_params():
