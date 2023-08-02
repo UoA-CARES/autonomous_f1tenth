@@ -11,7 +11,7 @@ from .termination import has_collided, has_flipped_over
 from .util import process_odom, reduce_lidar
 from .track_reset import track_info
 
-class CarTrackEnvironment(F1tenthEnvironment):
+class CarBeatEnvironment(F1tenthEnvironment):
     """
     CarTrack Reinforcement Learning Environment:
 
@@ -37,32 +37,14 @@ class CarTrackEnvironment(F1tenthEnvironment):
             When the number of steps surpasses MAX_STEPS
     """
 
-    def __init__(self, 
-                 car_name, 
-                 reward_range=1, 
-                 max_steps=50, 
-                 collision_range=0.2, 
-                 step_length=0.5, 
-                 track='track_1',
-                 observation_mode='full'
-                 ):
-        super().__init__('car_track', car_name, max_steps, step_length)
+    def __init__(self, car_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1'):
+        super().__init__('car_beat', car_name, max_steps, step_length)
 
         # Environment Details ----------------------------------------
         self.MAX_STEPS_PER_GOAL = max_steps
-        
-        match observation_mode:
-            case 'no_position':
-                self.OBSERVATION_SIZE = 6 + 10
-            case 'lidar_only':
-                self.OBSERVATION_SIZE = 10
-            case _:
-                self.OBSERVATION_SIZE = 8 + 10
-
+        self.OBSERVATION_SIZE = 8 + 10  # Car position + Lidar rays
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
-
-        self.observation_mode = observation_mode
 
         # Reset Client -----------------------------------------------
         self.goal_number = 0
@@ -73,9 +55,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.get_logger().info('Environment Setup Complete')
 
     def reset(self):
+        # self.get_logger().info('Environment Reset Called')
+        
         self.step_counter = 0
 
         self.set_velocity(0, 0)
+        # self.get_logger().info('Velocity set')
 
         # TODO: Remove Hard coded-ness of 10x10
         self.goal_number = 0
@@ -84,36 +69,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
         while not self.timer_future.done():
             rclpy.spin_once(self)
 
+        # self.get_logger().info('Sleep called')
+
         self.timer_future = Future()
 
         self.call_reset_service()
 
-        observation, _ = self.get_observation()
+        # self.get_logger().info('Reset Called and returned')
+        observation = self.get_observation()
 
+        # self.get_logger().info('Observation returned')
         info = {}
 
         return observation, info
-
-    def step(self, action):
-        self.step_counter += 1
-
-        _, full_state = self.get_observation()
-
-        lin_vel, ang_vel = action
-        self.set_velocity(lin_vel, ang_vel)
-
-        while not self.timer_future.done():
-            rclpy.spin_once(self)
-
-        self.timer_future = Future()
-
-        next_state, full_next_state = self.get_observation()
-        reward = self.compute_reward(full_state, full_next_state)
-        terminated = self.is_terminated(full_next_state)
-        truncated = self.step_counter >= self.MAX_STEPS
-        info = {}
-
-        return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state):
         return has_collided(state[8:], self.COLLISION_RANGE) \
@@ -170,18 +138,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         reduced_range = reduce_lidar(lidar)
 
         # Get Goal Position
-        
-        match (self.observation_mode):
-            case 'no_position':
-                state = odom[2:] + reduced_range
-            case 'lidar_only':
-                state = odom[-2:] + reduced_range 
-            case _:
-                state = odom + reduced_range
-
-        full_state = odom + reduced_range
-
-        return state, full_state
+        return odom + reduced_range
 
     def compute_reward(self, state, next_state):
 

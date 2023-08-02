@@ -23,6 +23,7 @@ def launch(context, *args, **kwargs):
     return[ gz_sim]
 
 def generate_launch_description():
+    pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
 
     track_arg = DeclareLaunchArgument(
         'track',
@@ -45,6 +46,14 @@ def generate_launch_description():
         ],
     )
 
+    f1tenth = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
+        launch_arguments={
+            'name': 'f1tenth',
+            'world': 'empty'
+        }.items()
+    )
 
     #TODO: dynamically change car name
     #TODO: This doesn't work yet
@@ -57,7 +66,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         track_arg,
-
+        f1tenth,
         OpaqueFunction(function=launch),
         service_bridge,
         reset,

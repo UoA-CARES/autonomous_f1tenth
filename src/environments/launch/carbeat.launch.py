@@ -3,12 +3,32 @@ from ament_index_python import get_package_share_directory
 from launch_ros.actions import Node 
 from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 
-def generate_launch_description():
+def launch(context, *args, **kwargs):
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_environments = get_package_share_directory('environments')
+
+    track = LaunchConfiguration('track').perform(context)
+    
+    gz_sim = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
+        launch_arguments={
+            'gz_args': f'-s -r {pkg_environments}/worlds/{track}.sdf',
+        }.items()
+    )
+
+    return[gz_sim]
+
+def generate_launch_description():
     pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
+
+    track_arg = DeclareLaunchArgument(
+        'track',
+        default_value='track_1'
+    )
 
     service_bridge = Node(
         package='ros_gz_bridge',
@@ -26,20 +46,27 @@ def generate_launch_description():
         ],
     )
 
-    f1tenth = IncludeLaunchDescription(
+    f1tenth_one = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
         launch_arguments={
-            'name': 'f1tenth',
-            'world': 'empty'
+            'name': 'f1tenth_one',
+            'world': 'empty',
+            'x': '-5',
+            'y': '-5',
+            'z': '1',
         }.items()
     )
 
-    gz_sim = IncludeLaunchDescription(
+    f1tenth_two = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
+            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
         launch_arguments={
-            'gz_args': f'-s -r {pkg_environments}/worlds/wall.sdf',
+            'name': 'f1tenth_two',
+            'world': 'empty',
+            'x': '5',
+            'y': '5',
+            'z': '0.4',
         }.items()
     )
 
@@ -48,14 +75,17 @@ def generate_launch_description():
     #TODO: Create CarWall Reset
     reset = Node(
             package='environments',
-            executable='CarWallReset',
+            executable='CarBeatReset',
             output='screen',
-            emulate_tty=True,
     )
 
-    return LaunchDescription([
-        gz_sim,
-        f1tenth,
+    ld = LaunchDescription([
+        track_arg,
+        OpaqueFunction(function=launch),
         service_bridge,
         reset,
-])
+        f1tenth_one,
+        f1tenth_two,
+    ])
+    
+    return ld 

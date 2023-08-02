@@ -110,7 +110,7 @@ OBSERVATION_SIZE = 8 + 10 + 2  # Car position + Lidar rays + goal position
 ACTION_NUM = 2
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-TRAINING_NAME = 'sanity-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
+TRAINING_NAME = 'sanity_check-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
 
 # For controlling the car
 linear_vel = 0

@@ -14,7 +14,7 @@ from environments.CarBlockEnvironment import CarBlockEnvironment
 from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarTrackEnvironment import CarTrackEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
-
+from environments.CarBeatEnvironment import CarBeatEnvironment
 
 def main():
     rclpy.init()
@@ -41,7 +41,12 @@ def main():
     MAX_STEPS, \
     STEP_LENGTH, \
     REWARD_RANGE, \
-    COLLISION_RANGE = [param.value for param in params]
+    COLLISION_RANGE, \
+    ACTOR_PATH, \
+    CRITIC_PATH = [param.value for param in params]
+
+    if ACTOR_PATH != '' and CRITIC_PATH != '':
+        MAX_STEPS_EXPLORATION = 0
 
     print(
         f'---------------------------------------------\n'
@@ -60,6 +65,8 @@ def main():
         f'Step Length: {STEP_LENGTH}\n'
         f'Reward Range: {REWARD_RANGE}\n'
         f'Collision Range: {COLLISION_RANGE}\n'
+        f'Critic Path: {CRITIC_PATH}\n'
+        f'Actor Path: {ACTOR_PATH}\n'
         f'---------------------------------------------\n'
     )
 
@@ -73,11 +80,19 @@ def main():
             env = CarBlockEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case 'CarTrack':
             env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
+        case 'CarBeat':
+            env = CarBeatEnvironment('f1tenth_one', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
         case _:
             env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
 
     actor = Actor(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=ACTOR_LR)
     critic = Critic(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=CRITIC_LR)
+
+    if ACTOR_PATH != '' and CRITIC_PATH != '':
+        print('Reading saved models into actor and critic')
+        actor.load_state_dict(torch.load(ACTOR_PATH))
+        critic.load_state_dict(torch.load(CRITIC_PATH))
+        print('Successfully Loaded models')
 
     agent = TD3(
         actor_network=actor,
@@ -166,6 +181,7 @@ def train(env, agent: TD3, record: Record):
             episode_reward = 0
             episode_timesteps = 0
             episode_num += 1
+            
 
 
 def get_params():
@@ -192,7 +208,9 @@ def get_params():
             ('max_steps', 100),
             ('step_length', 0.25),
             ('reward_range', 0.2),
-            ('collision_range', 0.2)
+            ('collision_range', 0.2),
+            ('actor_path', ''),
+            ('critic_path', '')
         ]
     )
 
@@ -212,7 +230,9 @@ def get_params():
         'max_steps',
         'step_length',
         'reward_range',
-        'collision_range'
+        'collision_range',
+        'actor_path',
+        'critic_path',
     ])
 
 

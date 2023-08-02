@@ -29,7 +29,8 @@ setup(
             'CarGoalReset = environments.CarGoalReset:main',
             'CarWallReset = environments.CarWallReset:main',
             'CarBlockReset = environments.CarBlockReset:main',
-            'CarTrackReset = environments.CarTrackReset:main'
+            'CarTrackReset = environments.CarTrackReset:main',
+            'CarBeatReset = environments.CarBeatReset:main',
         ],
     },
 )

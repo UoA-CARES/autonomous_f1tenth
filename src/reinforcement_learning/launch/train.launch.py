@@ -12,11 +12,11 @@ env_launch = {
     'CarWall': 'carwall',
     'CarBlock': 'carblock',
     'CarTrack': 'cartrack',
+    'CarBeat': 'carbeat',
 }
 
 def generate_launch_description():
     pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
-    pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
     pkg_environments = get_package_share_directory('environments')
 
     config_path = os.path.join(
@@ -33,15 +33,6 @@ def generate_launch_description():
         launch_arguments={
             'track': TextSubstitution(text=str(config['train']['ros__parameters']['track'])),
         }.items() #TODO: this doesn't do anything
-    )
-
-    f1tenth = IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
-        launch_arguments={
-            'name': 'f1tenth',
-            'world': 'empty'
-        }.items()
     )
 
     # Launch the Environment
@@ -61,6 +52,5 @@ def generate_launch_description():
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
         SetParameter(name='use_sim_time', value=True),
         environment,
-        f1tenth,
         main
 ])

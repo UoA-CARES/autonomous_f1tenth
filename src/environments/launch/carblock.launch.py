@@ -7,7 +7,7 @@ from launch.actions import IncludeLaunchDescription
 
 def generate_launch_description():
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
-    pkg_environments = get_package_share_directory('environments')
+    pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
 
     service_bridge = Node(
         package='ros_gz_bridge',
@@ -23,6 +23,15 @@ def generate_launch_description():
         remappings=[
             (f'/world/empty/clock', f'/clock'),
         ],
+    )
+
+    f1tenth = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
+        launch_arguments={
+            'name': 'f1tenth',
+            'world': 'empty'
+        }.items()
     )
 
     gz_sim = IncludeLaunchDescription(
@@ -41,6 +50,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         gz_sim,
+        f1tenth,
         service_bridge,
         reset,
 ])

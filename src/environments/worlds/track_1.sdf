@@ -3,13 +3,18 @@
   <world name="empty">
 
     <physics name="1ms" type="ignored">
-      <max_step_size>0.002</max_step_size>
+      <max_step_size>0.001</max_step_size>
       <real_time_factor>10.0</real_time_factor>
     </physics>
 
     <plugin
       filename="gz-sim-physics-system"
       name="gz::sim::systems::Physics">
+    </plugin>
+    <plugin
+        filename="gz-sim-sensors-system"
+        name="gz::sim::systems::Sensors">
+        <render_engine>ogre2</render_engine>
     </plugin>
     <plugin
       filename="gz-sim-user-commands-system"

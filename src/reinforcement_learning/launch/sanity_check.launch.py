@@ -21,17 +21,17 @@ def generate_launch_description():
 
     config_path = os.path.join(
         get_package_share_directory('reinforcement_learning'),
-        'train.yaml'
+        'sanity_check.yaml'
     )
 
     config = yaml.load(open(config_path), Loader=yaml.Loader)
-    env = config['train']['ros__parameters']['environment']
+    env = config['sanity_check']['ros__parameters']['environment']
 
     environment =  IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_environments, f'{env_launch[env]}.launch.py')),
         launch_arguments={
-            'track': TextSubstitution(text=str(config['train']['ros__parameters']['track'])),
+            'track': TextSubstitution(text=str(config['sanity_check']['ros__parameters']['track'])),
         }.items() #TODO: this doesn't do anything
     )
     
