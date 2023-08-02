@@ -23,6 +23,14 @@ class FollowTheGapNode(Node):
     def angle_to_ang_vel(self, driving_angle, lin):
         return driving_angle
     
+    def constrain_angle(self, angle):
+        val = angle
+        while(abs(val)>(np.pi*2)):
+            val -= np.pi*2*np.sign(val)
+        if abs(val) > np.pi:
+            val = (np.pi*2-abs(val))*-1*np.sign(val)
+        return val
+    
     def select_action(self,state,goal_pos):
         # Current x: state[0], current y: state[1], orientation w: state[2], orientation x: state[3], orientation y: state[4], orientation z: state[5]
         # linear vel x: state[6], angular vel z: state[7], LIDAR points 1-10: state[8-17] where each entry is the 64th LIDAR point
@@ -40,13 +48,20 @@ class FollowTheGapNode(Node):
         rotation = np.arctan2((2*(state[2]*state[5]+state[3]*state[4])),(1-2*(state[4]**2+state[5]**2)))
         if (goal_pos[0] > state[0]):
             if (goal_pos[1] > state[1]):
+                print(f"State 1")
                 goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - rotation
             else:
+                print(f"State 2")
                 goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - rotation
         else:
             if (goal_pos[1] > state[1]):
+                print(f"State 3")
                 goal_angle = abs(np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))) - rotation + np.pi/2
             else:
+                print(f"State 4")
+                print(f"goal_pos: {goal_pos}")
+                print(f"State: {state}")
+                print(f"Rotation: {rotation}")
                 goal_angle = np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))*-1 - rotation - np.pi/2
 
         # each value in lidar_angles corresponds to a lidar range
@@ -88,27 +103,46 @@ class FollowTheGapNode(Node):
         else:
             angle_constraint_r = lidar_angle*-1
         
-        del_index = -1
+        r_del_index = -1 
         for i in range(1, len(border_angles), 2): # Implement on left
             if (border_angles[i]<angle_constraint_r):
-                del_index = i-1
-        if (del_index>0):
-            print(f"Pre-deletion: {border_angles}")
-            print(f"Del index: {del_index}")
-            del border_angles[0:del_index]
-            del border_ranges[0:del_index]
-            print(f"Post-deletion: {border_angles}")
-
-        dist_constraint_l = border_ranges[-1]*np.cos(angle_constraint_l)
-        dist_constraint_r = border_ranges[0]*np.cos(angle_constraint_r)
-    
+                r_del_index = i+1
+        if (r_del_index>0):
+            #print(f"Pre-deletion: {border_angles}")
+            #print(f"Del index: {del_index}")
+            del border_angles[0:r_del_index]
+            del border_ranges[0:r_del_index]
+            #print(f"Post-deletion: {border_angles}")
         if (len(border_ranges) < 1):
             ang = self.angle_to_ang_vel(goal_angle, lin)
             action = np.asarray([lin, ang])
             return action
+        
+        l_del_index = len(border_angles)
+        for i in range(len(border_angles)-2, 0, -2): # Implement on left
+            if (border_angles[i]>angle_constraint_l):
+                l_del_index = i
+        if (l_del_index<len(border_angles)):
+            #print(f"Pre-deletion: {border_angles}")
+            #print(f"Del index: {l_del_index}")
+            del border_angles[l_del_index:]
+            del border_ranges[l_del_index:]
+            #print(f"Post-deletion: {border_angles}")
+
+        dist_constraint_l = border_ranges[-1]*np.cos(angle_constraint_l)
+        dist_constraint_r = border_ranges[0]*np.cos(angle_constraint_r)
+        if (len(border_ranges) < 1):
+            ang = self.angle_to_ang_vel(goal_angle, lin)
+            action = np.asarray([lin, ang])
+            return action
+        
+        
         # Generate complete gap array, find max
         G = []
-        angle_entry = angle_constraint_r-border_angles[0]
+        if (border_angles[0] > angle_constraint_r):
+            angle_entry = angle_constraint_r-border_angles[0]
+        else:
+            angle_entry = 0
         G.append(np.abs(angle_entry))
         for i in range(1, len(border_angles)-1, 2):
             if (border_angles[i] < border_angles[i+1]):
@@ -116,9 +150,16 @@ class FollowTheGapNode(Node):
             else:
                 angle_entry = 0
             G.append(np.abs(angle_entry))
-        angle_entry = border_angles[-1]-angle_constraint_l
+        if (border_angles[-1] < angle_constraint_l):
+            angle_entry = border_angles[-1]-angle_constraint_l
+        else:
+            angle_entry = 0
         G.append(np.abs(angle_entry))
-        greatest_gap = max(G) 
+        greatest_gap = max(G)
+        if (greatest_gap == 0):
+            ang = self.angle_to_ang_vel(goal_angle, lin)
+            action = np.asarray([lin, ang])
+            return action 
         greatest_gap_index = G.index(greatest_gap)
 
         #print(f"Gap array: {G}")
@@ -141,13 +182,11 @@ class FollowTheGapNode(Node):
             d2 = border_ranges[greatest_gap_index*2]
             theta1 = border_angles[greatest_gap_index*2-1]
             theta2 = border_angles[greatest_gap_index*2]
-
-        if (theta1>theta2):
-            print(f"Theta1: {theta1}")
-            print(f"Theta 2: {theta2}")
-            print(f"R constraint: {angle_constraint_r}")
-            print(f"Borders: {border_angles}")
-            print(f"L constraint: {angle_constraint_l}")
+        print(f"Theta1: {theta1}")
+        print(f"Theta 2: {theta2}")
+        print(f"R constraint: {angle_constraint_r}")
+        print(f"Borders: {border_angles}")
+        print(f"L constraint: {angle_constraint_l}")
         #gap_centre_angle = np.arccos((d1+d2*np.cos(theta1+theta2))/(np.sqrt(d1**2+d2**2+2*d1*d2*np.cos(theta1+theta2))))-theta1
         if (theta1 > 0): # Both obstacles to left of robot
             phi = theta2-theta1
@@ -169,11 +208,16 @@ class FollowTheGapNode(Node):
 
             else: # Turning left
                 gap_centre_angle = np.arccos((d1**2+h**2-l**2)/(2*d1*h))-abs(theta1)
+        gap_centre_angle = self.constrain_angle(gap_centre_angle)
         print(f"Gap centre angle: {gap_centre_angle}")
         #print(f"Goal Angle: {goal_angle}")
         # Calculate final heading angle
         dmin = min(border_ranges)
-        alpha = 4
+        alpha = 1
+        print(f"dmin: {dmin}")
+        print(f"Initial goal_angle: {goal_angle}")
+        goal_angle = self.constrain_angle(goal_angle)
+        print(f"Final goal_angle: {goal_angle}")
         final_heading_angle = ((alpha/dmin)*gap_centre_angle+goal_angle)/((alpha/dmin)+1)
         print(f"Final angle: {final_heading_angle}")
         # Convert to angular velocity
