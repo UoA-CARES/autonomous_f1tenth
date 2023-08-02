@@ -9,9 +9,9 @@ from nav_msgs.msg import Odometry
 from environments.utils import process_lidar, process_odom
 
 class Controller(Node):
-    def __init__(self, car_name, step_length):
+    def __init__(self, node_name, car_name, step_length):
         #TODO: make node name dynamic
-        super().__init__('controller')
+        super().__init__(node_name + 'controller')
 
         # Environment Details ----------------------------------------
         self.NAME = car_name
