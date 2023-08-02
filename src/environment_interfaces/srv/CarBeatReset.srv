@@ -1,0 +1,11 @@
+float64 gx      # goal x
+float64 gy      # goal y
+float64 cx_one      # car_one x
+float64 cy_one      # car_one y
+float64 cyaw_one    # car_one yaw
+float64 cx_two      # car_two x
+float64 cy_two      # car_two y
+float64 cyaw_two    # car_two yaw
+string flag     # flag
+---
+bool success
