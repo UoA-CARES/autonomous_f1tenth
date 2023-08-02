@@ -54,7 +54,7 @@ def generate_launch_description():
             'world': 'empty',
             'x': '0',
             'y': '0',
-            'z': '1',
+            'z': '5',
         }.items()
     )
 
@@ -66,7 +66,7 @@ def generate_launch_description():
             'world': 'empty',
             'x': '0',
             'y': '1',
-            'z': '1',
+            'z': '5',
         }.items()
     )
 
@@ -79,6 +79,15 @@ def generate_launch_description():
             output='screen',
     )
 
+    controller = Node(
+        package='controllers',
+        executable='random_controller',
+        output='screen',
+        parameters=[
+            {'car_name': 'f1tenth_two'},
+        ],
+    )
+
     ld = LaunchDescription([
         track_arg,
         OpaqueFunction(function=launch),
@@ -86,6 +95,7 @@ def generate_launch_description():
         reset,
         f1tenth_one,
         f1tenth_two,
+        controller,
     ])
     
     return ld 
