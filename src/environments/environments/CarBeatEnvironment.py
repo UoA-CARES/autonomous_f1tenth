@@ -103,11 +103,10 @@ class CarBeatEnvironment(Node):
         self.timer_future = Future()
 
     def reset(self):
-        # self.get_logger().info('Environment Reset Called')
+
         self.step_counter = 0
 
         self.set_velocity(0, 0)
-        # self.get_logger().info('Velocity set')
 
         # TODO: Remove Hard coded-ness of 10x10
         self.goal_number = 0
@@ -116,16 +115,12 @@ class CarBeatEnvironment(Node):
         while not self.timer_future.done():
             rclpy.spin_once(self)
 
-        # self.get_logger().info('Sleep called')
-
         self.timer_future = Future()
 
         self.call_reset_service()
 
-        # self.get_logger().info('Reset Called and returned')
         observation = self.get_observation()
 
-        # self.get_logger().info('Observation returned')
         info = {}
 
         return observation, info
@@ -152,7 +147,7 @@ class CarBeatEnvironment(Node):
         return next_state, reward, terminated, truncated, info
 
     def message_filter_callback(self, odom_one: Odometry, lidar_one: LaserScan, odom_two: Odometry, lidar_two: LaserScan):
-        self.observation_future.set_result({'odom': odom_one, 'lidar': lidar_one, 'odom_two': odom_two, 'lidar_two': lidar_two})
+        self.observation_future.set_result({'odom_one': odom_one, 'lidar_one': lidar_one, 'odom_two': odom_two, 'lidar_two': lidar_two})
 
     def get_data(self):
         rclpy.spin_until_future_complete(self, self.observation_future)
@@ -179,7 +174,7 @@ class CarBeatEnvironment(Node):
         self.timer_future.set_result(True)
 
     def is_terminated(self, state):
-        return has_collided(state[8:], self.COLLISION_RANGE) \
+        return has_collided(state[8:19], self.COLLISION_RANGE) \
             or has_flipped_over(state[2:6])
 
     def generate_goal(self, number):
@@ -237,24 +232,19 @@ class CarBeatEnvironment(Node):
 
         # Get Position and Orientation of F1tenth
         odom_one, lidar_one, odom_two, lidar_two = self.get_data()
-        odom = process_odom(odom)
 
-        reduced_range = reduce_lidar(lidar_one)
+        odom_one = process_odom(odom_one)
+        odom_two = process_odom(odom_two)
 
-        # Get Goal Position
-        return odom + reduced_range
+        lidar_one = reduce_lidar(lidar_one)
+        lidar_two = reduce_lidar(lidar_two)
+
+        self.get_logger().info(
+            f'odom_one: {odom_one} \n\nlidar_one: {lidar_one} \n\nodom_two: {odom_two} \n\nlidar_two: {lidar_two}')
+
+        return odom_one + lidar_one + odom_two + lidar_two + self.goal_position
 
     def compute_reward(self, state, next_state):
-
-        # TESTING ONLY
-
-        # if self.goal_number < len(self.all_goals) - 1:
-        #     self.goal_number += 1
-        # else:
-        #     self.goal_number = 0
-
-        # self.update_goal_service(self.goal_number)
-        # ==============================================================
 
         reward = 0
 
@@ -271,7 +261,7 @@ class CarBeatEnvironment(Node):
             self.step_counter = 0
             self.update_goal_service(self.goal_number)
 
-        if has_collided(next_state[8:], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+        if has_collided(next_state[8:19], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25  # TODO: find optimal value for this
 
         return reward
