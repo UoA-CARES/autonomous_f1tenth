@@ -54,7 +54,7 @@ class CarWallEnvironment(F1tenthEnvironment):
 
         self.set_velocity(0, 0)
 
-        self.goal_position = generate_position()
+        self.goal_position = generate_position(inner_bound=3, outer_bound=6)
 
         self.sleep()
         

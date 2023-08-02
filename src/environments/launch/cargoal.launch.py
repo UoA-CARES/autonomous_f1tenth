@@ -8,7 +8,8 @@ from launch.actions import IncludeLaunchDescription
 def generate_launch_description():
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
-    
+    pkg_environments = get_package_share_directory('environments')
+
     service_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -38,7 +39,7 @@ def generate_launch_description():
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
         launch_arguments={
-            'gz_args': '-s -r empty.sdf',
+            'gz_args': f'-s -r {pkg_environments}/worlds/empty.sdf',
         }.items()
     )
 
