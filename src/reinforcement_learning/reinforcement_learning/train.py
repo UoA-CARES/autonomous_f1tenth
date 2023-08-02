@@ -14,7 +14,7 @@ from environments.CarBlockEnvironment import CarBlockEnvironment
 from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarTrackEnvironment import CarTrackEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
-
+from environments.CarBeatEnvironment import CarBeatEnvironment
 
 def main():
     rclpy.init()
@@ -42,7 +42,6 @@ def main():
     STEP_LENGTH, \
     REWARD_RANGE, \
     COLLISION_RANGE, \
-    OBSERVATION_MODE, \
     ACTOR_PATH, \
     CRITIC_PATH = [param.value for param in params]
 
@@ -66,7 +65,6 @@ def main():
         f'Step Length: {STEP_LENGTH}\n'
         f'Reward Range: {REWARD_RANGE}\n'
         f'Collision Range: {COLLISION_RANGE}\n'
-        f'Observation Mode: {OBSERVATION_MODE}\n'
         f'Critic Path: {CRITIC_PATH}\n'
         f'Actor Path: {ACTOR_PATH}\n'
         f'---------------------------------------------\n'
@@ -81,7 +79,9 @@ def main():
         case 'CarBlock':
             env = CarBlockEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case 'CarTrack':
-            env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK, observation_mode=OBSERVATION_MODE)
+            env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
+        case 'CarBeat':
+            env = CarBeatEnvironment('f1tenth_one', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
         case _:
             env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
 
@@ -119,8 +119,7 @@ def main():
         'max_steps': MAX_STEPS,
         'step_length': STEP_LENGTH,
         'reward_range': REWARD_RANGE,
-        'collision_range': COLLISION_RANGE,
-        'observation_mode': OBSERVATION_MODE
+        'collision_range': COLLISION_RANGE
     }
 
     if (ENVIRONMENT == 'CarTrack'):
@@ -154,8 +153,6 @@ def train(env, agent: TD3, record: Record):
             action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)  # mapping to env range [e.g. -2 , 2 for pendulum]
 
         next_state, reward, done, truncated, info = env.step(action_env)
-        # print(f'Next State: {next_state}')
-        
         memory.add(state=state, action=action, reward=reward, next_state=next_state, done=done)
 
         state = next_state
@@ -184,6 +181,7 @@ def train(env, agent: TD3, record: Record):
             episode_reward = 0
             episode_timesteps = 0
             episode_num += 1
+            
 
 
 def get_params():
@@ -211,7 +209,6 @@ def get_params():
             ('step_length', 0.25),
             ('reward_range', 0.2),
             ('collision_range', 0.2),
-            ('observation_mode', 'full'),
             ('actor_path', ''),
             ('critic_path', '')
         ]
@@ -234,7 +231,6 @@ def get_params():
         'step_length',
         'reward_range',
         'collision_range',
-        'observation_mode',
         'actor_path',
         'critic_path',
     ])
