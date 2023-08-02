@@ -52,9 +52,9 @@ def generate_launch_description():
         launch_arguments={
             'name': 'f1tenth_one',
             'world': 'empty',
-            'x': '20',
-            'y': '20',
-            'z': '0.1',
+            'x': '-5',
+            'y': '-5',
+            'z': '1',
         }.items()
     )
 
@@ -64,9 +64,9 @@ def generate_launch_description():
         launch_arguments={
             'name': 'f1tenth_two',
             'world': 'empty',
-            'x': '10',
-            'y': '10',
-            'z': '0.1',
+            'x': '5',
+            'y': '5',
+            'z': '0.4',
         }.items()
     )
 
@@ -75,7 +75,7 @@ def generate_launch_description():
     #TODO: Create CarWall Reset
     reset = Node(
             package='environments',
-            executable='CarTrackReset',
+            executable='CarBeatReset',
             output='screen',
     )
 

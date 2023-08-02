@@ -2,10 +2,11 @@
 
 # Ctrl + C to exit the program
 function cleanup() {
-  exit 1
+  return
 }
 
-trap cleanup SIGINT SIGTERM
+# trap cleanup SIGINT SIGTERM
+trap cleanup SIGINT 
 
 # Time limit for training
 if [ -z "$1" ]; then
@@ -13,7 +14,7 @@ if [ -z "$1" ]; then
   echo "Usage: ./retrain.sh <time_limit> [<partition_number>]"
   echo "Eg: 10s, 6h"
   echo "Usage: ./retrain.sh 10s"
-  exit 1
+  return
 fi
 
 # Set the partition number
@@ -41,7 +42,7 @@ while true; do
   # Check if the new paths exist
 	if [ ! -e "$new_actor_path" ] || [ ! -e "$new_critic_path" ]; then
     echo "Error: $new_actor_path or $new_critic_path does not exist"
-    exit 1
+    return
   fi
 
 	# Use sed to update the actor_path and critic_path in the YAML file
