@@ -4,6 +4,8 @@ import numpy as np
 import random
 
 def main():
+    rclpy.init()
+    
     param_node = rclpy.create_node('params')
     
     param_node.declare_parameters(

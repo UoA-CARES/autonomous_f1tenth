@@ -4,7 +4,7 @@ from rclpy.node import Node
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
-from environment_interfaces.srv import Reset
+from environment_interfaces.srv import CarBeatReset as CarBeatResetSrv
 from f1tenth_control.SimulationServices import SimulationServices
 from ros_gz_interfaces.srv import SetEntityPose
 from ros_gz_interfaces.msg import Entity
@@ -19,7 +19,7 @@ class CarBeatReset(Node):
         super().__init__('car_beat_reset')
 
         srv_cb_group = MutuallyExclusiveCallbackGroup()
-        self.srv = self.create_service(Reset, 'car_beat_reset', callback=self.service_callback, callback_group=srv_cb_group)
+        self.srv = self.create_service(CarBeatResetSrv, 'car_beat_reset', callback=self.service_callback, callback_group=srv_cb_group)
 
         set_pose_cb_group = MutuallyExclusiveCallbackGroup()
         self.set_pose_client = self.create_client(
@@ -34,10 +34,11 @@ class CarBeatReset(Node):
 
     def service_callback(self, request, response):
 
-        self.get_logger().info(f'Reset Service Request Received: relocating goal to x={request.cx} y={request.cy}')
+        self.get_logger().info(f'Reset Service Request Received: relocating goal to x={request.cx_one} y={request.cy_one}')
 
         goal_req = self.create_request('goal', x=request.gx, y=request.gy, z=1)
-        car_req = self.create_request('f1tenth_one', x=request.cx, y=request.cy, z=0.1, yaw=request.cyaw)
+        car_req_one = self.create_request('f1tenth_one', x=request.cx_one, y=request.cy_one, z=0.1, yaw=request.cyaw_one)
+        car_req_two = self.create_request('f1tenth_two', x=request.cx_two, y=request.cy_two, z=0.1, yaw=request.cyaw_two)
 
         while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('set_pose service not available, waiting again...')
@@ -47,7 +48,9 @@ class CarBeatReset(Node):
             self.set_pose_client.call(goal_req)
         else:
             self.set_pose_client.call(goal_req)
-            self.set_pose_client.call(car_req)
+            self.set_pose_client.call(car_req_one)
+            self.set_pose_client.call(car_req_two)
+
 
         # self.get_logger().info('Successfully Reset')
         response.success = True

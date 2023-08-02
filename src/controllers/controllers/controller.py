@@ -6,7 +6,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 
-from environments.utils import process_lidar, process_odom
+from environments.util import process_lidar, process_odom
 
 class Controller(Node):
     def __init__(self, node_name, car_name, step_length):
