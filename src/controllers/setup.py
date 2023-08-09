@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'random_controller = controllers.random:main'
+            'random_policy = controllers.random:main',
+            'ftg_policy = controllers.ftg_policy:main'
         ],
     },
 )

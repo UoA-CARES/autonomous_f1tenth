@@ -1,11 +1,37 @@
+from .controller import Controller
 import rclpy
-from rclpy.node import Node
 import numpy as np
-#from tf2.transformations import euler_from_quaternion
+from .ftg_controller import FTGController
 
-class FollowTheGapNode(Node):
-    def __init__(self):
-        super().__init__('follow_the_gap')
+def main():
+    rclpy.init()
+    
+    param_node = rclpy.create_node('params')
+    
+    param_node.declare_parameters(
+        '',
+        [
+            ('car_name', 'f1tenth_two'),
+            ('track_name', 'track_1'),
+        ]
+    )
+
+    params = param_node.get_parameters(['car_name', 'track_name'])
+    CAR_NAME, TRACK_NAME = [param.value for param in params]
+    
+    controller = FTGController('ftg_policy_', CAR_NAME, 0.25, TRACK_NAME)
+    policy = FollowTheGapPolicy()
+
+    state = controller.get_observation()
+
+    while True:
+        controller.get_logger().info(f"State: {state[:-2]}") 
+        action = policy.select_action(state[:-2], state[-2:])  
+        state = controller.step(action)
+
+
+
+class FollowTheGapPolicy():
 
     def calc_func(self):
         turn_angle = 0.4667
@@ -226,3 +252,7 @@ class FollowTheGapNode(Node):
         action = np.asarray([lin, ang])
         return action
 
+
+
+if __name__ == '__main__':
+    main()
