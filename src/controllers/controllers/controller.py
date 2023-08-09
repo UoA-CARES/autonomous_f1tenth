@@ -68,7 +68,9 @@ class Controller(Node):
     def get_observation(self):
         odom, lidar = self.get_data()
         odom = process_odom(odom)
-        lidar = process_lidar(lidar)
+        lidar, _ = process_lidar(lidar)
+
+        return odom + lidar
         
 
     def get_data(self):

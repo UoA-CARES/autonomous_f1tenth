@@ -20,7 +20,15 @@ def launch(context, *args, **kwargs):
         }.items()
     )
 
-    return[gz_sim]
+    controller = Node(
+        package='controllers',
+        executable='ftg_policy',
+        output='screen',
+        parameters=[
+            {'car_name': 'f1tenth_two', 'track_name': track},
+        ],
+    )
+    return[gz_sim, controller]
 
 def generate_launch_description():
     pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
@@ -79,14 +87,7 @@ def generate_launch_description():
             output='screen',
     )
 
-    controller = Node(
-        package='controllers',
-        executable='random_controller',
-        output='screen',
-        parameters=[
-            {'car_name': 'f1tenth_two'},
-        ],
-    )
+    
 
     ld = LaunchDescription([
         track_arg,
@@ -95,7 +96,6 @@ def generate_launch_description():
         reset,
         f1tenth_one,
         f1tenth_two,
-        controller,
     ])
     
     return ld 
