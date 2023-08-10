@@ -9,6 +9,7 @@ from launch_ros.actions import Node
 import numpy as np
 import rclpy
 from geometry_msgs.msg import Twist
+from std_msgs.msg import Empty
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from rclpy import Future
 from rclpy.node import Node
@@ -53,6 +54,12 @@ class CarBeatEnvironment(Node):
         self.cmd_vel_pub = self.create_publisher(
             Twist,
             f'/{self.NAME}/cmd_vel',
+            10
+        )
+        
+        self.reset_pub = self.create_publisher(
+            Empty,
+            f'/reset',
             10
         )
 
@@ -204,6 +211,10 @@ class CarBeatEnvironment(Node):
         request.cyaw_two = self.car_reset_positions['yaw']
 
         request.flag = "car_and_goal"
+
+        # Publish to reset Topic to reset other nodes
+        empty_msg = Empty()
+        self.reset_pub.publish(empty_msg)
 
         future = self.reset_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
