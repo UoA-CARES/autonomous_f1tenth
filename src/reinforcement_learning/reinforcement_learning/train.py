@@ -4,10 +4,10 @@ import time
 import numpy as np
 import rclpy
 import torch
-from cares_reinforcement_learning.algorithm.policy import TD3
+from cares_reinforcement_learning.algorithm.policy import TD3, PPO
 from cares_reinforcement_learning.memory import MemoryBuffer
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
-from cares_reinforcement_learning.util import Record
+from cares_reinforcement_learning.util import Record, NetworkFactory
 from cares_reinforcement_learning.util import helpers as hlp
 
 from environments.CarBlockEnvironment import CarBlockEnvironment
@@ -23,10 +23,12 @@ def main():
 
     global MAX_STEPS_TRAINING
     global MAX_STEPS_EXPLORATION
+    global MAX_STEPS_PER_BATCH
     global G
     global BATCH_SIZE
 
     ENVIRONMENT, \
+    ALGORITHM, \
     TRACK, \
     MAX_STEPS_TRAINING, \
     MAX_STEPS_EXPLORATION, \
@@ -43,7 +45,8 @@ def main():
     REWARD_RANGE, \
     COLLISION_RANGE, \
     ACTOR_PATH, \
-    CRITIC_PATH = [param.value for param in params]
+    CRITIC_PATH, \
+    MAX_STEPS_PER_BATCH = [param.value for param in params]
 
     if ACTOR_PATH != '' and CRITIC_PATH != '':
         MAX_STEPS_EXPLORATION = 0
@@ -51,6 +54,7 @@ def main():
     print(
         f'---------------------------------------------\n'
         f'Environment: {ENVIRONMENT}\n'
+        f'Algorithm: {ALGORITHM}\n'
         f'Exploration Steps: {MAX_STEPS_EXPLORATION}\n'
         f'Training Steps: {MAX_STEPS_TRAINING}\n'
         f'Gamma: {GAMMA}\n'
@@ -67,6 +71,7 @@ def main():
         f'Collision Range: {COLLISION_RANGE}\n'
         f'Critic Path: {CRITIC_PATH}\n'
         f'Actor Path: {ACTOR_PATH}\n'
+        f'Max Steps per Batch: {MAX_STEPS_PER_BATCH}'
         f'---------------------------------------------\n'
     )
 
@@ -85,25 +90,26 @@ def main():
         case _:
             env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
 
-    actor = Actor(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=ACTOR_LR)
-    critic = Critic(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=CRITIC_LR)
+    network_factory_args = {
+        'observation_size': env.OBSERVATION_SIZE,
+        'action_num': env.ACTION_NUM,
+        'actor_lr': ACTOR_LR,
+        'critic_lr': CRITIC_LR,
+        'gamma': GAMMA,
+        'tau': TAU,
+        'device': DEVICE
+    }
 
+    agent_factory = NetworkFactory()
+    agent = agent_factory.create_network(ALGORITHM, network_factory_args)
+    
     if ACTOR_PATH != '' and CRITIC_PATH != '':
         print('Reading saved models into actor and critic')
-        actor.load_state_dict(torch.load(ACTOR_PATH))
-        critic.load_state_dict(torch.load(CRITIC_PATH))
+        agent.actor.load_state_dict(torch.load(ACTOR_PATH))
+        agent.critic.load_state_dict(torch.load(CRITIC_PATH))
         print('Successfully Loaded models')
 
-    agent = TD3(
-        actor_network=actor,
-        critic_network=critic,
-        gamma=GAMMA,
-        tau=TAU,
-        action_num=env.ACTION_NUM,
-        device=DEVICE
-    )
-
-    networks = {'actor': actor, 'critic': critic}
+    networks = {'actor': agent.actor, 'critic': agent.critic}
     config = {
         'environment': ENVIRONMENT,
         'max_steps_training': MAX_STEPS_TRAINING,
@@ -127,10 +133,13 @@ def main():
 
     record = Record(networks=networks, checkpoint_freq=100, config=config)
 
-    train(env=env, agent=agent, record=record)
+    if agent.type == 'PPO':
+        train_ppo(env, agent, record=record)
+    else:
+        train(env=env, agent=agent, record=record)
 
 
-def train(env, agent: TD3, record: Record):
+def train(env, agent, record: Record):
     memory = MemoryBuffer()
 
     episode_timesteps = 0
@@ -182,7 +191,64 @@ def train(env, agent: TD3, record: Record):
             episode_timesteps = 0
             episode_num += 1
             
+def train_ppo(env, agent, record):
+    max_steps_training = MAX_STEPS_TRAINING
+    max_steps_per_batch = MAX_STEPS_PER_BATCH
 
+    min_action_value = env.action_space.low[0]
+    max_action_value = env.action_space.high[0]
+
+    episode_timesteps = 0
+    episode_num = 0
+    episode_reward = 0
+    time_step = 1
+
+    memory = MemoryBuffer()
+
+    state, _ = env.reset()
+
+    for total_step_counter in range(int(max_steps_training)):
+        episode_timesteps += 1
+
+        action, log_prob = agent.select_action_from_policy(state)
+        action_env = hlp.denormalize(action, max_action_value, min_action_value)
+
+        next_state, reward, done, truncated, _ = env.step(action_env)
+        memory.add(state=state, action=action, reward=reward, next_state=next_state, done=done, log_prob=log_prob)
+
+        state = next_state
+        episode_reward += reward
+
+        if time_step % max_steps_per_batch == 0:
+            experience = memory.flush()
+            info = agent.train_policy((
+                experience['state'],
+                experience['action'],
+                experience['reward'],
+                experience['next_state'],
+                experience['done'],
+                experience['log_prob']
+            ))
+
+            record.log(
+                Train_steps = total_step_counter + 1,
+                Train_episode= episode_num + 1,
+                Train_timesteps=episode_timesteps,
+                Train_reward= episode_reward,
+                Actor_loss = info['actor_loss'].item(),
+                Critic_loss = info['critic_loss'].item(),
+                out=done or truncated
+            )
+
+        time_step += 1
+
+        if done or truncated:
+
+            # Reset environment
+            state, _ = env.reset()
+            episode_reward = 0
+            episode_timesteps = 0
+            episode_num += 1
 
 def get_params():
     '''
@@ -194,6 +260,7 @@ def get_params():
         '',
         [
             ('environment', 'CarGoal'),
+            ('algorithm', 'TD3'),
             ('track', 'track_1'),
             ('gamma', 0.95),
             ('tau', 0.005),
@@ -210,12 +277,14 @@ def get_params():
             ('reward_range', 0.2),
             ('collision_range', 0.2),
             ('actor_path', ''),
-            ('critic_path', '')
+            ('critic_path', ''),
+            ('max_steps_per_batch', 5000)
         ]
     )
 
     return param_node.get_parameters([
         'environment',
+        'algorithm',
         'track',
         'max_steps_training',
         'max_steps_exploration',
@@ -233,6 +302,7 @@ def get_params():
         'collision_range',
         'actor_path',
         'critic_path',
+        'max_steps_per_batch'
     ])
 
 
