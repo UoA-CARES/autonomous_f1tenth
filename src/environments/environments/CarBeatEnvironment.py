@@ -275,4 +275,15 @@ class CarBeatEnvironment(Node):
         if has_collided(next_state[8:19], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25  # TODO: find optimal value for this
 
+        prev_car_one_pos = state[:2]
+        prev_car_two_pos = state[18:20]
+        
+        curr_car_one_pos = next_state[:2]
+        curr_car_two_pos = next_state[18:20]
+        
+        prev_progress = math.dist(prev_car_one_pos, prev_car_two_pos)
+        curr_progress = math.dist(curr_car_one_pos, curr_car_two_pos)
+        
+        reward += (prev_progress - curr_progress) / prev_progress
+        
         return reward
