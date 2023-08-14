@@ -8,11 +8,11 @@ RUN apt-get update -y && \
     apt-get update -y && \
     apt-get install gz-garden -y
 
-RUN sudo apt install python3-pip wget lsb-release gnupg curl && \
-    sudo sh -c 'echo "deb http://packages.ros.org/ros2/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros2-latest.list' && \
+RUN sudo apt install python3-pip wget lsb-release gnupg curl -y && \
+    sudo sh -c 'echo "deb http://packages.ros.org/ros2/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros2-latest.list' -y && \
     curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add - && \
-    sudo apt-get update && \
-    sudo apt-get install python3-vcstool python3-colcon-common-extensions
+    sudo apt-get update -y && \
+    sudo apt-get install python3-vcstool python3-colcon-common-extensions -y
 
 WORKDIR /gz
 
