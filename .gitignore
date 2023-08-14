@@ -11,3 +11,4 @@ __pycache__
 rl_logs
 .idea
 src/f1tenth/f1tenth_control/f1tenth_control/__pycache__/*
+Retrain1hTrue

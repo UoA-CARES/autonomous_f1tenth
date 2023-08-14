@@ -207,7 +207,7 @@ def get_params():
             ('max_steps_exploration', 1_000),
             ('max_steps', 100),
             ('step_length', 0.25),
-            ('reward_range', 0.2),
+            ('reward_range', 3.0),
             ('collision_range', 0.2),
             ('actor_path', ''),
             ('critic_path', '')

@@ -25,7 +25,7 @@ def main():
     state = controller.get_observation()
 
     while True:
-        controller.get_logger().info(f"State: {state[:-2]}") 
+        # controller.get_logger().info(f"State: {state[:-2]}") 
         action = policy.select_action(state[:-2], state[-2:])  
         state = controller.step(action)
 
@@ -42,8 +42,9 @@ class FollowTheGapPolicy():
     
     def calc_border_distances(self,range):
         obstacle_buffer = 0.0001 # value needs to be tinkered with
-        chassis_width = 0.18
-        d_n = np.sqrt(range**2-(obstacle_buffer+chassis_width)**2)
+        chassis_width = 0.16
+
+        d_n = np.sqrt(max(0.001,range**2-(obstacle_buffer+chassis_width)**2))
         return d_n
     
     def angle_to_ang_vel(self, driving_angle, lin):
