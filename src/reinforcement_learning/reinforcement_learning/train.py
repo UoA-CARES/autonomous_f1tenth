@@ -71,7 +71,7 @@ def main():
         f'Collision Range: {COLLISION_RANGE}\n'
         f'Critic Path: {CRITIC_PATH}\n'
         f'Actor Path: {ACTOR_PATH}\n'
-        f'Max Steps per Batch: {MAX_STEPS_PER_BATCH}'
+        f'Max Steps per Batch: {MAX_STEPS_PER_BATCH}\n'
         f'---------------------------------------------\n'
     )
 
@@ -109,9 +109,10 @@ def main():
         agent.critic.load_state_dict(torch.load(CRITIC_PATH))
         print('Successfully Loaded models')
 
-    networks = {'actor': agent.actor, 'critic': agent.critic}
+    networks = {'actor': agent.actor_net, 'critic': agent.critic_net}
     config = {
         'environment': ENVIRONMENT,
+        'algorithm': ALGORITHM,
         'max_steps_training': MAX_STEPS_TRAINING,
         'max_steps_exploration': MAX_STEPS_EXPLORATION,
         'gamma': GAMMA,
@@ -125,7 +126,8 @@ def main():
         'max_steps': MAX_STEPS,
         'step_length': STEP_LENGTH,
         'reward_range': REWARD_RANGE,
-        'collision_range': COLLISION_RANGE
+        'collision_range': COLLISION_RANGE,
+        'max_steps_per_batch': MAX_STEPS_PER_BATCH
     }
 
     if (ENVIRONMENT == 'CarTrack'):
@@ -133,7 +135,7 @@ def main():
 
     record = Record(networks=networks, checkpoint_freq=100, config=config)
 
-    if agent.type == 'PPO':
+    if ALGORITHM == 'PPO':
         train_ppo(env, agent, record=record)
     else:
         train(env=env, agent=agent, record=record)
