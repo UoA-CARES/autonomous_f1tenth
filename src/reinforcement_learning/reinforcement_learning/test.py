@@ -10,6 +10,7 @@ from environments.CarBlockEnvironment import CarBlockEnvironment
 from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarTrackEnvironment import CarTrackEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
+from environments.CarBeatEnvironment import CarBeatEnvironment
 
 
 def main():
@@ -57,6 +58,8 @@ def main():
             env = CarBlockEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case 'CarTrack':
             env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
+        case 'CarBeat':
+            env = CarBeatEnvironment('f1tenth_one', 'f1tenth_two', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
         case _:
             env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
 
