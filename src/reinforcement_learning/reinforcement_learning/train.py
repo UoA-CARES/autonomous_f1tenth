@@ -225,9 +225,9 @@ def train_ppo(env, agent, record):
         episode_reward += reward
 
         if time_step % max_steps_per_batch == 0:
+            experience = memory.flush()
             
-            for _ in range(G):
-                experience = memory.flush()
+            for _ in range(G):    
                 info = agent.train_policy((
                     experience['state'],
                     experience['action'],
