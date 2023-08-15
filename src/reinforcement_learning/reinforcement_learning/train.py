@@ -197,8 +197,8 @@ def train_ppo(env, agent, record):
     max_steps_training = MAX_STEPS_TRAINING
     max_steps_per_batch = MAX_STEPS_PER_BATCH
 
-    min_action_value = env.action_space.low[0]
-    max_action_value = env.action_space.high[0]
+    min_action_value = env.MIN_ACTIONS 
+    max_action_value = env.MAX_ACTIONS
 
     episode_timesteps = 0
     episode_num = 0
@@ -245,7 +245,7 @@ def train_ppo(env, agent, record):
         time_step += 1
 
         if done or truncated:
-
+            print(f'Episode: {episode_num} | Reward: {episode_reward} | Steps: {time_step}')
             # Reset environment
             state, _ = env.reset()
             episode_reward = 0
