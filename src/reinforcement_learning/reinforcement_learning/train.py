@@ -225,15 +225,17 @@ def train_ppo(env, agent, record):
         episode_reward += reward
 
         if time_step % max_steps_per_batch == 0:
-            experience = memory.flush()
-            info = agent.train_policy((
-                experience['state'],
-                experience['action'],
-                experience['reward'],
-                experience['next_state'],
-                experience['done'],
-                experience['log_prob']
-            ))
+            
+            for _ in range(G):
+                experience = memory.flush()
+                info = agent.train_policy((
+                    experience['state'],
+                    experience['action'],
+                    experience['reward'],
+                    experience['next_state'],
+                    experience['done'],
+                    experience['log_prob']
+                ))
 
             record.log(
                 Train_steps = total_step_counter + 1,
