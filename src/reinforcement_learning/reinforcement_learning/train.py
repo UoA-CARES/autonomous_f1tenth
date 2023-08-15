@@ -46,7 +46,8 @@ def main():
     COLLISION_RANGE, \
     ACTOR_PATH, \
     CRITIC_PATH, \
-    MAX_STEPS_PER_BATCH = [param.value for param in params]
+    MAX_STEPS_PER_BATCH, \
+    OBSERVATION_MODE = [param.value for param in params]
 
     if ACTOR_PATH != '' and CRITIC_PATH != '':
         MAX_STEPS_EXPLORATION = 0
@@ -72,6 +73,7 @@ def main():
         f'Critic Path: {CRITIC_PATH}\n'
         f'Actor Path: {ACTOR_PATH}\n'
         f'Max Steps per Batch: {MAX_STEPS_PER_BATCH}\n'
+        f'Observation Mode: {OBSERVATION_MODE}'
         f'---------------------------------------------\n'
     )
 
@@ -127,7 +129,8 @@ def main():
         'step_length': STEP_LENGTH,
         'reward_range': REWARD_RANGE,
         'collision_range': COLLISION_RANGE,
-        'max_steps_per_batch': MAX_STEPS_PER_BATCH
+        'max_steps_per_batch': MAX_STEPS_PER_BATCH,
+        'observation_mode': OBSERVATION_MODE
     }
 
     if (ENVIRONMENT == 'CarTrack'):
@@ -280,7 +283,8 @@ def get_params():
             ('collision_range', 0.2),
             ('actor_path', ''),
             ('critic_path', ''),
-            ('max_steps_per_batch', 5000)
+            ('max_steps_per_batch', 5000),
+            ('observation_mode', 'no_position')
         ]
     )
 
@@ -304,7 +308,8 @@ def get_params():
         'collision_range',
         'actor_path',
         'critic_path',
-        'max_steps_per_batch'
+        'max_steps_per_batch',
+        'observation_mode',
     ])
 
 
