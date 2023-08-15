@@ -75,20 +75,20 @@ class FollowTheGapPolicy():
         rotation = np.arctan2((2*(state[2]*state[5]+state[3]*state[4])),(1-2*(state[4]**2+state[5]**2)))
         if (goal_pos[0] > state[0]):
             if (goal_pos[1] > state[1]):
-                print(f"State 1")
+                # print(f"State 1")
                 goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - rotation
             else:
-                print(f"State 2")
+                # print(f"State 2")
                 goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - rotation
         else:
             if (goal_pos[1] > state[1]):
-                print(f"State 3")
+                # print(f"State 3")
                 goal_angle = abs(np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))) - rotation + np.pi/2
             else:
-                print(f"State 4")
-                print(f"goal_pos: {goal_pos}")
-                print(f"State: {state}")
-                print(f"Rotation: {rotation}")
+                # print(f"State 4")
+                # print(f"goal_pos: {goal_pos}")
+                # print(f"State: {state}")
+                # print(f"Rotation: {rotation}")
                 goal_angle = np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))*-1 - rotation - np.pi/2
 
         # each value in lidar_angles corresponds to a lidar range
@@ -209,11 +209,11 @@ class FollowTheGapPolicy():
             d2 = border_ranges[greatest_gap_index*2]
             theta1 = border_angles[greatest_gap_index*2-1]
             theta2 = border_angles[greatest_gap_index*2]
-        print(f"Theta1: {theta1}")
-        print(f"Theta 2: {theta2}")
-        print(f"R constraint: {angle_constraint_r}")
-        print(f"Borders: {border_angles}")
-        print(f"L constraint: {angle_constraint_l}")
+        # print(f"Theta1: {theta1}")
+        # print(f"Theta 2: {theta2}")
+        # print(f"R constraint: {angle_constraint_r}")
+        # print(f"Borders: {border_angles}")
+        # print(f"L constraint: {angle_constraint_l}")
         #gap_centre_angle = np.arccos((d1+d2*np.cos(theta1+theta2))/(np.sqrt(d1**2+d2**2+2*d1*d2*np.cos(theta1+theta2))))-theta1
         if (theta1 > 0): # Both obstacles to left of robot
             phi = theta2-theta1
@@ -236,17 +236,17 @@ class FollowTheGapPolicy():
             else: # Turning left
                 gap_centre_angle = np.arccos((d1**2+h**2-l**2)/(2*d1*h))-abs(theta1)
         gap_centre_angle = self.constrain_angle(gap_centre_angle)
-        print(f"Gap centre angle: {gap_centre_angle}")
+        # print(f"Gap centre angle: {gap_centre_angle}")
         #print(f"Goal Angle: {goal_angle}")
         # Calculate final heading angle
         dmin = min(border_ranges)
         alpha = 1
-        print(f"dmin: {dmin}")
-        print(f"Initial goal_angle: {goal_angle}")
+        # print(f"dmin: {dmin}")
+        # print(f"Initial goal_angle: {goal_angle}")
         goal_angle = self.constrain_angle(goal_angle)
-        print(f"Final goal_angle: {goal_angle}")
+        # print(f"Final goal_angle: {goal_angle}")
         final_heading_angle = ((alpha/dmin)*gap_centre_angle+goal_angle)/((alpha/dmin)+1)
-        print(f"Final angle: {final_heading_angle}")
+        # print(f"Final angle: {final_heading_angle}")
         # Convert to angular velocity
         ang = self.angle_to_ang_vel(final_heading_angle, lin)
         #ang = self.angle_to_ang_vel(-2)
