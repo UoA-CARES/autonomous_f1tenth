@@ -46,7 +46,8 @@ def main():
     COLLISION_RANGE, \
     ACTOR_PATH, \
     CRITIC_PATH, \
-    MAX_STEPS_PER_BATCH = [param.value for param in params]
+    MAX_STEPS_PER_BATCH, \
+    OBSERVATION_MODE = [param.value for param in params]
 
     if ACTOR_PATH != '' and CRITIC_PATH != '':
         MAX_STEPS_EXPLORATION = 0
@@ -71,7 +72,8 @@ def main():
         f'Collision Range: {COLLISION_RANGE}\n'
         f'Critic Path: {CRITIC_PATH}\n'
         f'Actor Path: {ACTOR_PATH}\n'
-        f'Max Steps per Batch: {MAX_STEPS_PER_BATCH}'
+        f'Max Steps per Batch: {MAX_STEPS_PER_BATCH}\n'
+        f'Observation Mode: {OBSERVATION_MODE}'
         f'---------------------------------------------\n'
     )
 
@@ -84,7 +86,7 @@ def main():
         case 'CarBlock':
             env = CarBlockEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case 'CarTrack':
-            env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
+            env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK, observation_mode= OBSERVATION_MODE)
         case 'CarBeat':
             env = CarBeatEnvironment('f1tenth_one', 'f1tenth_two', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
         case _:
@@ -109,9 +111,10 @@ def main():
         agent.critic.load_state_dict(torch.load(CRITIC_PATH))
         print('Successfully Loaded models')
 
-    networks = {'actor': agent.actor, 'critic': agent.critic}
+    networks = {'actor': agent.actor_net, 'critic': agent.critic_net}
     config = {
         'environment': ENVIRONMENT,
+        'algorithm': ALGORITHM,
         'max_steps_training': MAX_STEPS_TRAINING,
         'max_steps_exploration': MAX_STEPS_EXPLORATION,
         'gamma': GAMMA,
@@ -125,7 +128,9 @@ def main():
         'max_steps': MAX_STEPS,
         'step_length': STEP_LENGTH,
         'reward_range': REWARD_RANGE,
-        'collision_range': COLLISION_RANGE
+        'collision_range': COLLISION_RANGE,
+        'max_steps_per_batch': MAX_STEPS_PER_BATCH,
+        'observation_mode': OBSERVATION_MODE
     }
 
     if (ENVIRONMENT == 'CarTrack'):
@@ -133,7 +138,7 @@ def main():
 
     record = Record(networks=networks, checkpoint_freq=100, config=config)
 
-    if agent.type == 'PPO':
+    if ALGORITHM == 'PPO':
         train_ppo(env, agent, record=record)
     else:
         train(env=env, agent=agent, record=record)
@@ -195,8 +200,8 @@ def train_ppo(env, agent, record):
     max_steps_training = MAX_STEPS_TRAINING
     max_steps_per_batch = MAX_STEPS_PER_BATCH
 
-    min_action_value = env.action_space.low[0]
-    max_action_value = env.action_space.high[0]
+    min_action_value = env.MIN_ACTIONS 
+    max_action_value = env.MAX_ACTIONS
 
     episode_timesteps = 0
     episode_num = 0
@@ -221,14 +226,16 @@ def train_ppo(env, agent, record):
 
         if time_step % max_steps_per_batch == 0:
             experience = memory.flush()
-            info = agent.train_policy((
-                experience['state'],
-                experience['action'],
-                experience['reward'],
-                experience['next_state'],
-                experience['done'],
-                experience['log_prob']
-            ))
+            
+            for _ in range(G):    
+                info = agent.train_policy((
+                    experience['state'],
+                    experience['action'],
+                    experience['reward'],
+                    experience['next_state'],
+                    experience['done'],
+                    experience['log_prob']
+                ))
 
             record.log(
                 Train_steps = total_step_counter + 1,
@@ -243,7 +250,7 @@ def train_ppo(env, agent, record):
         time_step += 1
 
         if done or truncated:
-
+            print(f'Episode: {episode_num} | Reward: {episode_reward} | Steps: {time_step}')
             # Reset environment
             state, _ = env.reset()
             episode_reward = 0
@@ -278,7 +285,8 @@ def get_params():
             ('collision_range', 0.2),
             ('actor_path', ''),
             ('critic_path', ''),
-            ('max_steps_per_batch', 5000)
+            ('max_steps_per_batch', 5000),
+            ('observation_mode', 'no_position')
         ]
     )
 
@@ -302,7 +310,8 @@ def get_params():
         'collision_range',
         'actor_path',
         'critic_path',
-        'max_steps_per_batch'
+        'max_steps_per_batch',
+        'observation_mode',
     ])
 
 

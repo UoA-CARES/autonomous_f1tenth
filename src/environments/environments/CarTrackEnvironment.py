@@ -55,7 +55,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             case 'no_position':
                 self.OBSERVATION_SIZE = 6 + 10
             case 'lidar_only':
-                self.OBSERVATION_SIZE = 10
+                self.OBSERVATION_SIZE = 10 + 2
             case _:
                 self.OBSERVATION_SIZE = 8 + 10
 
