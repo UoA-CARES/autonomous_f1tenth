@@ -37,7 +37,7 @@ class CarBeatEnvironment(Node):
         self.MAX_STEPS_PER_GOAL = max_steps
 
         # TODO: Update this
-        self.OBSERVATION_SIZE = 6 + 10  # Car position + Lidar rays
+        self.OBSERVATION_SIZE = 6+10  # Car position + Lidar rays
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
         self.ACTION_NUM = 2
