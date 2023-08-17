@@ -50,7 +50,6 @@ def generate_launch_description():
         #TODO: Find a way to remove this
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
         SetParameter(name='use_sim_time', value=True),
-        environment,
-        f1tenth,
+        environment, 
         main
 ])
