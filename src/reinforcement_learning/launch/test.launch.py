@@ -16,7 +16,6 @@ env_launch = {
 
 def generate_launch_description():
     pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
-    pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
     pkg_environments = get_package_share_directory('environments')
 
     config_path = os.path.join(
@@ -35,15 +34,6 @@ def generate_launch_description():
         }.items() #TODO: this doesn't do anything
     )
 
-    f1tenth = IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
-        launch_arguments={
-            'name': 'f1tenth',
-            'world': 'empty'
-        }.items()
-    )
-
     # Launch the Environment
     main = Node(
             package='reinforcement_learning',
@@ -60,7 +50,6 @@ def generate_launch_description():
         #TODO: Find a way to remove this
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
         SetParameter(name='use_sim_time', value=True),
-        environment,
-        f1tenth,
+        environment, 
         main
 ])
