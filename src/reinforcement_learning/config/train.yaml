@@ -1,18 +1,20 @@
 train:
   ros__parameters:
     environment: 'CarBeat' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat
-    track: 'track_2' # track_1, track_2, track_3 -> only applies for CarTrack
-    max_steps_exploration: 1000
+    track: 'track_1' # track_1, track_2, track_3 -> only applies for CarTrack
+    algorithm: 'TD3'
+    max_steps_exploration: 1000 
     max_steps_training: 1000000
     reward_range: 3.0
+    reward_range: 3.0
     collision_range: 0.2
-    # observation_mode: 'no_position' only CarTrack
+    observation_mode: 'lidar_only'
     # actor_path & critic_path must exist, it can't be commented
     # actor_path: 'rl_logs/23_08_02_17:59:13/models/actor_checkpoint.pht'
     # critic_path: 'rl_logs/23_08_02_17:59:13/models/critic_checkpoint.pht'
     # gamma: 0.95
     # tau: 0.005
-    # g: 5
+    g: 1
     # batch_size: 32
     # buffer_size: 1000000
     # actor_lr: 0.0001

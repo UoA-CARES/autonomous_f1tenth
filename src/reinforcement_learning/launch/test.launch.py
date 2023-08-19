@@ -17,7 +17,6 @@ env_launch = {
 
 def generate_launch_description():
     pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
-    pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
     pkg_environments = get_package_share_directory('environments')
 
     config_path = os.path.join(
