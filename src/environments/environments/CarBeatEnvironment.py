@@ -24,7 +24,7 @@ from .track_reset import track_info
 
 class CarBeatEnvironment(Node):
 
-    def __init__(self, car_one_name, car_two_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1'):
+    def __init__(self, car_one_name, car_two_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1', observation_mode= 'full'):
         super().__init__('car_beat_environment')
 
         # Environment Details ----------------------------------------
@@ -35,7 +35,18 @@ class CarBeatEnvironment(Node):
         self.MAX_ACTIONS = np.asarray([3, 3.14])
         self.MIN_ACTIONS = np.asarray([0, -3.14])
         self.MAX_STEPS_PER_GOAL = max_steps
-
+        self.OBSERVATION_MODE = observation_mode
+        
+        match observation_mode:
+            case 'full':
+                self.OBSERVATION_SIZE = 8 + 10 
+            case 'no_position':
+                self.OBSERVATION_SIZE = 6 + 10
+            case 'lidar_only':
+                self.OBSERVATION_SIZE = 2 + 10
+            case _:
+                raise ValueError(f'Invalid observation mode: {observation_mode}')
+        
         # TODO: Update this
         self.OBSERVATION_SIZE = 6 + 10  # Car position + Lidar rays
         self.COLLISION_RANGE = collision_range
@@ -255,8 +266,16 @@ class CarBeatEnvironment(Node):
         lidar_one = reduce_lidar(lidar_one)
         lidar_two = reduce_lidar(lidar_two)
 
-        # No x and y position
-        state = odom_one[2:] + lidar_one
+        match self.OBSERVATION_MODE:
+            case 'full':
+                state = odom_one + lidar_one
+            case 'no_position':
+                state = odom_one[2:] + lidar_one
+            case 'lidar_only':
+                state = odom_one[-2:] + lidar_one
+            case _:
+                ValueError(f'Invalid observation mode: {self.OBSERVATION_MODE}')
+
         full_state = odom_one + lidar_one + odom_two + lidar_two + self.goal_position
 
         return state, full_state
