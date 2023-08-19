@@ -48,7 +48,7 @@ class CarBeatEnvironment(Node):
                 raise ValueError(f'Invalid observation mode: {observation_mode}')
         
         # TODO: Update this
-        self.OBSERVATION_SIZE = 6 + 10  # Car position + Lidar rays
+        self.OBSERVATION_SIZE = 6+10  # Car position + Lidar rays
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
         self.ACTION_NUM = 2
