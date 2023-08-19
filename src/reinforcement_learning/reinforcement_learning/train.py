@@ -153,6 +153,7 @@ def train(env, agent, record: Record):
 
     state, _ = env.reset()
 
+    print(f'Initial State: {state}')
     historical_reward = {"step": [], "episode_reward": []}
 
     for total_step_counter in range(int(MAX_STEPS_TRAINING)):
