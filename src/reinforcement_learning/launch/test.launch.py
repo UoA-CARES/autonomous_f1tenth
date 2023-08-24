@@ -11,7 +11,8 @@ env_launch = {
     'CarGoal': 'cargoal',
     'CarWall': 'carwall',
     'CarBlock': 'carblock',
-    'CarTrack': 'cartrack'
+    'CarTrack': 'cartrack',
+    'CarBeat': 'carbeat',
 }
 
 def generate_launch_description():
@@ -50,6 +51,6 @@ def generate_launch_description():
         #TODO: Find a way to remove this
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
         SetParameter(name='use_sim_time', value=True),
-        environment, 
+        environment,
         main
 ])

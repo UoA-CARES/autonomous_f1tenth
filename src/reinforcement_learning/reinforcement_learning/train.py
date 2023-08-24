@@ -88,7 +88,7 @@ def main():
         case 'CarTrack':
             env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK, observation_mode= OBSERVATION_MODE)
         case 'CarBeat':
-            env = CarBeatEnvironment('f1tenth_one', 'f1tenth_two', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
+            env = CarBeatEnvironment('f1tenth_one', 'f1tenth_two', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK, observation_mode= OBSERVATION_MODE)
         case _:
             env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
 
@@ -153,6 +153,7 @@ def train(env, agent, record: Record):
 
     state, _ = env.reset()
 
+    print(f'Initial State: {state}')
     historical_reward = {"step": [], "episode_reward": []}
 
     for total_step_counter in range(int(MAX_STEPS_TRAINING)):
@@ -281,7 +282,7 @@ def get_params():
             ('max_steps_exploration', 1_000),
             ('max_steps', 100),
             ('step_length', 0.25),
-            ('reward_range', 0.2),
+            ('reward_range', 3.0),
             ('collision_range', 0.2),
             ('actor_path', ''),
             ('critic_path', ''),

@@ -18,6 +18,7 @@ class FTGController(Controller):
         self.goal_position = self.goals[1]
 
     def reset_cb(self, msg):
+        self.get_logger().info('Reset Detected from FTG Controller')
         self.goal_position = self.goals[1]
     
     def get_observation(self):

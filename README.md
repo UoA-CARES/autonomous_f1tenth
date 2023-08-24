@@ -13,6 +13,20 @@ We source build Gazebo Garden, and use a forked `gz-sim` – it's best just to u
 # Installation Instructions
 Follow these instructions to run/test this repository on your local machine.
 
+## Locally
+Ensure you have installed the dependencies outlined above.
+
+Clone the repository
+```
+git clone --recurse-submodules https://github.com/UoA-CARES/autonomous_f1tenth.git
+```
+
+Install the dependencies using `rosdep`
+```
+cd autonomous_f1tenth/
+rosdep install --from-paths src --ignore-src -r -y
+```
+
 ## Using Docker (Recommended)
 
 Use this command to run the docker, it will automatically pull the image if not found locally:

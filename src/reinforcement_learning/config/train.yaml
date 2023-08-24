@@ -6,6 +6,7 @@ train:
     max_steps_exploration: 1000 
     max_steps_training: 1000000
     reward_range: 3.0
+    reward_range: 3.0
     collision_range: 0.2
     observation_mode: 'lidar_only'
     # actor_path & critic_path must exist, it can't be commented
