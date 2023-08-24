@@ -1,7 +1,7 @@
 sanity_check:
   ros__parameters:
     environment: 'CarTrack' # CarGoal, CarWall, CarBlock, CarTrack
-    track: 'track_1' # track_1, track_2, track_3 -> only applies for CarTrack
+    track: 'budapest_track' # track_1, track_2, track_3 -> only applies for CarTrack
     max_steps_exploration: 5000
     max_steps_training: 1000000
     reward_range: 1.0

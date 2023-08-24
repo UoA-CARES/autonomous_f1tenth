@@ -87,7 +87,7 @@
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001"/> -->
                     <mesh>
                         <uri>model://src/environments/meshes/budapest_track.stl</uri>
-                        <scale>0.01 0.01 0.01</scale>
+                        <scale>0.007 0.007 0.007</scale>
                     </mesh>
                 </geometry>
                 <material>
@@ -101,7 +101,7 @@
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001" /> -->
                     <mesh>
                         <uri>model://src/environments/meshes/budapest_track.stl</uri>
-                        <scale>0.01 0.01 0.01</scale>
+                        <scale>0.007 0.007 0.007</scale>
                     </mesh>
                 </geometry>
             </collision>
