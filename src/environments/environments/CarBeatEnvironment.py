@@ -24,7 +24,7 @@ from .track_reset import track_info
 
 class CarBeatEnvironment(Node):
 
-    def __init__(self, car_one_name, car_two_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1'):
+    def __init__(self, car_one_name, car_two_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1', observation_mode= 'full'):
         super().__init__('car_beat_environment')
 
         # Environment Details ----------------------------------------
@@ -35,9 +35,18 @@ class CarBeatEnvironment(Node):
         self.MAX_ACTIONS = np.asarray([3, 3.14])
         self.MIN_ACTIONS = np.asarray([0, -3.14])
         self.MAX_STEPS_PER_GOAL = max_steps
+        self.OBSERVATION_MODE = observation_mode
+        
+        match observation_mode:
+            case 'full':
+                self.OBSERVATION_SIZE = 8 + 10 
+            case 'no_position':
+                self.OBSERVATION_SIZE = 6 + 10
+            case 'lidar_only':
+                self.OBSERVATION_SIZE = 2 + 10
+            case _:
+                raise ValueError(f'Invalid observation mode: {observation_mode}')
 
-        # TODO: Update this
-        self.OBSERVATION_SIZE = 8 + 10  # Car position + Lidar rays
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
         self.ACTION_NUM = 2
@@ -46,6 +55,8 @@ class CarBeatEnvironment(Node):
 
         # Goal/Track Info -----------------------------------------------
         self.goal_number = 0
+        self.ftg_goal_number = 1
+
         self.all_goals = track_info[track]['goals']
 
         self.car_reset_positions = track_info[track]['reset']
@@ -117,6 +128,8 @@ class CarBeatEnvironment(Node):
 
         # TODO: Remove Hard coded-ness of 10x10
         self.goal_number = 0
+        self.ftg_goal_number = 1
+
         self.goal_position = self.generate_goal(self.goal_number)
 
         while not self.timer_future.done():
@@ -126,16 +139,16 @@ class CarBeatEnvironment(Node):
 
         self.call_reset_service()
 
-        observation = self.get_observation()
+        state, _ = self.get_observation()
 
         info = {}
 
-        return observation, info
+        return state, info
 
     def step(self, action):
         self.step_counter += 1
 
-        state = self.get_observation()
+        _, full_state = self.get_observation()
 
         lin_vel, ang_vel = action
         self.set_velocity(lin_vel, ang_vel)
@@ -145,9 +158,9 @@ class CarBeatEnvironment(Node):
 
         self.timer_future = Future()
 
-        next_state = self.get_observation()
-        reward = self.compute_reward(state, next_state)
-        terminated = self.is_terminated(next_state)
+        next_state, full_next_state  = self.get_observation()
+        reward = self.compute_reward(full_state, full_next_state)
+        terminated = self.is_terminated(full_next_state)
         truncated = self.step_counter >= self.MAX_STEPS
         info = {}
 
@@ -182,7 +195,8 @@ class CarBeatEnvironment(Node):
 
     def is_terminated(self, state):
         return has_collided(state[8:19], self.COLLISION_RANGE) \
-            or has_flipped_over(state[2:6])
+            or has_flipped_over(state[2:6]) \
+            or self.goal_number > self.ftg_goal_number
 
     def generate_goal(self, number):
         print("Goal", number, "spawned")
@@ -250,11 +264,20 @@ class CarBeatEnvironment(Node):
         lidar_one = reduce_lidar(lidar_one)
         lidar_two = reduce_lidar(lidar_two)
 
-        self.get_logger().info(
-            f'odom_one: {odom_one} \n\nlidar_one: {lidar_one} \n\nodom_two: {odom_two} \n\nlidar_two: {lidar_two}')
+        match self.OBSERVATION_MODE:
+            case 'full':
+                state = odom_one + lidar_one
+            case 'no_position':
+                state = odom_one[2:] + lidar_one
+            case 'lidar_only':
+                state = odom_one[-2:] + lidar_one
+            case _:
+                ValueError(f'Invalid observation mode: {self.OBSERVATION_MODE}')
 
-        return odom_one + lidar_one + odom_two + lidar_two + self.goal_position
+        full_state = odom_one + lidar_one + odom_two + lidar_two + self.goal_position
 
+        return state, full_state
+ 
     def compute_reward(self, state, next_state):
 
         reward = 0
@@ -272,7 +295,28 @@ class CarBeatEnvironment(Node):
             self.step_counter = 0
             self.update_goal_service(self.goal_number)
 
+        ftg_current_distance = math.dist(self.all_goals[self.ftg_goal_number], next_state[18:20])
+        
+        # Keeping track of FTG car goal number
+        if ftg_current_distance < self.REWARD_RANGE:
+            self.ftg_goal_number += 1
+        
+        # If RL car has overtaken FTG car
+        if self.goal_number > self.ftg_goal_number:
+            reward  += 200
+
         if has_collided(next_state[8:19], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25  # TODO: find optimal value for this
 
+        prev_car_one_pos = state[:2]
+        prev_car_two_pos = state[18:20]
+        
+        curr_car_one_pos = next_state[:2]
+        curr_car_two_pos = next_state[18:20]
+        
+        prev_progress = math.dist(prev_car_one_pos, prev_car_two_pos)
+        curr_progress = math.dist(curr_car_one_pos, curr_car_two_pos)
+        
+        reward += (prev_progress - curr_progress) / prev_progress
+        
         return reward
