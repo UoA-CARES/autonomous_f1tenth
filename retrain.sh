@@ -6,7 +6,7 @@ function cleanup() {
 }
 
 # trap cleanup SIGINT SIGTERM
-trap cleanup SIGINT 
+trap cleanup SIGINT SIGTERM
 
 # Time limit for training
 if [ -z "$1" ]; then
