@@ -40,11 +40,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def __init__(self, 
                  car_name, 
                  reward_range=1, 
-                 max_steps=50, 
+                 max_steps=500, 
                  collision_range=0.2, 
                  step_length=0.5, 
                  track='track_1',
-                 observation_mode='full'
+                 observation_mode='full',
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
 
@@ -117,8 +117,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
     def is_terminated(self, state):
         return has_collided(state[8:], self.COLLISION_RANGE) \
-            or has_flipped_over(state[2:6])
+            or has_flipped_over(state[2:6]) or \
+            self.goal_number >= len(self.all_goals)
 
+    
     def generate_goal(self, number):
         print("Goal", number, "spawned")
         return self.all_goals[number % len(self.all_goals)]

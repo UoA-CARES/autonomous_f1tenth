@@ -6,10 +6,9 @@ train:
     max_steps_exploration: 1000 
     max_steps_training: 1000000
     reward_range: 3.0
-    reward_range: 3.0
     collision_range: 0.2
     observation_mode: 'lidar_only'
-    evaluate_every_n_steps: 200
+    evaluate_every_n_steps: 2000
     evaluate_for_m_episodes: 3
     # actor_path & critic_path must exist, it can't be commented
     # actor_path: 'rl_logs/23_08_02_17:59:13/models/actor_checkpoint.pht'
