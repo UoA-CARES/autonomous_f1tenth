@@ -26,6 +26,8 @@ def main():
     global MAX_STEPS_PER_BATCH
     global G
     global BATCH_SIZE
+    global EVALUATE_EVERY_N_STEPS
+    global EVALUATE_FOR_M_EPISODES
 
     ENVIRONMENT, \
     ALGORITHM, \
@@ -47,7 +49,9 @@ def main():
     ACTOR_PATH, \
     CRITIC_PATH, \
     MAX_STEPS_PER_BATCH, \
-    OBSERVATION_MODE = [param.value for param in params]
+    OBSERVATION_MODE, \
+    EVALUATE_EVERY_N_STEPS, \
+    EVALUATE_FOR_M_EPISODES = [param.value for param in params]
 
     if ACTOR_PATH != '' and CRITIC_PATH != '':
         MAX_STEPS_EXPLORATION = 0
@@ -73,7 +77,9 @@ def main():
         f'Critic Path: {CRITIC_PATH}\n'
         f'Actor Path: {ACTOR_PATH}\n'
         f'Max Steps per Batch: {MAX_STEPS_PER_BATCH}\n'
-        f'Observation Mode: {OBSERVATION_MODE}'
+        f'Observation Mode: {OBSERVATION_MODE}\n'
+        f'Evaluate Every N Steps: {EVALUATE_EVERY_N_STEPS}\n'
+        f'Evaluate For M Episodes: {EVALUATE_FOR_M_EPISODES}\n'
         f'---------------------------------------------\n'
     )
 
@@ -130,7 +136,9 @@ def main():
         'reward_range': REWARD_RANGE,
         'collision_range': COLLISION_RANGE,
         'max_steps_per_batch': MAX_STEPS_PER_BATCH,
-        'observation_mode': OBSERVATION_MODE
+        'observation_mode': OBSERVATION_MODE,
+        'evaluate_every_n_steps': EVALUATE_EVERY_N_STEPS,
+        'evaluate_for_m_episodes': EVALUATE_FOR_M_EPISODES
     }
 
     if (ENVIRONMENT == 'CarTrack'):
@@ -179,12 +187,18 @@ def train(env, agent, record: Record):
                 experiences = (experiences['state'], experiences['action'], experiences['reward'], experiences['next_state'], experiences['done'])
                 agent.train_policy(experiences)
 
+        evaluation_reward = None
+
+        if total_step_counter % EVALUATE_EVERY_N_STEPS == 0:
+            evaluation_reward = evaluate_policy(env, agent, EVALUATE_FOR_M_EPISODES)
+        
         record.log(
             out=done or truncated,
             Step=total_step_counter,
             Episode=episode_num,
             Step_Reward=reward,
             Episode_Reward=episode_reward if (done or truncated) else None,
+            Evaluation_Reward=evaluation_reward
         )
 
         if done or truncated:
@@ -258,6 +272,38 @@ def train_ppo(env, agent, record):
             episode_timesteps = 0
             episode_num += 1
 
+def evaluate_policy(env, agent, num_episodes):
+
+    episode_reward_history = []
+
+    print('Beginning Evaluation----------------------------')
+    
+    for ep in range(num_episodes):
+        state, _ = env.reset()
+
+        episode_timesteps = 0
+        episode_reward = 0
+
+        truncated = False
+        terminated = False
+
+        while not truncated and not terminated:
+
+            action = agent.select_action_from_policy(state)
+            next_state, reward, terminated, truncated, _ = env.step(action)
+
+            episode_reward += reward
+            state = next_state
+
+        print(f'Evaluation Episode {ep + 1} Completed with a Reward of {episode_reward}')
+        episode_reward_history.append(episode_reward)
+
+    avg_reward = sum(episode_reward_history) / len(episode_reward_history)
+
+    print(f'Evaluation Completed: Avg Reward over {num_episodes} Episodes is {avg_reward} ----------------------------')
+
+    return avg_reward
+
 def get_params():
     '''
     This function fetches the hyperparameters passed in through the launch files
@@ -287,7 +333,9 @@ def get_params():
             ('actor_path', ''),
             ('critic_path', ''),
             ('max_steps_per_batch', 5000),
-            ('observation_mode', 'no_position')
+            ('observation_mode', 'no_position'),
+            ('evaluate_every_n_steps', 2000),
+            ('evaluate_for_m_episodes', 5),
         ]
     )
 
@@ -313,6 +361,8 @@ def get_params():
         'critic_path',
         'max_steps_per_batch',
         'observation_mode',
+        'evaluate_every_n_steps',
+        'evaluate_for_m_episodes'
     ])
 
 
