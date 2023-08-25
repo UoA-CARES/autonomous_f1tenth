@@ -2,7 +2,7 @@ from collections import namedtuple
 
 Waypoint = namedtuple('Waypoint', ['x', 'y', 'Y'])
 
-# Waypoint(),
+
 waypoints = {
     'track_1': [
         Waypoint(-14.11, 3.71, -1.81),
@@ -50,6 +50,19 @@ waypoints = {
         Waypoint(-29.03, 23.69, -0.79),
         Waypoint(-20.17, 16.62, -0.75),
         Waypoint(-7.26, 5.93, -0.75),
+    ],
+    'austin': [
+        Waypoint(0, 0, -0.66),
+        Waypoint(8.76, -6.8, -0.66),
+        Waypoint(21.59, -16.75, -0.66),
+        Waypoint(32.13, -24.94, -0.66),
+        Waypoint(38.69, -28.53, -0.02),
+        Waypoint(39.99, -24.59, 1.91),
+        Waypoint(37.01, -13.32, 1.43),
+        Waypoint(45.58, -4, 0.54),
+        Waypoint(53.58, 2.01, 0.95),
+        Waypoint(),
+        
     ]
     
 }
