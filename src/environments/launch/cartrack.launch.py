@@ -66,8 +66,8 @@ def generate_launch_description():
 
     return LaunchDescription([
         track_arg,
-        f1tenth,
         OpaqueFunction(function=launch),
         service_bridge,
         reset,
+        f1tenth,
 ])
