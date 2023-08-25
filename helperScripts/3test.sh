@@ -18,4 +18,6 @@ export ROS_DOMAIN_ID=150
 colcon build
 ros2 launch reinforcement_learning test.launch.py &
 
+gz sim -g &
+
 wait
