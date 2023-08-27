@@ -12,30 +12,6 @@ from .goal_positions import goal_positions
 from .waypoints import waypoints
 
 class CarTrackEnvironment(F1tenthEnvironment):
-    """
-    CarTrack Reinforcement Learning Environment:
-
-        Task:
-            Here the agent learns to drive the f1tenth car to a goal position
-
-        Observation:
-            It's position (x, y), orientation (w, x, y, z), lidar points (approx. ~600 rays) and the goal's position (x, y)
-
-        Action:
-            It's linear and angular velocity
-        
-        Reward:
-            It's progress toward the goal plus,
-            50+ if it reaches the goal plus,
-            -25 if it collides with the wall
-
-        Termination Conditions:
-            When the agent is within REWARD_RANGE units or,
-            When the agent is within COLLISION_RANGE units
-        
-        Truncation Condition:
-            When the number of steps surpasses MAX_STEPS
-    """
 
     def __init__(self, 
                  car_name, 
@@ -44,7 +20,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  collision_range=0.2, 
                  step_length=0.5, 
                  track='track_1',
-                 observation_mode='full',
+                 observation_mode='lidar_only',
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
 
