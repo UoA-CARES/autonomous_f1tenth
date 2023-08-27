@@ -214,7 +214,7 @@ class FollowTheGapPolicy():
         dmin = min(border_ranges)
         alpha = 1
         goal_angle = self.constrain_angle(goal_angle)
-        final_heading_angle = ((alpha/dmin)*gap_centre_angle+goal_angle)/((alpha/dmin)+1)
+        final_heading_angle = gap_centre_angle #((alpha/dmin)*gap_centre_angle+goal_angle)/((alpha/dmin)+1)
         # Convert to angular velocity
         ang = self.angle_to_ang_vel(final_heading_angle, lin)
         action = np.asarray([lin, ang])

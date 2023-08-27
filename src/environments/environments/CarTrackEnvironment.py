@@ -39,15 +39,52 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.REWARD_RANGE = reward_range
 
         self.observation_mode = observation_mode
+        self.track = track
 
         # Reset Client -----------------------------------------------
-        self.all_goals = goal_positions[track]
 
         self.goals_reached = 0
         self.start_goal_index = 0
-        self.car_waypoints = waypoints[track]
-
         self.steps_since_last_goal = 0
+
+        if track != 'multi_track':
+            self.all_goals = goal_positions[track]
+            self.car_waypoints = waypoints[track]
+        else:
+            austin_gp = goal_positions['austin_track']
+            budapest_gp = goal_positions['budapest_track']
+            budapest_gp = [[x + 200, y] for x, y in budapest_gp]
+            hockenheim_gp = goal_positions['hockenheim_track']
+            hockenheim_gp = [[x + 300, y] for x, y in hockenheim_gp]
+            
+            self.all_car_goals = {
+                'austin_track': austin_gp,
+                'budapest_track': budapest_gp,
+                'hockenheim_track': hockenheim_gp 
+            }
+
+            austin_wp = waypoints['austin_track']
+
+            budapest_wp = []
+            for x, y, yaw, index in waypoints['budapest_track']:
+                x += 200
+                budapest_wp.append((x, y, yaw, index))
+            
+            hockenheim_wp = []
+            for x, y, yaw, index in waypoints['hockenheim_track']:
+                x += 300
+                hockenheim_wp.append((x, y, yaw, index))
+            
+            self.all_car_waypoints = {
+                'austin_track': austin_wp,
+                'budapest_track': budapest_wp,
+                'hockenheim_track': hockenheim_wp
+            }
+
+            self.current_track = 'austin_track'
+
+            self.all_goals = self.all_car_goals[self.current_track]
+            self.car_waypoints = self.all_car_waypoints[self.current_track]
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -58,6 +95,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.set_velocity(0, 0)
         
+        if self.track == 'multi_track': 
+            self.current_track = random.choice(list(self.all_car_goals.keys()))
+            self.all_goals = self.all_car_goals[self.current_track]
+            self.car_waypoints = self.all_car_waypoints[self.current_track]
+
         # New random starting point for car
         car_x, car_y, car_yaw, index = random.choice(self.car_waypoints)
         
