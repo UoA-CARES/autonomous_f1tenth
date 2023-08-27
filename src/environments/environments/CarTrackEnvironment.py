@@ -3,15 +3,13 @@ import math
 import numpy as np
 import rclpy
 from rclpy import Future
-from sensor_msgs.msg import LaserScan
-
+import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from .termination import has_collided, has_flipped_over
 from .util import process_odom, reduce_lidar
-from .track_reset import track_info
 from .goal_positions import goal_positions
-from .waypoints import waypoints, Waypoint
+from .waypoints import waypoints
 
 class CarTrackEnvironment(F1tenthEnvironment):
     """
@@ -79,28 +77,21 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
     def reset(self):
         self.step_counter = 0
-
-        self.set_velocity(0, 0)
-
-        # TODO: Remove Hard coded-ness of 10x10
-        
-        # Reset Information
-        # Generate a random reset position from the waypoints
-        car_x, car_y, car_yaw, index = self.car_waypoints[np.random.randint(low=0, high=len(self.car_waypoints))]
-        
-        self.start_goal_index = index
-        self.goal_position = self.all_goals[self.start_goal_index]
-
         self.steps_since_last_goal = 0
         self.goals_reached = 0
 
+        self.set_velocity(0, 0)
+        
+        # New random starting point for car
+        car_x, car_y, car_yaw, index = random.choice(self.car_waypoints)
+        
+        # Update goal pointer to reflect starting position
+        self.start_goal_index = index
+        self.goal_position = self.all_goals[self.start_goal_index]
+
+        self.sleep()
+
         goal_x, goal_y = self.goal_position
-
-        while not self.timer_future.done():
-            rclpy.spin_once(self)
-
-        self.timer_future = Future()
-
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=goal_x, goal_y=goal_y)
 
         observation, _ = self.get_observation()
@@ -117,15 +108,13 @@ class CarTrackEnvironment(F1tenthEnvironment):
         lin_vel, ang_vel = action
         self.set_velocity(lin_vel, ang_vel)
 
-        while not self.timer_future.done():
-            rclpy.spin_once(self)
-
-        self.timer_future = Future()
+        self.sleep()
 
         next_state, full_next_state = self.get_observation()
+
         reward = self.compute_reward(full_state, full_next_state)
         terminated = self.is_terminated(full_next_state)
-        truncated = self.step_counter >= self.MAX_STEPS
+        truncated = self.steps_since_last_goal >= 10
         info = {}
 
         return next_state, reward, terminated, truncated, info
@@ -133,8 +122,66 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def is_terminated(self, state):
         return has_collided(state[8:], self.COLLISION_RANGE) \
             or has_flipped_over(state[2:6]) or \
-            self.goals_reached == len(self.all_goals) or \
-            self.steps_since_last_goal >= 10
+            self.goals_reached == len(self.all_goals)
+
+    def get_observation(self):
+
+        # Get Position and Orientation of F1tenth
+        odom, lidar = self.get_data()
+        odom = process_odom(odom)
+
+        reduced_range = reduce_lidar(lidar)
+
+        # Get Goal Position
+        
+        match (self.observation_mode):
+            case 'no_position':
+                state = odom[2:] + reduced_range
+            case 'lidar_only':
+                state = odom[-2:] + reduced_range 
+            case _:
+                state = odom + reduced_range
+
+        full_state = odom + reduced_range
+
+        return state, full_state
+
+    def compute_reward(self, state, next_state):
+
+        reward = 0
+
+        goal_position = self.goal_position
+
+        current_distance = math.dist(goal_position, next_state[:2])
+
+        self.steps_since_last_goal += 1
+
+        if current_distance < self.REWARD_RANGE:
+            print(f'Goal #{self.goals_reached} Reached')
+            reward += 2
+            self.goals_reached += 1
+
+            # Updating Goal Position
+            new_x, new_y = self.all_goals[(self.start_goal_index + self.goals_reached) % len(self.all_goals)]
+            self.goal_position = [new_x, new_y]
+
+            self.update_goal_service(new_x, new_y)
+
+            self.steps_since_last_goal = 0
+        
+        if self.steps_since_last_goal >= 10:
+            reward -= 10
+        
+        if self.goals_reached == len(self.all_goals):
+            reward += 100
+        
+        if has_collided(next_state[8:], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+            reward -= 25
+
+        return reward
+
+
+    # Utility Functions --------------------------------------------
 
     def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y):
         """
@@ -168,64 +215,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         rclpy.spin_until_future_complete(self, future)
 
         return future.result()
+    
+    def sleep(self):
+        while not self.timer_future.done():
+            rclpy.spin_once(self)
 
-    def get_observation(self):
-
-        # Get Position and Orientation of F1tenth
-        odom, lidar = self.get_data()
-        odom = process_odom(odom)
-
-        reduced_range = reduce_lidar(lidar)
-
-        # Get Goal Position
-        
-        match (self.observation_mode):
-            case 'no_position':
-                state = odom[2:] + reduced_range
-            case 'lidar_only':
-                state = odom[-2:] + reduced_range 
-            case _:
-                state = odom + reduced_range
-
-        full_state = odom + reduced_range
-
-        return state, full_state
-
-    def compute_reward(self, state, next_state):
-
-        reward = 0
-
-        goal_position = self.goal_position
-
-
-        prev_distance = math.dist(goal_position, state[:2])
-        current_distance = math.dist(goal_position, next_state[:2])
-        
-        # reward += 10 * (prev_distance - current_distance) / prev_distance 
-        
-
-        self.steps_since_last_goal += 1
-
-        if current_distance < self.REWARD_RANGE:
-            print(f'Goal #{self.goals_reached} Reached')
-            reward += 2
-            self.goals_reached += 1
-
-            # Updating Goal Position
-            new_x, new_y = self.all_goals[(self.start_goal_index + self.goals_reached) % len(self.all_goals)]
-            self.goal_position = [new_x, new_y]
-
-            self.update_goal_service(new_x, new_y)
-
-            self.steps_since_last_goal = 0
-        
-        if self.steps_since_last_goal >= 10:
-            reward -= 10
-        
-        if self.goals_reached >= len(self.all_goals):
-            reward += 100
-        
-        if has_collided(next_state[8:], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
-            reward -= 25  # TODO: find optimal value for this
-
-        return reward
+        self.timer_future = Future()
