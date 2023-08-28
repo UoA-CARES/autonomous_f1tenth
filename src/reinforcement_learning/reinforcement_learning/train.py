@@ -194,6 +194,8 @@ def train(env, agent, record: Record):
 
         if total_step_counter % EVALUATE_EVERY_N_STEPS == 0:
             evaluation_reward = evaluate_policy(env, agent, EVALUATE_FOR_M_EPISODES)
+            # Reset Environment
+            truncated = True
         
         record.log(
             out=done or truncated,
