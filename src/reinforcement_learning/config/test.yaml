@@ -1,10 +1,10 @@
 test:
   ros__parameters:
     environment: 'CarTrack'
-    track: 'track_1'
+    track: 'multi_track'
     max_steps_evaluation: 1000000
-    actor_path: rl_logs/23_08_24_11:27:31/models/actor_checkpoint.pht 
-    critic_path: rl_logs/23_08_24_11:27:31/models/critic_checkpoint.pht
+    actor_path: rl_logs/23_08_28_10:47:05/models/actor_checkpoint.pht
+    critic_path: rl_logs/23_08_28_10:47:05/models/critic_checkpoint.pht
     max_steps: 300
     step_length: 0.25
     reward_range: 3.0

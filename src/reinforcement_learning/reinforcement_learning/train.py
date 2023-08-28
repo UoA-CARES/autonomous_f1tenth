@@ -334,13 +334,13 @@ def get_params():
             ('max_steps_exploration', 1_000),
             ('max_steps', 100),
             ('step_length', 0.25),
-            ('reward_range', 3.0),
+            ('reward_range', 0.2),
             ('collision_range', 0.2),
             ('actor_path', ''),
             ('critic_path', ''),
             ('max_steps_per_batch', 5000),
             ('observation_mode', 'no_position'),
-            ('evaluate_every_n_steps', 2000),
+            ('evaluate_every_n_steps', 10000),
             ('evaluate_for_m_episodes', 5),
             ('laps_to_run', 1)
         ]
