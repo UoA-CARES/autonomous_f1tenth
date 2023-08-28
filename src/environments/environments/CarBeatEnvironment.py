@@ -1,26 +1,22 @@
 import math
-
 import numpy as np
+import random
 import rclpy
 from rclpy import Future
-from sensor_msgs.msg import LaserScan
 from launch_ros.actions import Node
-
-import numpy as np
-import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Empty
 from message_filters import Subscriber, ApproximateTimeSynchronizer
-from rclpy import Future
-from rclpy.node import Node
-from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 
 from environment_interfaces.srv import CarBeatReset
-from environments.F1tenthEnvironment import F1tenthEnvironment
 from .termination import has_collided, has_flipped_over
 from .util import process_odom, reduce_lidar
 from .track_reset import track_info
+from .goal_positions import goal_positions
+from .waypoints import waypoints
 
 class CarBeatEnvironment(Node):
 
@@ -54,12 +50,52 @@ class CarBeatEnvironment(Node):
         self.step_counter = 0
 
         # Goal/Track Info -----------------------------------------------
-        self.goal_number = 0
-        self.ftg_goal_number = 1
+        self.goals_reached = 0
+        self.start_goal_index = 0
 
-        self.all_goals = track_info[track]['goals']
+        self.ftg_goals_reached = 0
+        self.ftg_start_goal_index = 0
+        
+        self.steps_since_last_goal = 0
 
-        self.car_reset_positions = track_info[track]['reset']
+        if track != 'multi_track':
+            self.all_goals = goal_positions[track]
+            self.car_waypoints = waypoints[track]
+        else:
+            austin_gp = goal_positions['austin_track']
+            budapest_gp = goal_positions['budapest_track']
+            budapest_gp = [[x + 200, y] for x, y in budapest_gp]
+            hockenheim_gp = goal_positions['hockenheim_track']
+            hockenheim_gp = [[x + 300, y] for x, y in hockenheim_gp]
+            
+            self.all_car_goals = {
+                'austin_track': austin_gp,
+                'budapest_track': budapest_gp,
+                'hockenheim_track': hockenheim_gp 
+            }
+
+            austin_wp = waypoints['austin_track']
+
+            budapest_wp = []
+            for x, y, yaw, index in waypoints['budapest_track']:
+                x += 200
+                budapest_wp.append((x, y, yaw, index))
+            
+            hockenheim_wp = []
+            for x, y, yaw, index in waypoints['hockenheim_track']:
+                x += 300
+                hockenheim_wp.append((x, y, yaw, index))
+            
+            self.all_car_waypoints = {
+                'austin_track': austin_wp,
+                'budapest_track': budapest_wp,
+                'hockenheim_track': hockenheim_wp
+            }
+
+            self.current_track = 'austin_track'
+
+            self.all_goals = self.all_car_goals[self.current_track]
+            self.car_waypoints = self.all_car_waypoints[self.current_track]
 
         # Pub/Sub ----------------------------------------------------
         self.cmd_vel_pub = self.create_publisher(
@@ -121,10 +157,18 @@ class CarBeatEnvironment(Node):
         self.timer_future = Future()
 
     def reset(self):
-
         self.step_counter = 0
 
+        self.steps_since_last_goal = 0
+        self.goals_reached = 0
+        self.ftg_goals_reached = 0
+
         self.set_velocity(0, 0)
+
+        if self.track == 'multi_track': 
+            self.current_track = random.choice(list(self.all_car_goals.keys()))
+            self.all_goals = self.all_car_goals[self.current_track]
+            self.car_waypoints = self.all_car_waypoints[self.current_track]
 
         # TODO: Remove Hard coded-ness of 10x10
         self.goal_number = 0
