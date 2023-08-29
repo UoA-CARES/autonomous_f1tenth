@@ -1,11 +1,11 @@
 train:
   ros__parameters:
     environment: 'CarTrack' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat
-    track: 'track_2' # track_1, track_2, track_3 -> only applies for CarTrack
+    track: 'multi_track' # track_1, track_2, track_3 -> only applies for CarTrack
     algorithm: 'TD3'
     max_steps_exploration: 1000 
     max_steps_training: 1000000
-    reward_range: 3.0
+    # reward_range: 3.0
     collision_range: 0.2
     observation_mode: 'lidar_only'
     evaluate_every_n_steps: 2000
