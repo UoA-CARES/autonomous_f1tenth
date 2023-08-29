@@ -1,7 +1,6 @@
 from .controller import Controller
 import rclpy
 import numpy as np
-from .ftg_controller import FTGController
 
 def main():
     rclpy.init()
@@ -18,15 +17,15 @@ def main():
 
     params = param_node.get_parameters(['car_name', 'track_name'])
     CAR_NAME, TRACK_NAME = [param.value for param in params]
-    
-    controller = FTGController('ftg_policy_', CAR_NAME, 0.25, TRACK_NAME)
+
+    controller = Controller('ftg_policy_', CAR_NAME, 0.25)
+
     policy = FollowTheGapPolicy()
 
     state = controller.get_observation()
 
     while True:
-        # controller.get_logger().info(f"State: {state[:-2]}") 
-        action = policy.select_action(state[:-2], state[-2:])  
+        action = policy.select_action(state)  
         state = controller.step(action)
 
 
@@ -58,7 +57,7 @@ class FollowTheGapPolicy():
             val = (np.pi*2-abs(val))*-1*np.sign(val)
         return val
     
-    def select_action(self,state,goal_pos):
+    def select_action(self, state):
         # Current x: state[0], current y: state[1], orientation w: state[2], orientation x: state[3], orientation y: state[4], orientation z: state[5]
         # linear vel x: state[6], angular vel z: state[7], LIDAR points 1-10: state[8-17] where each entry is the 64th LIDAR point
         lin = 2.5 #0.6
@@ -71,17 +70,19 @@ class FollowTheGapPolicy():
         meeting_dist = self.calc_func()
 
 
-        rotation = np.arctan2((2*(state[2]*state[5]+state[3]*state[4])),(1-2*(state[4]**2+state[5]**2)))
-        if (goal_pos[0] > state[0]):
-            if (goal_pos[1] > state[1]):
-                goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - rotation
-            else:
-                goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - rotation
-        else:
-            if (goal_pos[1] > state[1]):
-                goal_angle = abs(np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))) - rotation + np.pi/2
-            else:
-                goal_angle = np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))*-1 - rotation - np.pi/2
+        # rotation = np.arctan2((2*(state[2]*state[5]+state[3]*state[4])),(1-2*(state[4]**2+state[5]**2)))
+        # if (goal_pos[0] > state[0]):
+        #     if (goal_pos[1] > state[1]):
+        #         goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - rotation
+        #     else:
+        #         goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - rotation
+        # else:
+        #     if (goal_pos[1] > state[1]):
+        #         goal_angle = abs(np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))) - rotation + np.pi/2
+        #     else:
+        #         goal_angle = np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))*-1 - rotation - np.pi/2
+        
+        goal_angle = 0
 
         obstacles_angles = []
         obstacles_ranges = []
@@ -213,7 +214,7 @@ class FollowTheGapPolicy():
         # Calculate final heading angle
         dmin = min(border_ranges)
         alpha = 1
-        goal_angle = self.constrain_angle(goal_angle)
+        # goal_angle = self.constrain_angle(goal_angle)
         final_heading_angle = gap_centre_angle #((alpha/dmin)*gap_centre_angle+goal_angle)/((alpha/dmin)+1)
         # Convert to angular velocity
         ang = self.angle_to_ang_vel(final_heading_angle, lin)

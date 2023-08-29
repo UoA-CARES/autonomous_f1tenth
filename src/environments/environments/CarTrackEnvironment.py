@@ -1,6 +1,4 @@
 import math
-
-import numpy as np
 import rclpy
 from rclpy import Future
 import random
@@ -21,6 +19,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
+                 laps_to_run=1
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
 
@@ -40,6 +39,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.observation_mode = observation_mode
         self.track = track
+
+        self.laps_to_run = laps_to_run
 
         # Reset Client -----------------------------------------------
 
@@ -140,7 +141,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def is_terminated(self, state):
         return has_collided(state[8:], self.COLLISION_RANGE) \
             or has_flipped_over(state[2:6]) or \
-            self.goals_reached == len(self.all_goals)
+            self.goals_reached >= len(self.all_goals) * self.laps_to_run
 
     def get_observation(self):
 
@@ -189,8 +190,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
         
         if self.steps_since_last_goal >= 10:
             reward -= 10
-        
-        if self.goals_reached == len(self.all_goals):
+
+        if self.goals_reached == len(self.all_goals) * self.laps_to_run:
             reward += 100
         
         if has_collided(next_state[8:], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
