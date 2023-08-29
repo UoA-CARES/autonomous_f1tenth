@@ -1,6 +1,6 @@
 test:
   ros__parameters:
-    environment: 'CarTrack'
+    environment: 'CarBeat'
     track: 'multi_track'
     max_steps_evaluation: 1000000
     actor_path: rl_logs/23_08_28_10:47:05/models/actor_checkpoint.pht

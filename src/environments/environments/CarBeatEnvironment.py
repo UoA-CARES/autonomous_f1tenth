@@ -20,7 +20,7 @@ from .waypoints import waypoints
 
 class CarBeatEnvironment(Node):
 
-    def __init__(self, car_one_name, car_two_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1', observation_mode= 'full'):
+    def __init__(self, car_one_name, car_two_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1', observation_mode= 'full', laps_to_run=1):
         super().__init__('car_beat_environment')
 
         # Environment Details ----------------------------------------
@@ -48,6 +48,10 @@ class CarBeatEnvironment(Node):
         self.ACTION_NUM = 2
 
         self.step_counter = 0
+
+        self.track = track
+
+        self.laps_to_run = laps_to_run
 
         # Goal/Track Info -----------------------------------------------
         self.goals_reached = 0
@@ -161,7 +165,7 @@ class CarBeatEnvironment(Node):
 
         self.steps_since_last_goal = 0
         self.goals_reached = 0
-        self.ftg_goals_reached = 0
+        self.ftg_goals_reached = 30
 
         self.set_velocity(0, 0)
 
@@ -170,18 +174,30 @@ class CarBeatEnvironment(Node):
             self.all_goals = self.all_car_goals[self.current_track]
             self.car_waypoints = self.all_car_waypoints[self.current_track]
 
-        # TODO: Remove Hard coded-ness of 10x10
-        self.goal_number = 0
-        self.ftg_goal_number = 1
+        # New random starting point for the cars
+        car_x, car_y, car_yaw, index = random.choice(self.car_waypoints)
+        ftg_x, ftg_y, ftg_yaw, ftg_index = self.car_waypoints[(index + 30) % len(self.car_waypoints)]
 
-        self.goal_position = self.generate_goal(self.goal_number)
+        self.start_goal_index = index
+        self.ftg_start_goal_index = index
 
-        while not self.timer_future.done():
-            rclpy.spin_once(self)
+        self.goal_position = self.all_goals[self.start_goal_index]
+        self.ftg_goal_position = self.all_goals[self.ftg_start_goal_index]
 
-        self.timer_future = Future()
+        self.sleep()
 
-        self.call_reset_service()
+        goal_x, goal_y = self.goal_position
+
+        self.call_reset_service(
+            car_x=car_x,
+            car_y=car_y,
+            car_Y=car_yaw,
+            goal_x=goal_x,
+            goal_y=goal_y,
+            ftg_x=ftg_x,
+            ftg_y=ftg_y,
+            ftg_Y=ftg_yaw
+        )
 
         state, _ = self.get_observation()
 
@@ -197,15 +213,12 @@ class CarBeatEnvironment(Node):
         lin_vel, ang_vel = action
         self.set_velocity(lin_vel, ang_vel)
 
-        while not self.timer_future.done():
-            rclpy.spin_once(self)
-
-        self.timer_future = Future()
+        self.sleep()
 
         next_state, full_next_state  = self.get_observation()
         reward = self.compute_reward(full_state, full_next_state)
         terminated = self.is_terminated(full_next_state)
-        truncated = self.step_counter >= self.MAX_STEPS
+        truncated = self.steps_since_last_goal >= 10
         info = {}
 
         return next_state, reward, terminated, truncated, info
@@ -238,35 +251,49 @@ class CarBeatEnvironment(Node):
         self.timer_future.set_result(True)
 
     def is_terminated(self, state):
+        
         return has_collided(state[8:19], self.COLLISION_RANGE) \
             or has_flipped_over(state[2:6]) \
-            or self.goal_number > self.ftg_goal_number
+            or self.goals_reached >= self.ftg_goals_reached
 
-    def generate_goal(self, number):
-        print("Goal", number, "spawned")
-        return self.all_goals[number % len(self.all_goals)]
+    '''
+    init ai car goal count 0
+    init opponent goal count diffrenct between ai goal abs to oppent goal abs
 
-    def call_reset_service(self):
+    for each goal passed
+    ai car goal count ++
+    oppoent goal count ++
+
+    if ai car goal count > oppent goal count:
+        passed
+    '''
+
+    def call_reset_service(self, 
+                           car_x, 
+                           car_y, 
+                           car_Y, 
+                           goal_x, 
+                           goal_y, 
+                           ftg_x, 
+                           ftg_y, 
+                           ftg_Y
+                           ):
         """
         Reset the car and goal position
         """
 
-        x, y = self.goal_position
-
         request = CarBeatReset.Request()
         
-        request.gx = x
-        request.gy = y
+        request.gx = goal_x
+        request.gy = goal_y
 
-        request.cx_one = self.car_reset_positions['x']
-        request.cy_one = self.car_reset_positions['y']
-        request.cyaw_one = self.car_reset_positions['yaw']
+        request.cx_one = car_x
+        request.cy_one = car_y
+        request.cyaw_one = car_Y
 
-        request.cx_two = self.all_goals[0][0]
-        request.cy_two = self.all_goals[0][1]
-
-        # TODO: Fix this
-        request.cyaw_two = self.car_reset_positions['yaw']
+        request.cx_two = ftg_x
+        request.cy_two = ftg_y
+        request.cyaw_two = ftg_Y
 
         request.flag = "car_and_goal"
 
@@ -279,13 +306,10 @@ class CarBeatEnvironment(Node):
 
         return future.result()
 
-    def update_goal_service(self, number):
+    def update_goal_service(self, x, y):
         """
         Reset the goal position
         """
-
-        x, y = self.generate_goal(number)
-        self.goal_position = [x, y]
 
         request = CarBeatReset.Request()
         request.gx = x
@@ -328,39 +352,34 @@ class CarBeatEnvironment(Node):
 
         goal_position = self.goal_position
 
-        prev_distance = math.dist(goal_position, state[:2])
         current_distance = math.dist(goal_position, next_state[:2])
         
-        reward += prev_distance - current_distance
-        
-        if current_distance < self.REWARD_RANGE:
-            reward += 50
-            self.goal_number += 1
-            self.step_counter = 0
-            self.update_goal_service(self.goal_number)
+        self.steps_since_last_goal += 1
 
-        ftg_current_distance = math.dist(self.all_goals[self.ftg_goal_number], next_state[18:20])
+        if current_distance < self.REWARD_RANGE:
+            print(f'Goal #{self.goals_reached} Reached')
+            reward += 2
+            self.goals_reached += 1
+
+            # Updating Goal Position
+            new_x, new_y = self.all_goals[(self.start_goal_index + self.goals_reached) % len(self.all_goals)]
+            self.goal_position = [new_x, new_y]
+
+            self.update_goal_service(new_x, new_y)
+
+            self.steps_since_last_goal = 0
+
+        ftg_current_distance = math.dist(self.all_goals[self.ftg_start_goal_index + self.ftg_goals_reached - 30], next_state[18:20])
         
         # Keeping track of FTG car goal number
         if ftg_current_distance < self.REWARD_RANGE:
-            self.ftg_goal_number += 1
+            self.ftg_goals_reached += 1
         
         # If RL car has overtaken FTG car
-        if self.goal_number > self.ftg_goal_number:
+        if self.goals_reached >= self.ftg_goals_reached:
             reward  += 200
 
         if has_collided(next_state[8:19], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25  # TODO: find optimal value for this
 
-        prev_car_one_pos = state[:2]
-        prev_car_two_pos = state[18:20]
-        
-        curr_car_one_pos = next_state[:2]
-        curr_car_two_pos = next_state[18:20]
-        
-        prev_progress = math.dist(prev_car_one_pos, prev_car_two_pos)
-        curr_progress = math.dist(curr_car_one_pos, curr_car_two_pos)
-        
-        reward += (prev_progress - curr_progress) / prev_progress
-        
         return reward
