@@ -86,7 +86,7 @@ class FollowTheGapPolicy():
 
         obstacles_angles = []
         obstacles_ranges = []
-        obstacle_max_val = 2
+        obstacle_max_val = 4
         for i in range(10):
             if (state[8+i] > min_lidar_range) & (state[8+i]<obstacle_max_val):
                 obstacles_ranges.append(state[8+i])
