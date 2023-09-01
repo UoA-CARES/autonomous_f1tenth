@@ -93,8 +93,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 # Waypoints
 
                 melbourne_wp = waypoints['melbourne_track']
-                saopaolo_wp = [(x + 200, y, yaw, index) for x, y, yaw, index in waypoints['saopaolo_track']]
-                shanghai_wp = [(x + 300, y, yaw, index) for x, y, yaw, index in waypoints['shanghai_track']]
+                saopaolo_wp = [(x + 100, y, yaw, index) for x, y, yaw, index in waypoints['saopaolo_track']]
+                shanghai_wp = [(x + 250, y, yaw, index) for x, y, yaw, index in waypoints['shanghai_track']]
 
                 self.all_car_waypoints = {
                     'melbourne_track': melbourne_wp,
