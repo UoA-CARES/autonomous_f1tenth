@@ -39,7 +39,7 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-    <model name="austin_ground_plane">
+    <model name="ground_plane">
       <pose>100 0 0 0 0 0</pose>
       <static>true</static>
       <link name="link">
@@ -77,7 +77,8 @@
         </visual>
       </link>
     </model>
-    <model name="austin_track">
+
+    <model name="melbourne_track">
         <static>true</static>
         <!-- <pose>0 0 -9 0 0 0</pose> -->
         <!-- <pose>0 0 -8.9 0 0 0</pose> -->
@@ -86,7 +87,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001"/> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/austin_track.stl</uri>
+                        <uri>model://src/environments/meshes/melbourne_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -100,7 +101,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001" /> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/austin_track.stl</uri>
+                        <uri>model://src/environments/meshes/melbourne_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -108,7 +109,7 @@
         </link>
     </model>
 
-    <model name="budapest_track">
+    <model name="saopaolo_track">
         <pose>200 0 0 0 0 0</pose>
         <static>true</static>
         <!-- <pose>0 0 -9 0 0 0</pose> -->
@@ -118,7 +119,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001"/> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/budapest_track.stl</uri>
+                        <uri>model://src/environments/meshes/saopaolo_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -132,14 +133,15 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001" /> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/budapest_track.stl</uri>
+                        <uri>model://src/environments/meshes/saopaolo_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
             </collision>
         </link>
     </model>
-    <model name="hockenheim_track">
+
+    <model name="shanghai_track">
         <static>true</static>
         <pose>300 0 0 0 0 0</pose>
         <!-- <pose>0 0 -9 0 0 0</pose> -->
@@ -149,7 +151,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001"/> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/hockenheim_track.stl</uri>
+                        <uri>model://src/environments/meshes/shanghai_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -163,7 +165,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001" /> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/hockenheim_track.stl</uri>
+                        <uri>model://src/environments/meshes/shanghai_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
