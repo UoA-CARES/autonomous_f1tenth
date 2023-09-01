@@ -48,7 +48,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.start_goal_index = 0
         self.steps_since_last_goal = 0
 
-        if track != 'multi_track':
+        if 'multi_track' not in track:
             self.all_goals = goal_positions[track]
             self.car_waypoints = waypoints[track]
         else:
@@ -96,7 +96,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.set_velocity(0, 0)
         
-        if self.track == 'multi_track': 
+        if 'multi_track' in self.track:
             self.current_track = random.choice(list(self.all_car_goals.keys()))
             self.all_goals = self.all_car_goals[self.current_track]
             self.car_waypoints = self.all_car_waypoints[self.current_track]
