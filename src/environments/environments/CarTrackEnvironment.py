@@ -52,7 +52,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.all_goals = goal_positions[track]
             self.car_waypoints = waypoints[track]
         else:
-            if track == 'multi_tracK':
+            if track == 'multi_track':
                 # multi_track
                 # Goal position
                 austin_gp = goal_positions['austin_track']
