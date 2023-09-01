@@ -8,6 +8,8 @@ function cleanup() {
 # trap cleanup SIGINT SIGTERM
 trap cleanup SIGINT SIGTERM
 
+cd ..
+
 # Time limit for training
 if [ -z "$1" ]; then
   echo "Please enter the time limit for training"
