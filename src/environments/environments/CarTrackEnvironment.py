@@ -52,37 +52,56 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.all_goals = goal_positions[track]
             self.car_waypoints = waypoints[track]
         else:
-            austin_gp = goal_positions['austin_track']
-            budapest_gp = goal_positions['budapest_track']
-            budapest_gp = [[x + 200, y] for x, y in budapest_gp]
-            hockenheim_gp = goal_positions['hockenheim_track']
-            hockenheim_gp = [[x + 300, y] for x, y in hockenheim_gp]
-            
-            self.all_car_goals = {
-                'austin_track': austin_gp,
-                'budapest_track': budapest_gp,
-                'hockenheim_track': hockenheim_gp 
-            }
+            if track == 'multi_tracK':
+                # multi_track
+                # Goal position
+                austin_gp = goal_positions['austin_track']
+                budapest_gp = [[x + 200, y] for x, y in goal_positions['budapest_track']]
+                hockenheim_gp = [[x + 300, y] for x, y in goal_positions['hockenheim_track']]
 
-            austin_wp = waypoints['austin_track']
+                self.all_car_goals = {
+                    'austin_track': austin_gp,
+                    'budapest_track': budapest_gp,
+                    'hockenheim_track': hockenheim_gp,
+                }
 
-            budapest_wp = []
-            for x, y, yaw, index in waypoints['budapest_track']:
-                x += 200
-                budapest_wp.append((x, y, yaw, index))
-            
-            hockenheim_wp = []
-            for x, y, yaw, index in waypoints['hockenheim_track']:
-                x += 300
-                hockenheim_wp.append((x, y, yaw, index))
-            
-            self.all_car_waypoints = {
-                'austin_track': austin_wp,
-                'budapest_track': budapest_wp,
-                'hockenheim_track': hockenheim_wp
-            }
+                # Waypoints
+                austin_wp = waypoints['austin_track']
+                budapest_wp = [(x + 200, y, yaw, index) for x, y, yaw, index in waypoints['budapest_track']]
+                hockenheim_wp = [(x + 300, y, yaw, index) for x, y, yaw, index in waypoints['hockenheim_track']]
 
-            self.current_track = 'austin_track'
+                self.all_car_waypoints = {
+                    'austin_track': austin_wp,
+                    'budapest_track': budapest_wp,
+                    'hockenheim_track': hockenheim_wp
+                }
+                self.current_track = 'austin_track'
+
+            else:
+                # multi_track_testing
+                # Goal position
+                melbourne_gp = goal_positions['melbourne_track']
+                saopaolo_gp = [[x + 100, y] for x, y in goal_positions['saopaolo_track']]
+                shanghai_gp = [[x + 250, y] for x, y in goal_positions['shanghai_track']]
+
+                self.all_car_goals = {
+                    'melbourne_track': melbourne_gp,
+                    'saopaolo_track': saopaolo_gp,
+                    'shanghai_track': shanghai_gp,
+                }
+
+                # Waypoints
+
+                melbourne_wp = waypoints['melbourne_track']
+                saopaolo_wp = [(x + 200, y, yaw, index) for x, y, yaw, index in waypoints['saopaolo_track']]
+                shanghai_wp = [(x + 300, y, yaw, index) for x, y, yaw, index in waypoints['shanghai_track']]
+
+                self.all_car_waypoints = {
+                    'melbourne_track': melbourne_wp,
+                    'saopaolo_track': saopaolo_wp,
+                    'shanghai_track': shanghai_wp
+                }
+                self.current_track = 'melbourne_track'
 
             self.all_goals = self.all_car_goals[self.current_track]
             self.car_waypoints = self.all_car_waypoints[self.current_track]
