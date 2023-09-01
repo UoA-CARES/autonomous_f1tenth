@@ -140,8 +140,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
     def is_terminated(self, state):
         return has_collided(state[8:], self.COLLISION_RANGE) \
-            or has_flipped_over(state[2:6]) or \
-            self.goals_reached >= len(self.all_goals) * self.laps_to_run
+            or has_flipped_over(state[2:6]) \
+            or self.goals_reached >= len(self.all_goals) * self.laps_to_run
 
     def get_observation(self):
 
