@@ -3,7 +3,7 @@ train:
     environment: 'CarTrack' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat
     track: 'multi_track' # track_1, track_2, track_3 -> only applies for CarTrack
     algorithm: 'TD3'
-    max_steps_exploration: 1000 
+    max_steps_exploration: 700
     max_steps_training: 1000000
     reward_range: 2.0
     collision_range: 0.2
