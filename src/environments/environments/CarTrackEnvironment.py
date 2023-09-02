@@ -19,12 +19,14 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
-                 laps_to_run=1
+                 laps_to_run=1,
+                 max_goals=500
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
 
         # Environment Details ----------------------------------------
         self.MAX_STEPS_PER_GOAL = max_steps
+        self.MAX_GOALS = max_goals
         
         match observation_mode:
             case 'no_position':
@@ -141,7 +143,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def is_terminated(self, state):
         return has_collided(state[8:], self.COLLISION_RANGE) \
             or has_flipped_over(state[2:6]) or \
-            self.goals_reached >= len(self.all_goals) * self.laps_to_run
+            self.goals_reached >= self.MAX_GOALS
 
     def get_observation(self):
 
