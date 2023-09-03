@@ -20,7 +20,7 @@ from .waypoints import waypoints
 
 class CarBeatEnvironment(Node):
 
-    def __init__(self, car_one_name, car_two_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1', observation_mode= 'full', laps_to_run=1):
+    def __init__(self, car_one_name, car_two_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1', observation_mode= 'full', laps_to_run=1, max_goals=500):
         super().__init__('car_beat_environment')
 
         # Environment Details ----------------------------------------
@@ -33,6 +33,7 @@ class CarBeatEnvironment(Node):
         self.MAX_STEPS_PER_GOAL = max_steps
         self.OBSERVATION_MODE = observation_mode
         
+        self.MAX_GOALS = max_goals
         match observation_mode:
             case 'full':
                 self.OBSERVATION_SIZE = 8 + 10 
@@ -254,7 +255,7 @@ class CarBeatEnvironment(Node):
         
         return has_collided(state[8:19], self.COLLISION_RANGE) \
             or has_flipped_over(state[2:6]) \
-            or self.goals_reached >= self.ftg_goals_reached
+            or self.goals_reached >= self.MAX_GOALS
 
     '''
     init ai car goal count 0
@@ -376,7 +377,7 @@ class CarBeatEnvironment(Node):
             self.ftg_goals_reached += 1
         
         # If RL car has overtaken FTG car
-        if self.goals_reached >= self.ftg_goals_reached:
+        if self.goals_reached >= (self.ftg_goals_reached + 5 ):
             reward  += 200
 
         if has_collided(next_state[8:19], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
