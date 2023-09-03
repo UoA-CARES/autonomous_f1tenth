@@ -161,7 +161,8 @@ def train(env, agent, record: Record):
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
-
+    evaluation_reward = None
+    
     state, _ = env.reset()
 
     evaluate = False
