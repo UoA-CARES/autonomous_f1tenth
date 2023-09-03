@@ -216,6 +216,7 @@ def train(env, agent, record: Record):
             
             if evaluate:
                 evaluation_reward = evaluate_policy(env, agent, EVALUATE_FOR_M_EPISODES)
+                evaluate = False
             
             # Reset environment
             state, _ = env.reset()
