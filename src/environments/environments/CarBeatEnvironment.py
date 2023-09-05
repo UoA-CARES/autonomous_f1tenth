@@ -377,7 +377,7 @@ class CarBeatEnvironment(Node):
             self.ftg_goals_reached += 1
         
         # If RL car has overtaken FTG car
-        if self.goals_reached >= (self.ftg_goals_reached + 5 ):
+        if self.goals_reached >= (self.ftg_goals_reached + 5):
             reward  += 200
 
         if has_collided(next_state[8:19], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
