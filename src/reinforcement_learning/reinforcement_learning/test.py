@@ -84,7 +84,7 @@ def main():
         device=DEVICE
     )
 
-    record = Record(checkpoint_freq=100, log_dir="multi_track_with_speed12")
+    record = Record(checkpoint_freq=100, log_dir="multi_track_with_speed12_evaluation")
 
     test(env=env, agent=agent, record=record)
 
