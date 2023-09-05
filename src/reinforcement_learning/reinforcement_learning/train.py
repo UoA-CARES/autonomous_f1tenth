@@ -51,8 +51,7 @@ def main():
     MAX_STEPS_PER_BATCH, \
     OBSERVATION_MODE, \
     EVALUATE_EVERY_N_STEPS, \
-    EVALUATE_FOR_M_EPISODES, \
-    LAPS_TO_RUN = [param.value for param in params]
+    EVALUATE_FOR_M_EPISODES = [param.value for param in params]
 
     if ACTOR_PATH != '' and CRITIC_PATH != '':
         MAX_STEPS_EXPLORATION = 0
@@ -81,7 +80,6 @@ def main():
         f'Observation Mode: {OBSERVATION_MODE}\n'
         f'Evaluate Every N Steps: {EVALUATE_EVERY_N_STEPS}\n'
         f'Evaluate For M Episodes: {EVALUATE_FOR_M_EPISODES}\n'
-        f'Laps To Run: {LAPS_TO_RUN}\n'
         f'---------------------------------------------\n'
     )
 
@@ -94,7 +92,7 @@ def main():
         case 'CarBlock':
             env = CarBlockEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
         case 'CarTrack':
-            env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK, observation_mode=OBSERVATION_MODE, laps_to_run=LAPS_TO_RUN)
+            env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK, observation_mode=OBSERVATION_MODE)
         case 'CarBeat':
             env = CarBeatEnvironment('f1tenth_one', 'f1tenth_two', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK, observation_mode=OBSERVATION_MODE)
         case _:
@@ -140,8 +138,7 @@ def main():
         'max_steps_per_batch': MAX_STEPS_PER_BATCH,
         'observation_mode': OBSERVATION_MODE,
         'evaluate_every_n_steps': EVALUATE_EVERY_N_STEPS,
-        'evaluate_for_m_episodes': EVALUATE_FOR_M_EPISODES,
-        'laps_to_run': LAPS_TO_RUN
+        'evaluate_for_m_episodes': EVALUATE_FOR_M_EPISODES
     }
 
     if (ENVIRONMENT == 'CarTrack'):
@@ -349,8 +346,7 @@ def get_params():
             ('max_steps_per_batch', 5000),
             ('observation_mode', 'no_position'),
             ('evaluate_every_n_steps', 10000),
-            ('evaluate_for_m_episodes', 5),
-            ('laps_to_run', 1)
+            ('evaluate_for_m_episodes', 5)
         ]
     )
 
@@ -377,8 +373,7 @@ def get_params():
         'max_steps_per_batch',
         'observation_mode',
         'evaluate_every_n_steps',
-        'evaluate_for_m_episodes',
-        'laps_to_run'
+        'evaluate_for_m_episodes'
     ])
 
 

@@ -20,7 +20,7 @@ from .waypoints import waypoints
 
 class CarBeatEnvironment(Node):
 
-    def __init__(self, car_one_name, car_two_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1', observation_mode= 'full', laps_to_run=1, max_goals=500):
+    def __init__(self, car_one_name, car_two_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1', observation_mode= 'full', max_goals=500):
         super().__init__('car_beat_environment')
 
         # Environment Details ----------------------------------------
@@ -51,8 +51,6 @@ class CarBeatEnvironment(Node):
         self.step_counter = 0
 
         self.track = track
-
-        self.laps_to_run = laps_to_run
 
         # Goal/Track Info -----------------------------------------------
         self.goals_reached = 0
