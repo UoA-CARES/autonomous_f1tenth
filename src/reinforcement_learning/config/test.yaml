@@ -3,10 +3,10 @@ test:
     environment: 'CarTrack'
     track: 'multi_track_testing' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     max_steps_evaluation: 1000000
-    max_steps: 300
+    max_steps: 3000
     actor_path: rl_logs/23_09_01_18:55:01/models/actor_checkpoint.pht
     critic_path: rl_logs/23_09_01_18:55:01/models/critic_checkpoint.pht
-    step_length: 0.25
-    reward_range: 3.0
+    step_length: 0.1
+    reward_range: 2.0
     collision_range: 0.2
     observation_mode: 'lidar_only'

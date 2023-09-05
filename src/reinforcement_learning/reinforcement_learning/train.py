@@ -294,7 +294,7 @@ def evaluate_policy(env, agent, num_episodes):
 
         while not truncated and not terminated:
 
-            action = agent.select_action_from_policy(state)
+            action = agent.select_action_from_policy(state, evaluation=True)
             action = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
             next_state, reward, terminated, truncated, _ = env.step(action)
 
