@@ -4,6 +4,7 @@ import rclpy
 import torch
 from cares_reinforcement_learning.algorithm.policy import TD3
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
+from cares_reinforcement_learning.util import Record
 from cares_reinforcement_learning.util import helpers as hlp
 
 from environments.CarBlockEnvironment import CarBlockEnvironment
@@ -83,10 +84,12 @@ def main():
         device=DEVICE
     )
 
-    test(env=env, agent=agent)
+    record = Record(checkpoint_freq=100, log_dir="multi_track_with_speed12_evaluation")
+
+    test(env=env, agent=agent, record=record)
 
 
-def test(env, agent: TD3):
+def test(env, agent: TD3, record: Record):
     state, _ = env.reset()
     episode_timesteps = 0
     episode_reward = 0
@@ -113,6 +116,14 @@ def test(env, agent: TD3):
             episode_reward = 0
             episode_timesteps = 0
             episode_num += 1
+
+        record.log(
+            out=done or truncated,
+            Step=total_step_counter,
+            Episode=episode_num,
+            Step_Reward=reward,
+            Episode_Reward=episode_reward if (done or truncated) else None,
+        )
 
 
 def get_params():
