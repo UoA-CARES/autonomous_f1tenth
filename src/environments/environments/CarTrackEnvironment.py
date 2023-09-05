@@ -209,9 +209,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.steps_since_last_goal >= 10:
             reward -= 10
 
-        if self.goals_reached != 0 and self.goals_reached % len(self.all_goals) == 0:
-            reward += 100
-        
         if has_collided(next_state[8:], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25
 
