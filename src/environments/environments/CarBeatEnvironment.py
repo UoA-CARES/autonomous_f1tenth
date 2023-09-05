@@ -27,7 +27,7 @@ class CarBeatEnvironment(Node):
                  collision_range=0.2,
                  step_length=0.5,
                  track='track_1',
-                 observation_mode='full',
+                 observation_mode='lidar_only',
                  max_goals=500):
         super().__init__('car_beat_environment')
 

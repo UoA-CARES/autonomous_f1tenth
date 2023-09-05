@@ -10,8 +10,13 @@ trap cleanup SIGINT SIGTERM
 
 cd ~/autonomous_f1tenth/
 
-export GZ_PARTITION=150
-export ROS_DOMAIN_ID=150
+if [ -n "$1" ]; then
+  export GZ_PARTITION=$1
+  export ROS_DOMAIN_ID=$1
+else
+  export GZ_PARTITION=150
+  export ROS_DOMAIN_ID=150
+fi
 
 . install/setup.bash
 
