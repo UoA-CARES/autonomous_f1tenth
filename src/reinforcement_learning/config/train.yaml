@@ -10,10 +10,10 @@ train:
     observation_mode: 'lidar_only'
     evaluate_every_n_steps: 2000
     evaluate_for_m_episodes: 3
-    # actor_path & critic_path must exist, it can't be commented
     # actor_path: 'rl_logs/23_08_02_17:59:13/models/actor_checkpoint.pht'
     # critic_path: 'rl_logs/23_08_02_17:59:13/models/critic_checkpoint.pht'
     gamma: 0.95
+    # actor_path & critic_path must exist for retrain.sh, it can't be commented
     # tau: 0.005
     g: 1
     # batch_size: 32
