@@ -161,9 +161,12 @@ def train(env, agent, record: Record):
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
-
+    evaluation_reward = None
+    
     state, _ = env.reset()
 
+    evaluate = False
+    
     print(f'Initial State: {state}')
     historical_reward = {"step": [], "episode_reward": []}
 
@@ -190,12 +193,11 @@ def train(env, agent, record: Record):
                 experiences = (experiences['state'], experiences['action'], experiences['reward'], experiences['next_state'], experiences['done'])
                 agent.train_policy(experiences)
 
-        evaluation_reward = None
+        
 
         if total_step_counter % EVALUATE_EVERY_N_STEPS == 0:
-            evaluation_reward = evaluate_policy(env, agent, EVALUATE_FOR_M_EPISODES)
-            # Reset Environment
-            truncated = True
+            evaluate = True
+
         
         record.log(
             out=done or truncated,
@@ -206,10 +208,16 @@ def train(env, agent, record: Record):
             Evaluation_Reward=evaluation_reward
         )
 
+        evaluation_reward = None
+
         if done or truncated:
             historical_reward["step"].append(total_step_counter)
             historical_reward["episode_reward"].append(episode_reward)
-
+            
+            if evaluate:
+                evaluation_reward = evaluate_policy(env, agent, EVALUATE_FOR_M_EPISODES)
+                evaluate = False
+            
             # Reset environment
             state, _ = env.reset()
             episode_reward = 0

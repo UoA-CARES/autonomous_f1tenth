@@ -1,7 +1,6 @@
 from .controller import Controller
 import rclpy
 import numpy as np
-from .ftg_controller import FTGController
 
 def main():
     rclpy.init()
@@ -18,8 +17,7 @@ def main():
 
     params = param_node.get_parameters(['car_name', 'track_name'])
     CAR_NAME, TRACK_NAME = [param.value for param in params]
-    
-    controller = FTGController('ftg_policy_', CAR_NAME, 0.25, TRACK_NAME)
+
     controller = Controller('ftg_policy_', CAR_NAME, 0.25)
 
     policy = FollowTheGapPolicy()
@@ -27,7 +25,6 @@ def main():
     state = controller.get_observation()
 
     while True:
-        # controller.get_logger().info(f"State: {state[:-2]}") 
         action = policy.select_action(state)  
         state = controller.step(action)
 
@@ -89,7 +86,7 @@ class FollowTheGapPolicy():
 
         obstacles_angles = []
         obstacles_ranges = []
-        obstacle_max_val = 2
+        obstacle_max_val = 4
         for i in range(10):
             if (state[8+i] > min_lidar_range) & (state[8+i]<obstacle_max_val):
                 obstacles_ranges.append(state[8+i])
