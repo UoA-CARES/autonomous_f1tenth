@@ -97,7 +97,7 @@ def test(env, agent: TD3):
     for total_step_counter in range(int(MAX_STEPS_EVALUATION)):
         episode_timesteps += 1
 
-        action = agent.select_action_from_policy(state)
+        action = agent.select_action_from_policy(state, evaluation=True)
         action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
 
         next_state, reward, done, truncated, info = env.step(action_env)

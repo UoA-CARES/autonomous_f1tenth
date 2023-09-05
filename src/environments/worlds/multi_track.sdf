@@ -25,8 +25,7 @@
       name="gz::sim::systems::SceneBroadcaster">
     </plugin>
 
-    <light type
-="directional" name="sun">
+    <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
       <diffuse>1 1 1 1</diffuse>

@@ -13,14 +13,22 @@ from nav_msgs.msg import Odometry
 
 from environment_interfaces.srv import CarBeatReset
 from .termination import has_collided, has_flipped_over
-from .util import process_odom, reduce_lidar
-from .track_reset import track_info
+from .util import process_odom, reduce_lidar, get_all_goals_and_waypoints_in_multi_tracks
 from .goal_positions import goal_positions
 from .waypoints import waypoints
 
 class CarBeatEnvironment(Node):
 
-    def __init__(self, car_one_name, car_two_name, reward_range=1, max_steps=50, collision_range=0.2, step_length=0.5, track='track_1', observation_mode= 'full', laps_to_run=1, max_goals=500):
+    def __init__(self,
+                 car_one_name,
+                 car_two_name,
+                 reward_range=1,
+                 max_steps=50,
+                 collision_range=0.2,
+                 step_length=0.5,
+                 track='track_1',
+                 observation_mode='full',
+                 max_goals=500):
         super().__init__('car_beat_environment')
 
         # Environment Details ----------------------------------------
@@ -52,8 +60,6 @@ class CarBeatEnvironment(Node):
 
         self.track = track
 
-        self.laps_to_run = laps_to_run
-
         # Goal/Track Info -----------------------------------------------
         self.goals_reached = 0
         self.start_goal_index = 0
@@ -63,41 +69,12 @@ class CarBeatEnvironment(Node):
         
         self.steps_since_last_goal = 0
 
-        if track != 'multi_track':
+        if 'multi_track' not in track:
             self.all_goals = goal_positions[track]
             self.car_waypoints = waypoints[track]
         else:
-            austin_gp = goal_positions['austin_track']
-            budapest_gp = goal_positions['budapest_track']
-            budapest_gp = [[x + 200, y] for x, y in budapest_gp]
-            hockenheim_gp = goal_positions['hockenheim_track']
-            hockenheim_gp = [[x + 300, y] for x, y in hockenheim_gp]
-            
-            self.all_car_goals = {
-                'austin_track': austin_gp,
-                'budapest_track': budapest_gp,
-                'hockenheim_track': hockenheim_gp 
-            }
-
-            austin_wp = waypoints['austin_track']
-
-            budapest_wp = []
-            for x, y, yaw, index in waypoints['budapest_track']:
-                x += 200
-                budapest_wp.append((x, y, yaw, index))
-            
-            hockenheim_wp = []
-            for x, y, yaw, index in waypoints['hockenheim_track']:
-                x += 300
-                hockenheim_wp.append((x, y, yaw, index))
-            
-            self.all_car_waypoints = {
-                'austin_track': austin_wp,
-                'budapest_track': budapest_wp,
-                'hockenheim_track': hockenheim_wp
-            }
-
-            self.current_track = 'austin_track'
+            self.all_car_goals, self.all_car_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
+            self.current_track = list(self.all_car_goals.keys())[0]
 
             self.all_goals = self.all_car_goals[self.current_track]
             self.car_waypoints = self.all_car_waypoints[self.current_track]
@@ -170,7 +147,7 @@ class CarBeatEnvironment(Node):
 
         self.set_velocity(0, 0)
 
-        if self.track == 'multi_track': 
+        if 'multi_track' in self.track:
             self.current_track = random.choice(list(self.all_car_goals.keys()))
             self.all_goals = self.all_car_goals[self.current_track]
             self.car_waypoints = self.all_car_waypoints[self.current_track]

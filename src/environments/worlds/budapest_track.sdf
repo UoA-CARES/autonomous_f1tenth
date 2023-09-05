@@ -25,8 +25,7 @@
       name="gz::sim::systems::SceneBroadcaster">
     </plugin>
 
-    <light type
-="directional" name="sun">
+    <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
       <diffuse>1 1 1 1</diffuse>
@@ -40,7 +39,7 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-     <model name="austin_ground_plane">
+     <model name="budapest_ground_plane">
       <pose>0 0 0 0 0 0</pose>
       <static>true</static>
       <link name="link">
@@ -78,7 +77,7 @@
         </visual>
       </link>
     </model>
-    <model name="austin_track">
+    <model name="budapest_track">
         <static>true</static>
         <!-- <pose>0 0 -9 0 0 0</pose> -->
         <!-- <pose>0 0 -8.9 0 0 0</pose> -->
