@@ -1,3 +1,4 @@
+import pathlib
 import random
 import time
 
@@ -108,14 +109,16 @@ def main():
         'device': DEVICE
     }
 
+    if ACTOR_PATH != '' and CRITIC_PATH != '':
+        # Get the file paths as absolute paths
+        actor_file_path = pathlib.Path(ACTOR_PATH).resolve()
+        critic_file_path = pathlib.Path(CRITIC_PATH).resolve()
+
+        network_factory_args["actor_file_path"] = actor_file_path
+        network_factory_args["critic_file_path"] = critic_file_path
+
     agent_factory = NetworkFactory()
     agent = agent_factory.create_network(ALGORITHM, network_factory_args)
-    
-    if ACTOR_PATH != '' and CRITIC_PATH != '':
-        print('Reading saved models into actor and critic')
-        agent.actor.load_state_dict(torch.load(ACTOR_PATH))
-        agent.critic.load_state_dict(torch.load(CRITIC_PATH))
-        print('Successfully Loaded models')
 
     networks = {'actor': agent.actor_net, 'critic': agent.critic_net}
     config = {
