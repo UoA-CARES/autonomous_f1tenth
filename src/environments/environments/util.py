@@ -2,6 +2,8 @@ import numpy as np
 import random
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
+from .goal_positions import goal_positions
+from .waypoints import waypoints
 
 def get_quaternion_from_euler(roll, pitch, yaw):
   """
@@ -78,3 +80,58 @@ def reduce_lidar(lidar: LaserScan):
             reduced_range.append(sample)
 
         return reduced_range
+
+
+def get_all_goals_and_waypoints_in_multi_tracks(track_name):
+    all_car_goals = {}
+    all_car_waypoints = {}
+
+    if track_name == 'multi_track':
+        # multi_track
+        # Goal position
+        austin_gp = goal_positions['austin_track']
+        budapest_gp = [[x + 200, y] for x, y in goal_positions['budapest_track']]
+        hockenheim_gp = [[x + 300, y] for x, y in goal_positions['hockenheim_track']]
+
+        all_car_goals = {
+            'austin_track': austin_gp,
+            'budapest_track': budapest_gp,
+            'hockenheim_track': hockenheim_gp,
+        }
+
+        # Waypoints
+        austin_wp = waypoints['austin_track']
+        budapest_wp = [(x + 200, y, yaw, index) for x, y, yaw, index in waypoints['budapest_track']]
+        hockenheim_wp = [(x + 300, y, yaw, index) for x, y, yaw, index in waypoints['hockenheim_track']]
+
+        all_car_waypoints = {
+            'austin_track': austin_wp,
+            'budapest_track': budapest_wp,
+            'hockenheim_track': hockenheim_wp
+        }
+
+    elif track_name == 'multi_track_testing':
+        # multi_track_testing
+        # Goal position
+        melbourne_gp = goal_positions['melbourne_track']
+        saopaolo_gp = [[x + 100, y] for x, y in goal_positions['saopaolo_track']]
+        shanghai_gp = [[x + 250, y] for x, y in goal_positions['shanghai_track']]
+
+        all_car_goals = {
+            'melbourne_track': melbourne_gp,
+            'saopaolo_track': saopaolo_gp,
+            'shanghai_track': shanghai_gp,
+        }
+
+        # Waypoints
+        melbourne_wp = waypoints['melbourne_track']
+        saopaolo_wp = [(x + 100, y, yaw, index) for x, y, yaw, index in waypoints['saopaolo_track']]
+        shanghai_wp = [(x + 250, y, yaw, index) for x, y, yaw, index in waypoints['shanghai_track']]
+
+        all_car_waypoints = {
+            'melbourne_track': melbourne_wp,
+            'saopaolo_track': saopaolo_wp,
+            'shanghai_track': shanghai_wp
+        }
+
+    return all_car_goals, all_car_waypoints
