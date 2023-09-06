@@ -10,7 +10,7 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import Empty
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from nav_msgs.msg import Odometry
-
+import numpy as np
 from environment_interfaces.srv import CarBeatReset
 from .termination import has_collided, has_flipped_over
 from .util import process_odom, reduce_lidar, get_all_goals_and_waypoints_in_multi_tracks
@@ -143,7 +143,7 @@ class CarBeatEnvironment(Node):
 
         self.steps_since_last_goal = 0
         self.goals_reached = 0
-        self.ftg_goals_reached = 30
+        self.ftg_goals_reached = np.random.randint(8, 12)
 
         self.set_velocity(0, 0)
 
@@ -154,7 +154,7 @@ class CarBeatEnvironment(Node):
 
         # New random starting point for the cars
         car_x, car_y, car_yaw, index = random.choice(self.car_waypoints)
-        ftg_x, ftg_y, ftg_yaw, ftg_index = self.car_waypoints[(index + 30) % len(self.car_waypoints)]
+        ftg_x, ftg_y, ftg_yaw, ftg_index = self.car_waypoints[(index + self.ftg_goals_reached) % len(self.car_waypoints)]
 
         self.start_goal_index = index
         self.ftg_start_goal_index = index
@@ -354,7 +354,7 @@ class CarBeatEnvironment(Node):
             self.ftg_goals_reached += 1
         
         # If RL car has overtaken FTG car
-        if self.goals_reached >= (self.ftg_goals_reached + 5):
+        if self.goals_reached >= (self.ftg_goals_reached + 4):
             reward  += 200
 
         if has_collided(next_state[8:19], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
