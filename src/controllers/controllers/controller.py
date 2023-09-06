@@ -111,7 +111,7 @@ class Controller(Node):
         delta = arctan(L * omega/ v)
         '''
 
-        delta = math.atan((L * omega) / v)
+        delta = math.atan((L * omega) / linear_v)
 
         return delta
 
