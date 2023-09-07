@@ -113,8 +113,8 @@ def main():
     
     if ACTOR_PATH != '' and CRITIC_PATH != '':
         print('Reading saved models into actor and critic')
-        agent.actor.load_state_dict(torch.load(ACTOR_PATH))
-        agent.critic.load_state_dict(torch.load(CRITIC_PATH))
+        agent.actor_net.load_state_dict(torch.load(ACTOR_PATH))
+        agent.critic_net.load_state_dict(torch.load(CRITIC_PATH))
         print('Successfully Loaded models')
 
     networks = {'actor': agent.actor_net, 'critic': agent.critic_net}
