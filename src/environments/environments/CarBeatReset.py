@@ -34,7 +34,7 @@ class CarBeatReset(Node):
 
     def service_callback(self, request, response):
 
-        self.get_logger().info(f'Reset Service Request Received: relocating goal to x={request.cx_one} y={request.cy_one}')
+        # self.get_logger().info(f'Reset Service Request Received: relocating goal to x={request.cx_one} y={request.cy_one}')
 
         goal_req = self.create_request('goal', x=request.gx, y=request.gy, z=1)
         car_req_one = self.create_request('f1tenth_one', x=request.cx_one, y=request.cy_one, z=0.1, yaw=request.cyaw_one)
