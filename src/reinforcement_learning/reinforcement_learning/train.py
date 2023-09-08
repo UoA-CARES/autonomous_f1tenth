@@ -232,7 +232,7 @@ def train_ppo(env, agent, record):
     episode_num = 0
     episode_reward = 0
     time_step = 1
-
+    evaluation_reward = None
     evaluate = False
     
     memory = MemoryBuffer()
