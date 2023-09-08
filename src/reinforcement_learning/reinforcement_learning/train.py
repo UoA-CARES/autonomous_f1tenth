@@ -233,6 +233,8 @@ def train_ppo(env, agent, record):
     episode_reward = 0
     time_step = 1
 
+    evaluate = False
+    
     memory = MemoryBuffer()
 
     state, _ = env.reset()
@@ -250,9 +252,8 @@ def train_ppo(env, agent, record):
         episode_reward += reward
 
         if time_step % max_steps_per_batch == 0:
-            experience = memory.flush()
-            
-            for _ in range(G):    
+            for _ in range(G):   
+                experience = memory.sample(BATCH_SIZE) 
                 info = agent.train_policy((
                     experience['state'],
                     experience['action'],
@@ -261,21 +262,30 @@ def train_ppo(env, agent, record):
                     experience['done'],
                     experience['log_prob']
                 ))
+            
+            memory.clear()
 
-            record.log(
-                Train_steps = total_step_counter + 1,
-                Train_episode= episode_num + 1,
-                Train_timesteps=episode_timesteps,
-                Train_reward= episode_reward,
-                Actor_loss = info['actor_loss'].item(),
-                Critic_loss = info['critic_loss'].item(),
-                out=done or truncated
-            )
-
+        if total_step_counter % EVALUATE_EVERY_N_STEPS == 0:
+            evaluate = True
+        
+        record.log(
+            Steps = total_step_counter,
+            Episode= episode_num,
+            Step_reward= reward,
+            Episode_reward= episode_reward if (done or truncated) else None,
+            Evaluation_reward=evaluation_reward,
+            out=done or truncated,
+        )
+        evaluation_reward = None
         time_step += 1
 
         if done or truncated:
             print(f'Episode: {episode_num} | Reward: {episode_reward} | Steps: {time_step}')
+            
+            if evaluate:
+                evaluation_reward = evaluate_policy(env, agent, EVALUATE_FOR_M_EPISODES)
+                evaluate = False
+
             # Reset environment
             state, _ = env.reset()
             episode_reward = 0

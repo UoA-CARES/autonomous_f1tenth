@@ -357,6 +357,7 @@ class CarBeatEnvironment(Node):
         
         # If RL car has overtaken FTG car
         if self.goals_reached >= (self.ftg_goals_reached + self.ftg_offset + 3):
+            print(f'RL Car has overtaken FTG Car')
             reward  += 200
             self.ftg_goals_reached += 500
             
