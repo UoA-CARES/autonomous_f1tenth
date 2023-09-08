@@ -349,7 +349,7 @@ class CarBeatEnvironment(Node):
 
             self.steps_since_last_goal = 0
 
-        ftg_current_distance = math.dist(self.all_goals[self.ftg_start_goal_index + self.ftg_goals_reached], next_state[18:20])
+        ftg_current_distance = math.dist(self.all_goals[(self.ftg_start_goal_index + self.ftg_goals_reached) % len(self.all_goals)], next_state[18:20])
         
         # Keeping track of FTG car goal number
         if ftg_current_distance < self.REWARD_RANGE:
