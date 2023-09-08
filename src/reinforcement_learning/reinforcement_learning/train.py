@@ -28,6 +28,7 @@ def main():
     global BATCH_SIZE
     global EVALUATE_EVERY_N_STEPS
     global EVALUATE_FOR_M_EPISODES
+    global ALGORITHM
 
     ENVIRONMENT, \
     ALGORITHM, \
@@ -309,7 +310,11 @@ def evaluate_policy(env, agent, num_episodes):
 
         while not truncated and not terminated:
 
-            action = agent.select_action_from_policy(state, evaluation=True)
+            if ALGORITHM == 'PPO':
+                action = agent.select_action_from_policy(state)
+            else:
+                action = agent.select_action_from_policy(state, evaluation=True)
+                
             action = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
             next_state, reward, terminated, truncated, _ = env.step(action)
 
