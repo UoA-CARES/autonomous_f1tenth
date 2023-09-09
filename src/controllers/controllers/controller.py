@@ -1,4 +1,5 @@
 import rclpy
+import math
 from geometry_msgs.msg import Twist
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from rclpy import Future
@@ -81,7 +82,7 @@ class Controller(Node):
         data = future.result()
         return data['odom'], data['lidar']
 
-    def set_velocity(self, linear, angular):
+    def set_velocity(self, linear, angular, L):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
@@ -90,6 +91,31 @@ class Controller(Node):
         velocity_msg.linear.x = float(linear)
 
         self.cmd_vel_pub.publish(velocity_msg)
+
+    def omega_to_ackerman(omega, linear_v, L):
+        '''
+        Convert CG angular velocity to Ackerman steering angle.
+
+        Parameters:
+        - omega: CG angular velocity in rad/s
+        - v: Vehicle speed in m/s
+        - L: Wheelbase of the vehicle in m
+
+        Returns:
+        - delta: Ackerman steering angle in radians
+
+        Derivation:
+        R = v / omega 
+        R = L / tan(delta)  equation 10 from https://www.researchgate.net/publication/228464812_Electric_Vehicle_Stability_with_Rear_Electronic_Differential_Traction#pf3
+        tan(delta) = L * omega / v
+        delta = arctan(L * omega/ v)
+        '''
+
+        delta = math.atan((L * omega) / linear_v)
+
+        return delta
+
+
 
     def sleep(self):
         while not self.timer_future.done():
