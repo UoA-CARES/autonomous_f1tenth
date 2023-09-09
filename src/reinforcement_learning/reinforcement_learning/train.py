@@ -57,6 +57,11 @@ def main():
     if ACTOR_PATH != '' and CRITIC_PATH != '':
         MAX_STEPS_EXPLORATION = 0
 
+    torch.manual_seed(SEED)
+    torch.cuda.manual_seed_all(SEED)
+    np.random.seed(SEED)
+    random.seed(SEED)
+    
     print(
         f'---------------------------------------------\n'
         f'Environment: {ENVIRONMENT}\n'
