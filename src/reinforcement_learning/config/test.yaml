@@ -1,11 +1,12 @@
 test:
   ros__parameters:
-    environment: 'CarTrack'
-    track: 'multi_track_testing' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
+    environment: 'CarBeat'
+    track: 'multi_track' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     max_steps_evaluation: 1000000
     max_steps: 3000
-    actor_path: rl_logs/multi_track_with_speed12/models/actor_checkpoint.pht
-    critic_path: rl_logs/multi_track_with_speed12/models/critic_checkpoint.pht
+    actor_path: results/23_09_08_06:28:51/models/actor_checkpoint.pht
+    critic_path: results/23_09_08_06:28:51/models/critic_checkpoint.pht
+    algorithm: 'TD3'
     step_length: 0.1
     reward_range: 3.0
     collision_range: 0.2

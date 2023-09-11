@@ -5,7 +5,7 @@ import torch
 from cares_reinforcement_learning.algorithm.policy import TD3
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 from cares_reinforcement_learning.util import Record
-from cares_reinforcement_learning.util import helpers as hlp
+from cares_reinforcement_learning.util import helpers as hlp, NetworkFactory
 
 from environments.CarBlockEnvironment import CarBlockEnvironment
 from environments.CarGoalEnvironment import CarGoalEnvironment
@@ -31,21 +31,8 @@ def main():
     COLLISION_RANGE, \
     ACTOR_PATH, \
     CRITIC_PATH, \
-    OBSERVAION_MODE = [param.value for param in params]
-
-    print(
-        f'---------------------------------------------\n'
-        f'Environment: {ENVIRONMENT}\n'
-        f'Evaluation Steps: {MAX_STEPS_EVALUATION}\n'
-        f'Steps per Episode: {MAX_STEPS}\n'
-        f'Step Length: {STEP_LENGTH}\n'
-        f'Reward Range: {REWARD_RANGE}\n'
-        f'Collision Range: {COLLISION_RANGE}\n'
-        f'Critic Path: {CRITIC_PATH}\n'
-        f'Actor Path: {ACTOR_PATH}\n'
-        f'Observation Mode: {OBSERVAION_MODE}\n'
-        f'---------------------------------------------\n'
-    )
+    OBSERVAION_MODE, \
+    ALGORITHM = [param.value for param in params]
 
     if ACTOR_PATH == '' or CRITIC_PATH == '':
         raise Exception('Actor or Critic path not provided')
@@ -62,34 +49,53 @@ def main():
         case 'CarTrack':
             env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK, observation_mode=OBSERVAION_MODE)
         case 'CarBeat':
-            env = CarBeatEnvironment('f1tenth_one', 'f1tenth_two', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
+            env = CarBeatEnvironment('f1tenth_one', 'f1tenth_two', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK, observation_mode=OBSERVAION_MODE)
         case _:
             env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
 
-    actor = Actor(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=0.1)
-    critic = Critic(observation_size=env.OBSERVATION_SIZE, num_actions=env.ACTION_NUM, learning_rate=0.1)
+    print(
+        f'---------------------------------------------\n'
+        f'Environment: {ENVIRONMENT}\n'
+        f'Evaluation Steps: {MAX_STEPS_EVALUATION}\n'
+        f'Steps per Episode: {MAX_STEPS}\n'
+        f'Step Length: {STEP_LENGTH}\n'
+        f'Reward Range: {REWARD_RANGE}\n'
+        f'Collision Range: {COLLISION_RANGE}\n'
+        f'Critic Path: {CRITIC_PATH}\n'
+        f'Actor Path: {ACTOR_PATH}\n'
+        f'Observation Mode: {OBSERVAION_MODE}\n'
+        f'Observation size: {env.OBSERVATION_SIZE}'
+        f'Algorithm: {ALGORITHM}\n'
+        f'---------------------------------------------\n'
+    )
+
+    network_factory_args = {
+        'observation_size': env.OBSERVATION_SIZE,
+        'action_num': env.ACTION_NUM,
+        'actor_lr': 0.11,
+        'critic_lr': 0.11,
+        'gamma': 0.23,
+        'tau': 0.001,
+        'device': DEVICE
+    }
+
+    agent_factory = NetworkFactory()
+    agent = agent_factory.create_network(ALGORITHM, network_factory_args)
 
     print('Reading saved models into actor and critic')
-    actor.load_state_dict(torch.load(ACTOR_PATH))
-    critic.load_state_dict(torch.load(CRITIC_PATH))
+    agent.actor_net.load_state_dict(torch.load(ACTOR_PATH))
+    agent.critic_net.load_state_dict(torch.load(CRITIC_PATH))
 
     print('Successfully Loaded models')
 
-    agent = TD3(
-        actor_network=actor,
-        critic_network=critic,
-        gamma=0.999,
-        tau=0.002,
-        action_num=env.ACTION_NUM,
-        device=DEVICE
-    )
+    
 
     record = Record(checkpoint_freq=100, log_dir="multi_track_with_speed12_evaluation")
 
     test(env=env, agent=agent, record=record)
 
 
-def test(env, agent: TD3, record: Record):
+def test(env, agent, record: Record):
     state, _ = env.reset()
     episode_timesteps = 0
     episode_reward = 0
@@ -145,7 +151,8 @@ def get_params():
             ('collision_range', 0.2),
             ('actor_path', ''),
             ('critic_path', ''),
-            ('observation_mode', 'full')
+            ('observation_mode', 'full'),
+            ('algorithm', 'TD3')
         ]
     )
 
@@ -159,7 +166,8 @@ def get_params():
         'collision_range',
         'actor_path',
         'critic_path',
-        'observation_mode'
+        'observation_mode',
+        'algorithm'
     ])
 
 

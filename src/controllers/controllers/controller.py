@@ -82,7 +82,7 @@ class Controller(Node):
         data = future.result()
         return data['odom'], data['lidar']
 
-    def set_velocity(self, linear, angular, L):
+    def set_velocity(self, linear, angular):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
