@@ -159,7 +159,7 @@ class CarBeatEnvironment(Node):
         ftg_x, ftg_y, ftg_yaw, ftg_index = self.car_waypoints[(index + self.ftg_offset) % len(self.car_waypoints)]
 
         self.start_goal_index = index
-        self.ftg_start_goal_index = index
+        self.ftg_start_goal_index = ftg_index
 
         self.goal_position = self.all_goals[self.start_goal_index]
         self.ftg_goal_position = self.all_goals[self.ftg_start_goal_index]
@@ -350,7 +350,7 @@ class CarBeatEnvironment(Node):
             self.steps_since_last_goal = 0
 
         ftg_current_distance = math.dist(self.all_goals[(self.ftg_start_goal_index + self.ftg_goals_reached) % len(self.all_goals)], next_state[18:20])
-        
+
         # Keeping track of FTG car goal number
         if ftg_current_distance < self.REWARD_RANGE:
             self.ftg_goals_reached += 1
