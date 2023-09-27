@@ -4,7 +4,7 @@ import time
 import numpy as np
 import rclpy
 import torch
-from cares_reinforcement_learning.algorithm.policy import TD3, PPO
+from cares_reinforcement_learning.algorithm.policy import TD3, PPO, SAC
 from cares_reinforcement_learning.memory import MemoryBuffer
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 from cares_reinforcement_learning.util import Record, NetworkFactory

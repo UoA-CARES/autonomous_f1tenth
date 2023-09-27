@@ -333,12 +333,20 @@ class CarBeatEnvironment(Node):
         goal_position = self.goal_position
 
         current_distance = math.dist(goal_position, next_state[:2])
+
+    # Check if the agent has moved closer to the goal
+        if hasattr(self, 'previous_distance'):
+            if current_distance < self.previous_distance:
+                reward += 1  # Small reward for moving closer to the goal
+
+    # Update previous_distance for the next iteration
+        self.previous_distance = current_distance
         
         self.steps_since_last_goal += 1
 
         if current_distance < self.REWARD_RANGE:
             print(f'Goal #{self.goals_reached} Reached')
-            reward += 2
+            reward += 5
             self.goals_reached += 1
 
             # Updating Goal Position
