@@ -25,7 +25,7 @@ def main():
     state = controller.get_observation()
 
     while True:
-        action = policy.select_action(state)  
+        action = policy.select_action(state)
         state = controller.step(action)
 
 
