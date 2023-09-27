@@ -1,6 +1,7 @@
 import rclpy
 import math
 from geometry_msgs.msg import Twist
+from ackermann_msgs.msg import AckermannDriveStamped
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from rclpy import Future
 from rclpy.node import Node
@@ -19,22 +20,22 @@ class Controller(Node):
         self.STEP_LENGTH = step_length
 
         # Pub/Sub ----------------------------------------------------
-        self.cmd_vel_pub = self.create_publisher(
-            Twist,
-            f'/{self.NAME}/cmd_vel',
+        self.ackerman_pub = self.create_publisher(
+            AckermannDriveStamped,
+            f'/f1tenth/drive',
             10
         )
 
         self.odom_sub = Subscriber(
             self,
             Odometry,
-            f'/{self.NAME}/odometry',
+            f'/f1tenth/odometry',
         )
 
         self.lidar_sub = Subscriber(
             self,
             LaserScan,
-            f'/{self.NAME}/scan',
+            f'/f1tenth/scan',
         )
 
         self.message_filter = ApproximateTimeSynchronizer(
@@ -69,10 +70,10 @@ class Controller(Node):
     def get_observation(self):
         odom, lidar = self.get_data()
         odom = process_odom(odom)
-        #lidar, _ = process_lidar(lidar)
         lidar = reduce_lidar(lidar)
-
-        return odom + lidar
+        print(lidar)
+        state = odom[-2:]+lidar[::-1]
+        return state
         
 
     def get_data(self):
@@ -86,11 +87,12 @@ class Controller(Node):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
-        velocity_msg = Twist()
-        velocity_msg.angular.z = float(angular)
-        velocity_msg.linear.x = float(linear)
+        angle = self.convert(angular, linear, 0.16)
+        velocity_msg = AckermannDriveStamped()
+        velocity_msg.drive.steering_angle = -float(angle*0.5)
+        velocity_msg.drive.speed = float(linear)
 
-        self.cmd_vel_pub.publish(velocity_msg)
+        self.ackerman_pub.publish(velocity_msg)
 
     def omega_to_ackerman(omega, linear_v, L):
         '''
