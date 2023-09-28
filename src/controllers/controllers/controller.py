@@ -72,7 +72,7 @@ class Controller(Node):
         odom = process_odom(odom)
         lidar = reduce_lidar(lidar)
         print(lidar)
-        state = odom[-2:]+lidar[::-1]
+        state = odom+lidar
         return state
         
 
