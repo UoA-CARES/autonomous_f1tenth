@@ -20,6 +20,7 @@ class Controller(Node):
         self.STEP_LENGTH = step_length
 
         # Pub/Sub ----------------------------------------------------
+        # Ackermann pub only works for physical version
         self.ackerman_pub = self.create_publisher(
             AckermannDriveStamped,
             f'/f1tenth/drive',
