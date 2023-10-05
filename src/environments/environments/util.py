@@ -81,6 +81,16 @@ def reduce_lidar(lidar: LaserScan):
 
         return reduced_range
 
+def reduce_lidar_n(lidar: LaserScan, num_points: int):
+        ranges = lidar.ranges
+        ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
+        ranges = list(ranges)
+
+        index = np.round(np.linspace(0, len(ranges) - 1, num_points)).astype(int)
+        reduced_range = np.array(ranges)[index]      
+
+        return list(reduced_range)
+
 
 def get_all_goals_and_waypoints_in_multi_tracks(track_name):
     all_car_goals = {}
