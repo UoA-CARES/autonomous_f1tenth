@@ -73,6 +73,7 @@ def reduce_lidar(lidar: LaserScan):
         ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
         ranges = list(ranges)
         k = 0
+        # Process required for old lidar, will check on new lidar.
         while ranges[k] < 0.02:
             k += 1
             if k>=(len(ranges)-1):
