@@ -1,0 +1,24 @@
+FROM arm64v8/ros:humble
+SHELL [ "/bin/bash", "-c" ]
+WORKDIR /ws
+COPY . .
+RUN sudo apt-get update
+RUN git clone https://github.com/UoA-CARES/autonomous_f1tenth.git
+RUN apt-get install -y python3-pip && \
+    cd cares_reinforcement_learning && \
+    pip install -r requirements.txt && \
+    pip install --editable .
+
+RUN apt-get install -y ros-humble-urg-node
+
+# Install dep
+RUN rosdep update -y && \
+    rosdep install --from-paths src --ignore-src -i -r -y --rosdistro humble
+
+# Build and install
+RUN . /opt/ros/humble/setup.bash && \
+    colcon build --symlink-install --packages-ignore-regex ros_gz.*
+
+RUN echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && \
+    echo 'source install/setup.bash' >> ~/.bashrc
+WORKDIR /ws
