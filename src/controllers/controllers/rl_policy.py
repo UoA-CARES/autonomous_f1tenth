@@ -57,3 +57,4 @@ def main():
         action = agent.select_action_from_policy(state) 
         action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
         state = controller.step(action)
+        state = state[6:]
