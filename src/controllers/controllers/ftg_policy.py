@@ -24,9 +24,11 @@ def main():
 
     state = controller.get_observation()
 
+    policy_id = 'ftg'
+
     while True:
         action = policy.select_action(state)
-        state = controller.step(action)
+        state = controller.step(action, policy_id)
 
 
 

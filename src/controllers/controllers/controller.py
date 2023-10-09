@@ -8,7 +8,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 
-from environments.util import process_lidar, process_odom, reduce_lidar
+from environments.util import process_lidar, process_odom, reduce_lidar, forward_reduce_lidar
 
 class Controller(Node):
     def __init__(self, node_name, car_name, step_length):
@@ -52,7 +52,7 @@ class Controller(Node):
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
 
-    def step(self, action):
+    def step(self, action, policy):
 
         lin_vel, ang_vel = action
         self.set_velocity(lin_vel, ang_vel)
@@ -61,17 +61,20 @@ class Controller(Node):
 
         self.timer_future = Future()
 
-        state = self.get_observation()
+        state = self.get_observation(policy)
 
         return state
 
     def message_filter_callback(self, odom: Odometry, lidar: LaserScan):
         self.observation_future.set_result({'odom': odom, 'lidar': lidar})
 
-    def get_observation(self):
+    def get_observation(self, policy):
         odom, lidar = self.get_data()
         odom = process_odom(odom)
-        lidar = reduce_lidar(lidar)
+        if policy == 'ftg':
+            lidar = forward_reduce_lidar(lidar)
+        else:
+            lidar = reduce_lidar(lidar)
         print(lidar)
         state = odom+lidar
         return state
