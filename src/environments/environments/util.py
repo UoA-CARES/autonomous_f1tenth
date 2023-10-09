@@ -69,18 +69,11 @@ def avg_reduce_lidar(lidar: LaserScan):
         return reduced_range
 
 def reduce_lidar(lidar: LaserScan):
+        num_outputs = 10
         ranges = lidar.ranges
         ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
-        ranges = list(ranges)
-        k = 0
-        # Process required for old lidar, will check on new lidar.
-        while ranges[k] < 0.02:
-            k += 1
-            if k>=(len(ranges)-1):
-                 break
-            
-        ranges = ranges[k:]
-        idx = np.round(np.linspace(1, len(ranges) - 1, 10)).astype(int)
+        del ranges[0]
+        idx = np.round(np.linspace(1, len(ranges) - 1, num_outputs)).astype(int)
        
         new_range = []
 
