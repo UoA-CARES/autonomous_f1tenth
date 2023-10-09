@@ -66,7 +66,7 @@ class FollowTheGapPolicy():
         lidar_angle=1.396
         min_lidar_range = 0.08
         max_lidar_range = 10
-        lidar_poss_angles = np.linspace(-1.396, 1.396, 640)
+        lidar_poss_angles = np.linspace(-lidar_angle, lidar_angle, 10)
         meeting_dist = self.calc_func()
 
 
@@ -90,7 +90,7 @@ class FollowTheGapPolicy():
         for i in range(10):
             if (state[8+i] > min_lidar_range) & (state[8+i]<obstacle_max_val):
                 obstacles_ranges.append(state[8+i])
-                sample = lidar_poss_angles[i*64]
+                sample = lidar_poss_angles[i]
                 obstacles_angles.append(sample)
 
         if (len(obstacles_angles) < 1):
@@ -110,12 +110,12 @@ class FollowTheGapPolicy():
             border_angles.append(obstacles_angles[i]+angle)
 
         # Calculate nonholonomic edge constraints
-        if (border_ranges[0] < meeting_dist):
+        if (border_ranges[-1] < meeting_dist):
             angle_constraint_l = turn_angle
         else:
             angle_constraint_l = lidar_angle
 
-        if (border_ranges[-1] < meeting_dist):
+        if (border_ranges[0] < meeting_dist):
             angle_constraint_r = turn_angle*-1
         else:
             angle_constraint_r = lidar_angle*-1
