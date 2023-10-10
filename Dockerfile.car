@@ -3,7 +3,6 @@ SHELL [ "/bin/bash", "-c" ]
 WORKDIR /ws
 COPY . .
 RUN sudo apt-get update
-RUN git clone https://github.com/UoA-CARES/autonomous_f1tenth.git
 RUN git clone https://github.com/UoA-CARES/cares_reinforcement_learning.git
 RUN apt-get install -y python3-pip && \
     cd cares_reinforcement_learning && \
