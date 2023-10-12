@@ -89,6 +89,7 @@ def forward_reduce_lidar(lidar: LaserScan):
     max_angle = abs(lidar.angle_max)
     ideal_angle = 1.396
     angle_incr = lidar.angle_increment
+    
     ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
     del ranges[0]
     idx_cut = int((max_angle-ideal_angle)/angle_incr)
