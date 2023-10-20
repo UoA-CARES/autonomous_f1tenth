@@ -13,7 +13,7 @@ from nav_msgs.msg import Odometry
 import numpy as np
 from environment_interfaces.srv import CarBeatReset
 from .termination import has_collided, has_flipped_over
-from .util import process_odom, reduce_lidar, get_all_goals_and_waypoints_in_multi_tracks
+from .util import process_odom, reduce_lidar_n, get_all_goals_and_waypoints_in_multi_tracks
 from .goal_positions import goal_positions
 from .waypoints import waypoints
 
@@ -28,7 +28,9 @@ class CarBeatEnvironment(Node):
                  step_length=0.5,
                  track='track_1',
                  observation_mode='lidar_only',
-                 max_goals=500):
+                 max_goals=500,
+                 num_lidar_points=50
+                 ):
         super().__init__('car_beat_environment')
 
         # Environment Details ----------------------------------------
@@ -40,6 +42,7 @@ class CarBeatEnvironment(Node):
         self.MIN_ACTIONS = np.asarray([0, -3.14])
         self.MAX_STEPS_PER_GOAL = max_steps
         self.OBSERVATION_MODE = observation_mode
+        self.LIDAR_NUM = num_lidar_points
         self.num_spawns = 0
         
         self.MAX_GOALS = max_goals
@@ -49,7 +52,7 @@ class CarBeatEnvironment(Node):
             case 'no_position':
                 self.OBSERVATION_SIZE = 6 + 10
             case 'lidar_only':
-                self.OBSERVATION_SIZE = 2 + 10
+                self.OBSERVATION_SIZE = 2 + num_lidar_points
             case _:
                 raise ValueError(f'Invalid observation mode: {observation_mode}')
 
@@ -309,8 +312,8 @@ class CarBeatEnvironment(Node):
         odom_one = process_odom(odom_one)
         odom_two = process_odom(odom_two)
 
-        lidar_one = reduce_lidar(lidar_one)
-        lidar_two = reduce_lidar(lidar_two)
+        lidar_one = reduce_lidar_n(lidar_one, self.LIDAR_NUM)
+        lidar_two = reduce_lidar_n(lidar_two, self.LIDAR_NUM)
 
         match self.OBSERVATION_MODE:
             case 'full':
@@ -349,7 +352,7 @@ class CarBeatEnvironment(Node):
 
             self.steps_since_last_goal = 0
 
-        ftg_current_distance = math.dist(self.all_goals[(self.ftg_start_goal_index + self.ftg_goals_reached) % len(self.all_goals)], next_state[18:20])
+        ftg_current_distance = math.dist(self.all_goals[(self.ftg_start_goal_index + self.ftg_goals_reached) % len(self.all_goals)], next_state[8 + self.LIDAR_NUM:8 + self.LIDAR_NUM + 2])
 
         # Keeping track of FTG car goal number
         if ftg_current_distance < self.REWARD_RANGE:
@@ -362,7 +365,7 @@ class CarBeatEnvironment(Node):
             self.ftg_goals_reached += 500
             
 
-        if has_collided(next_state[8:19], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+        if has_collided(next_state[8:8 + self.LIDAR_NUM], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25  # TODO: find optimal value for this
 
         return reward
