@@ -26,7 +26,13 @@ class EnvironmentFactory:
                 config['max_goals']
                 )
         elif name == 'CarWall':
-            return CarWallEnvironment()
+            return CarWallEnvironment(
+                config['car_name'],
+                config['reward_range'],
+                config['max_steps'],
+                config['collision_range'],
+                config['step_length']
+            )
         elif name == 'CarBeat':
             return CarBeatEnvironment(
                 config['car_name'],
