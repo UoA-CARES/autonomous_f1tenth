@@ -12,13 +12,8 @@ from cares_reinforcement_learning.util.Record import Record
 from cares_reinforcement_learning.util.NetworkFactory import NetworkFactory
 from cares_reinforcement_learning.util import helpers as hlp
 
-from environments.CarBlockEnvironment import CarBlockEnvironment
-from environments.CarGoalEnvironment import CarGoalEnvironment
-from environments.CarTrackEnvironment import CarTrackEnvironment
-from environments.CarWallEnvironment import CarWallEnvironment
-from environments.CarBeatEnvironment import CarBeatEnvironment
-
 from .parse_args import parse_args
+from .EnvironmentFactory import EnvironmentFactory
 
 def main():
     rclpy.init()
@@ -41,4 +36,7 @@ def main():
         f'Network Config: ------------------------------------- \n'
         f'{yaml.dump(network_config, default_flow_style=False)} \n'
     )
+
+    env_factory = EnvironmentFactory()
+    env = env_factory.create(env_config['environment'], env_config)
 

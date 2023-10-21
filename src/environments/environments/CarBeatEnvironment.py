@@ -20,13 +20,13 @@ from .waypoints import waypoints
 class CarBeatEnvironment(Node):
 
     def __init__(self,
-                 car_one_name,
-                 car_two_name,
+                 rl_car_name,
+                 ftg_car_name,
                  reward_range=1,
                  max_steps=50,
                  collision_range=0.2,
                  step_length=0.5,
-                 track='track_1',
+                 track='multi_track',
                  observation_mode='lidar_only',
                  max_goals=500,
                  num_lidar_points=50
@@ -34,8 +34,8 @@ class CarBeatEnvironment(Node):
         super().__init__('car_beat_environment')
 
         # Environment Details ----------------------------------------
-        self.NAME = car_one_name
-        self.OTHER_CAR_NAME = car_two_name
+        self.NAME = rl_car_name
+        self.OTHER_CAR_NAME = ftg_car_name
         self.MAX_STEPS = max_steps
         self.STEP_LENGTH = step_length
         self.MAX_ACTIONS = np.asarray([5, 3.14])

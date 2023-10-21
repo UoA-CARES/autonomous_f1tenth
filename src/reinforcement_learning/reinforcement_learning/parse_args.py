@@ -18,12 +18,16 @@ def __declare_params():
         [
             # Environment Parameters ---------------------------
             ('environment', 'CarGoal'),
-            ('track', 'track_1'),
+            ('car_name', 'f1tenth'),
+            ('ftg_car_name', 'ftg_car'),
+            ('track', 'multi_track'),
             ('max_steps', 100),
             ('step_length', 0.25),
             ('reward_range', 0.2),
             ('collision_range', 0.2),
             ('observation_mode', 'no_position'),
+            ('max_goals', 500),
+            ('num_lidar_points', 10),
 
             # Algorithm Parameters -----------------------------
             ('g', 10),
@@ -54,12 +58,16 @@ def __get_env_params(param_node: Node):
     
     params: list(Parameter) = param_node.get_parameters([
         'environment',
+        'car_name',
         'track',
         'max_steps',
         'step_length',
         'reward_range',
         'collision_range',
-        'observation_mode'
+        'observation_mode',
+        'max_goals',
+        'ftg_car_name',
+        'num_lidar_points'
     ])
 
     # Convert to Dictionary
