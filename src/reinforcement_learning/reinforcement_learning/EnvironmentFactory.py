@@ -11,9 +11,20 @@ class EnvironmentFactory:
     def create(self, name, config):
         print(config)
         if name == 'CarBlock':
-            return CarBlockEnvironment()
+            return CarBlockEnvironment(
+                config['car_name'],
+                config['reward_range'],
+                config['max_steps'],
+                config['collision_range'],
+                config['step_length']
+            )
         elif name == 'CarGoal':
-            return CarGoalEnvironment()
+            return CarGoalEnvironment(
+                config['car_name'],
+                config['reward_range'],
+                config['max_steps'],
+                config['step_length']
+            )
         elif name == 'CarTrack':
             return CarTrackEnvironment(
                 config['car_name'], 
