@@ -1,10 +1,8 @@
 import math
 import random
 
-import numpy as np
 import rclpy
 from rclpy import Future
-from sensor_msgs.msg import LaserScan
 from .util import process_odom, avg_reduce_lidar, generate_position
 from .termination import has_collided, has_flipped_over, reached_goal
 from environments.F1tenthEnvironment import F1tenthEnvironment
