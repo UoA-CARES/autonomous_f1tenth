@@ -25,7 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'sanity_check = reinforcement_learning.sanity_check:main',
-            'train = reinforcement_learning.updated_train:main',
+            'train = reinforcement_learning.train:main',
             'test = reinforcement_learning.test:main',
             'greatest_gap = reinforcement_learning.greatest_gap:main',
         ],

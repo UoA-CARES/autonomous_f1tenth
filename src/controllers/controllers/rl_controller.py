@@ -1,7 +1,7 @@
-from .controller import Controller
-from std_msgs.msg import Empty
-from environments.util import reduce_lidar, process_odom
 from rclpy import Future
+from std_msgs.msg import Empty
+from .controller import Controller
+from environments.util import reduce_lidar, process_odom
 
 class RLController(Controller):
 

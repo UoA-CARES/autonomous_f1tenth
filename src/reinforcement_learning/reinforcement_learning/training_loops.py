@@ -77,7 +77,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
             episode_timesteps = 0
             episode_num += 1
 
-def off_policy_evaluate(env, agent, eval_episodes, record, steps_counter):
+def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0):
 
     episode_reward = 0
     episode_timesteps = 0
@@ -99,13 +99,15 @@ def off_policy_evaluate(env, agent, eval_episodes, record, steps_counter):
             episode_reward += reward
 
             if done or truncated:
-                record.log_eval(
-                    total_steps = steps_counter + 1,
-                    episode = episode_num + 1,
-                    episode_steps=episode_timesteps,
-                    episode_reward = episode_reward,
-                    display = True
-                )
+
+                if record:
+                    record.log_eval(
+                        total_steps = steps_counter + 1,
+                        episode = episode_num + 1,
+                        episode_steps=episode_timesteps,
+                        episode_reward = episode_reward,
+                        display = True
+                    )
 
                 # Reset environment
                 state, _ = env.reset()
@@ -180,7 +182,7 @@ def ppo_train(env, agent, memory, record, algorithm_config):
             episode_timesteps = 0
             episode_num += 1
 
-def ppo_evaluate(env, agent, eval_episodes, record, steps_counter):
+def ppo_evaluate(env, agent, eval_episodes, record=None, steps_counter=0):
 
     episode_reward = 0
     episode_timesteps = 0
@@ -202,13 +204,15 @@ def ppo_evaluate(env, agent, eval_episodes, record, steps_counter):
             episode_reward += reward
 
             if done or truncated:
-                record.log_eval(
-                    total_steps = steps_counter + 1,
-                    episode = episode_num + 1,
-                    episode_steps=episode_timesteps,
-                    episode_reward = episode_reward,
-                    display = True
-                )
+
+                if record:
+                    record.log_eval(
+                        total_steps = steps_counter + 1,
+                        episode = episode_num + 1,
+                        episode_steps=episode_timesteps,
+                        episode_reward = episode_reward,
+                        display = True
+                    )
 
                 # Reset environment
                 state, _ = env.reset()
