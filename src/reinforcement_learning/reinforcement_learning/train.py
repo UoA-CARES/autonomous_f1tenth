@@ -22,7 +22,7 @@ def main():
     env_config, algorithm_config, network_config = parse_args()
 
     # Set Seeds
-    torch.manual_seed(algorithm_config['seed'])    
+    torch.manual_seed(algorithm_config['seed'])
     torch.cuda.manual_seed_all(algorithm_config['seed'])
     np.random.seed(algorithm_config['seed'])
     random.seed(algorithm_config['seed'])
@@ -62,8 +62,14 @@ def main():
         log_dir= f"{network_config['algorithm']}-{env_config['environment']}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}",
         algorithm=network_config['algorithm'],
         task=env_config['environment'],
-        network=agent
+        network=agent,
+        checkpoint_frequency=5000
     )
+
+    # TODO: update the save config once Record is updated.
+    # record.save_config(env_config, 'env_config')
+    # record.save_config(algorithm_config, 'algorithm_config')
+    # record.save_config(network_config, 'network_config')
 
     # TODO: Load Actor and Critic if passed. Only load if both are passed
 
@@ -76,6 +82,8 @@ def main():
                 off_policy_train(env, agent, memory, record, algorithm_config)
         case _:
             raise Exception(f'Agent type {agent.type} not supported')
+    
+    record.save()
 
 
 

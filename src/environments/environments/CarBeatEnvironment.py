@@ -29,7 +29,7 @@ class CarBeatEnvironment(Node):
                  track='multi_track',
                  observation_mode='lidar_only',
                  max_goals=500,
-                 num_lidar_points=50
+                 num_lidar_points=10
                  ):
         super().__init__('car_beat_environment')
 
