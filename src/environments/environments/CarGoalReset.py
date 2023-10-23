@@ -35,7 +35,7 @@ class CarGoalReset(Node):
     def service_callback(self, request, response):
 
         goal_req = self.create_request('goal', x=request.gx, y=request.gy, z=1)
-        car_req = self.create_request('f1tenth')
+        car_req = self.create_request(request.car_name)
 
         while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('set_pose service not available, waiting again...')

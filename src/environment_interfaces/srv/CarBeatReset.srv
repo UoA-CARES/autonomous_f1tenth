@@ -1,8 +1,10 @@
 float64 gx      # goal x
 float64 gy      # goal y
+string car_one
 float64 cx_one      # car_one x
 float64 cy_one      # car_one y
 float64 cyaw_one    # car_one yaw
+string car_two
 float64 cx_two      # car_two x
 float64 cy_two      # car_two y
 float64 cyaw_two    # car_two yaw

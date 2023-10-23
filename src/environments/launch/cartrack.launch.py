@@ -9,8 +9,10 @@ from launch.substitutions import LaunchConfiguration
 def launch(context, *args, **kwargs):
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_environments = get_package_share_directory('environments')
+    pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
 
     track = LaunchConfiguration('track').perform(context)
+    car_name = LaunchConfiguration('car_name').perform(context)
     
     gz_sim = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
@@ -20,14 +22,28 @@ def launch(context, *args, **kwargs):
         }.items()
     )
 
-    return[ gz_sim]
+    f1tenth = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
+        launch_arguments={
+            'name': car_name,
+            'world': 'empty'
+        }.items()
+    )
+
+
+    return[gz_sim, f1tenth]
 
 def generate_launch_description():
-    pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
 
     track_arg = DeclareLaunchArgument(
         'track',
         default_value='track_1'
+    )
+
+    car_name = DeclareLaunchArgument(
+        'car_name',
+        default_value='f1tenth'
     )
 
     service_bridge = Node(
@@ -46,18 +62,7 @@ def generate_launch_description():
         ],
     )
 
-    f1tenth = IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
-        launch_arguments={
-            'name': 'f1tenth',
-            'world': 'empty'
-        }.items()
-    )
 
-    #TODO: dynamically change car name
-    #TODO: This doesn't work yet
-    #TODO: Create CarWall Reset
     reset = Node(
             package='environments',
             executable='CarTrackReset',
@@ -69,5 +74,5 @@ def generate_launch_description():
         OpaqueFunction(function=launch),
         service_bridge,
         reset,
-        f1tenth,
+        car_name,
 ])
