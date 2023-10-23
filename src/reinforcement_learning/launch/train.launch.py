@@ -32,6 +32,9 @@ def generate_launch_description():
             os.path.join(pkg_environments, f'{env_launch[env]}.launch.py')),
         launch_arguments={
             'track': TextSubstitution(text=str(config['train']['ros__parameters']['track'])),
+            'car_name': TextSubstitution(text=str(config['train']['ros__parameters']['car_name'])),
+            'car_one': TextSubstitution(text=str(config['train']['ros__parameters']['car_name']) if 'car_name' in config['train']['ros__parameters'] else 'f1tenth'),
+            'car_two': TextSubstitution(text=str(config['train']['ros__parameters']['ftg_car_name']) if 'ftg_car_name' in config['train']['ros__parameters'] else 'ftg_car'),
         }.items() #TODO: this doesn't do anything
     )
 

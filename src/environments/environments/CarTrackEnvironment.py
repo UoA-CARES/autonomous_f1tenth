@@ -26,7 +26,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Environment Details ----------------------------------------
         self.MAX_STEPS_PER_GOAL = max_steps
         self.MAX_GOALS = max_goals
-        
+
         match observation_mode:
             case 'no_position':
                 self.OBSERVATION_SIZE = 6 + 10
@@ -81,7 +81,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.sleep()
 
         goal_x, goal_y = self.goal_position
-        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=goal_x, goal_y=goal_y)
+        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=goal_x, goal_y=goal_y, car_name=self.NAME)
 
         observation, _ = self.get_observation()
 
@@ -169,12 +169,13 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
     # Utility Functions --------------------------------------------
 
-    def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y):
+    def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y, car_name):
         """
         Reset the car and goal position
         """
 
         request = Reset.Request()
+        request.car_name = car_name
         request.gx = float(goal_x)
         request.gy = float(goal_y)
         request.cx = float(car_x)
