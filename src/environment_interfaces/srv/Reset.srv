@@ -3,6 +3,7 @@ float64 gy      # goal y
 float64 cx      # car x
 float64 cy      # car y
 float64 cyaw    # car yaw
+string car_name
 string flag     # flag
 ---
 bool success
