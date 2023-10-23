@@ -63,9 +63,6 @@ train:
     reward_range: 1.0
     collision_range: 0.2
     observation_mode: 'no_position'
-    # actor_path & critic_path must exist, it can't be commented
-    actor_path: 'rl_logs/23_08_02_17:59:13/models/actor_checkpoint.pht'
-    critic_path: 'rl_logs/23_08_02_17:59:13/models/critic_checkpoint.pht'
     # gamma: 0.95
     # tau: 0.005
     # g: 5
