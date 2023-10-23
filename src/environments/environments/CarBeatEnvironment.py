@@ -238,19 +238,79 @@ class CarBeatEnvironment(Node):
         return has_collided(state[8:19], self.COLLISION_RANGE) \
             or has_flipped_over(state[2:6]) \
             or self.goals_reached >= self.MAX_GOALS
+    
 
-    '''
-    init ai car goal count 0
-    init opponent goal count diffrenct between ai goal abs to oppent goal abs
+    def get_observation(self):
 
-    for each goal passed
-    ai car goal count ++
-    oppoent goal count ++
+        # Get Position and Orientation of F1tenth
+        odom_one, lidar_one, odom_two, lidar_two = self.get_data()
 
-    if ai car goal count > oppent goal count:
-        passed
-    '''
+        odom_one = process_odom(odom_one)
+        odom_two = process_odom(odom_two)
 
+        lidar_one = reduce_lidar_n(lidar_one, self.LIDAR_NUM)
+        lidar_two = reduce_lidar_n(lidar_two, self.LIDAR_NUM)
+
+        match self.OBSERVATION_MODE:
+            case 'full':
+                state = odom_one + lidar_one
+            case 'no_position':
+                state = odom_one[2:] + lidar_one
+            case 'lidar_only':
+                state = odom_one[-2:] + lidar_one
+            case _:
+                ValueError(f'Invalid observation mode: {self.OBSERVATION_MODE}')
+
+        full_state = odom_one + lidar_one + odom_two + lidar_two + self.goal_position
+
+        return state, full_state
+ 
+    def compute_reward(self, state, next_state):
+
+        reward = 0
+
+        goal_position = self.goal_position
+
+        current_distance = math.dist(goal_position, next_state[:2])
+        prev_distance = math.dist(goal_position, state[:2])
+
+        reward += prev_distance - current_distance
+
+        self.steps_since_last_goal += 1
+
+        if current_distance < self.REWARD_RANGE:
+            print(f'Goal #{self.goals_reached} Reached')
+            reward += 2
+            self.goals_reached += 1
+
+            # Updating Goal Position
+            new_x, new_y = self.all_goals[(self.start_goal_index + self.goals_reached) % len(self.all_goals)]
+            self.goal_position = [new_x, new_y]
+
+            self.update_goal_service(new_x, new_y)
+
+            self.steps_since_last_goal = 0
+
+        ftg_current_distance = math.dist(self.all_goals[(self.ftg_start_goal_index + self.ftg_goals_reached) % len(self.all_goals)], next_state[8 + self.LIDAR_NUM:8 + self.LIDAR_NUM + 2])
+
+        # Keeping track of FTG car goal number
+        if ftg_current_distance < self.REWARD_RANGE:
+            self.ftg_goals_reached += 1
+        
+        # If RL car has overtaken FTG car
+        if self.goals_reached >= (self.ftg_goals_reached + self.ftg_offset + 3):
+            print(f'RL Car has overtaken FTG Car')
+            reward  += 200
+
+            # Ensure overtaking won't happen again
+            self.ftg_goals_reached += 500
+            
+
+        if has_collided(next_state[8:8 + self.LIDAR_NUM], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+            reward -= 25  # TODO: find optimal value for this
+
+        return reward
+    
     def call_reset_service(self, 
                            car_x, 
                            car_y, 
@@ -305,70 +365,4 @@ class CarBeatEnvironment(Node):
         rclpy.spin_until_future_complete(self, future)
 
         return future.result()
-
-    def get_observation(self):
-
-        # Get Position and Orientation of F1tenth
-        odom_one, lidar_one, odom_two, lidar_two = self.get_data()
-
-        odom_one = process_odom(odom_one)
-        odom_two = process_odom(odom_two)
-
-        lidar_one = reduce_lidar_n(lidar_one, self.LIDAR_NUM)
-        lidar_two = reduce_lidar_n(lidar_two, self.LIDAR_NUM)
-
-        match self.OBSERVATION_MODE:
-            case 'full':
-                state = odom_one + lidar_one
-            case 'no_position':
-                state = odom_one[2:] + lidar_one
-            case 'lidar_only':
-                state = odom_one[-2:] + lidar_one
-            case _:
-                ValueError(f'Invalid observation mode: {self.OBSERVATION_MODE}')
-
-        full_state = odom_one + lidar_one + odom_two + lidar_two + self.goal_position
-
-        return state, full_state
- 
-    def compute_reward(self, state, next_state):
-
-        reward = 0
-
-        goal_position = self.goal_position
-
-        current_distance = math.dist(goal_position, next_state[:2])
-        
-        self.steps_since_last_goal += 1
-
-        if current_distance < self.REWARD_RANGE:
-            print(f'Goal #{self.goals_reached} Reached')
-            reward += 2
-            self.goals_reached += 1
-
-            # Updating Goal Position
-            new_x, new_y = self.all_goals[(self.start_goal_index + self.goals_reached) % len(self.all_goals)]
-            self.goal_position = [new_x, new_y]
-
-            self.update_goal_service(new_x, new_y)
-
-            self.steps_since_last_goal = 0
-
-        ftg_current_distance = math.dist(self.all_goals[(self.ftg_start_goal_index + self.ftg_goals_reached) % len(self.all_goals)], next_state[8 + self.LIDAR_NUM:8 + self.LIDAR_NUM + 2])
-
-        # Keeping track of FTG car goal number
-        if ftg_current_distance < self.REWARD_RANGE:
-            self.ftg_goals_reached += 1
-        
-        # If RL car has overtaken FTG car
-        if self.goals_reached >= (self.ftg_goals_reached + self.ftg_offset + 3):
-            print(f'RL Car has overtaken FTG Car')
-            reward  += 200
-            self.ftg_goals_reached += 500
-            
-
-        if has_collided(next_state[8:8 + self.LIDAR_NUM], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
-            reward -= 25  # TODO: find optimal value for this
-
-        return reward
     
