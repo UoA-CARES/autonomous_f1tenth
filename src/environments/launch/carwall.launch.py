@@ -3,12 +3,37 @@ from ament_index_python import get_package_share_directory
 from launch_ros.actions import Node 
 from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
+
+def launch(context, *args, **kwargs):
+    pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
+
+    car_name = LaunchConfiguration('car_name').perform(context)
+
+    f1tenth = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
+        launch_arguments={
+            'name': car_name,
+            'world': 'empty',
+            'x': '0',
+            'y': '0',
+            'z': '5',
+        }.items()
+    )
+
+    return[f1tenth]
 
 def generate_launch_description():
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_environments = get_package_share_directory('environments')
     pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
+
+    car_name = DeclareLaunchArgument(
+        'car_name',
+        default_value='f1tenth'
+    )
 
     service_bridge = Node(
         package='ros_gz_bridge',
@@ -26,15 +51,6 @@ def generate_launch_description():
         ],
     )
 
-    f1tenth = IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
-        launch_arguments={
-            'name': 'f1tenth',
-            'world': 'empty'
-        }.items()
-    )
-
     gz_sim = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
@@ -43,9 +59,6 @@ def generate_launch_description():
         }.items()
     )
 
-    #TODO: dynamically change car name
-    #TODO: This doesn't work yet
-    #TODO: Create CarWall Reset
     reset = Node(
             package='environments',
             executable='CarWallReset',
@@ -55,7 +68,8 @@ def generate_launch_description():
 
     return LaunchDescription([
         gz_sim,
-        f1tenth,
+        car_name,
+        OpaqueFunction(function=launch),
         service_bridge,
         reset,
 ])

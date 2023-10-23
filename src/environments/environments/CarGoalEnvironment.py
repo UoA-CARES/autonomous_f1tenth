@@ -72,6 +72,7 @@ class CarGoalEnvironment(F1tenthEnvironment):
         
         req.gx = goal_x
         req.gy = goal_y
+        req.car_name = self.NAME
         
         future = self.reset_client.call_async(req)
         rclpy.spin_until_future_complete(future=future, node=self)
