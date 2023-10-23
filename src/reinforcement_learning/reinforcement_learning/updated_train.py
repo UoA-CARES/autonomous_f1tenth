@@ -67,7 +67,14 @@ def main():
     )
 
     # TODO: Load Actor and Critic if passed. Only load if both are passed
-    off_policy_train(env, agent, memory, record, algorithm_config)
+
+    match agent.type:
+        case 'policy':
+            off_policy_train(env, agent, memory, record, algorithm_config)
+        case 'ppo':
+            raise Exception('PPO Training not implemented')
+        case _:
+            raise Exception(f'Agent type {agent.type} not supported')
 
 
 
