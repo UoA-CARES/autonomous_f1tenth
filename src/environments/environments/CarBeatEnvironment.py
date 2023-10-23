@@ -270,10 +270,12 @@ class CarBeatEnvironment(Node):
         request.gx = goal_x
         request.gy = goal_y
 
+        request.car_one = self.NAME
         request.cx_one = car_x
         request.cy_one = car_y
         request.cyaw_one = car_Y
 
+        request.car_two = self.OTHER_CAR_NAME
         request.cx_two = ftg_x
         request.cy_two = ftg_y
         request.cyaw_two = ftg_Y
