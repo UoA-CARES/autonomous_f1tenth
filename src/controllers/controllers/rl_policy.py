@@ -1,7 +1,7 @@
-from .rl_controller import RLController
 import rclpy
 from cares_reinforcement_learning.util.NetworkFactory import NetworkFactory
 from cares_reinforcement_learning.util.helpers import denormalize
+from .rl_controller import RLController
 
 def main():
     rclpy.init()

@@ -1,7 +1,7 @@
-from .controller import Controller
 import rclpy
 import numpy as np
 import random
+from .controller import Controller
 
 def main():
     rclpy.init()

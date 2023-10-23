@@ -1,9 +1,9 @@
-from .controller import Controller
+from rclpy import Future
 from std_msgs.msg import Empty
 from environments.track_reset import track_info
 from environments.termination import reached_goal
 from environments.util import reduce_lidar, process_odom
-from rclpy import Future
+from .controller import Controller
 
 class FTGController(Controller):
 
