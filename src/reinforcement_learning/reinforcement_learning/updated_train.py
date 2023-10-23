@@ -132,11 +132,51 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
 
             if evaluate:
                 evaluate = False
-                # off_policy_evaluate(env, agent, record, algorithm_config, network_config)
-                print('Evaluated')
+
+                env.get_logger().info(f'*************--Begin Evaluation Loop--*************')
+                off_policy_evaluate(env, agent, num_eps_evaluation, record, step_counter)
+                env.get_logger().info(f'*************--End Evaluation Loop--*************')
+
 
             # Reset environment
             state, _ = env.reset()
             episode_reward = 0
             episode_timesteps = 0
             episode_num += 1
+
+def off_policy_evaluate(env, agent, eval_episodes, record, steps_counter):
+
+    episode_reward = 0
+    episode_timesteps = 0
+    episode_num = 0
+
+    for episode_num in range(eval_episodes):
+        state, _ = env.reset()
+        done = False
+        truncated = False
+
+        while not done and not truncated:
+            episode_timesteps += 1
+            action = agent.select_action_from_policy(state, evaluation=True)
+            action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
+
+            next_state, reward, done, truncated, _ = env.step(action_env)
+
+            state = next_state
+            episode_reward += reward
+
+            if done or truncated:
+                record.log_eval(
+                    total_steps = steps_counter + 1,
+                    episode = episode_num + 1,
+                    episode_steps=episode_timesteps,
+                    episode_reward = episode_reward,
+                    display = True
+                )
+
+                # Reset environment
+                state, _ = env.reset()
+                episode_reward = 0
+                episode_timesteps = 0
+                episode_num += 1
+                break
