@@ -10,12 +10,11 @@ import torch
 from cares_reinforcement_learning.memory import MemoryBuffer
 from cares_reinforcement_learning.util.Record import Record
 from cares_reinforcement_learning.util.NetworkFactory import NetworkFactory
-from cares_reinforcement_learning.util import helpers as hlp
 import cares_reinforcement_learning.util.configurations as cfg
 
 from .parse_args import parse_args
 from .EnvironmentFactory import EnvironmentFactory
-from .training_loops import off_policy_train
+from .training_loops import off_policy_train, ppo_train
 
 def main():
     rclpy.init()
@@ -70,9 +69,11 @@ def main():
 
     match agent.type:
         case 'policy':
-            off_policy_train(env, agent, memory, record, algorithm_config)
-        case 'ppo':
-            raise Exception('PPO Training not implemented')
+
+            if network_config['algorithm'] == 'PPO':
+                ppo_train(env, agent, memory, record, algorithm_config)
+            else:
+                off_policy_train(env, agent, memory, record, algorithm_config)
         case _:
             raise Exception(f'Agent type {agent.type} not supported')
 
