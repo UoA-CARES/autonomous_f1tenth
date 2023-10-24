@@ -201,7 +201,7 @@ class CarBeatEnvironment(Node):
         next_state, full_next_state  = self.get_observation()
         reward = self.compute_reward(full_state, full_next_state)
         terminated = self.is_terminated(full_next_state)
-        truncated = self.steps_since_last_goal >= 10
+        truncated = self.steps_since_last_goal >= self.MAX_STEPS_PER_GOAL
         info = {}
 
         return next_state, reward, terminated, truncated, info
