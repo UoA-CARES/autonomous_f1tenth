@@ -38,7 +38,7 @@ class CarBlockEnvironment(F1tenthEnvironment):
             When the agent collides with a wall or reaches the goal
         
         Truncation Condition:
-            When the number of steps surpasses MAX_steps
+            When the number of steps surpasses MAX_STEPS
     """
 
     def __init__(self, car_name, reward_range=0.2, max_steps=50, collision_range=0.2, step_length=0.5):
