@@ -101,5 +101,16 @@ class CarGoalEnvironment(F1tenthEnvironment):
 
         return reward
     
+    def parse_observation(self, observation):
+        
+        string = f'CarGoal Observation\n'
+        string += f'Position: {observation[:2]}\n'
+        string += f'Orientation: {observation[2:6]}\n'
+        string += f'Car Velocity: {observation[6]}\n'
+        string += f'Car Angular Velocity: {observation[7]}\n'
+        string += f'Goal Position: {observation[-2:]}\n'
+
+        return string
+    
     
         
