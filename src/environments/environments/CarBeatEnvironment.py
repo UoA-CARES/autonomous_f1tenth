@@ -27,9 +27,23 @@ class CarBeatEnvironment(Node):
             The second car is using the Follow The Gap algorithm.
 
         Observation:
-            Car Velocity
-            Car Angular Velocity
-            Car Lidar
+            full:
+                Car Position (x, y)
+                Car Orientation (x, y, z, w)
+                Car Velocity
+                Car Angular Velocity
+                Lidar Data
+            no_position:
+                Car Orientation (x, y, z, w)
+                Car Velocity
+                Car Angular Velocity
+                Lidar Data
+            lidar_only:
+                Car Velocity
+                Car Angular Velocity
+                Lidar Data
+
+            No. of lidar points is configurable
 
         Action:
             It's linear and angular velocity (Twist)
