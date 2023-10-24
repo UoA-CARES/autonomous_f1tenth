@@ -19,6 +19,11 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
     evaluate = False
 
     state, _ = env.reset()
+    
+    obs = env.parse_observation(state)
+    env.get_logger().info('-----------------------------------')
+    env.get_logger().info('\n' + obs)
+    env.get_logger().info('-----------------------------------')
 
     for step_counter in range(max_steps_training):
         episode_timesteps += 1
