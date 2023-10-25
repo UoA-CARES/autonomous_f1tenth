@@ -18,7 +18,12 @@ class CarWallEnvironment(F1tenthEnvironment):
             This happens all within a 10x10 box
 
         Observation:
-            It's position (x, y), orientation (w, x, y, z), lidar points (approx. ~600 rays) and the goal's position (x, y)
+            Car Position (x, y)
+            Car Orientation (x, y, z, w)
+            Car Velocity
+            Car Angular Velocity
+            Lidar Data
+            Goal Position (x, y)
 
         Action:
             It's linear and angular velocity
@@ -111,4 +116,14 @@ class CarWallEnvironment(F1tenthEnvironment):
 
         return reward
 
-    
+    def parse_observation(self, observation):
+        
+        string = f'CarWall Observation\n'
+        string += f'Position: {observation[:2]}\n'
+        string += f'Orientation: {observation[2:6]}\n'
+        string += f'Car Velocity: {observation[6]}\n'
+        string += f'Car Angular Velocity: {observation[7]}\n'
+        string += f'Lidar Points: {observation[8:-2]}\n'
+        string += f'Goal Position: {observation[-2:]}\n'
+
+        return string

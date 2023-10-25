@@ -8,26 +8,28 @@ from environment_interfaces.srv import Reset
 
 class CarGoalEnvironment(F1tenthEnvironment):
     """
-    CarWall Reinforcement Learning Environment:
+    CarGoal Reinforcement Learning Environment:
 
         Task:
             Here the agent learns to drive the f1tenth car to a goal position.
-            This happens all within a 10x10 box
+            This happens in an open area.
 
         Observation:
-            It's position (x, y), orientation (w, x, y, z), lidar points (approx. ~600 rays) and the goal's position (x, y)
+            Car Position (x, y)
+            Car Orientation (x, y, z, w)
+            Car Velocity
+            Car Angular Velocity
+            Goal Position (x, y)
 
         Action:
-            It's linear and angular velocity
+            Its linear and angular velocity
         
         Reward:
-            It's progress toward the goal plus,
-            100+ if it reaches the goal plus,
-            -50 if it collides with the wall
+            Its progress toward the goal plus,
+            +100 if it reaches the goal plus
 
         Termination Conditions:
-            When the agent is within REWARD_RANGE units of the goal or,
-            When the agent is within COLLISION_RANGE units of a wall
+            When the agent is within REWARD_RANGE units of the goal
         
         Truncation Condition:
             When the number of steps surpasses MAX_STEPS
@@ -100,6 +102,17 @@ class CarGoalEnvironment(F1tenthEnvironment):
         reward += delta_distance
 
         return reward
+    
+    def parse_observation(self, observation):
+        
+        string = f'CarGoal Observation\n'
+        string += f'Position: {observation[:2]}\n'
+        string += f'Orientation: {observation[2:6]}\n'
+        string += f'Car Velocity: {observation[6]}\n'
+        string += f'Car Angular Velocity: {observation[7]}\n'
+        string += f'Goal Position: {observation[-2:]}\n'
+
+        return string
     
     
         

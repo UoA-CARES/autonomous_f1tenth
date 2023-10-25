@@ -11,6 +11,43 @@ from .waypoints import waypoints
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
+    """
+    CarTrack Reinforcement Learning Environment:
+
+        Task:
+            Agent learns to drive a track
+
+        Observation:
+            full:
+                Car Position (x, y)
+                Car Orientation (x, y, z, w)
+                Car Velocity
+                Car Angular Velocity
+                Lidar Data
+            no_position:
+                Car Orientation (x, y, z, w)
+                Car Velocity
+                Car Angular Velocity
+                Lidar Data
+            lidar_only:
+                Car Velocity
+                Car Angular Velocity
+                Lidar Data
+
+        Action:
+            It's linear and angular velocity (Twist)
+        
+        Reward:
+            +2 if it comes within REWARD_RANGE units of a goal
+            -25 if it collides with a wall
+
+        Termination Conditions:
+            When the agent collides with a wall or the Follow The Gap car
+        
+        Truncation Condition:
+            When the number of steps surpasses MAX_GOALS
+    """
+
     def __init__(self, 
                  car_name, 
                  reward_range=0.5, 
@@ -208,3 +245,26 @@ class CarTrackEnvironment(F1tenthEnvironment):
             rclpy.spin_once(self)
 
         self.timer_future = Future()
+    
+    def parse_observation(self, observation):
+        
+        string = f'CarTrack Observation\n'
+
+        match (self.observation_mode):
+            case 'no_position':
+                string += f'Orientation: {observation[:4]}\n'
+                string += f'Car Velocity: {observation[4]}\n'
+                string += f'Car Angular Velocity: {observation[5]}\n'
+                string += f'Lidar: {observation[6:]}\n'
+            case 'lidar_only':
+                string += f'Car Velocity: {observation[0]}\n'
+                string += f'Car Angular Velocity: {observation[1]}\n'
+                string += f'Lidar: {observation[2:]}\n'
+            case _:
+                string += f'Position: {observation[:2]}\n'
+                string += f'Orientation: {observation[2:6]}\n'
+                string += f'Car Velocity: {observation[6]}\n'
+                string += f'Car Angular Velocity: {observation[7]}\n'
+                string += f'Lidar: {observation[8:]}\n'
+
+        return string
