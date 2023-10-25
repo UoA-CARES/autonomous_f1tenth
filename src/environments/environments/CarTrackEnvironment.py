@@ -11,6 +11,43 @@ from .waypoints import waypoints
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
+    """
+    CarTrack Reinforcement Learning Environment:
+
+        Task:
+            Agent learns to drive a track
+
+        Observation:
+            full:
+                Car Position (x, y)
+                Car Orientation (x, y, z, w)
+                Car Velocity
+                Car Angular Velocity
+                Lidar Data
+            no_position:
+                Car Orientation (x, y, z, w)
+                Car Velocity
+                Car Angular Velocity
+                Lidar Data
+            lidar_only:
+                Car Velocity
+                Car Angular Velocity
+                Lidar Data
+
+        Action:
+            It's linear and angular velocity (Twist)
+        
+        Reward:
+            +2 if it comes within REWARD_RANGE units of a goal
+            -25 if it collides with a wall
+
+        Termination Conditions:
+            When the agent collides with a wall or the Follow The Gap car
+        
+        Truncation Condition:
+            When the number of steps surpasses MAX_GOALS
+    """
+
     def __init__(self, 
                  car_name, 
                  reward_range=0.5, 
@@ -26,7 +63,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Environment Details ----------------------------------------
         self.MAX_STEPS_PER_GOAL = max_steps
         self.MAX_GOALS = max_goals
-        
+
         match observation_mode:
             case 'no_position':
                 self.OBSERVATION_SIZE = 6 + 10
@@ -81,7 +118,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.sleep()
 
         goal_x, goal_y = self.goal_position
-        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=goal_x, goal_y=goal_y)
+        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=goal_x, goal_y=goal_y, car_name=self.NAME)
 
         observation, _ = self.get_observation()
 
@@ -169,12 +206,13 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
     # Utility Functions --------------------------------------------
 
-    def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y):
+    def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y, car_name):
         """
         Reset the car and goal position
         """
 
         request = Reset.Request()
+        request.car_name = car_name
         request.gx = float(goal_x)
         request.gy = float(goal_y)
         request.cx = float(car_x)
@@ -207,3 +245,26 @@ class CarTrackEnvironment(F1tenthEnvironment):
             rclpy.spin_once(self)
 
         self.timer_future = Future()
+    
+    def parse_observation(self, observation):
+        
+        string = f'CarTrack Observation\n'
+
+        match (self.observation_mode):
+            case 'no_position':
+                string += f'Orientation: {observation[:4]}\n'
+                string += f'Car Velocity: {observation[4]}\n'
+                string += f'Car Angular Velocity: {observation[5]}\n'
+                string += f'Lidar: {observation[6:]}\n'
+            case 'lidar_only':
+                string += f'Car Velocity: {observation[0]}\n'
+                string += f'Car Angular Velocity: {observation[1]}\n'
+                string += f'Lidar: {observation[2:]}\n'
+            case _:
+                string += f'Position: {observation[:2]}\n'
+                string += f'Orientation: {observation[2:6]}\n'
+                string += f'Car Velocity: {observation[6]}\n'
+                string += f'Car Angular Velocity: {observation[7]}\n'
+                string += f'Lidar: {observation[8:]}\n'
+
+        return string

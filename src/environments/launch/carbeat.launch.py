@@ -9,9 +9,12 @@ from launch.substitutions import LaunchConfiguration
 def launch(context, *args, **kwargs):
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_environments = get_package_share_directory('environments')
+    pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
 
     track = LaunchConfiguration('track').perform(context)
-    
+    car_one = LaunchConfiguration('car_one').perform(context)
+    car_two = LaunchConfiguration('car_two').perform(context)
+
     gz_sim = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
@@ -20,22 +23,54 @@ def launch(context, *args, **kwargs):
         }.items()
     )
 
+    f1tenth_one = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
+        launch_arguments={
+            'name': car_one,
+            'world': 'empty',
+            'x': '0',
+            'y': '0',
+            'z': '5',
+        }.items()
+    )
+
+    f1tenth_two = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
+        launch_arguments={
+            'name': car_two,
+            'world': 'empty',
+            'x': '0',
+            'y': '1',
+            'z': '5',
+        }.items()
+    )
+
     controller = Node(
         package='controllers',
         executable='ftg_policy',
         output='screen',
         parameters=[
-            {'car_name': 'f1tenth_two', 'track_name': track},
+            {'car_name': car_two, 'track_name': track},
         ],
     )
-    return[gz_sim, controller]
+    return[gz_sim, controller, f1tenth_one, f1tenth_two]
 
 def generate_launch_description():
-    pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
-
     track_arg = DeclareLaunchArgument(
         'track',
         default_value='track_1'
+    )
+
+    car_one = DeclareLaunchArgument(
+        'car_one',
+        default_value='f1tenth_one'
+    )
+
+    car_two = DeclareLaunchArgument(
+        'car_two',
+        default_value='f1tenth_two'
     )
 
     service_bridge = Node(
@@ -54,48 +89,19 @@ def generate_launch_description():
         ],
     )
 
-    f1tenth_one = IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
-        launch_arguments={
-            'name': 'f1tenth_one',
-            'world': 'empty',
-            'x': '0',
-            'y': '0',
-            'z': '5',
-        }.items()
-    )
-
-    f1tenth_two = IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
-        launch_arguments={
-            'name': 'f1tenth_two',
-            'world': 'empty',
-            'x': '0',
-            'y': '1',
-            'z': '5',
-        }.items()
-    )
-
-    #TODO: dynamically change car name
-    #TODO: This doesn't work yet
-    #TODO: Create CarWall Reset
     reset = Node(
             package='environments',
             executable='CarBeatReset',
             output='screen',
     )
 
-    
-
     ld = LaunchDescription([
         track_arg,
+        car_one,
+        car_two,
         OpaqueFunction(function=launch),
         service_bridge,
         reset,
-        f1tenth_one,
-        f1tenth_two,
     ])
     
     return ld 

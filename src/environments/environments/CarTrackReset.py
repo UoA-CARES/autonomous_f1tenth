@@ -1,7 +1,7 @@
 import sys
 import rclpy
 from rclpy.node import Node
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
 from environment_interfaces.srv import Reset
@@ -30,14 +30,11 @@ class CarTrackReset(Node):
 
         while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('set_pose service not available, waiting again...')
- 
 
     def service_callback(self, request, response):
 
-        # self.get_logger().info(f'Reset Service Request Received: relocating goal to x={request.x} y={request.y}')
-
         goal_req = self.create_request('goal', x=request.gx, y=request.gy, z=1)
-        car_req = self.create_request('f1tenth', x=request.cx, y=request.cy, z=0, yaw=request.cyaw)
+        car_req = self.create_request(request.car_name, x=request.cx, y=request.cy, z=0, yaw=request.cyaw)
 
         while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('set_pose service not available, waiting again...')
@@ -49,7 +46,6 @@ class CarTrackReset(Node):
             self.set_pose_client.call(goal_req)
             self.set_pose_client.call(car_req)
 
-        # self.get_logger().info('Successfully Reset')
         response.success = True
 
         return response

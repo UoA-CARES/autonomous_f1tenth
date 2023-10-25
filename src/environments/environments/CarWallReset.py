@@ -1,7 +1,6 @@
-import sys
 import rclpy
 from rclpy.node import Node
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
 from environment_interfaces.srv import Reset
@@ -37,7 +36,7 @@ class CarWallReset(Node):
         # self.get_logger().info(f'Reset Service Request Received: relocating goal to x={request.x} y={request.y}')
 
         goal_req = self.create_request('goal', x=request.gx, y=request.gy, z=1)
-        car_req = self.create_request('f1tenth')
+        car_req = self.create_request(request.car_name, x=0, y=0, z=0)
 
         while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('set_pose service not available, waiting again...')

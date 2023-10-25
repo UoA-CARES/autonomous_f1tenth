@@ -1,6 +1,6 @@
-from .controller import Controller
 import rclpy
 import numpy as np
+from .controller import Controller
 
 def main():
     rclpy.init()

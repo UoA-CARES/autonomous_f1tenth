@@ -1,10 +1,8 @@
 import math
 import random
 
-import numpy as np
 import rclpy
 from rclpy import Future
-from sensor_msgs.msg import LaserScan
 from .util import process_odom, avg_reduce_lidar, generate_position
 from .termination import has_collided, has_flipped_over, reached_goal
 from environments.F1tenthEnvironment import F1tenthEnvironment
@@ -20,7 +18,12 @@ class CarWallEnvironment(F1tenthEnvironment):
             This happens all within a 10x10 box
 
         Observation:
-            It's position (x, y), orientation (w, x, y, z), lidar points (approx. ~600 rays) and the goal's position (x, y)
+            Car Position (x, y)
+            Car Orientation (x, y, z, w)
+            Car Velocity
+            Car Angular Velocity
+            Lidar Data
+            Goal Position (x, y)
 
         Action:
             It's linear and angular velocity
@@ -81,7 +84,8 @@ class CarWallEnvironment(F1tenthEnvironment):
         
         req.gx = goal_x
         req.gy = goal_y
-        
+        req.car_name = self.NAME
+
         future = self.reset_client.call_async(req)
         rclpy.spin_until_future_complete(future=future, node=self)
         
@@ -112,4 +116,14 @@ class CarWallEnvironment(F1tenthEnvironment):
 
         return reward
 
-    
+    def parse_observation(self, observation):
+        
+        string = f'CarWall Observation\n'
+        string += f'Position: {observation[:2]}\n'
+        string += f'Orientation: {observation[2:6]}\n'
+        string += f'Car Velocity: {observation[6]}\n'
+        string += f'Car Angular Velocity: {observation[7]}\n'
+        string += f'Lidar Points: {observation[8:-2]}\n'
+        string += f'Goal Position: {observation[-2:]}\n'
+
+        return string
