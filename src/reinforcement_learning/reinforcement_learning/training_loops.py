@@ -6,8 +6,8 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
     
     max_steps_training = algorithm_config['max_steps_training']
     max_steps_exploration = algorithm_config['max_steps_exploration']
-    num_eps_evaluation = algorithm_config['evaluate_for_m_episodes']
-    evaluate_every_n_steps = algorithm_config['evaluate_every_n_steps']
+    number_eval_episodes = algorithm_config['number_eval_episodes']
+    number_steps_per_evaluation = algorithm_config['number_steps_per_evaluation']
 
     batch_size = algorithm_config['batch_size']
     G = algorithm_config['g']
@@ -49,7 +49,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
                 ))
                 memory.update_priorities(experience['indices'], info)
         
-        if (step_counter+1) % evaluate_every_n_steps == 0:
+        if (step_counter+1) % number_steps_per_evaluation == 0:
             evaluate = True
         
         if done or truncated:
@@ -67,7 +67,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
                 evaluate = False
 
                 env.get_logger().info(f'*************--Begin Evaluation Loop--*************')
-                off_policy_evaluate(env, agent, num_eps_evaluation, record, step_counter)
+                off_policy_evaluate(env, agent, number_eval_episodes, record, step_counter)
                 env.get_logger().info(f'*************--End Evaluation Loop--*************')
 
 
@@ -122,8 +122,8 @@ def ppo_train(env, agent, memory, record, algorithm_config):
 
     max_steps_training = algorithm_config['max_steps_training']
     max_steps_per_batch = algorithm_config['max_steps_per_batch']
-    num_eps_evaluation = algorithm_config['evaluate_for_m_episodes']
-    evaluate_every_n_steps = algorithm_config['evaluate_every_n_steps']
+    number_eval_episodes = algorithm_config['number_eval_episodes']
+    number_steps_per_evaluation = algorithm_config['number_steps_per_evaluation']
 
     episode_timesteps = 0
     episode_num = 0
@@ -156,7 +156,7 @@ def ppo_train(env, agent, memory, record, algorithm_config):
                 experience['log_prob']
             ))
         
-        if (step_counter+1) % evaluate_every_n_steps == 0:
+        if (step_counter+1) % number_steps_per_evaluation == 0:
             evaluate = True
         
         if done or truncated:
@@ -172,7 +172,7 @@ def ppo_train(env, agent, memory, record, algorithm_config):
                 evaluate = False
 
                 env.get_logger().info(f'*************--Begin Evaluation Loop--*************')
-                ppo_evaluate(env, agent, num_eps_evaluation, record, step_counter)
+                ppo_evaluate(env, agent, number_eval_episodes, record, step_counter)
                 env.get_logger().info(f'*************--End Evaluation Loop--*************')
 
 

@@ -1,6 +1,8 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
+from environments import configurations as cfg
+from cares_reinforcement_learning.util import configurations as cares_cfg
 
 def parse_args():
     param_node = __declare_params()
@@ -10,6 +12,7 @@ def parse_args():
     network_params = __get_network_params(param_node)
 
     return env_params, algorithm_params, network_params
+
 
 def __declare_params():
     param_node = rclpy.create_node('params')
@@ -37,8 +40,8 @@ def __declare_params():
             ('max_steps_training', 1_000_000),
             ('max_steps_exploration', 1_000),
             ('max_steps_per_batch', 5000),
-            ('evaluate_every_n_steps', 10000),
-            ('evaluate_for_m_episodes', 5),
+            ('number_steps_per_evaluation', 10000),
+            ('number_eval_episodes', 5),
 
             # Network Parameters -------------------------------
             ('actor_path', ''),
@@ -75,7 +78,21 @@ def __get_env_params(param_node: Node):
     for param in params:
         params_dict[param.name] = param.value
     
-    return params_dict
+    match params_dict['environment']:
+        case 'CarGoal':
+            config = cfg.CarGoalEnvironmentConfig(**params_dict)
+        case 'CarBlock':
+            config = cfg.CarBlockEnvironmentConfig(**params_dict)
+        case 'CarWall':
+            config = cfg.CarWallEnvironmentConfig(**params_dict)
+        case 'CarTrack':
+            config = cfg.CarTrackEnvironmentConfig(**params_dict)
+        case 'CarBeat':
+            config = cfg.CarBeatEnvironmentConfig(**params_dict)
+        case _:
+            raise Exception(f'Environment {params_dict["environment"]} not implemented')
+    
+    return config
 
 def __get_algorithm_params(param_node: Node):
     params = param_node.get_parameters([
@@ -86,8 +103,8 @@ def __get_algorithm_params(param_node: Node):
         'max_steps_training',
         'max_steps_exploration',
         'max_steps_per_batch',
-        'evaluate_every_n_steps',
-        'evaluate_for_m_episodes'
+        'number_steps_per_evaluation',
+        'number_eval_episodes'
     ])
 
     # Convert to Dictionary
@@ -95,7 +112,9 @@ def __get_algorithm_params(param_node: Node):
     for param in params:
         params_dict[param.name] = param.value
     
-    return params_dict
+    config = cfg.TrainingConfig(**params_dict)
+
+    return config
 
 def __get_network_params(param_node: Node):
     params = param_node.get_parameters([
@@ -113,4 +132,17 @@ def __get_network_params(param_node: Node):
     for param in params:
         params_dict[param.name] = param.value
     
-    return params_dict
+    match params_dict['algorithm']:
+        case 'PPO':
+            config = cares_cfg.PPOConfig(**params_dict)
+        case 'DDPG':
+            config = cares_cfg.DDPGConfig(**params_dict)
+        case 'SAC':
+            config = cares_cfg.SACConfig(**params_dict)
+        case 'TD3':
+            config = cares_cfg.TD3Config(**params_dict)
+        case _:
+            raise Exception(f'Algorithm {params_dict["algorithm"]} not implemented')
+    
+    return config
+

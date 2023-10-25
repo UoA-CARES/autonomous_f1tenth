@@ -29,31 +29,18 @@ def main():
 
     print(
         f'Environment Config: ------------------------------------- \n'
-        f'{yaml.dump(env_config, default_flow_style=False)} \n'
+        f'{yaml.dump(dict(env_config), default_flow_style=False)} \n'
         f'Algorithm Config: ------------------------------------- \n'
-        f'{yaml.dump(algorithm_config, default_flow_style=False)} \n'
+        f'{yaml.dump(dict(algorithm_config), default_flow_style=False)} \n'
         f'Network Config: ------------------------------------- \n'
-        f'{yaml.dump(network_config, default_flow_style=False)} \n'
+        f'{yaml.dump(dict(network_config), default_flow_style=False)} \n'
     )
 
     env_factory = EnvironmentFactory()
     network_factory = NetworkFactory()
 
-    match network_config['algorithm']:
-        case 'PPO':
-            config = cfg.PPOConfig(**network_config)
-        case 'DDPG':
-            config = cfg.DDPGConfig(**network_config)
-        case 'SAC':
-            config = cfg.SACConfig(**network_config)
-        case 'TD3':
-            config = cfg.TD3Config(**network_config)
-        case _:
-            raise Exception(f'Algorithm {network_config["algorithm"]} not implemented')
-
-
     env = env_factory.create(env_config['environment'], env_config)
-    agent = network_factory.create_network(env.OBSERVATION_SIZE, env.ACTION_NUM, config=config)
+    agent = network_factory.create_network(env.OBSERVATION_SIZE, env.ACTION_NUM, config=network_config)
     memory = MemoryBuffer(algorithm_config['buffer_size'], env.OBSERVATION_SIZE, env.ACTION_NUM)
 
 
@@ -66,10 +53,9 @@ def main():
         checkpoint_frequency=5000
     )
 
-    # TODO: update the save config once Record is updated.
-    # record.save_config(env_config, 'env_config')
-    # record.save_config(algorithm_config, 'algorithm_config')
-    # record.save_config(network_config, 'network_config')
+    record.save_config(env_config, 'env_config')
+    record.save_config(algorithm_config, 'algorithm_config')
+    record.save_config(network_config, 'network_config')
 
     # TODO: Load Actor and Critic if passed. Only load if both are passed
 
