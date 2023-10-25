@@ -32,6 +32,7 @@ def main():
     MIN_ACTIONS = np.asarray([0, -3.14])
 
     controller = Controller('rl_policy_', CAR_NAME, 0.25)
+    policy_id = 'rl'
     
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     time.sleep(3)
@@ -52,10 +53,10 @@ def main():
     	device=DEVICE
     	)
 
-    state = controller.step([0, 0])
+    state = controller.step([0, 0], policy_id)
 
     while True:
         action = agent.select_action_from_policy(state) 
         action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
-        state = controller.step(action)
+        state = controller.step(action, policy_id)
         state = state[6:]

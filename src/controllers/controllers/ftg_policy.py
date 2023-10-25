@@ -21,10 +21,8 @@ def main():
     controller = Controller('ftg_policy_', CAR_NAME, 0.25)
 
     policy = FollowTheGapPolicy()
-
-    state = controller.get_observation()
-
     policy_id = 'ftg'
+    state = controller.get_observation(policy_id)
 
     while True:
         action = policy.select_action(state)
