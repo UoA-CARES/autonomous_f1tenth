@@ -28,7 +28,7 @@ def __declare_params():
             ('step_length', 0.25),
             ('reward_range', 0.2),
             ('collision_range', 0.2),
-            ('observation_mode', 'no_position'),
+            ('observation_mode', 'lidar_only'),
             ('max_goals', 500),
             ('num_lidar_points', 10),
 
