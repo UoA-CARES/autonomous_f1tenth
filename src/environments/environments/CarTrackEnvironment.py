@@ -11,6 +11,43 @@ from .waypoints import waypoints
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
+    """
+    CarTrack Reinforcement Learning Environment:
+
+        Task:
+            Agent learns to drive a track
+
+        Observation:
+            full:
+                Car Position (x, y)
+                Car Orientation (x, y, z, w)
+                Car Velocity
+                Car Angular Velocity
+                Lidar Data
+            no_position:
+                Car Orientation (x, y, z, w)
+                Car Velocity
+                Car Angular Velocity
+                Lidar Data
+            lidar_only:
+                Car Velocity
+                Car Angular Velocity
+                Lidar Data
+
+        Action:
+            It's linear and angular velocity (Twist)
+        
+        Reward:
+            +2 if it comes within REWARD_RANGE units of a goal
+            -25 if it collides with a wall
+
+        Termination Conditions:
+            When the agent collides with a wall or the Follow The Gap car
+        
+        Truncation Condition:
+            When the number of steps surpasses MAX_GOALS
+    """
+
     def __init__(self, 
                  car_name, 
                  reward_range=0.5, 

@@ -14,25 +14,28 @@ from environment_interfaces.srv import Reset
 
 class CarBlockEnvironment(F1tenthEnvironment):
     """
-    CarWall Reinforcement Learning Environment:
+    CarBlock Reinforcement Learning Environment:
 
         Task:
-            Here the agent learns to drive the f1tenth car to a goal position
+            Agent learns to navigate to a goal position while avoiding obstacles that are dynamically placed at the start of each episode
 
         Observation:
-            It's position (x, y), orientation (w, x, y, z), lidar points (approx. ~600 rays) and the goal's position (x, y)
+            Car Position (x, y)
+            Car Orientation (x, y, z, w)
+            Car Velocity
+            Car Angular Velocity
+            Lidar Data
 
         Action:
-            It's linear and angular velocity
+            Its linear and angular velocity (Twist)
         
         Reward:
-            It's progress toward the goal plus,
-            100+ if it reaches the goal plus,
-            -50 if it collides with the wall
+            Its progress towards the goal * 10
+            +100 if it reaches the goal
+            -25 if it collides with an obstacle or flips over
 
         Termination Conditions:
-            When the agent is within REWARD_RANGE units or,
-            When the agent is within COLLISION_RANGE units
+            When the agent collides with a wall or reaches the goal
         
         Truncation Condition:
             When the number of steps surpasses MAX_STEPS

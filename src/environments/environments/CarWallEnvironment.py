@@ -18,7 +18,12 @@ class CarWallEnvironment(F1tenthEnvironment):
             This happens all within a 10x10 box
 
         Observation:
-            It's position (x, y), orientation (w, x, y, z), lidar points (approx. ~600 rays) and the goal's position (x, y)
+            Car Position (x, y)
+            Car Orientation (x, y, z, w)
+            Car Velocity
+            Car Angular Velocity
+            Lidar Data
+            Goal Position (x, y)
 
         Action:
             It's linear and angular velocity
