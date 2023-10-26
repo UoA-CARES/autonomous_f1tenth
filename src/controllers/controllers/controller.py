@@ -4,11 +4,12 @@ from rclpy import Future
 from rclpy.node import Node
 
 from geometry_msgs.msg import Twist
+from ackermann_msgs.msg import AckermannDriveStamped
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 
-from environments.util import process_odom, reduce_lidar
+from environments.util import process_lidar, process_odom, reduce_lidar, forward_reduce_lidar
 
 class Controller(Node):
     def __init__(self, node_name, car_name, step_length):
@@ -20,6 +21,14 @@ class Controller(Node):
         self.STEP_LENGTH = step_length
 
         # Pub/Sub ----------------------------------------------------
+        # Ackermann pub only works for physical version
+        self.ackerman_pub = self.create_publisher(
+            AckermannDriveStamped,
+            f'/f1tenth/drive',
+            10
+        )
+
+        # Twist for sim
         self.cmd_vel_pub = self.create_publisher(
             Twist,
             f'/{self.NAME}/cmd_vel',
@@ -29,13 +38,13 @@ class Controller(Node):
         self.odom_sub = Subscriber(
             self,
             Odometry,
-            f'/{self.NAME}/odometry',
+            f'/f1tenth/odometry',
         )
 
         self.lidar_sub = Subscriber(
             self,
             LaserScan,
-            f'/{self.NAME}/scan',
+            f'/f1tenth/scan',
         )
 
         self.message_filter = ApproximateTimeSynchronizer(
@@ -51,7 +60,7 @@ class Controller(Node):
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
 
-    def step(self, action):
+    def step(self, action, policy):
 
         lin_vel, ang_vel = action
         self.set_velocity(lin_vel, ang_vel)
@@ -60,20 +69,23 @@ class Controller(Node):
 
         self.timer_future = Future()
 
-        state = self.get_observation()
+        state = self.get_observation(policy)
 
         return state
 
     def message_filter_callback(self, odom: Odometry, lidar: LaserScan):
         self.observation_future.set_result({'odom': odom, 'lidar': lidar})
 
-    def get_observation(self):
+    def get_observation(self, policy):
         odom, lidar = self.get_data()
         odom = process_odom(odom)
-        #lidar, _ = process_lidar(lidar)
-        lidar = reduce_lidar(lidar)
-
-        return odom + lidar
+        if policy == 'ftg':
+            lidar = forward_reduce_lidar(lidar)
+        else:
+            lidar = reduce_lidar(lidar)
+        print(lidar)
+        state = odom+lidar
+        return state
         
 
     def get_data(self):
@@ -87,11 +99,17 @@ class Controller(Node):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
-        velocity_msg = Twist()
-        velocity_msg.angular.z = float(angular)
-        velocity_msg.linear.x = float(linear)
+        angle = self.omega_to_ackerman(angular, linear, 0.16)
+        car_velocity_msg = AckermannDriveStamped()
+        sim_velocity_msg = Twist()
+        sim_velocity_msg.angular.z = float(angular)
+        sim_velocity_msg.linear.x = float(linear)
 
-        self.cmd_vel_pub.publish(velocity_msg)
+        car_velocity_msg.drive.steering_angle = float(angle) #-float(angle*0.5)
+        car_velocity_msg.drive.speed = float(linear)
+
+        self.ackerman_pub.publish(car_velocity_msg)
+        self.cmd_vel_pub.publish(sim_velocity_msg)
 
     def omega_to_ackerman(omega, linear_v, L):
         '''
@@ -111,6 +129,8 @@ class Controller(Node):
         tan(delta) = L * omega / v
         delta = arctan(L * omega/ v)
         '''
+        if linear_v == 0:
+            return 0
 
         delta = math.atan((L * omega) / linear_v)
 

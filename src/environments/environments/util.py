@@ -69,17 +69,18 @@ def avg_reduce_lidar(lidar: LaserScan):
         return reduced_range
 
 def reduce_lidar(lidar: LaserScan):
+        num_outputs = 10
         ranges = lidar.ranges
         ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
-        ranges = list(ranges)
+        ranges = ranges[1:]
+        idx = np.round(np.linspace(1, len(ranges) - 1, num_outputs)).astype(int)
+       
+        new_range = []
 
-        reduced_range = []
+        for index in idx:
+            new_range.append(ranges[index])
 
-        for i in range(10):
-            sample = ranges[i * 64]
-            reduced_range.append(sample)
-
-        return reduced_range
+        return new_range
 
 def reduce_lidar_n(lidar: LaserScan, num_points: int):
         ranges = lidar.ranges
@@ -91,6 +92,24 @@ def reduce_lidar_n(lidar: LaserScan, num_points: int):
 
         return list(reduced_range)
 
+# Reduce lidar so all values are facing forward from the robot
+def forward_reduce_lidar(lidar: LaserScan):
+    num_outputs = 10
+    ranges = lidar.ranges
+    max_angle = abs(lidar.angle_max)
+    ideal_angle = 1.396
+    angle_incr = lidar.angle_increment
+    
+    ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
+    ranges = ranges[1:]
+    idx_cut = int((max_angle-ideal_angle)/angle_incr)
+    idx = np.round(np.linspace(idx_cut, len(ranges)-(1+idx_cut), num_outputs)).astype(int)
+    new_range = []
+
+    for index in idx:
+        new_range.append(ranges[index])
+
+    return new_range
 
 def get_all_goals_and_waypoints_in_multi_tracks(track_name):
     all_car_goals = {}
