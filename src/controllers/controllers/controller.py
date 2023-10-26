@@ -28,6 +28,13 @@ class Controller(Node):
             10
         )
 
+        # Twist for sim
+        self.cmd_vel_pub = self.create_publisher(
+            Twist,
+            f'/{self.NAME}/cmd_vel',
+            10
+        )
+
         self.odom_sub = Subscriber(
             self,
             Odometry,
@@ -92,12 +99,17 @@ class Controller(Node):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
-        angle = self.convert(angular, linear, 0.16)
-        velocity_msg = AckermannDriveStamped()
-        velocity_msg.drive.steering_angle = -float(angle*0.5)
-        velocity_msg.drive.speed = float(linear)
+        angle = self.omega_to_ackerman(angular, linear, 0.16)
+        car_velocity_msg = AckermannDriveStamped()
+        sim_velocity_msg = Twist()
+        sim_velocity_msg.angular.z = float(angular)
+        sim_velocity_msg.linear.x = float(linear)
 
-        self.ackerman_pub.publish(velocity_msg)
+        car_velocity_msg.drive.steering_angle = float(angle) #-float(angle*0.5)
+        car_velocity_msg.drive.speed = float(linear)
+
+        self.ackerman_pub.publish(car_velocity_msg)
+        self.cmd_vel_pub.publish(sim_velocity_msg)
 
     def omega_to_ackerman(omega, linear_v, L):
         '''
