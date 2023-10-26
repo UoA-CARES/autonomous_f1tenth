@@ -82,6 +82,16 @@ def reduce_lidar(lidar: LaserScan):
 
         return new_range
 
+def reduce_lidar_n(lidar: LaserScan, num_points: int):
+        ranges = lidar.ranges
+        ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
+        ranges = list(ranges)
+
+        index = np.round(np.linspace(0, len(ranges) - 1, num_points)).astype(int)
+        reduced_range = np.array(ranges)[index]      
+
+        return list(reduced_range)
+
 # Reduce lidar so all values are facing forward from the robot
 def forward_reduce_lidar(lidar: LaserScan):
     num_outputs = 10
