@@ -8,7 +8,7 @@ train:
     reward_range: 2.0
     collision_range: 0.2
     observation_mode: 'lidar_only'
-    evaluate_every_n_steps: 2000
+    evaluate_every_n_steps: 10000
     evaluate_for_m_episodes: 10 #previously 3, graph so noisy
     # actor_path & critic_path must exist for retrain.sh, it can't be commented
     # actor_path: 'rl_logs/23_08_02_17:59:13/models/actor_checkpoint.pht'
