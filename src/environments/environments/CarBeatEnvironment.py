@@ -144,7 +144,7 @@ class CarBeatEnvironment(Node):
         self.num_spawns = 0
         self.steps_since_last_goal = 0
         self.goals_reached = 0
-        self.ftg_offset = np.random.randint(15, 20) # Changed this as the agent needs to learn more about driving before exploring the huge overtake reward or falls in local optimal
+        self.ftg_offset = np.random.randint(8,16) # Changed this as the agent needs to learn more about driving before exploring the huge overtake reward or falls in local optimal
         self.ftg_goals_reached = 0
         self.steps_in_lead = 0
 
@@ -198,24 +198,8 @@ class CarBeatEnvironment(Node):
 
         next_state, full_next_state  = self.get_observation()
         reward = self.compute_reward(full_state, full_next_state)
-
-        #Initialize terminattion condition
-        terminated = False
-        truncated = self.steps_since_last_goal >= 10
-
-        #Check if RL agent has overtaken FTG car
-        if self.goal_position > self.ftg_goal_position:
-            self.steps_in_lead += 1  # Increment the lead counter
-        else:
-            self.steps_in_lead = 0  # Reset if FTG car takes the lead
-
-        if self.steps_in_lead >= 50:
-            print('Terminated as Overaking is complete')
-            terminated = True
-        else:
-            # Original termination condition
-            terminated = self.is_terminated(full_next_state)
-        
+        terminated = self.is_terminated(full_next_state)
+        truncated = self.steps_since_last_goal >= self.MAX_STEPS_PER_GOAL
         info = {}
 
         return next_state, reward, terminated, truncated, info
