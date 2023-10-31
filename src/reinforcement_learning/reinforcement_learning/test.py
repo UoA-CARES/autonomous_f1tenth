@@ -16,7 +16,7 @@ from .training_loops import off_policy_evaluate, ppo_evaluate
 def main():
     rclpy.init()
 
-    env_config, algorithm_config, network_config = parse_args()
+    env_config, algorithm_config, network_config, rest = parse_args()
 
     print(
         f'Environment Config: ------------------------------------- \n'
@@ -30,26 +30,14 @@ def main():
     env_factory = EnvironmentFactory()
     network_factory = NetworkFactory()
 
-    match network_config['algorithm']:
-        case 'PPO':
-            config = cfg.PPOConfig(**network_config)
-        case 'DDPG':
-            config = cfg.DDPGConfig(**network_config)
-        case 'SAC':
-            config = cfg.SACConfig(**network_config)
-        case 'TD3':
-            config = cfg.TD3Config(**network_config)
-        case _:
-            raise Exception(f'Algorithm {network_config["algorithm"]} not implemented')
-
     env = env_factory.create(env_config['environment'], env_config)
-    agent = network_factory.create_network(env.OBSERVATION_SIZE, env.ACTION_NUM, config=config)
+    agent = network_factory.create_network(env.OBSERVATION_SIZE, env.ACTION_NUM, config=network_config)
 
     # Load models if both paths are provided
-    if network_config['actor_path'] and network_config['critic_path']:
+    if rest['actor_path'] and rest['critic_path']:
         print('Reading saved models into actor and critic')
-        agent.actor_net.load_state_dict(torch.load(network_config['actor_path']))
-        agent.critic_net.load_state_dict(torch.load(network_config['critic_path']))
+        agent.actor_net.load_state_dict(torch.load(rest['actor_path']))
+        agent.critic_net.load_state_dict(torch.load(rest['critic_path']))
         print('Successfully Loaded models')
     else:
         raise Exception('Both actor and critic paths must be provided')
@@ -58,7 +46,7 @@ def main():
         case 'PPO':
             ppo_evaluate(env, agent, algorithm_config)
         case _:
-            off_policy_evaluate(env, agent, algorithm_config)
+            off_policy_evaluate(env, agent, algorithm_config['number_eval_episodes'])
 
 if __name__ == '__main__':
     main()
