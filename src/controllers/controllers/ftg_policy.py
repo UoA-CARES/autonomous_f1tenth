@@ -10,21 +10,22 @@ def main():
     param_node.declare_parameters(
         '',
         [
-            ('car_name', 'f1tenth_two'),
-            ('track_name', 'track_1'),
+            ('car_name', 'ftg_car'),
+            ('track_name', 'multi_track'),
         ]
     )
 
     params = param_node.get_parameters(['car_name', 'track_name'])
     CAR_NAME, TRACK_NAME = [param.value for param in params]
 
-    controller = Controller('ftg_policy_', CAR_NAME, 0.25)
+    controller = Controller('ftg_policy_', CAR_NAME, 0.1)
 
     policy = FollowTheGapPolicy()
     policy_id = 'ftg'
     state = controller.get_observation(policy_id)
 
     while True:
+        controller.get_logger().info('Taking a step')
         action = policy.select_action(state)
         state = controller.step(action, policy_id)
 
