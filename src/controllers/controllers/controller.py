@@ -24,7 +24,7 @@ class Controller(Node):
         # Ackermann pub only works for physical version
         self.ackerman_pub = self.create_publisher(
             AckermannDriveStamped,
-            f'/f1tenth/drive',
+            f'/{self.NAME}/drive',
             10
         )
 
@@ -38,13 +38,13 @@ class Controller(Node):
         self.odom_sub = Subscriber(
             self,
             Odometry,
-            f'/f1tenth/odometry',
+            f'/{self.NAME}/odometry',
         )
 
         self.lidar_sub = Subscriber(
             self,
             LaserScan,
-            f'/f1tenth/scan',
+            f'/{self.NAME}/scan',
         )
 
         self.message_filter = ApproximateTimeSynchronizer(
