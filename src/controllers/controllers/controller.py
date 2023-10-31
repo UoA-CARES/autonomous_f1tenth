@@ -83,7 +83,6 @@ class Controller(Node):
             lidar = forward_reduce_lidar(lidar)
         else:
             lidar = reduce_lidar(lidar)
-        print(lidar)
         state = odom+lidar
         return state
         
