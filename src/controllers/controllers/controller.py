@@ -24,7 +24,7 @@ class Controller(Node):
         # Ackermann pub only works for physical version
         self.ackerman_pub = self.create_publisher(
             AckermannDriveStamped,
-            f'/f1tenth/drive',
+            f'/{self.NAME}/drive',
             10
         )
 
@@ -38,13 +38,13 @@ class Controller(Node):
         self.odom_sub = Subscriber(
             self,
             Odometry,
-            f'/f1tenth/odometry',
+            f'/{self.NAME}/odometry',
         )
 
         self.lidar_sub = Subscriber(
             self,
             LaserScan,
-            f'/f1tenth/scan',
+            f'/{self.NAME}/scan',
         )
 
         self.message_filter = ApproximateTimeSynchronizer(
@@ -111,7 +111,7 @@ class Controller(Node):
         self.ackerman_pub.publish(car_velocity_msg)
         self.cmd_vel_pub.publish(sim_velocity_msg)
 
-    def omega_to_ackerman(omega, linear_v, L):
+    def omega_to_ackerman(self, omega, linear_v, L):
         '''
         Convert CG angular velocity to Ackerman steering angle.
 

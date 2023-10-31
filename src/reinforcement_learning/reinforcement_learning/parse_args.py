@@ -27,7 +27,7 @@ def __declare_params():
             ('ftg_car_name', 'ftg_car'),
             ('track', 'multi_track'),
             ('max_steps', 100),
-            ('step_length', 0.25),
+            ('step_length', 0.1),
             ('reward_range', 0.2),
             ('collision_range', 0.2),
             ('observation_mode', 'lidar_only'),
