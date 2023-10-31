@@ -25,7 +25,6 @@ def main():
     state = controller.get_observation(policy_id)
 
     while True:
-        controller.get_logger().info('Taking a step')
         action = policy.select_action(state)
         state = controller.step(action, policy_id)
 
