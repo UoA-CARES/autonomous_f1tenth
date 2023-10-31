@@ -9,7 +9,7 @@ from message_filters import Subscriber, ApproximateTimeSynchronizer
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 
-from environments.util import process_lidar, process_odom, reduce_lidar, forward_reduce_lidar
+from environments.util import process_odom, reduce_lidar, forward_reduce_lidar
 
 class Controller(Node):
     def __init__(self, node_name, car_name, step_length):
