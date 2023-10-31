@@ -7,11 +7,13 @@ from cares_reinforcement_learning.util import configurations as cares_cfg
 def parse_args():
     param_node = __declare_params()
 
-    env_params = __get_env_params(param_node)
-    algorithm_params = __get_algorithm_params(param_node)
-    network_params = __get_network_params(param_node)
+    env_params, rest_env = __get_env_params(param_node)
+    algorithm_params, rest_alg = __get_algorithm_params(param_node)
+    network_params, rest_params = __get_network_params(param_node)
 
-    return env_params, algorithm_params, network_params
+    rest = {**rest_env, **rest_alg, **rest_params}
+
+    return env_params, algorithm_params, network_params, rest
 
 
 def __declare_params():
@@ -92,7 +94,12 @@ def __get_env_params(param_node: Node):
         case _:
             raise Exception(f'Environment {params_dict["environment"]} not implemented')
     
-    return config
+    # Collect all the parameters that were not used into a python dictionary
+    rest = set(params_dict.keys()).difference(set(config.dict().keys()))
+    rest = {key: params_dict[key] for key in rest}
+    
+    param_node.get_logger().info(f'Rest: {rest}')
+    return config, rest  
 
 def __get_algorithm_params(param_node: Node):
     params = param_node.get_parameters([
@@ -114,7 +121,11 @@ def __get_algorithm_params(param_node: Node):
     
     config = cfg.TrainingConfig(**params_dict)
 
-    return config
+    rest = set(params_dict.keys()).difference(set(config.dict().keys()))
+    rest = {key: params_dict[key] for key in rest}
+
+    param_node.get_logger().info(f'Rest: {rest}')
+    return config, rest
 
 def __get_network_params(param_node: Node):
     params = param_node.get_parameters([
@@ -144,5 +155,9 @@ def __get_network_params(param_node: Node):
         case _:
             raise Exception(f'Algorithm {params_dict["algorithm"]} not implemented')
     
-    return config
+    rest = set(params_dict.keys()).difference(set(config.dict().keys()))
+    param_node.get_logger().info(f'Rest: {rest}')
+    rest = {key: params_dict[key] for key in rest}
+
+    return config, rest
 

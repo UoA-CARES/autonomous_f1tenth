@@ -19,7 +19,7 @@ from .training_loops import off_policy_train, ppo_train
 def main():
     rclpy.init()
 
-    env_config, algorithm_config, network_config = parse_args()
+    env_config, algorithm_config, network_config, _ = parse_args()
 
     # Set Seeds
     torch.manual_seed(algorithm_config['seed'])
