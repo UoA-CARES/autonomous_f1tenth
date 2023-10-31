@@ -111,7 +111,7 @@ class Controller(Node):
         self.ackerman_pub.publish(car_velocity_msg)
         self.cmd_vel_pub.publish(sim_velocity_msg)
 
-    def omega_to_ackerman(omega, linear_v, L):
+    def omega_to_ackerman(self, omega, linear_v, L):
         '''
         Convert CG angular velocity to Ackerman steering angle.
 
