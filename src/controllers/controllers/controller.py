@@ -138,7 +138,7 @@ class Controller(Node):
 
     def vel_mod(self, linear):
         max_vel = 2
-        linear = max(max_vel, linear)
+        linear = min(max_vel, linear)
         return linear
 
     def sleep(self):
