@@ -145,7 +145,7 @@ class CarBeatEnvironment(Node):
         self.num_spawns = 0
         self.steps_since_last_goal = 0
         self.goals_reached = 0
-        self.ftg_offset = np.random.randint(8,16) # Changed this as the agent needs to learn more about driving before exploring the huge overtake reward or falls in local optimal
+        self.ftg_offset = np.random.randint(15,20) # Changed this as the agent needs to learn more about driving before exploring the huge overtake reward or falls in local optimal
         self.ftg_goals_reached = 0
         self.steps_in_lead = 0
         self.overtaken = False
@@ -206,7 +206,7 @@ class CarBeatEnvironment(Node):
         truncated = self.steps_since_last_goal >= 10
 
         #Check if RL agent has overtaken FTG car
-        if self.goal_position > self.ftg_goal_position:
+        if self.goals_reached > (self.ftg_goals_reached + self.ftg_offset):
             self.steps_in_lead += 1  # Increment the lead counter
         else:
             self.steps_in_lead = 0  # Reset if FTG car takes the lead
@@ -411,10 +411,7 @@ class CarBeatEnvironment(Node):
         goal_position = self.goal_position
 
         current_distance = math.dist(goal_position, next_state[:2])
-        prev_distance = math.dist(goal_position, state[:2])
-
-        reward += prev_distance - current_distance
-
+        
         self.steps_since_last_goal += 1
 
         if current_distance < self.REWARD_RANGE:
@@ -430,23 +427,21 @@ class CarBeatEnvironment(Node):
 
             self.steps_since_last_goal = 0
 
-        ftg_current_distance = math.dist(self.all_goals[(self.ftg_start_goal_index + self.ftg_goals_reached) % len(self.all_goals)], next_state[8 + self.LIDAR_NUM:8 + self.LIDAR_NUM + 2])
-
+        ftg_current_distance = math.dist(self.all_goals[(self.ftg_start_goal_index + self.ftg_goals_reached) % len(self.all_goals)], next_state[18:20])
+        
         # Keeping track of FTG car goal number
         if ftg_current_distance < self.REWARD_RANGE:
             self.ftg_goals_reached += 1
         
         # If RL car has overtaken FTG car
-        if self.goals_reached >= (self.ftg_goals_reached + self.ftg_offset + 3):
+        if self.goals_reached >= (self.ftg_goals_reached + self.ftg_offset + 3) and self.overtaken == False:
             print(f'RL Car has overtaken FTG Car')
             reward  += 200
-
-            # Ensure overtaking won't happen again
             #self.ftg_goals_reached += 500
             self.overtaken = True
             
 
-        if has_collided(next_state[8:8 + self.LIDAR_NUM], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+        if has_collided(next_state[8:19], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25  # TODO: find optimal value for this
 
         return reward
