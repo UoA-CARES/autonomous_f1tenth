@@ -100,6 +100,7 @@ class Controller(Node):
         Publish Twist messages to f1tenth cmd_vel topic
         """
         angle = self.omega_to_ackerman(angular, linear, 0.16)
+        angle = self.angle_mod(angle)
         car_velocity_msg = AckermannDriveStamped()
         sim_velocity_msg = Twist()
         sim_velocity_msg.angular.z = float(angular)
@@ -137,9 +138,16 @@ class Controller(Node):
         return delta
 
     def vel_mod(self, linear):
-        max_vel = 2
+        max_vel = 1.5
         linear = min(max_vel, linear)
         return linear
+    
+    def angle_mod(self, angle):
+        max_angle = 0.85
+        angle = min(max_angle, angle)
+        if (abs(angle)<0.2):
+            angle = 0
+        return angle
 
     def sleep(self):
         while not self.timer_future.done():
