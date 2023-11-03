@@ -47,27 +47,6 @@ def process_odom(odom: Odometry):
         return [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x,
                 ang_vel.z]
 
-def process_lidar(lidar: LaserScan):
-    ranges = lidar.ranges
-    ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
-    ranges = list(ranges)
-
-    intensities = list(lidar.intensities)
-    return ranges, intensities
-
-def avg_reduce_lidar(lidar: LaserScan):
-        ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
-        ranges = list(ranges)
-
-        reduced_range = []
-
-        for i in range(10):
-            avg = sum(ranges[i * 64: i * 64 + 64]) / 64
-            reduced_range.append(avg)
-
-        return reduced_range
-
 def reduce_lidar(lidar: LaserScan):
         num_outputs = 10
         ranges = lidar.ranges
@@ -82,16 +61,6 @@ def reduce_lidar(lidar: LaserScan):
 
         return new_range
 
-def reduce_lidar_n(lidar: LaserScan, num_points: int):
-        ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
-        ranges = list(ranges)
-
-        index = np.round(np.linspace(0, len(ranges) - 1, num_points)).astype(int)
-        reduced_range = np.array(ranges)[index]      
-
-        return list(reduced_range)
-
 # Reduce lidar so all values are facing forward from the robot
 def forward_reduce_lidar(lidar: LaserScan):
     num_outputs = 10
@@ -100,7 +69,7 @@ def forward_reduce_lidar(lidar: LaserScan):
     ideal_angle = 1.396
     angle_incr = lidar.angle_increment
     
-    ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
+    ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(-10))
     ranges = ranges[1:]
     idx_cut = int((max_angle-ideal_angle)/angle_incr)
     idx = np.round(np.linspace(idx_cut, len(ranges)-(1+idx_cut), num_outputs)).astype(int)
