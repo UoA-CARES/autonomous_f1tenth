@@ -63,6 +63,7 @@ class Controller(Node):
     def step(self, action, policy):
 
         lin_vel, ang_vel = action
+        lin_vel = self.vel_mod(lin_vel)
         self.set_velocity(lin_vel, ang_vel)
 
         self.sleep()
@@ -83,7 +84,6 @@ class Controller(Node):
             lidar = forward_reduce_lidar(lidar)
         else:
             lidar = reduce_lidar(lidar)
-        print(lidar)
         state = odom+lidar
         return state
         
@@ -136,7 +136,10 @@ class Controller(Node):
 
         return delta
 
-
+    def vel_mod(self, linear):
+        max_vel = 2
+        linear = min(max_vel, linear)
+        return linear
 
     def sleep(self):
         while not self.timer_future.done():

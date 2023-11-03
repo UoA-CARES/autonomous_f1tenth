@@ -7,7 +7,7 @@ def generate_launch_description():
         package='controllers',
         executable='rl_policy',
         output='screen',
-        parameters=[{'car_name': ''}],
+        parameters=[{'car_name': 'f1tenth'}],
     )
 
     return LaunchDescription([main])
