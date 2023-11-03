@@ -50,7 +50,7 @@ def process_odom(odom: Odometry):
 def reduce_lidar(lidar: LaserScan):
         num_outputs = 10
         ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
+        ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
         ranges = ranges[1:]
         idx = np.round(np.linspace(1, len(ranges) - 1, num_outputs)).astype(int)
        
@@ -69,7 +69,7 @@ def forward_reduce_lidar(lidar: LaserScan):
     ideal_angle = 1.396
     angle_incr = lidar.angle_increment
     
-    ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(-10))
+    ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(-10))
     ranges = ranges[1:]
     idx_cut = int((max_angle-ideal_angle)/angle_incr)
     idx = np.round(np.linspace(idx_cut, len(ranges)-(1+idx_cut), num_outputs)).astype(int)
