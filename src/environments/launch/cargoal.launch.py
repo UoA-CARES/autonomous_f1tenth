@@ -66,10 +66,18 @@ def generate_launch_description():
             emulate_tty=True,
     )
 
+    stepping_service = Node(
+            package='environments',
+            executable='SteppingService',
+            output='screen',
+            emulate_tty=True,
+    )
+
     return LaunchDescription([
         gz_sim,
         car_name,
         OpaqueFunction(function=launch),
         service_bridge,
         reset,
+        stepping_service
 ])

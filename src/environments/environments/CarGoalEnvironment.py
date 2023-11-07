@@ -60,7 +60,9 @@ class CarGoalEnvironment(F1tenthEnvironment):
         
         self.call_reset_service(new_x, new_y)
 
+        self.call_step(pause=False)
         observation = self.get_observation()
+        self.call_step(pause=True)
 
         info = {}
 

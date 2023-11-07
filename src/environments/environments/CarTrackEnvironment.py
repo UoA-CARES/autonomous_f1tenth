@@ -8,6 +8,7 @@ from .termination import has_collided, has_flipped_over
 from .util import process_odom, reduce_lidar, get_all_goals_and_waypoints_in_multi_tracks
 from .goal_positions import goal_positions
 from .waypoints import waypoints
+from std_srvs.srv import SetBool
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -115,12 +116,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.start_goal_index = index
         self.goal_position = self.all_goals[self.start_goal_index]
 
-        self.sleep()
-
         goal_x, goal_y = self.goal_position
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=goal_x, goal_y=goal_y, car_name=self.NAME)
 
+        self.call_step(pause=False)
         observation, _ = self.get_observation()
+        self.call_step(pause=True)
 
         info = {}
 
@@ -129,15 +130,17 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def step(self, action):
         self.step_counter += 1
 
+        self.call_step(pause=False)
         _, full_state = self.get_observation()
 
         lin_vel, ang_vel = action
         self.set_velocity(lin_vel, ang_vel)
 
         self.sleep()
-
+        
         next_state, full_next_state = self.get_observation()
-
+        self.call_step(pause=True)
+        
         reward = self.compute_reward(full_state, full_next_state)
         terminated = self.is_terminated(full_next_state)
         truncated = self.steps_since_last_goal >= 10
@@ -182,7 +185,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         previous_distance = math.dist(goal_position, state[:2])
 
         reward += previous_distance - current_distance
-        
+
         self.steps_since_last_goal += 1
 
         if current_distance < self.REWARD_RANGE:

@@ -58,8 +58,6 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
             evaluate = True
         
         if done or truncated:
-            env.get_logger().info(f'Episode #{episode_num} completed with {episode_timesteps} steps taken and a Reward= {episode_reward:.3f}')
-
             record.log_train(
                 total_steps = step_counter + 1,
                 episode = episode_num + 1,

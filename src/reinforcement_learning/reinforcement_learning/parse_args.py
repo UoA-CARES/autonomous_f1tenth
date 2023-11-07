@@ -28,7 +28,7 @@ def __declare_params():
             ('track', 'multi_track'),
             ('max_steps', 100),
             ('step_length', 0.1),
-            ('reward_range', 0.2),
+            ('reward_range', 3),
             ('collision_range', 0.2),
             ('observation_mode', 'lidar_only'),
             ('max_goals', 500),

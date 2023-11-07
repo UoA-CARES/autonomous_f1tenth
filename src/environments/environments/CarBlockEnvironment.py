@@ -66,8 +66,9 @@ class CarBlockEnvironment(F1tenthEnvironment):
         new_x, new_y = self.goal_position
         self.call_reset_service(new_x, new_y)
 
+        self.call_step(pause=False)
         observation = self.get_observation()
-
+        self.call_step(pause=True)
         info = {}
 
         return observation, info

@@ -6,7 +6,7 @@ from rclpy import Future
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
-
+from std_srvs.srv import SetBool
 from environment_interfaces.srv import Reset
 
 
@@ -72,6 +72,17 @@ class F1tenthEnvironment(Node):
         while not self.reset_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('reset service not available, waiting again...')
 
+
+        # Stepping Client ---------------------------------------------
+
+        self.stepping_client = self.create_client(
+            SetBool,
+            'stepping_service'
+        )
+
+        while not self.stepping_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('stepping service not available, waiting again...')
+
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
 
@@ -80,9 +91,10 @@ class F1tenthEnvironment(Node):
 
     def step(self, action):
         self.step_counter += 1
+        self.call_step(pause=False)
 
         state = self.get_observation()
-
+        
         lin_vel, ang_vel = action
         self.set_velocity(lin_vel, ang_vel)
 
@@ -90,8 +102,12 @@ class F1tenthEnvironment(Node):
             rclpy.spin_once(self)
 
         self.timer_future = Future()
+        
+        
 
         next_state = self.get_observation()
+        self.call_step(pause=True)
+
         reward = self.compute_reward(state, next_state)
         terminated = self.is_terminated(next_state)
         truncated = self.step_counter >= self.MAX_STEPS
@@ -132,5 +148,14 @@ class F1tenthEnvironment(Node):
         while not self.timer_future.done():
             rclpy.spin_once(self)
     
+    def call_step(self, pause):
+        request = SetBool.Request()
+        request.data = pause
+
+        future = self.stepping_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+
+        return future.result()
+
     def timer_cb(self):
         self.timer_future.set_result(True)
