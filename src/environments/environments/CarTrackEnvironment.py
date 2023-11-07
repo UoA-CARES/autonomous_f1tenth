@@ -179,7 +179,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
         goal_position = self.goal_position
 
         current_distance = math.dist(goal_position, next_state[:2])
+        previous_distance = math.dist(goal_position, state[:2])
 
+        reward += previous_distance - current_distance
+        
         self.steps_since_last_goal += 1
 
         if current_distance < self.REWARD_RANGE:
