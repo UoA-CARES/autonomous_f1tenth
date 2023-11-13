@@ -83,7 +83,7 @@ class Controller(Node):
         if policy == 'ftg':
             lidar = forward_reduce_lidar(lidar)
         else:
-            lidar = reduce_lidar(lidar)
+            lidar = reduce_lidar(lidar, 10)
         state = odom+lidar
         return state
         

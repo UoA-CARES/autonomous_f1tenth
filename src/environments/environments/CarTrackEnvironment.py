@@ -156,7 +156,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         odom, lidar = self.get_data()
         odom = process_odom(odom)
 
-        reduced_range = reduce_lidar(lidar)
+        reduced_range = reduce_lidar(lidar, 10)
 
         # Get Goal Position
         

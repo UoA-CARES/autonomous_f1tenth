@@ -69,6 +69,7 @@ class CarBeatEnvironment(Node):
                  track='multi_track',
                  observation_mode='lidar_only',
                  max_goals=500,
+                 num_lidar_points=10
                  ):
         super().__init__('car_beat_environment')
 
@@ -82,6 +83,7 @@ class CarBeatEnvironment(Node):
         self.MAX_STEPS_PER_GOAL = max_steps
         self.OBSERVATION_MODE = observation_mode
         self.num_spawns = 0
+        self.LIDAR_NUM = num_lidar_points
         
         self.MAX_GOALS = max_goals
         match observation_mode:
@@ -90,7 +92,7 @@ class CarBeatEnvironment(Node):
             case 'no_position':
                 self.OBSERVATION_SIZE = 6 + 10
             case 'lidar_only':
-                self.OBSERVATION_SIZE = 2 + 10
+                self.OBSERVATION_SIZE = 2 + num_lidar_points
             case _:
                 raise ValueError(f'Invalid observation mode: {observation_mode}')
 
@@ -286,8 +288,8 @@ class CarBeatEnvironment(Node):
         odom_one = process_odom(odom_one)
         odom_two = process_odom(odom_two)
 
-        lidar_one = reduce_lidar(lidar_one)
-        lidar_two = reduce_lidar(lidar_two)
+        lidar_one = reduce_lidar(lidar_one, self.LIDAR_NUM)
+        lidar_two = reduce_lidar(lidar_two, self.LIDAR_NUM)
 
         match self.OBSERVATION_MODE:
             case 'full':

@@ -47,8 +47,8 @@ def process_odom(odom: Odometry):
         return [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x,
                 ang_vel.z]
 
-def reduce_lidar(lidar: LaserScan):
-        num_outputs = 10
+def reduce_lidar(lidar: LaserScan, num_points: int):
+        num_outputs = num_points
         ranges = lidar.ranges
         ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
         ranges = ranges[1:]
