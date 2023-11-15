@@ -3,9 +3,7 @@ import rclpy
 import torch
 import time
 import numpy as np
-from cares_reinforcement_learning.util.NetworkFactory import NetworkFactory
 from cares_reinforcement_learning.util.helpers import denormalize
-from .rl_controller import RLController
 from cares_reinforcement_learning.algorithm.policy import TD3
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 
