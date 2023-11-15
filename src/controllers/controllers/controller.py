@@ -9,7 +9,7 @@ from message_filters import Subscriber, ApproximateTimeSynchronizer
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 
-from environments.util import process_lidar, process_odom, reduce_lidar, forward_reduce_lidar
+from environments.util import process_odom, reduce_lidar, forward_reduce_lidar
 
 class Controller(Node):
     def __init__(self, node_name, car_name, step_length):
@@ -63,6 +63,7 @@ class Controller(Node):
     def step(self, action, policy):
 
         lin_vel, ang_vel = action
+        lin_vel = self.vel_mod(lin_vel)
         self.set_velocity(lin_vel, ang_vel)
 
         self.sleep()
@@ -82,8 +83,7 @@ class Controller(Node):
         if policy == 'ftg':
             lidar = forward_reduce_lidar(lidar)
         else:
-            lidar = reduce_lidar(lidar)
-        print(lidar)
+            lidar = reduce_lidar(lidar, 10)
         state = odom+lidar
         return state
         
@@ -100,6 +100,7 @@ class Controller(Node):
         Publish Twist messages to f1tenth cmd_vel topic
         """
         angle = self.omega_to_ackerman(angular, linear, 0.16)
+        angle = self.angle_mod(angle)
         car_velocity_msg = AckermannDriveStamped()
         sim_velocity_msg = Twist()
         sim_velocity_msg.angular.z = float(angular)
@@ -136,7 +137,17 @@ class Controller(Node):
 
         return delta
 
-
+    def vel_mod(self, linear):
+        max_vel = 0.5
+        linear = min(max_vel, linear)
+        return linear
+    
+    def angle_mod(self, angle):
+        max_angle = 0.85
+        angle = min(max_angle, angle)
+        if (abs(angle)<0.2):
+            angle = 0
+        return angle
 
     def sleep(self):
         while not self.timer_future.done():
