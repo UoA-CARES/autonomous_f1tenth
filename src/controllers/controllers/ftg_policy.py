@@ -91,8 +91,7 @@ class FollowTheGapPolicy():
                 obstacles_angles.append(sample)
 
         if (len(obstacles_angles) < 1):
-            ang = self.angle_to_ang_vel(goal_angle, lin)
-            action = np.asarray([lin, ang])
+            action = np.asarray([lin, goal_angle])
             return action
 
         # Add obstacle border values to array
@@ -125,8 +124,7 @@ class FollowTheGapPolicy():
             del border_angles[0:r_del_index]
             del border_ranges[0:r_del_index]
         if (len(border_ranges) < 1):
-            ang = self.angle_to_ang_vel(goal_angle, lin)
-            action = np.asarray([lin, ang])
+            action = np.asarray([lin, goal_angle])
             return action
         
         l_del_index = len(border_angles)
@@ -140,8 +138,7 @@ class FollowTheGapPolicy():
         dist_constraint_l = border_ranges[-1]*np.cos(angle_constraint_l)
         dist_constraint_r = border_ranges[0]*np.cos(angle_constraint_r)
         if (len(border_ranges) < 1):
-            ang = self.angle_to_ang_vel(goal_angle, lin)
-            action = np.asarray([lin, ang])
+            action = np.asarray([lin, goal_angle])
             return action
         
         
@@ -165,8 +162,7 @@ class FollowTheGapPolicy():
         G.append(np.abs(angle_entry))
         greatest_gap = max(G)
         if (greatest_gap == 0):
-            ang = self.angle_to_ang_vel(goal_angle, lin)
-            action = np.asarray([lin, ang])
+            action = np.asarray([lin, goal_angle])
             return action 
         greatest_gap_index = G.index(greatest_gap)
 
