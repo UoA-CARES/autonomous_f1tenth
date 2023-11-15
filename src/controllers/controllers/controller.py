@@ -11,6 +11,7 @@ from nav_msgs.msg import Odometry
 
 from environments.util import process_lidar, process_odom, reduce_lidar, forward_reduce_lidar, ackermann_to_twist
 
+
 class Controller(Node):
     def __init__(self, node_name, car_name, step_length):
         #TODO: make node name dynamic
@@ -63,6 +64,7 @@ class Controller(Node):
     def step(self, action, policy):
 
         lin_vel, ang_vel = action
+        lin_vel = self.vel_mod(lin_vel)
         self.set_velocity(lin_vel, ang_vel)
 
         self.sleep()
@@ -82,8 +84,7 @@ class Controller(Node):
         if policy == 'ftg':
             lidar = forward_reduce_lidar(lidar)
         else:
-            lidar = reduce_lidar(lidar)
-        print(lidar)
+            lidar = reduce_lidar(lidar, 10)
         state = odom+lidar
         return state
         
@@ -99,7 +100,9 @@ class Controller(Node):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
+
         angular = ackermann_to_twist(angle, linear, 0.25)
+
         car_velocity_msg = AckermannDriveStamped()
         sim_velocity_msg = Twist()
         sim_velocity_msg.angular.z = float(angular)
@@ -110,6 +113,44 @@ class Controller(Node):
 
         self.ackerman_pub.publish(car_velocity_msg)
         self.cmd_vel_pub.publish(sim_velocity_msg)
+
+
+    def omega_to_ackerman(self, omega, linear_v, L):
+        '''
+        Convert CG angular velocity to Ackerman steering angle.
+
+        Parameters:
+        - omega: CG angular velocity in rad/s
+        - v: Vehicle speed in m/s
+        - L: Wheelbase of the vehicle in m
+
+        Returns:
+        - delta: Ackerman steering angle in radians
+
+        Derivation:
+        R = v / omega 
+        R = L / tan(delta)  equation 10 from https://www.researchgate.net/publication/228464812_Electric_Vehicle_Stability_with_Rear_Electronic_Differential_Traction#pf3
+        tan(delta) = L * omega / v
+        delta = arctan(L * omega/ v)
+        '''
+        if linear_v == 0:
+            return 0
+
+        delta = math.atan((L * omega) / linear_v)
+
+        return delta
+
+    def vel_mod(self, linear):
+        max_vel = 0.5
+        linear = min(max_vel, linear)
+        return linear
+    
+    def angle_mod(self, angle):
+        max_angle = 0.85
+        angle = min(max_angle, angle)
+        if (abs(angle)<0.2):
+            angle = 0
+        return angle
 
     def sleep(self):
         while not self.timer_future.done():

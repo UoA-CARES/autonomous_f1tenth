@@ -13,7 +13,9 @@ from nav_msgs.msg import Odometry
 import numpy as np
 from environment_interfaces.srv import CarBeatReset
 from .termination import has_collided, has_flipped_over
+
 from .util import process_odom, reduce_lidar_n, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist
+
 from .goal_positions import goal_positions
 from .waypoints import waypoints
 
@@ -82,8 +84,8 @@ class CarBeatEnvironment(Node):
         self.MIN_ACTIONS = np.asarray([0, -0.85])
         self.MAX_STEPS_PER_GOAL = max_steps
         self.OBSERVATION_MODE = observation_mode
-        self.LIDAR_NUM = num_lidar_points
         self.num_spawns = 0
+        self.LIDAR_NUM = num_lidar_points
         
         self.MAX_GOALS = max_goals
         match observation_mode:
@@ -290,8 +292,8 @@ class CarBeatEnvironment(Node):
         odom_one = process_odom(odom_one)
         odom_two = process_odom(odom_two)
 
-        lidar_one = reduce_lidar_n(lidar_one, self.LIDAR_NUM)
-        lidar_two = reduce_lidar_n(lidar_two, self.LIDAR_NUM)
+        lidar_one = reduce_lidar(lidar_one, self.LIDAR_NUM)
+        lidar_two = reduce_lidar(lidar_two, self.LIDAR_NUM)
 
         match self.OBSERVATION_MODE:
             case 'full':
