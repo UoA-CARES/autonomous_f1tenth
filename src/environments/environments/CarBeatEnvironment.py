@@ -13,7 +13,7 @@ from nav_msgs.msg import Odometry
 import numpy as np
 from environment_interfaces.srv import CarBeatReset
 from .termination import has_collided, has_flipped_over
-from .util import process_odom, reduce_lidar_n, get_all_goals_and_waypoints_in_multi_tracks
+from .util import process_odom, reduce_lidar_n, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist
 from .goal_positions import goal_positions
 from .waypoints import waypoints
 
@@ -256,11 +256,13 @@ class CarBeatEnvironment(Node):
         data = future.result()
         return data['odom_one'], data['lidar_one'], data['odom_two'], data['lidar_two'] 
 
-    def set_velocity(self, linear, angular):
+    def set_velocity(self, linear, angle):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
+        L = 0.25
         velocity_msg = Twist()
+        angular = ackermann_to_twist(angle, linear, L)
         velocity_msg.angular.z = float(angular)
         velocity_msg.linear.x = float(linear)
 
