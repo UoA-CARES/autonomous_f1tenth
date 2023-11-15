@@ -46,9 +46,6 @@ class FollowTheGapPolicy():
         d_n = np.sqrt(max(0.001,range**2-(obstacle_buffer+chassis_width)**2))
         return d_n
     
-    def angle_to_ang_vel(self, driving_angle, lin):
-        return driving_angle*lin
-    
     def constrain_angle(self, angle):
         val = angle
         while(abs(val)>(np.pi*2)):
@@ -215,9 +212,7 @@ class FollowTheGapPolicy():
         dmin = min(border_ranges)
         alpha = 1
         # goal_angle = self.constrain_angle(goal_angle)
-        final_heading_angle = gap_centre_angle #((alpha/dmin)*gap_centre_angle+goal_angle)/((alpha/dmin)+1)
-        # Convert to angular velocity
-        ang = self.angle_to_ang_vel(final_heading_angle, lin)
+        ang = gap_centre_angle #((alpha/dmin)*gap_centre_angle+goal_angle)/((alpha/dmin)+1)
         action = np.asarray([lin, ang])
         return action
 

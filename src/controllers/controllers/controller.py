@@ -1,4 +1,4 @@
-import math
+
 import rclpy
 from rclpy import Future
 from rclpy.node import Node
@@ -9,7 +9,7 @@ from message_filters import Subscriber, ApproximateTimeSynchronizer
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 
-from environments.util import process_lidar, process_odom, reduce_lidar, forward_reduce_lidar
+from environments.util import process_lidar, process_odom, reduce_lidar, forward_reduce_lidar, ackermann_to_twist
 
 class Controller(Node):
     def __init__(self, node_name, car_name, step_length):
@@ -95,11 +95,11 @@ class Controller(Node):
         data = future.result()
         return data['odom'], data['lidar']
 
-    def set_velocity(self, linear, angular):
+    def set_velocity(self, linear, angle):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
-        angle = self.omega_to_ackerman(angular, linear, 0.16)
+        angular = ackermann_to_twist(angle, linear, 0.25)
         car_velocity_msg = AckermannDriveStamped()
         sim_velocity_msg = Twist()
         sim_velocity_msg.angular.z = float(angular)
@@ -110,33 +110,6 @@ class Controller(Node):
 
         self.ackerman_pub.publish(car_velocity_msg)
         self.cmd_vel_pub.publish(sim_velocity_msg)
-
-    def omega_to_ackerman(self, omega, linear_v, L):
-        '''
-        Convert CG angular velocity to Ackerman steering angle.
-
-        Parameters:
-        - omega: CG angular velocity in rad/s
-        - v: Vehicle speed in m/s
-        - L: Wheelbase of the vehicle in m
-
-        Returns:
-        - delta: Ackerman steering angle in radians
-
-        Derivation:
-        R = v / omega 
-        R = L / tan(delta)  equation 10 from https://www.researchgate.net/publication/228464812_Electric_Vehicle_Stability_with_Rear_Electronic_Differential_Traction#pf3
-        tan(delta) = L * omega / v
-        delta = arctan(L * omega/ v)
-        '''
-        if linear_v == 0:
-            return 0
-
-        delta = math.atan((L * omega) / linear_v)
-
-        return delta
-
-
 
     def sleep(self):
         while not self.timer_future.done():
