@@ -78,8 +78,8 @@ class CarBeatEnvironment(Node):
         self.OTHER_CAR_NAME = ftg_car_name
         self.MAX_STEPS = max_steps
         self.STEP_LENGTH = step_length
-        self.MAX_ACTIONS = np.asarray([5, 3.14])
-        self.MIN_ACTIONS = np.asarray([0, -3.14])
+        self.MAX_ACTIONS = np.asarray([0.5, 0.85])
+        self.MIN_ACTIONS = np.asarray([0, -0.85])
         self.MAX_STEPS_PER_GOAL = max_steps
         self.OBSERVATION_MODE = observation_mode
         self.LIDAR_NUM = num_lidar_points
