@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import math
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from .goal_positions import goal_positions
@@ -133,3 +134,37 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         }
 
     return all_car_goals, all_car_waypoints
+
+def twist_to_ackermann(omega, linear_v, L):
+    '''
+    Convert CG angular velocity to Ackerman steering angle.
+
+    Parameters:
+    - omega: CG angular velocity in rad/s
+    - v: Vehicle speed in m/s
+    - L: Wheelbase of the vehicle in m
+
+    Returns:
+    - delta: Ackerman steering angle in radians
+
+    Derivation:
+    R = v / omega 
+    R = L / tan(delta)  equation 10 from https://www.researchgate.net/publication/228464812_Electric_Vehicle_Stability_with_Rear_Electronic_Differential_Traction#pf3
+    tan(delta) = L * omega / v
+    delta = arctan(L * omega/ v)
+    '''
+    if linear_v == 0:
+        return 0
+
+    delta = math.atan((L * omega) / linear_v)
+
+    return delta
+
+
+def ackermann_to_twist(delta, linear_v, L):
+    try: 
+        omega = math.tan(delta)*linear_v/L
+    except ZeroDivisionError:
+        print("Wheelbase must be greater than zero")
+        return 0
+    return omega

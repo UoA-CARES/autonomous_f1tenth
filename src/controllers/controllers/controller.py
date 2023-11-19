@@ -1,4 +1,4 @@
-import math
+
 import rclpy
 from rclpy import Future
 from rclpy.node import Node
@@ -9,7 +9,8 @@ from message_filters import Subscriber, ApproximateTimeSynchronizer
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 
-from environments.util import process_odom, reduce_lidar, forward_reduce_lidar
+from environments.util import process_lidar, process_odom, reduce_lidar, forward_reduce_lidar, ackermann_to_twist
+
 
 class Controller(Node):
     def __init__(self, node_name, car_name, step_length):
@@ -95,12 +96,13 @@ class Controller(Node):
         data = future.result()
         return data['odom'], data['lidar']
 
-    def set_velocity(self, linear, angular):
+    def set_velocity(self, linear, angle):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
-        angle = self.omega_to_ackerman(angular, linear, 0.16)
-        angle = self.angle_mod(angle)
+
+        angular = ackermann_to_twist(angle, linear, 0.25)
+
         car_velocity_msg = AckermannDriveStamped()
         sim_velocity_msg = Twist()
         sim_velocity_msg.angular.z = float(angular)
@@ -111,6 +113,7 @@ class Controller(Node):
 
         self.ackerman_pub.publish(car_velocity_msg)
         self.cmd_vel_pub.publish(sim_velocity_msg)
+
 
     def omega_to_ackerman(self, omega, linear_v, L):
         '''
