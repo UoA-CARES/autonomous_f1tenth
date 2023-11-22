@@ -3,7 +3,7 @@ import random
 
 import rclpy
 from rclpy import Future
-from .util import process_odom, avg_reduce_lidar, generate_position
+from .util import process_odom, reduce_lidar, generate_position
 from .termination import has_collided, has_flipped_over, reached_goal
 from environments.F1tenthEnvironment import F1tenthEnvironment
 
@@ -95,7 +95,7 @@ class CarWallEnvironment(F1tenthEnvironment):
         odom, lidar = self.get_data()
         odom = process_odom(odom)
 
-        reduced_range = avg_reduce_lidar(lidar)
+        reduced_range = reduce_lidar(lidar, 10)
 
         return odom + reduced_range + self.goal_position
     

@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import math
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from .goal_positions import goal_positions
@@ -47,31 +48,10 @@ def process_odom(odom: Odometry):
         return [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x,
                 ang_vel.z]
 
-def process_lidar(lidar: LaserScan):
-    ranges = lidar.ranges
-    ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
-    ranges = list(ranges)
-
-    intensities = list(lidar.intensities)
-    return ranges, intensities
-
-def avg_reduce_lidar(lidar: LaserScan):
+def reduce_lidar(lidar: LaserScan, num_points: int):
+        num_outputs = num_points
         ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(-1), neginf=float(-1))
-        ranges = list(ranges)
-
-        reduced_range = []
-
-        for i in range(10):
-            avg = sum(ranges[i * 64: i * 64 + 64]) / 64
-            reduced_range.append(avg)
-
-        return reduced_range
-
-def reduce_lidar(lidar: LaserScan):
-        num_outputs = 10
-        ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
+        ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
         ranges = ranges[1:]
         idx = np.round(np.linspace(1, len(ranges) - 1, num_outputs)).astype(int)
        
@@ -82,17 +62,35 @@ def reduce_lidar(lidar: LaserScan):
 
         return new_range
 
-def reduce_lidar_n(lidar: LaserScan, num_points: int):
-        ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
-        ranges = list(ranges)
-
-        index = np.round(np.linspace(0, len(ranges) - 1, num_points)).astype(int)
-        reduced_range = np.array(ranges)[index]      
-
-        return list(reduced_range)
-
 # Reduce lidar so all values are facing forward from the robot
+
+def avg_lidar(lidar: LaserScan, num_points: int):
+  
+        ranges = lidar.ranges
+        ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
+        ranges = ranges[1:]
+                                                   
+        new_range = []
+
+        amgle = 240/num_points
+        iter = 240/len(ranges)
+        num_ind = np.ceil(angle/iter)
+
+        x = 1
+        sum = ranges[0]
+
+        while(x < len(ranges)):
+                if(x%num_ind == 0):
+                        new_range.append(float(sum/num_ind))
+                        sum = 0
+                sum += ranges[x]
+                x += 1
+        if(sum > 0):
+                new_range.append(float(sum/(len(ranges)%num_ind)))
+        
+        return new_range
+
+
 def forward_reduce_lidar(lidar: LaserScan):
     num_outputs = 10
     ranges = lidar.ranges
@@ -100,7 +98,7 @@ def forward_reduce_lidar(lidar: LaserScan):
     ideal_angle = 1.396
     angle_incr = lidar.angle_increment
     
-    ranges = np.nan_to_num(ranges, posinf=float(10), neginf=float(0))
+    ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(-10))
     ranges = ranges[1:]
     idx_cut = int((max_angle-ideal_angle)/angle_incr)
     idx = np.round(np.linspace(idx_cut, len(ranges)-(1+idx_cut), num_outputs)).astype(int)
@@ -164,3 +162,37 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         }
 
     return all_car_goals, all_car_waypoints
+
+def twist_to_ackermann(omega, linear_v, L):
+    '''
+    Convert CG angular velocity to Ackerman steering angle.
+
+    Parameters:
+    - omega: CG angular velocity in rad/s
+    - v: Vehicle speed in m/s
+    - L: Wheelbase of the vehicle in m
+
+    Returns:
+    - delta: Ackerman steering angle in radians
+
+    Derivation:
+    R = v / omega 
+    R = L / tan(delta)  equation 10 from https://www.researchgate.net/publication/228464812_Electric_Vehicle_Stability_with_Rear_Electronic_Differential_Traction#pf3
+    tan(delta) = L * omega / v
+    delta = arctan(L * omega/ v)
+    '''
+    if linear_v == 0:
+        return 0
+
+    delta = math.atan((L * omega) / linear_v)
+
+    return delta
+
+
+def ackermann_to_twist(delta, linear_v, L):
+    try: 
+        omega = math.tan(delta)*linear_v/L
+    except ZeroDivisionError:
+        print("Wheelbase must be greater than zero")
+        return 0
+    return omega

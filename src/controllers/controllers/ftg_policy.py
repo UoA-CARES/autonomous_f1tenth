@@ -46,9 +46,6 @@ class FollowTheGapPolicy():
         d_n = np.sqrt(max(0.001,range**2-(obstacle_buffer+chassis_width)**2))
         return d_n
     
-    def angle_to_ang_vel(self, driving_angle, lin):
-        return driving_angle*lin
-    
     def constrain_angle(self, angle):
         val = angle
         while(abs(val)>(np.pi*2)):
@@ -94,8 +91,7 @@ class FollowTheGapPolicy():
                 obstacles_angles.append(sample)
 
         if (len(obstacles_angles) < 1):
-            ang = self.angle_to_ang_vel(goal_angle, lin)
-            action = np.asarray([lin, ang])
+            action = np.asarray([lin, goal_angle])
             return action
 
         # Add obstacle border values to array
@@ -128,8 +124,7 @@ class FollowTheGapPolicy():
             del border_angles[0:r_del_index]
             del border_ranges[0:r_del_index]
         if (len(border_ranges) < 1):
-            ang = self.angle_to_ang_vel(goal_angle, lin)
-            action = np.asarray([lin, ang])
+            action = np.asarray([lin, goal_angle])
             return action
         
         l_del_index = len(border_angles)
@@ -143,8 +138,7 @@ class FollowTheGapPolicy():
         dist_constraint_l = border_ranges[-1]*np.cos(angle_constraint_l)
         dist_constraint_r = border_ranges[0]*np.cos(angle_constraint_r)
         if (len(border_ranges) < 1):
-            ang = self.angle_to_ang_vel(goal_angle, lin)
-            action = np.asarray([lin, ang])
+            action = np.asarray([lin, goal_angle])
             return action
         
         
@@ -168,8 +162,7 @@ class FollowTheGapPolicy():
         G.append(np.abs(angle_entry))
         greatest_gap = max(G)
         if (greatest_gap == 0):
-            ang = self.angle_to_ang_vel(goal_angle, lin)
-            action = np.asarray([lin, ang])
+            action = np.asarray([lin, goal_angle])
             return action 
         greatest_gap_index = G.index(greatest_gap)
 
@@ -215,9 +208,7 @@ class FollowTheGapPolicy():
         dmin = min(border_ranges)
         alpha = 1
         # goal_angle = self.constrain_angle(goal_angle)
-        final_heading_angle = gap_centre_angle #((alpha/dmin)*gap_centre_angle+goal_angle)/((alpha/dmin)+1)
-        # Convert to angular velocity
-        ang = self.angle_to_ang_vel(final_heading_angle, lin)
+        ang = gap_centre_angle #((alpha/dmin)*gap_centre_angle+goal_angle)/((alpha/dmin)+1)
         action = np.asarray([lin, ang])
         return action
 

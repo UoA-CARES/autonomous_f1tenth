@@ -1,4 +1,4 @@
-import math
+
 import rclpy
 from rclpy import Future
 from rclpy.node import Node
@@ -9,17 +9,23 @@ from message_filters import Subscriber, ApproximateTimeSynchronizer
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 
-from environments.util import process_lidar, process_odom, reduce_lidar, forward_reduce_lidar
+from environments.util import process_lidar, process_odom, reduce_lidar, forward_reduce_lidar, ackermann_to_twist
+
 
 class Controller(Node):
-    def __init__(self, node_name, car_name, step_length):
+    def __init__(self, node_name, car_name, step_length, lidar_points = 10):
         #TODO: make node name dynamic
         super().__init__(node_name + 'controller')
+
+        if lidar_points < 1:
+            raise Exception("Make sure number of lidar points is more than 0")
+          
 
         # Environment Details ----------------------------------------
         self.NAME = car_name
         self.STEP_LENGTH = step_length
-
+        self.LIDAR_POINTS = lidar_points
+        
         # Pub/Sub ----------------------------------------------------
         # Ackermann pub only works for physical version
         self.ackerman_pub = self.create_publisher(
@@ -47,6 +53,12 @@ class Controller(Node):
             f'/{self.NAME}/scan',
         )
 
+        self.processed_publisher = self.create_publisher(
+            LaserScan,
+            f'/{self.NAME}/processed_scan',
+            10
+        )
+
         self.message_filter = ApproximateTimeSynchronizer(
             [self.odom_sub, self.lidar_sub],
             10,
@@ -63,6 +75,7 @@ class Controller(Node):
     def step(self, action, policy):
 
         lin_vel, ang_vel = action
+        lin_vel = self.vel_mod(lin_vel)
         self.set_velocity(lin_vel, ang_vel)
 
         self.sleep()
@@ -79,12 +92,29 @@ class Controller(Node):
     def get_observation(self, policy):
         odom, lidar = self.get_data()
         odom = process_odom(odom)
+        
+        num_points = self.LIDAR_POINTS
+
         if policy == 'ftg':
-            lidar = forward_reduce_lidar(lidar)
+            lidar_range = forward_reduce_lidar(lidar)
         else:
-            lidar = reduce_lidar(lidar)
-        print(lidar)
-        state = odom+lidar
+            lidar_range = avg_lidar(lidar, num_points)
+        
+        scan = LaserScan()
+        scan.header.stamp.sec = lidar.header.stamp.sec
+        scan.header.stamp.nanosec = lidar.header.stamp.nanosec
+        scan.header.frame_id = lidar.header.frame_id
+        scan.angle_min = -2.0923497676849365
+        scan.angle_max = 2.0923497676849365
+        scan.angle_increment = 240/num_points * (3.142 / 180)
+        scan.time_increment =9.765627328306437e-05
+        scan.range_min = 0.019999999552965164
+        scan.range_max = 5.599999904632568
+        scan.ranges = lidar_range
+
+        self.processed_publisher.publish(scan)
+
+        state = odom+lidar_range
         return state
         
 
@@ -95,11 +125,13 @@ class Controller(Node):
         data = future.result()
         return data['odom'], data['lidar']
 
-    def set_velocity(self, linear, angular):
+    def set_velocity(self, linear, angle):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
-        angle = self.omega_to_ackerman(angular, linear, 0.16)
+
+        angular = ackermann_to_twist(angle, linear, 0.25)
+
         car_velocity_msg = AckermannDriveStamped()
         sim_velocity_msg = Twist()
         sim_velocity_msg.angular.z = float(angular)
@@ -110,6 +142,7 @@ class Controller(Node):
 
         self.ackerman_pub.publish(car_velocity_msg)
         self.cmd_vel_pub.publish(sim_velocity_msg)
+
 
     def omega_to_ackerman(self, omega, linear_v, L):
         '''
@@ -136,7 +169,17 @@ class Controller(Node):
 
         return delta
 
-
+    def vel_mod(self, linear):
+        max_vel = 0.5
+        linear = min(max_vel, linear)
+        return linear
+    
+    def angle_mod(self, angle):
+        max_angle = 0.85
+        angle = min(max_angle, angle)
+        if (abs(angle)<0.2):
+            angle = 0
+        return angle
 
     def sleep(self):
         while not self.timer_future.done():

@@ -14,7 +14,9 @@ import numpy as np
 from environment_interfaces.srv import CarBeatReset
 from std_srvs.srv import SetBool
 from .termination import has_collided, has_flipped_over
-from .util import process_odom, reduce_lidar_n, get_all_goals_and_waypoints_in_multi_tracks
+
+from .util import process_odom, reduce_lidar, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist
+
 from .goal_positions import goal_positions
 from .waypoints import waypoints
 
@@ -79,12 +81,12 @@ class CarBeatEnvironment(Node):
         self.OTHER_CAR_NAME = ftg_car_name
         self.MAX_STEPS = max_steps
         self.STEP_LENGTH = step_length
-        self.MAX_ACTIONS = np.asarray([5, 3.14])
-        self.MIN_ACTIONS = np.asarray([0, -3.14])
+        self.MAX_ACTIONS = np.asarray([0.5, 0.85])
+        self.MIN_ACTIONS = np.asarray([0, -0.85])
         self.MAX_STEPS_PER_GOAL = max_steps
         self.OBSERVATION_MODE = observation_mode
-        self.LIDAR_NUM = num_lidar_points
         self.num_spawns = 0
+        self.LIDAR_NUM = num_lidar_points
         
         self.MAX_GOALS = max_goals
         match observation_mode:
@@ -271,11 +273,13 @@ class CarBeatEnvironment(Node):
         data = future.result()
         return data['odom_one'], data['lidar_one'], data['odom_two'], data['lidar_two'] 
 
-    def set_velocity(self, linear, angular):
+    def set_velocity(self, linear, angle):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
+        L = 0.25
         velocity_msg = Twist()
+        angular = ackermann_to_twist(angle, linear, L)
         velocity_msg.angular.z = float(angular)
         velocity_msg.linear.x = float(linear)
 
@@ -303,8 +307,8 @@ class CarBeatEnvironment(Node):
         odom_one = process_odom(odom_one)
         odom_two = process_odom(odom_two)
 
-        lidar_one = reduce_lidar_n(lidar_one, self.LIDAR_NUM)
-        lidar_two = reduce_lidar_n(lidar_two, self.LIDAR_NUM)
+        lidar_one = reduce_lidar(lidar_one, self.LIDAR_NUM)
+        lidar_two = reduce_lidar(lidar_two, self.LIDAR_NUM)
 
         match self.OBSERVATION_MODE:
             case 'full':
