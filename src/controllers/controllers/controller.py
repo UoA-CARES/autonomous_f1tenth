@@ -9,7 +9,7 @@ from message_filters import Subscriber, ApproximateTimeSynchronizer
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 
-from environments.util import process_lidar, process_odom, reduce_lidar, forward_reduce_lidar, ackermann_to_twist
+from environments.util import process_odom, reduce_lidar, forward_reduce_lidar, ackermann_to_twist
 
 
 class Controller(Node):
