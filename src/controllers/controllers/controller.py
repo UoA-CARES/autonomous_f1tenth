@@ -13,14 +13,19 @@ from environments.util import process_lidar, process_odom, reduce_lidar, forward
 
 
 class Controller(Node):
-    def __init__(self, node_name, car_name, step_length):
+    def __init__(self, node_name, car_name, step_length, lidar_points = 10):
         #TODO: make node name dynamic
         super().__init__(node_name + 'controller')
+
+        if lidar_points < 1:
+            raise Exception("Make sure number of lidar points is more than 0")
+          
 
         # Environment Details ----------------------------------------
         self.NAME = car_name
         self.STEP_LENGTH = step_length
-
+        self.LIDAR_POINTS = lidar_points
+        
         # Pub/Sub ----------------------------------------------------
         # Ackermann pub only works for physical version
         self.ackerman_pub = self.create_publisher(
@@ -46,6 +51,12 @@ class Controller(Node):
             self,
             LaserScan,
             f'/{self.NAME}/scan',
+        )
+
+        self.processed_publisher = self.create_publisher(
+            LaserScan,
+            f'/{self.NAME}/processed_scan',
+            10
         )
 
         self.message_filter = ApproximateTimeSynchronizer(
@@ -81,11 +92,29 @@ class Controller(Node):
     def get_observation(self, policy):
         odom, lidar = self.get_data()
         odom = process_odom(odom)
+        
+        num_points = self.LIDAR_POINTS
+
         if policy == 'ftg':
-            lidar = forward_reduce_lidar(lidar)
+            lidar_range = forward_reduce_lidar(lidar)
         else:
-            lidar = reduce_lidar(lidar, 10)
-        state = odom+lidar
+            lidar_range = avg_lidar(lidar, num_points)
+        
+        scan = LaserScan()
+        scan.header.stamp.sec = lidar.header.stamp.sec
+        scan.header.stamp.nanosec = lidar.header.stamp.nanosec
+        scan.header.frame_id = lidar.header.frame_id
+        scan.angle_min = -2.0923497676849365
+        scan.angle_max = 2.0923497676849365
+        scan.angle_increment = 240/num_points * (3.142 / 180)
+        scan.time_increment =9.765627328306437e-05
+        scan.range_min = 0.019999999552965164
+        scan.range_max = 5.599999904632568
+        scan.ranges = lidar_range
+
+        self.processed_publisher.publish(scan)
+
+        state = odom+lidar_range
         return state
         
 
