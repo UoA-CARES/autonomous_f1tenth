@@ -105,7 +105,7 @@ def forward_reduce_lidar(lidar: LaserScan):
     new_range = []
 
     for index in idx:
-        new_range.append(ranges[index])
+        new_range.append(float(ranges[index]))
 
     return new_range
 
