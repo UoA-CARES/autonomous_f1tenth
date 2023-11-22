@@ -65,13 +65,15 @@ def reduce_lidar(lidar: LaserScan, num_points: int):
 # Reduce lidar so all values are facing forward from the robot
 
 def avg_lidar(lidar: LaserScan, num_points: int):
+        if num_points < 1:
+          raise Exception("Make sure number of points is more than 0")
+        
         ranges = lidar.ranges
         ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
         ranges = ranges[1:]
                                                    
         new_range = []
-
-        angle = 240/num_points
+         
         iter = 240/len(ranges)
         num_ind = np.ceil(angle/iter)
 
