@@ -53,9 +53,9 @@ class Controller(Node):
             f'/{self.NAME}/scan',
         )
 
-        self.avg_publisher = self.create_publisher(
+        self.processed_publisher = self.create_publisher(
             LaserScan,
-            'avg_scan',
+            f'/{self.NAME}/processed_scan',
             10
         )
 
@@ -112,7 +112,7 @@ class Controller(Node):
         scan.range_max = 5.599999904632568
         scan.ranges = lidar_range
 
-        self.avg_publisher.publish(scan)
+        self.processed_publisher.publish(scan)
 
         state = odom+lidar_range
         return state
