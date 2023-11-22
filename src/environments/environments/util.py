@@ -73,7 +73,8 @@ def avg_lidar(lidar: LaserScan, num_points: int):
         ranges = ranges[1:]
                                                    
         new_range = []
-         
+
+        amgle = 240/num_points
         iter = 240/len(ranges)
         num_ind = np.ceil(angle/iter)
 
