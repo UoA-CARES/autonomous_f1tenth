@@ -14,7 +14,7 @@ import numpy as np
 from environment_interfaces.srv import CarBeatReset
 from .termination import has_collided, has_flipped_over
 
-from .util import process_odom, reduce_lidar, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist
+from .util import process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist
 
 from .goal_positions import goal_positions
 from .waypoints import waypoints
@@ -162,6 +162,12 @@ class CarBeatEnvironment(Node):
             f'/{self.OTHER_CAR_NAME}/scan',
         )
 
+        self.processed_publisher = self.create_publisher(
+            LaserScan,
+            f'/{self.NAME}/processed_scan',
+            10
+        )
+
         self.message_filter = ApproximateTimeSynchronizer(
             [self.odom_sub_one, self.lidar_sub_one, self.odom_sub_two, self.lidar_sub_two],
             10,
@@ -288,24 +294,30 @@ class CarBeatEnvironment(Node):
 
         # Get Position and Orientation of F1tenth
         odom_one, lidar_one, odom_two, lidar_two = self.get_data()
+        
+        num_points = self.LIDAR_NUM
 
         odom_one = process_odom(odom_one)
         odom_two = process_odom(odom_two)
 
-        lidar_one = reduce_lidar(lidar_one, self.LIDAR_NUM)
-        lidar_two = reduce_lidar(lidar_two, self.LIDAR_NUM)
+        lidar_one_range = avg_lidar(lidar_one, self.LIDAR_NUM)
+        lidar_two_range = avg_lidar(lidar_two, self.LIDAR_NUM)
 
         match self.OBSERVATION_MODE:
             case 'full':
-                state = odom_one + lidar_one
+                state = odom_one + lidar_one_range
             case 'no_position':
-                state = odom_one[2:] + lidar_one
+                state = odom_one[2:] + lidar_one_range
             case 'lidar_only':
-                state = odom_one[-2:] + lidar_one
+                state = odom_one[-2:] + lidar_one_range
             case _:
                 ValueError(f'Invalid observation mode: {self.OBSERVATION_MODE}')
 
-        full_state = odom_one + lidar_one + odom_two + lidar_two + self.goal_position
+        scan = create_lidar_msg(lidar_one, num_points, lidar_one_range)
+
+        self.processed_publisher.publish(scan)
+
+        full_state = odom_one + lidar_one_range + odom_two + lidar_two_range + self.goal_position
 
         return state, full_state
  

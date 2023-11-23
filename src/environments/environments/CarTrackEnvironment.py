@@ -5,7 +5,7 @@ import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from .termination import has_collided, has_flipped_over
-from .util import process_odom, reduce_lidar, get_all_goals_and_waypoints_in_multi_tracks
+from .util import process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks
 from .goal_positions import goal_positions
 from .waypoints import waypoints
 
@@ -56,7 +56,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
-                 max_goals=500
+                 max_goals=500,
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
 
@@ -156,7 +156,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         odom, lidar = self.get_data()
         odom = process_odom(odom)
 
-        reduced_range = reduce_lidar(lidar, 10)
+        num_points = self.LIDAR_POINTS
+
+        reduced_range = avg_lidar(lidar, num_points)
 
         # Get Goal Position
         
@@ -167,6 +169,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 state = odom[-2:] + reduced_range 
             case _:
                 state = odom + reduced_range
+
+        
+        scan = create_lidar_msg(lidar, num_points, reduced_range)
+
+        self.processed_publisher.publish(scan)
 
         full_state = odom + reduced_range
 
