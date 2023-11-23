@@ -95,6 +95,13 @@ def generate_launch_description():
             output='screen',
     )
 
+    stepping_service = Node(
+            package='environments',
+            executable='SteppingService',
+            output='screen',
+            emulate_tty=True,
+    )
+
     ld = LaunchDescription([
         track_arg,
         car_one,
@@ -102,6 +109,7 @@ def generate_launch_description():
         OpaqueFunction(function=launch),
         service_bridge,
         reset,
+        stepping_service
     ])
     
     return ld 

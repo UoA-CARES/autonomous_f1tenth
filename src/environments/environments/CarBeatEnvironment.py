@@ -12,6 +12,7 @@ from message_filters import Subscriber, ApproximateTimeSynchronizer
 from nav_msgs.msg import Odometry
 import numpy as np
 from environment_interfaces.srv import CarBeatReset
+from std_srvs.srv import SetBool
 from .termination import has_collided, has_flipped_over
 
 from .util import process_odom, reduce_lidar, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist
@@ -181,6 +182,15 @@ class CarBeatEnvironment(Node):
         while not self.reset_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('reset service not available, waiting again...')
 
+        # Stepping Client ---------------------------------------------
+        self.stepping_client = self.create_client(
+            SetBool,
+            'stepping_service'
+        )
+
+        while not self.stepping_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('stepping service not available, waiting again...')
+
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
 
@@ -224,8 +234,9 @@ class CarBeatEnvironment(Node):
             ftg_Y=ftg_yaw
         )
 
+        self.call_step(pause=False)
         state, _ = self.get_observation()
-
+        self.call_step(pause=True)
         info = {}
 
         return state, info
@@ -233,6 +244,7 @@ class CarBeatEnvironment(Node):
     def step(self, action):
         self.step_counter += 1
 
+        self.call_step(pause=False)
         _, full_state = self.get_observation()
 
         lin_vel, ang_vel = action
@@ -240,7 +252,10 @@ class CarBeatEnvironment(Node):
 
         self.sleep()
 
+
         next_state, full_next_state  = self.get_observation()
+        self.call_step(pause=True)
+        
         reward = self.compute_reward(full_state, full_next_state)
         terminated = self.is_terminated(full_next_state)
         truncated = self.steps_since_last_goal >= self.MAX_STEPS_PER_GOAL
@@ -406,6 +421,15 @@ class CarBeatEnvironment(Node):
         request.flag = "goal_only"
 
         future = self.reset_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+
+        return future.result()
+
+    def call_step(self, pause):
+        request = SetBool.Request()
+        request.data = pause
+
+        future = self.stepping_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
         return future.result()

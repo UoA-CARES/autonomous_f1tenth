@@ -62,11 +62,18 @@ def generate_launch_description():
         ],
     )
 
+    stepping_service = Node(
+            package='environments',
+            executable='SteppingService',
+            output='screen',
+            emulate_tty=True,
+    )
 
     reset = Node(
             package='environments',
             executable='CarTrackReset',
             output='screen',
+            emulate_tty=True,
     )
 
     return LaunchDescription([
@@ -74,5 +81,6 @@ def generate_launch_description():
         OpaqueFunction(function=launch),
         service_bridge,
         reset,
+        stepping_service,
         car_name,
 ])

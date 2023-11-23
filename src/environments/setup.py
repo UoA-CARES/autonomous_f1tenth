@@ -31,6 +31,7 @@ setup(
             'CarBlockReset = environments.CarBlockReset:main',
             'CarTrackReset = environments.CarTrackReset:main',
             'CarBeatReset = environments.CarBeatReset:main',
+            'SteppingService = environments.SteppingService:main',
         ],
     },
 )
