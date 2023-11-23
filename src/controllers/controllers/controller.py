@@ -9,7 +9,7 @@ from message_filters import Subscriber, ApproximateTimeSynchronizer
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 
-from environments.util import process_odom, reduce_lidar, forward_reduce_lidar, ackermann_to_twist
+from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg
 
 
 class Controller(Node):
@@ -100,17 +100,7 @@ class Controller(Node):
         else:
             lidar_range = avg_lidar(lidar, num_points)
         
-        scan = LaserScan()
-        scan.header.stamp.sec = lidar.header.stamp.sec
-        scan.header.stamp.nanosec = lidar.header.stamp.nanosec
-        scan.header.frame_id = lidar.header.frame_id
-        scan.angle_min = -2.0923497676849365
-        scan.angle_max = 2.0923497676849365
-        scan.angle_increment = 240/num_points * (3.142 / 180)
-        scan.time_increment =9.765627328306437e-05
-        scan.range_min = 0.019999999552965164
-        scan.range_max = 5.599999904632568
-        scan.ranges = lidar_range
+        scan = create_lidar_msg(lidar, num_points, lidar_range)
 
         self.processed_publisher.publish(scan)
 

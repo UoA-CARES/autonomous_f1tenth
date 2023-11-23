@@ -72,7 +72,7 @@ def avg_lidar(lidar: LaserScan, num_points: int):
                                                    
         new_range = []
 
-        amgle = 240/num_points
+        angle = 240/num_points
         iter = 240/len(ranges)
         num_ind = np.ceil(angle/iter)
 
@@ -89,6 +89,23 @@ def avg_lidar(lidar: LaserScan, num_points: int):
                 new_range.append(float(sum/(len(ranges)%num_ind)))
         
         return new_range
+
+def create_lidar_msg(lidar: LaserScan, num_points: int, lidar_range: list):
+
+    scan = LaserScan()
+    scan.header.stamp.sec = lidar.header.stamp.sec
+    scan.header.stamp.nanosec = lidar.header.stamp.nanosec
+    scan.header.frame_id = lidar.header.frame_id
+    scan.angle_min = -2.0923497676849365
+    scan.angle_max = 2.0923497676849365
+    scan.angle_increment = 240/num_points * (3.142 / 180)
+    scan.time_increment =9.765627328306437e-05
+    scan.range_min = 0.019999999552965164
+    scan.range_max = 5.599999904632568
+    scan.ranges = lidar_range
+
+    return scan
+
 
 
 def forward_reduce_lidar(lidar: LaserScan):

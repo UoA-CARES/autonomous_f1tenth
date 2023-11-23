@@ -20,13 +20,18 @@ class F1tenthEnvironment(Node):
             - fetching of car data (raw)
             - define the interface for environments to implement
     '''
-    def __init__(self, env_name, car_name, max_steps, step_length):
+    def __init__(self, env_name, car_name, max_steps, step_length, lidar_points = 10):
         super().__init__(env_name + '_environment')
+
+        if lidar_points < 1:
+            raise Exception("Make sure number of lidar points is more than 0")
+        
 
         # Environment Details ----------------------------------------
         self.NAME = car_name
         self.MAX_STEPS = max_steps
         self.STEP_LENGTH = step_length
+        self.LIDAR_POINTS = lidar_points
 
         self.MAX_ACTIONS = np.asarray([0.5, 0.85])
         self.MIN_ACTIONS = np.asarray([0, -0.85])
@@ -52,6 +57,12 @@ class F1tenthEnvironment(Node):
             self,
             LaserScan,
             f'/{self.NAME}/scan',
+        )
+
+        self.processed_publisher = self.create_publisher(
+            LaserScan,
+            f'/{self.NAME}/processed_scan',
+            10
         )
 
         self.message_filter = ApproximateTimeSynchronizer(
