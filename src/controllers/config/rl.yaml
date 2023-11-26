@@ -1,0 +1,5 @@
+rl:
+  ros_parameters:
+    actor_path: training_logs/SAC-CarTrack-23_10_25_10:41:10/models/SAC-checkpoint-15000_actor.pht
+    critic_path: training_logs/SAC-CarTrack-23_10_25_10:41:10/models/SAC-checkpoint-15000_critic.pht
+    algorithm: 'SAC'
