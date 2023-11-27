@@ -7,7 +7,7 @@ from cares_reinforcement_learning.util.helpers import denormalize
 from cares_reinforcement_learning.algorithm.policy import TD3
 from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 from cares_reinforcement_learning.util.NetworkFactory import NetworkFactory
-from reinforcement_learning.reinforcement_learning.parse_args import parse_args
+from reinforcement_learning.parse_args import parse_args
 
 def main():
     rclpy.init()
@@ -51,7 +51,7 @@ def main():
     else:
         raise Exception('Both actor and critic paths must be provided')
     
-    
+
     #DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     #time.sleep(3)
     

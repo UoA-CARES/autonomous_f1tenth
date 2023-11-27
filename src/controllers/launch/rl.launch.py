@@ -18,8 +18,7 @@ def generate_launch_description():
         executable='rl_policy',
         output='screen',
         parameters=[
-            config_path,
-            {'car_name': 'f1tenth'}
+            config_path
         ],
     )
 
