@@ -8,7 +8,7 @@ def generate_launch_description():
 
     config_path = os.path.join(
         get_package_share_directory('controllers'),
-        'rl.yaml'
+        'rl_policy.yaml'
     )
 
     #config = yaml.load(open(config_path), Loader=yaml.Loader)
