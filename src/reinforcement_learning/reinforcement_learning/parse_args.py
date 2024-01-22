@@ -46,9 +46,9 @@ def __declare_params():
             ('number_eval_episodes', 5),
 
             # Network Parameters -------------------------------
-            ('actor_path', ''),
-            ('critic_path', ''),
-            ('algorithm', 'TD3'),
+            ('actor_path', 'Models/SAC_actor.pht'),
+            ('critic_path', 'Models/SAC_critic.pht'),
+            ('algorithm', 'SAC'),
             ('gamma', 0.95),
             ('tau', 0.005),
             ('actor_lr', 1e-4),

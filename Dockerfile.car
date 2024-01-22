@@ -3,7 +3,9 @@ SHELL [ "/bin/bash", "-c" ]
 WORKDIR /ws
 COPY . .
 RUN sudo apt-get update
-RUN git clone https://github.com/UoA-CARES/cares_reinforcement_learning.git
+RUN git clone https://github.com/UoA-CARES/cares_reinforcement_learning.git && \
+    cd cares_reinforcement_learning && \
+    git reset --hard b52f71459d2f597cfd9b914c5973ceaa8671fadd
 RUN apt-get install -y python3-pip && \
     cd cares_reinforcement_learning && \
     pip install -r requirements.txt && \

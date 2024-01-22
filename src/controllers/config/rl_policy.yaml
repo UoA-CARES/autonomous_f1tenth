@@ -1,0 +1,6 @@
+rl_policy:
+  ros__parameters:
+    actor_path: Models/sac_actor.pht
+    critic_path: Models/sac_critic.pht
+    algorithm: 'SAC'
+    observation_mode: 'lidar_only'
