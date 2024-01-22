@@ -71,6 +71,7 @@ def main():
     #	)
 
     state = controller.step([0, 0], policy_id)
+    state = state[6:]
 
     while True:
         action = agent.select_action_from_policy(state) 
