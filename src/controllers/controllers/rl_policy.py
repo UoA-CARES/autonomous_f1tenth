@@ -69,12 +69,12 @@ def main():
     #	action_num=ACTION_NUM,
     #	device=DEVICE
     #	)
-
     state = controller.step([0, 0], policy_id)
     state = state[6:]
 
     while True:
-        action = agent.select_action_from_policy(state) 
+        action = agent.select_action_from_policy(state)
+     
         action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
         state = controller.step(action, policy_id)
         state = state[6:]

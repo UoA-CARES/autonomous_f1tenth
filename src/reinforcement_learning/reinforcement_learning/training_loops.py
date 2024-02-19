@@ -37,7 +37,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
             action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
         
         next_state, reward, done, truncated, info = env.step(action_env)
-        memory.add(state=state, action=action, reward=reward, next_state=next_state, done=done)
+        memory.add(state, action, reward, next_state, done)
 
         state = next_state
         episode_reward += reward
@@ -45,14 +45,8 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
         if step_counter >= max_steps_exploration:
             for i in range(G):
                 experience = memory.sample(batch_size)
-                info = agent.train_policy((
-                    experience['state'],
-                    experience['action'],
-                    experience['reward'],
-                    experience['next_state'],
-                    experience['done']
-                ))
-                memory.update_priorities(experience['indices'], info)
+                info = agent.train_policy(experience)
+                #memory.update_priorities(experience['indices'], info)
         
         if (step_counter+1) % number_steps_per_evaluation == 0:
             evaluate = True
