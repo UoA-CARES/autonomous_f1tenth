@@ -17,6 +17,7 @@ def generate_launch_description():
         package='controllers',
         executable='rl_policy',
         output='screen',
+        name='rl_policy',
         parameters=[
             config_path
         ],
