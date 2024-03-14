@@ -8,8 +8,8 @@ from rclpy.parameter import Parameter
 import torch
 
 from cares_reinforcement_learning.memory import MemoryBuffer
-from cares_reinforcement_learning.util.Record import Record
-from cares_reinforcement_learning.util.NetworkFactory import NetworkFactory
+from cares_reinforcement_learning.util.record import Record
+from cares_reinforcement_learning.util.network_factory import NetworkFactory
 import cares_reinforcement_learning.util.configurations as cfg
 
 from .parse_args import parse_args
@@ -41,7 +41,7 @@ def main():
 
     env = env_factory.create(env_config['environment'], env_config)
     agent = network_factory.create_network(env.OBSERVATION_SIZE, env.ACTION_NUM, config=network_config)
-    memory = MemoryBuffer(algorithm_config['buffer_size'], env.OBSERVATION_SIZE, env.ACTION_NUM)
+    memory = MemoryBuffer(algorithm_config['buffer_size'])
 
 
     record = Record(
@@ -50,7 +50,7 @@ def main():
         algorithm=network_config['algorithm'],
         task=env_config['environment'],
         network=agent,
-        checkpoint_frequency=5000
+        checkpoint_frequency=500
     )
 
     record.save_config(env_config, 'env_config')
