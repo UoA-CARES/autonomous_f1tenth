@@ -1,18 +1,4 @@
 sanity_check:
   ros__parameters:
-    environment: 'CarTrack' # CarGoal, CarWall, CarBlock, CarTrack
-    track: 'austin_track' # track_1, track_2, track_3 -> only applies for CarTrack
-    max_steps_exploration: 5000
-    max_steps_training: 1000000
-    reward_range: 1.0
-    collision_range: 0.2
-    # gamma: 0.95
-    # tau: 0.005
-    # g: 5
-    # batch_size: 32
-    # buffer_size: 1000000
-    # actor_lr: 0.0001
-    # critic_lr: 0.001
-    # max_steps: 10
-    # step_length: 0.25
-    # seed: 123
+    environment: 'CarGoal' # CarGoal, CarWall, CarBlock, CarTrack
+

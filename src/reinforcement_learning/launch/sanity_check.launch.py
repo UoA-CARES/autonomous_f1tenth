@@ -31,16 +31,7 @@ def generate_launch_description():
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_environments, f'{env_launch[env]}.launch.py')),
         launch_arguments={
-            'track': TextSubstitution(text=str(config['sanity_check']['ros__parameters']['track'])),
-        }.items() #TODO: this doesn't do anything
-    )
-    
-    f1tenth = IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
-        launch_arguments={
-            'name': 'f1tenth',
-            'world': 'empty'
+            'car_name': TextSubstitution(text=str(config['sanity_check']['ros__parameters']['car_name'] if 'car_name' in config['sanity_check']['ros__parameters'] else 'f1tenth')),
         }.items()
     )
 
@@ -61,6 +52,5 @@ def generate_launch_description():
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
         SetParameter(name='use_sim_time', value=True),
         environment,
-        f1tenth,
         main
 ])
