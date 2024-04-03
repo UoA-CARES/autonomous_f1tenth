@@ -1,6 +1,6 @@
 test:
   ros__parameters:
-    environment: 'CarTrack'
+    environment: 'CarTrackLimitTurn'
     track: 'multi_track' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     number_eval_episodes: 3
     max_steps: 3000
