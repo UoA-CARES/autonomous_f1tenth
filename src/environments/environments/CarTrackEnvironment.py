@@ -10,6 +10,7 @@ from .util import process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_w
 from .goal_positions import goal_positions
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
+import matplotlib.pyplot as plt
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -96,6 +97,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.all_goals = self.all_car_goals[self.current_track]
             self.car_waypoints = self.all_car_waypoints[self.current_track]
 
+        self.steering_angles = [0 for i in range(50)]
+        plt.ion()
+        plt.show()
+
         self.get_logger().info('Environment Setup Complete')
 
     def reset(self):
@@ -150,6 +155,21 @@ class CarTrackEnvironment(F1tenthEnvironment):
         terminated = self.is_terminated(full_next_state)
         truncated = self.steps_since_last_goal >= 10
         info = {}
+
+        #print(ang_vel)
+        self.steering_angles.append(ang_vel)
+        self.steering_angles.pop(0)
+
+        steps = [i for i in range(self.step_counter-50, self.step_counter)]
+        plt.clf()
+
+        plt.subplot(1,1,1)
+        plt.title("Steering Angle")
+        plt.ylim(-1.5,1.5)
+        plt.plot(steps, self.steering_angles)
+
+        plt.draw()
+        plt.pause(0.001)
 
         return next_state, reward, terminated, truncated, info
 
