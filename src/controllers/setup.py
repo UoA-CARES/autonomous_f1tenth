@@ -26,7 +26,8 @@ setup(
         'console_scripts': [
             'random_policy = controllers.random:main',
             'ftg_policy = controllers.ftg_policy:main',
-            'rl_policy = controllers.rl_policy:main'
+            'rl_policy = controllers.rl_policy:main',
+            'sim = controllers.sim:main'
         ],
     },
 )

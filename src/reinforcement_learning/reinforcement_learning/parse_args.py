@@ -153,9 +153,11 @@ def __get_network_params(param_node: Node):
         case 'TD3':
             config = cares_cfg.TD3Config(**params_dict)
         case _:
-            raise Exception(f'Algorithm {params_dict["algorithm"]} not implemented')
-    
-    rest = set(params_dict.keys()).difference(set(config.dict().keys()))
+            config = {'algorithm': 'traditional'}
+    try:
+        rest = set(params_dict.keys()).difference(set(config.dict().keys()))
+    except:
+        rest = set(params_dict.keys()).difference(set(config.keys()))
     param_node.get_logger().info(f'Rest: {rest}')
     rest = {key: params_dict[key] for key in rest}
 
