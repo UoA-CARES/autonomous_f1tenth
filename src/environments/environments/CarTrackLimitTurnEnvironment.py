@@ -97,11 +97,11 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
             self.all_goals = self.all_car_goals[self.current_track]
             self.car_waypoints = self.all_car_waypoints[self.current_track]
 
-        self.steering_angles = [0 for i in range(50)]
-        self.angular_v_diff = [0 for i in range(50)]
-        self.goal_dist_diff = [0 for i in range(50)]
-        plt.ion()
-        plt.show()
+        # self.steering_angles = [0 for i in range(50)]
+        # self.angular_v_diff = [0 for i in range(50)]
+        # self.goal_dist_diff = [0 for i in range(50)]
+        # plt.ion()
+        # plt.show()
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -158,31 +158,31 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
         truncated = self.steps_since_last_goal >= 10
         info = {}
 
-        #print(ang_vel)
-        self.steering_angles.append(ang_vel)
-        self.steering_angles.pop(0)
-        #
-        distance_closed = math.dist(self.goal_position, full_next_state[:2]) - math.dist(self.goal_position, full_state[:2])
-        self.angular_v_diff.append(full_next_state[7]-full_state[7])
-        self.angular_v_diff.pop(0)
-        self.goal_dist_diff.append(distance_closed)
-        self.goal_dist_diff.pop(0)
+        # #print(ang_vel)
+        # self.steering_angles.append(ang_vel)
+        # self.steering_angles.pop(0)
+        # #
+        # distance_closed = math.dist(self.goal_position, full_state[:2]) - math.dist(self.goal_position, full_next_state[:2]) 
+        # self.angular_v_diff.append(abs(full_next_state[7]-full_state[7])*0.12)
+        # self.angular_v_diff.pop(0)
+        # self.goal_dist_diff.append(distance_closed)
+        # self.goal_dist_diff.pop(0)
 
-        steps = [i for i in range(self.step_counter-50, self.step_counter)]
-        plt.clf()
+        # steps = [i for i in range(self.step_counter-50, self.step_counter)]
+        # plt.clf()
 
-        plt.subplot(2,1,1)
-        plt.title("Steering Angle")
-        plt.ylim(-1.5,1.5)
-        plt.plot(steps, self.steering_angles)
+        # plt.subplot(2,1,1)
+        # plt.title("Steering Angle")
+        # plt.ylim(-1.5,1.5)
+        # plt.plot(steps, self.steering_angles)
 
-        plt.subplot(2,1,2)
-        plt.title("Reward Analysis")
-        plt.plot(steps,self.angular_v_diff,'r')
-        plt.plot(steps,self.goal_dist_diff,'b')
+        # plt.subplot(2,1,2)
+        # plt.title("Reward Analysis")
+        # plt.plot(steps,self.angular_v_diff,'r')
+        # plt.plot(steps,self.goal_dist_diff,'b')
 
-        plt.draw()
-        plt.pause(0.001)
+        # plt.draw()
+        # plt.pause(0.001)
 
         return next_state, reward, terminated, truncated, info
 
@@ -250,7 +250,7 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
         if has_collided(next_state[8:], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25
 
-        #reward -= abs(state[7] - next_state[7])
+        reward -= abs(state[7] - next_state[7])*0.12
 
         return reward
 
