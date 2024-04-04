@@ -1,0 +1,11 @@
+sim:
+  ros__parameters:
+    algorithm: 'ftg'
+    observation_mode: 'lidar_only'
+    environment: 'CarTrack'
+    track: 'multi_track'
+    step_length: 0.1
+    reward_range: 3
+    collision_range: 0.2
+    number_eval_episodes: 100
+    max_steps: 3000
