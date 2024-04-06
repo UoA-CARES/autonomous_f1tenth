@@ -65,30 +65,43 @@ def reduce_lidar(lidar: LaserScan, num_points: int):
 # Reduce lidar so all values are facing forward from the robot
 
 def avg_lidar(lidar: LaserScan, num_points: int):
-  
-        ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
-        ranges = ranges[1:]
-                                                   
-        new_range = []
 
-        angle = 240/num_points
-        iter = 240/len(ranges)
-        num_ind = np.ceil(angle/iter)
+    ranges = lidar.ranges
+    ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
+    ranges = ranges[1:]
+                                                
+    new_range = []
 
-        x = 1
-        sum = ranges[0]
+    angle = 240/num_points # degs each avg point should cover
+    iter = 240/len(ranges) 
+    num_ind = np.ceil(angle/iter) # number of points per sector
 
-        while(x < len(ranges)):
-                if(x%num_ind == 0):
-                        new_range.append(float(sum/num_ind))
-                        sum = 0
-                sum += ranges[x]
-                x += 1
-        if(sum > 0):
-                new_range.append(float(sum/(len(ranges)%num_ind)))
-        
-        return new_range
+    x = 1
+    sum = ranges[0]
+
+    while(x < len(ranges)):
+        if(x%num_ind == 0):
+            new_range.append(float(sum/num_ind))
+            sum = 0
+        sum += ranges[x] #
+        x += 1
+    if(sum > 0):
+        new_range.append(float(sum/(len(ranges)%num_ind)))
+    
+    return new_range
+
+# def sample_lidar_front_focus(lidar:LaserScan):
+#     # sample 
+
+#     ranges = lidar.ranges
+#     ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
+#     ranges = ranges[1:]
+
+#     num_ranges_per_deg = len(ranges) / 240
+
+#     # 150 (5) -30- (5) 150 
+#     middle_index = int(len(ranges)/2)
+#     new_ranges = []
 
 def create_lidar_msg(lidar: LaserScan, num_points: int, lidar_range: list):
 
@@ -96,13 +109,15 @@ def create_lidar_msg(lidar: LaserScan, num_points: int, lidar_range: list):
     scan.header.stamp.sec = lidar.header.stamp.sec
     scan.header.stamp.nanosec = lidar.header.stamp.nanosec
     scan.header.frame_id = lidar.header.frame_id
+    # scan.header.frame_id = "hokuyo_10lx_lidar_link"
     scan.angle_min = -2.0923497676849365
     scan.angle_max = 2.0923497676849365
-    scan.angle_increment = 240/num_points * (3.142 / 180)
-    scan.time_increment =9.765627328306437e-05
-    scan.range_min = 0.019999999552965164
-    scan.range_max = 5.599999904632568
+    scan.angle_increment = 240.0/float(num_points-1) * (3.1415926 / 180.0)
+    scan.time_increment =0.0 #9.765627328306437e-05
+    scan.range_min = 0.07999999821186066 #0.019999999552965164
+    scan.range_max = 10.0 #5.599999904632568
     scan.ranges = lidar_range
+    scan.intensities=[0.0 for i in range(0,len(lidar_range))]
 
     return scan
 
