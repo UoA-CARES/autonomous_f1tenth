@@ -1,11 +1,12 @@
 import math
 import rclpy
+import numpy as np
 from rclpy import Future
 import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from .termination import has_collided, has_flipped_over
-from .util import process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks
+from .util import process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist
 from .goal_positions import goal_positions
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
@@ -133,7 +134,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.call_step(pause=False)
         _, full_state = self.get_observation()
 
-        lin_vel, ang_vel = action
+        lin_vel, steering_angle = action
+
+        # TODO: get rid of hard coded wheelbase
+        ang_vel = ackermann_to_twist(steering_angle, lin_vel, 0.315)
+
         self.set_velocity(lin_vel, ang_vel)
 
         self.sleep()
@@ -162,8 +167,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         num_points = self.LIDAR_POINTS
 
         reduced_range = avg_lidar(lidar, num_points)
-
-        # Get Goal Position
         
         match (self.observation_mode):
             case 'no_position':

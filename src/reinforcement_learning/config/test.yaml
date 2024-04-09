@@ -2,12 +2,12 @@ test:
   ros__parameters:
     environment: 'CarTrack'
     track: 'multi_track' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
-    number_eval_episodes: 100
+    number_eval_episodes: 3
     max_steps: 3000
-    actor_path: training_logs/SAC-CarTrack-23_10_25_10:41:10/models/SAC-checkpoint-15000_actor.pht
-    critic_path: training_logs/SAC-CarTrack-23_10_25_10:41:10/models/SAC-checkpoint-15000_critic.pht
-    algorithm: 'SAC'
+    actor_path: training_logs/TD3-CarTrack-24_03_27_16:02:09/models/TD3_actor.pht
+    critic_path: training_logs/TD3-CarTrack-24_03_27_16:02:09/models/TD3_critic.pht
+    algorithm: 'TD3'
     step_length: 0.1
-    reward_range: 3.0
+    reward_range: 3
     collision_range: 0.2
     observation_mode: 'lidar_only'
