@@ -10,6 +10,7 @@ class MPC():
         self.delta_t = 0.1
         self.wheelbase = 0.315
         self.time_const = 0.1
+        self.predictionSteps = 2
 
     def calcAction(self, coord):
         lin = 0
@@ -24,3 +25,16 @@ class MPC():
         steering_angle = steering_angle - self.time_const**(-1)*(steering_angle - des_angle)*self.delta_t
 
         return x, y, yaw, steering_angle
+    
+    def cost(self, xcurr, x, xdes, ycurr, y, ydes, steeringcurr, steering, steerdes, yawcurr, yaw, yawdes):
+        Y = np.array([[xcurr, ycurr, yawcurr, 0, x, y, yaw, 0]])
+        Yref = np.array([[xdes, ydes, yawdes, 0, xdes, ydes, yawdes, 0]])
+        Yarr = Y - Yref
+        qx = 10
+        qy = 100
+        qyaw = 1000
+        Q = np.diag([qx, qy, qyaw, 0 , qx, qy, qyaw, 0])
+        qsteer = 50
+
+        cost = Yarr@Q@np.transpose(Yarr) + qsteer*(steeringcurr - steering)**2 #(U - Uref)*R*(U-Uref)
+        return cost
