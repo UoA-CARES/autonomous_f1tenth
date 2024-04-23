@@ -5,7 +5,7 @@ import yaml
 import rclpy
 import torch
 
-from cares_reinforcement_learning.util.network_factory import NetworkFactory
+from cares_reinforcement_learning.util.NetworkFactory import NetworkFactory
 import cares_reinforcement_learning.util.configurations as cfg
 
 from reinforcement_learning.parse_args import parse_args
