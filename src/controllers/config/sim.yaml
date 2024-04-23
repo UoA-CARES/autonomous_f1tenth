@@ -1,6 +1,6 @@
 sim:
   ros__parameters:
-    algorithm: 'random'
+    algorithm: 'turn_drive'
     observation_mode: 'lidar_only'
     environment: 'CarTrack'
     track: 'multi_track'
