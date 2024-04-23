@@ -45,16 +45,9 @@ def generate_launch_description():
         }.items() #TODO: this doesn't do anything
     )
 
-    algorithm = IncludeLaunchDescription(
-        launch_description_source = PythonLaunchDescriptionSource(
-            os.path.join(pkg_controllers, f'{alg_launch[alg]}.launch.py')),
-        launch_arguments={
-            'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth'),
-        }.items()
-    )
 
     # Launch the Environment
-    main = Node(
+    sim = Node(
             package='controllers',
             executable='sim',
             parameters=[
@@ -65,11 +58,37 @@ def generate_launch_description():
             emulate_tty=True, # Allows python print to show
     )
 
+    """alg_config_path = os.path.join(
+        get_package_share_directory('controllers'),
+        f'{alg}_policy.yaml'
+    )"""
+
+    if (f'{alg}' != 'rl'):
+        alg = Node(
+            package='controllers',
+            executable=f'{alg}_policy',
+            output='screen',
+            parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')}],
+        )
+    #algorithm = 0
+    else:
+        alg = IncludeLaunchDescription(
+            launch_description_source = PythonLaunchDescriptionSource(
+                os.path.join(pkg_controllers, f'{alg_launch[alg]}.launch.py')),
+            launch_arguments={
+                'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth'),
+            }.items()
+        )
+    
+
+    
+
     return LaunchDescription([
         #TODO: Find a way to remove this
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
         SetParameter(name='use_sim_time', value=True),
         environment,
-        algorithm,
-        main
+        alg,
+        sim,
+        #algorithm
 ])
