@@ -18,6 +18,7 @@ env_launch = {
 alg_launch = {
     'ftg': 'ftg',
     'rl': 'rl',
+    'random': 'random',
 }
 
 def generate_launch_description():
