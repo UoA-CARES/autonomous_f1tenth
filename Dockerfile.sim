@@ -36,7 +36,7 @@ SHELL [ "/bin/bash", "-c" ]
 WORKDIR /ws
 COPY . .
 
-RUN git clone -b dvr_memory_fix https://github.com/UoA-CARES/cares_reinforcement_learning.git && \
+RUN git clone https://github.com/UoA-CARES/cares_reinforcement_learning.git && \
     cd cares_reinforcement_learning && \
     pip3 install -r requirements.txt && \
     pip3 install --editable .
