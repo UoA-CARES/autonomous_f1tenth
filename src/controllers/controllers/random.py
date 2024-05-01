@@ -20,10 +20,11 @@ def main():
     CAR_NAME = params[0]
     
     controller = Controller('random_', CAR_NAME, 0.25)
+    policy_id = 'random'
     
     while True:
         action = np.asarray([random.uniform(0, 3), random.uniform(-3.14, 3.14)])    
-        controller.step(action)
+        controller.step(action, policy_id)
     
 
 if __name__ == '__main__':
