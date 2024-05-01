@@ -53,7 +53,7 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
 
     def __init__(self, 
                  car_name, 
-                 reward_range=0.5, 
+                 reward_range=0.2, 
                  max_steps=500, 
                  collision_range=0.2, 
                  step_length=0.5, 
@@ -71,7 +71,7 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
             case 'no_position':
                 self.OBSERVATION_SIZE = 6 + 10
             case 'lidar_only':
-                self.OBSERVATION_SIZE = 10 + 2
+                self.OBSERVATION_SIZE = 10 + 2 + 1
             case _:
                 self.OBSERVATION_SIZE = 8 + 10
 
@@ -80,6 +80,9 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
 
         self.observation_mode = observation_mode
         self.track = track
+
+        self.prev_angular_v = 0
+        # self.prev_linear_v = 0
 
         # Reset Client -----------------------------------------------
 
@@ -99,6 +102,7 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
 
         # self.steering_angles = [0 for i in range(50)]
         # self.angular_v_diff = [0 for i in range(50)]
+        # self.linear_v_diff = [0 for i in range(50)]
         # self.goal_dist_diff = [0 for i in range(50)]
         # plt.ion()
         # plt.show()
@@ -133,6 +137,10 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
 
         info = {}
 
+        #reset previous angular & linear v recording
+        self.prev_angular_v = 0
+        # self.prev_linear_v = 0
+
         return observation, info
 
     def step(self, action):
@@ -155,41 +163,50 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
         
         reward = self.compute_reward(full_state, full_next_state)
         terminated = self.is_terminated(full_next_state)
-        truncated = self.steps_since_last_goal >= 10
+        truncated = self.steps_since_last_goal >= 15
         info = {}
 
-        # #print(ang_vel)
+        ####### Visualise ####################################################
+        #print(ang_vel)
         # self.steering_angles.append(ang_vel)
         # self.steering_angles.pop(0)
         # #
         # distance_closed = math.dist(self.goal_position, full_state[:2]) - math.dist(self.goal_position, full_next_state[:2]) 
         # self.angular_v_diff.append(abs(full_next_state[7]-full_state[7])*0.12)
         # self.angular_v_diff.pop(0)
+        # self.linear_v_diff.append(abs(full_next_state[6]-full_state[6])*0.12)
+        # self.linear_v_diff.pop(0)
         # self.goal_dist_diff.append(distance_closed)
         # self.goal_dist_diff.pop(0)
 
         # steps = [i for i in range(self.step_counter-50, self.step_counter)]
         # plt.clf()
 
-        # plt.subplot(2,1,1)
+        # plt.subplot(3,1,1)
         # plt.title("Steering Angle")
         # plt.ylim(-1.5,1.5)
         # plt.plot(steps, self.steering_angles)
 
-        # plt.subplot(2,1,2)
+        # plt.subplot(3,1,2)
         # plt.title("Reward Analysis")
         # plt.plot(steps,self.angular_v_diff,'r')
         # plt.plot(steps,self.goal_dist_diff,'b')
 
+        # plt.subplot(3,1,3)
+        # plt.title("Linear v")
+
+        # plt.plot(steps, self.linear_v_diff)
+
         # plt.draw()
         # plt.pause(0.001)
+        ###############################################################
 
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state):
         return has_collided(state[8:], self.COLLISION_RANGE) \
             or has_flipped_over(state[2:6]) or \
-            self.goals_reached >= self.MAX_GOALS
+            self.goals_reached >= self.MAX_GOALS or state[6] <= 0.002
 
     def get_observation(self):
 
@@ -203,13 +220,16 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
         
         match (self.observation_mode):
             case 'no_position':
-                state = odom[2:] + reduced_range
+                state = odom[2:] + [self.prev_angular_v] + reduced_range
             case 'lidar_only':
-                state = odom[-2:] + reduced_range 
+                state = odom[-2:] + [self.prev_angular_v] + reduced_range #[self.prev_linear_v,self.prev_angular_v]
             case _:
-                state = odom + reduced_range
+                state = odom + [self.prev_angular_v]  + reduced_range
 
-        
+        # record current velocities
+        # self.prev_linear_v = odom[-2]
+        self.prev_angular_v = odom[-1]
+
         scan = create_lidar_msg(lidar, num_points, reduced_range)
 
         self.processed_publisher.publish(scan)
@@ -227,7 +247,7 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
         current_distance = math.dist(goal_position, next_state[:2])
         previous_distance = math.dist(goal_position, state[:2])
 
-        reward += previous_distance - current_distance
+        reward += (previous_distance - current_distance)
 
         self.steps_since_last_goal += 1
 
@@ -244,13 +264,20 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
 
             self.steps_since_last_goal = 0
         
-        if self.steps_since_last_goal >= 10:
+        if self.steps_since_last_goal >=15:
             reward -= 10
 
         if has_collided(next_state[8:], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25
 
+        if next_state[6] <= 0.002:
+            reward -= 10
+
+        # penalise change in velocities
+        # angular
         reward -= abs(state[7] - next_state[7])*0.12
+        # # linear
+        # reward -= abs(state[6] - next_state[6])*75
 
         return reward
 
