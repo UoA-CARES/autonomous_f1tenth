@@ -21,11 +21,22 @@ def main():
     
     controller = Controller('turn_drive_', CAR_NAME, 0.25)
     policy_id = 'turn_drive'
-    
+    policy = TurnAndDrive()
+    state = controller.get_observation(policy_id)
+    goal = state[0:1]+2
     while True:
-        action = np.asarray([random.uniform(0, 3), random.uniform(-3.14, 3.14)])    
+        action = policy.select_action(state, goal)   
         controller.step(action, policy_id)
-    
+
+class TurnAndDrive():
+
+    def select_action(self, state, goal):
+        location = state[0:1]
+        lin = 1
+
+        ang = state[7]
+        action = np.asarray([lin, ang])
+        return action    
 
 if __name__ == '__main__':
     main()
