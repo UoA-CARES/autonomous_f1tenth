@@ -23,18 +23,38 @@ def main():
     policy_id = 'turn_drive'
     policy = TurnAndDrive()
     state = controller.get_observation(policy_id)
-    goal = state[0:1]+2
+    print(state[0:2])
+    print(type(state[0]))
+    goalx = float(state[0]) + 2
+    goaly = float(state[1]) + 2
+    goal = np.asarray([goalx, goaly])
     while True:
         action = policy.select_action(state, goal)   
         controller.step(action, policy_id)
 
 class TurnAndDrive():
-
+    # Still fixing
     def select_action(self, state, goal):
-        location = state[0:1]
-        lin = 1
-
-        ang = state[7]
+        location = state[0:2]
+        distance = goal - location
+        if ((abs(distance[0]) < 0.2)&(abs(distance[1] < 0.2))):
+            lin = 0
+            ang = 0
+            action = np.asarray([lin, ang])
+            return action
+        
+        angle = np.arctan2(distance[1], distance[0])
+        if (((angle - state[5]) > 0.1)| ((angle - state[5]) < -0.1)):
+            ang = angle - state[5]
+            print(angle)
+            print(state[5])
+            print(ang)
+            lin = 0.05
+        else:
+            ang = 0
+            lin = 1
+        
+        
         action = np.asarray([lin, ang])
         return action    
 
