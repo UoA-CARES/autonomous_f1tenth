@@ -167,14 +167,15 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
         info = {}
 
         ####### Visualise ####################################################
-        #print(ang_vel)
+        # print(ang_vel)
         # self.steering_angles.append(ang_vel)
         # self.steering_angles.pop(0)
         # #
         # distance_closed = math.dist(self.goal_position, full_state[:2]) - math.dist(self.goal_position, full_next_state[:2]) 
         # self.angular_v_diff.append(abs(full_next_state[7]-full_state[7])*0.12)
         # self.angular_v_diff.pop(0)
-        # self.linear_v_diff.append(abs(full_next_state[6]-full_state[6])*0.12)
+        # # self.linear_v_diff.append(abs(full_next_state[6]-full_state[6])*0.12)
+        # self.linear_v_diff.append(full_state[6])
         # self.linear_v_diff.pop(0)
         # self.goal_dist_diff.append(distance_closed)
         # self.goal_dist_diff.pop(0)
@@ -253,7 +254,8 @@ class CarTrackLimitTurnEnvironment(F1tenthEnvironment):
 
         if current_distance < self.REWARD_RANGE:
             print(f'Goal #{self.goals_reached} Reached')
-            reward += 2
+            # reward += 2
+            reward += 4*(1-math.exp(-state[4])) 
             self.goals_reached += 1
 
             # Updating Goal Position

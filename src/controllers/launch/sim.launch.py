@@ -50,7 +50,7 @@ def generate_launch_description():
     # Launch the Environment
     sim = Node(
             package='controllers',
-            executable='sim',
+            executable='ftg_policy',
             parameters=[
                 config_path
             ],
