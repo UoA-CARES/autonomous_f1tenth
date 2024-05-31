@@ -8,3 +8,4 @@ train:
     buffer_size: 1000000
     max_steps_training: 750000
     observation_mode: 'lidar_only'
+    max_steps_exploration: 1000

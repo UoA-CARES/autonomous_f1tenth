@@ -44,8 +44,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
 
         if step_counter >= max_steps_exploration:
             for i in range(G):
-                experience = memory.sample(batch_size)
-                info = agent.train_policy(experience)
+                agent.train_policy(memory, batch_size)
                 #memory.update_priorities(experience['indices'], info)
         
         if (step_counter+1) % number_steps_per_evaluation == 0:
