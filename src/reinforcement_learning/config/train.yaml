@@ -6,5 +6,5 @@ train:
     algorithm: 'TD3'
     g: 1
     buffer_size: 1000000
-    max_steps_training: 500000
+    max_steps_training: 750000
     observation_mode: 'lidar_only'
