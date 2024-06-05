@@ -7,13 +7,6 @@ from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
 from launch.substitutions import TextSubstitution
 import yaml
 
-env_launch = {
-    'CarGoal': 'cargoal',
-    'CarWall': 'carwall',
-    'CarBlock': 'carblock',
-    'CarTrack': 'cartrack',
-    'CarBeat': 'carbeat',
-}
 
 alg_launch = {
     'ftg': 'ftg',
@@ -28,36 +21,11 @@ def generate_launch_description():
 
     config_path = os.path.join(
         pkg_controllers,
-        'sim.yaml'
+        'car.yaml'
     )
 
     config = yaml.load(open(config_path), Loader=yaml.Loader)
-    env = config['sim']['ros__parameters']['environment']
-    alg = config['sim']['ros__parameters']['algorithm']
-
-    environment =  IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_environments, f'{env_launch[env]}.launch.py')),
-        launch_arguments={
-            'track': TextSubstitution(text=str(config['sim']['ros__parameters']['track'])),
-            'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth'),
-            'car_one': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth'),
-            #'car_two': TextSubstitution(text=str(config['sim']['ros__parameters']['ftg_car_name']) if 'ftg_car_name' in config['sim']['ros__parameters'] else 'ftg_car'),
-        }.items() #TODO: this doesn't do anything
-    )
-
-
-    # Launch the Environment
-    sim = Node(
-            package='controllers',
-            executable='sim',
-            parameters=[
-                config_path
-            ],
-            name='sim',
-            output='screen',
-            emulate_tty=True, # Allows python print to show
-    )
+    alg = config['car']['ros__parameters']['algorithm']
 
     """alg_config_path = os.path.join(
         get_package_share_directory('controllers'),
@@ -88,8 +56,6 @@ def generate_launch_description():
         #TODO: Find a way to remove this
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
         SetParameter(name='use_sim_time', value=True),
-        environment,
         alg,
-        sim,
         #algorithm
 ])
