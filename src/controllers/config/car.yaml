@@ -1,4 +1,4 @@
-sim:
+car:
   ros__parameters:
     algorithm: 'random'
     observation_mode: 'lidar_only'
