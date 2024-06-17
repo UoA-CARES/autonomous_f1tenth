@@ -7,7 +7,7 @@ import rclpy
 from rclpy.parameter import Parameter
 import torch
 
-from cares_reinforcement_learning.memory import PrioritizedReplayBuffer
+from cares_reinforcement_learning.memory import MemoryBuffer
 from cares_reinforcement_learning.util.record import Record
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
 import cares_reinforcement_learning.util.configurations as cfg
@@ -41,7 +41,7 @@ def main():
 
     env = env_factory.create(env_config['environment'], env_config)
     agent = network_factory.create_network(env.OBSERVATION_SIZE, env.ACTION_NUM, config=network_config)
-    memory = PrioritizedReplayBuffer(max_capacity=algorithm_config['buffer_size'])
+    memory = MemoryBuffer(max_capacity=algorithm_config['buffer_size'])
 
 
     record = Record(
