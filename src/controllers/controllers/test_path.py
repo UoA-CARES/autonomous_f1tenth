@@ -1,26 +1,36 @@
+from collections import namedtuple
+
 def straightLine():
-    return 1
+    coordinates = ([0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0], [11, 0], [12, 0]) #placeholder values
+    return coordinates
 
 def circle():
-    return 1
+    coordinates = ([0, 0], [1, 0], [3, 1], [5, 2]) #placeholder values
+    return coordinates
 
 def austinLap():
-    return 1
+    coordinates = ([0, 0], [1, 0], [3, 1], [5, 2]) #placeholder values
+    return coordinates
 
 def budapestLap():
-    return 1
+    coordinates = ([0, 0], [1, 0], [3, 1], [5, 2]) #placeholder values
+    return coordinates
 
 def hockenheimLap():
-    return 1
+    coordinates = ([0, 0], [1, 0], [3, 1], [5, 2]) #placeholder values
+    return coordinates
 
 def melbourneLap():
     # TBC
-    return 1
+    coordinates = ([0, 0], [1, 0], [3, 1], [5, 2]) #placeholder values
+    return coordinates
 
 def saopaoloLap():
     # TBC
-    return 1
+    coordinates = ([0, 0], [1, 0], [3, 1], [5, 2]) #placeholder values
+    return coordinates
 
 def shanghaiLap():
     # TBC
-    return 1
+    coordinates = ([0, 0], [1, 0], [3, 1], [5, 2]) #placeholder values
+    return coordinates
