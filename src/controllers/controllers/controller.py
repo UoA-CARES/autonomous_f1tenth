@@ -8,6 +8,7 @@ from ackermann_msgs.msg import AckermannDriveStamped
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
+import math
 
 from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg
 
@@ -90,6 +91,7 @@ class Controller(Node):
         self.observation_future.set_result({'odom': odom, 'lidar': lidar})
 
     def get_observation(self, policy):
+        #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z]
         odom, lidar = self.get_data()
         odom = process_odom(odom)
         
