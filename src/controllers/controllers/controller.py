@@ -75,9 +75,9 @@ class Controller(Node):
 
     def step(self, action, policy):
 
-        lin_vel, ang_vel = action
+        lin_vel, steering_angle = action
         lin_vel = self.vel_mod(lin_vel)
-        self.set_velocity(lin_vel, ang_vel)
+        self.set_velocity(lin_vel, steering_angle)
 
         self.sleep()
 
@@ -117,20 +117,20 @@ class Controller(Node):
         data = future.result()
         return data['odom'], data['lidar']
 
-    def set_velocity(self, linear, angle):
+    def set_velocity(self, lin_vel, steering_angle):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
 
-        angular = ackermann_to_twist(angle, linear, 0.25)
+        ang_vel = ackermann_to_twist(steering_angle, lin_vel, 0.25)
 
         car_velocity_msg = AckermannDriveStamped()
         sim_velocity_msg = Twist()
-        sim_velocity_msg.angular.z = float(angular)
-        sim_velocity_msg.linear.x = float(linear)
+        sim_velocity_msg.angular.z = float(ang_vel)
+        sim_velocity_msg.linear.x = float(lin_vel)
 
-        car_velocity_msg.drive.steering_angle = float(angle) #-float(angle*0.5)
-        car_velocity_msg.drive.speed = float(linear)
+        car_velocity_msg.drive.steering_angle = float(steering_angle) #-float(angle*0.5)
+        car_velocity_msg.drive.speed = float(lin_vel)
 
         self.ackerman_pub.publish(car_velocity_msg)
         self.cmd_vel_pub.publish(sim_velocity_msg)
