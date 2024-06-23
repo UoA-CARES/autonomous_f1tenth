@@ -1,11 +1,23 @@
+# train:
+#   ros__parameters:
+#     environment: 'CarTrackLimitTurn' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat
+#     track: 'multi_track' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
+#     car_name: 'f1tenth'
+#     algorithm: 'TD3'
+#     g: 1
+#     buffer_size: 1000000
+#     max_steps_training: 100000
+#     observation_mode: 'lidar_only'
+#     max_steps_exploration: 1000
+
 train:
   ros__parameters:
-    environment: 'CarTrackLimitTurn' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat
+    environment: 'CarTrack' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat, CarTrackLimitTurn
     track: 'multi_track' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     car_name: 'f1tenth'
     algorithm: 'TD3'
     g: 1
     buffer_size: 1000000
-    max_steps_training: 100000
+    max_steps_training: 1000000
     observation_mode: 'lidar_only'
     max_steps_exploration: 1000
