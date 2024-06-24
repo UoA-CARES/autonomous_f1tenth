@@ -12,7 +12,7 @@
 
 train:
   ros__parameters:
-    environment: 'CarTrack' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat, CarTrackLimitTurn
+    environment: 'CarBeat' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat, CarTrackLimitTurn
     track: 'multi_track' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     car_name: 'f1tenth'
     algorithm: 'TD3'
