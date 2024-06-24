@@ -97,9 +97,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.all_goals = self.all_car_goals[self.current_track]
             self.car_waypoints = self.all_car_waypoints[self.current_track]
 
-        self.steering_angles = [0 for i in range(50)]
-        plt.ion()
-        plt.show()
+        # self.steering_angles = [0 for i in range(50)]
+        # plt.ion()
+        # plt.show()
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -157,19 +157,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
         info = {}
 
         #print(ang_vel)
-        self.steering_angles.append(ang_vel)
-        self.steering_angles.pop(0)
+        # self.steering_angles.append(ang_vel)
+        # self.steering_angles.pop(0)
 
-        steps = [i for i in range(self.step_counter-50, self.step_counter)]
-        plt.clf()
+        # steps = [i for i in range(self.step_counter-50, self.step_counter)]
+        # plt.clf()
 
-        plt.subplot(1,1,1)
-        plt.title("Steering Angle")
-        plt.ylim(-1.5,1.5)
-        plt.plot(steps, self.steering_angles)
+        # plt.subplot(1,1,1)
+        # plt.title("Steering Angle")
+        # plt.ylim(-1.5,1.5)
+        # plt.plot(steps, self.steering_angles)
 
-        plt.draw()
-        plt.pause(0.001)
+        # plt.draw()
+        # plt.pause(0.001)
 
         return next_state, reward, terminated, truncated, info
 
