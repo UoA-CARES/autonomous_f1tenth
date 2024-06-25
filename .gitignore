@@ -13,3 +13,4 @@ rl_logs
 src/f1tenth/f1tenth_control/f1tenth_control/__pycache__/*
 Retrain1hTrue
 results/
+.vscode
