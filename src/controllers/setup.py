@@ -27,6 +27,7 @@ setup(
             'random_policy = controllers.random:main',
             'ftg_policy = controllers.ftg_policy:main',
             'rl_policy = controllers.rl_policy:main',
+            'turn_drive_policy = controllers.turn_and_drive:main',
             'sim = controllers.sim:main'
         ],
     },

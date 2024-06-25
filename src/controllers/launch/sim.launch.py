@@ -19,6 +19,7 @@ alg_launch = {
     'ftg': 'ftg',
     'rl': 'rl',
     'random': 'random',
+    'turn_drive': 'turn_drive',
 }
 
 def generate_launch_description():

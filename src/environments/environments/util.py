@@ -25,6 +25,36 @@ def get_quaternion_from_euler(roll, pitch, yaw):
  
   return [qx, qy, qz, qw]
 
+def get_euler_from_quarternion(w,x,y,z):
+    """
+    Convert a quaternion w, x, y, z to Euler angles [roll, pitch, yaw]
+
+    Args:
+    quaternion (list or tuple): A list or tuple containing the quaternion components [w, x, y, z]
+
+    Returns:
+    tuple: A tuple containing the Euler angles (roll, pitch, yaw)
+    """
+
+    # Roll (x-axis rotation)
+    sinr_cosp = 2 * (w * x + y * z)
+    cosr_cosp = 1 - 2 * (x * x + y * y)
+    roll = math.atan2(sinr_cosp, cosr_cosp)
+
+    # Pitch (y-axis rotation)
+    sinp = 2 * (w * y - z * x)
+    if abs(sinp) >= 1:
+        pitch = math.copysign(math.pi / 2, sinp)  # use 90 degrees if out of range
+    else:
+        pitch = math.asin(sinp)
+
+    # Yaw (z-axis rotation)
+    siny_cosp = 2 * (w * z + x * y)
+    cosy_cosp = 1 - 2 * (y * y + z * z)
+    yaw = math.atan2(siny_cosp, cosy_cosp)
+
+    return roll, pitch, yaw
+
 def generate_position(inner_bound=3, outer_bound=8):
         inner_bound = float(inner_bound)
         outer_bound = float(outer_bound)
