@@ -6,11 +6,46 @@ import do_mpc
 from casadi import *
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from .controller import Controller
 
+def main():
+    rclpy.init()
+    
+    param_node = rclpy.create_node('params')
+    
+    param_node.declare_parameters(
+        '',
+        [
+            ('car_name', 'f1tenth_two'),
+        ]
+    )
+    
+    params = param_node.get_parameters(['car_name'])
+    params = [param.value for param in params]
+    CAR_NAME = params[0]
+    
+    controller = Controller('mpc_', CAR_NAME, 0.25)
+    policy_id = 'mpc'
+    policy = MPC()
+
+    state = controller.get_observation(policy_id)
+    print("IN MPC")
+    goalx = -5
+    goaly = -2
+    goal = np.asarray([goalx, goaly])
+    
+    while True:
+        # compute target [linear velocity, angular velocity]
+        
+        
+        state = controller.get_observation(policy_id)
+        action = policy.select_action(state, goal)   
+
+        # moves car
+        controller.step(action, policy_id)
 
 class MPC():
-    def __init__(self, alg): 
-        self.alg = alg
+    def __init__(self): 
         self.deltaT = 0.1
         self.wheelbase = 0.315
         self.timeConst = 0.1
@@ -40,6 +75,12 @@ class MPC():
         cost = Yarr@Q@np.transpose(Yarr) + qsteer*(steeringcurr - steering)**2 #(U - Uref)*R*(U-Uref)
         return cost
     
+    def select_action(self, state, goal):
+        lin = 1
+        ang = 0
+        action = np.asarray([lin, ang])
+        return action 
+
     def mpcAlg(self, x, y, steering, des_angle, lin, yaw):
         MAX_ACTIONS = np.asarray([0.5, 0.85])
         MIN_ACTIONS = np.asarray([0, -0.85])
@@ -263,3 +304,7 @@ class MPC():
 
 
         return lin, steering
+    
+
+if __name__ == '__main__':
+    main()
