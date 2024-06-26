@@ -1,6 +1,6 @@
 sim:
   ros__parameters:
-    algorithm: 'turn_drive'
+    algorithm: 'testPath'
     observation_mode: 'lidar_only'
     # environment: 'CarTrack'
     # track: 'multi_track'

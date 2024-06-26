@@ -20,6 +20,7 @@ alg_launch = {
     'rl': 'rl',
     'random': 'random',
     'turn_drive': 'turn_drive',
+    'testPath': 'testPath',
 }
 
 def generate_launch_description():
