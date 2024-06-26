@@ -7,6 +7,7 @@ from casadi import *
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from .controller import Controller
+from rclpy.impl import rcutils_logger
 
 def main():
     rclpy.init()
@@ -45,7 +46,12 @@ def main():
         controller.step(action, policy_id)
 
 class MPC():
+
+    logger = rcutils_logger.RcutilsLogger(name="mpc_log")
+
     def __init__(self): 
+        self.logger.info("-------------------------------------------------")
+        self.logger.info("MPC Alg created")
         self.deltaT = 0.1
         self.wheelbase = 0.315
         self.timeConst = 0.1
@@ -79,6 +85,9 @@ class MPC():
         lin = 1
         ang = 0
         action = np.asarray([lin, ang])
+        self.logger.info("DRIVE LIN_V: "+str(lin))
+        self.logger.info("DRIVE ANGLE: "+str(ang))
+        self.logger.info("-------------------------")
         return action 
 
     def mpcAlg(self, x, y, steering, des_angle, lin, yaw):
