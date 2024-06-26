@@ -9,6 +9,7 @@ import matplotlib as mpl
 from .controller import Controller
 from rclpy.impl import rcutils_logger
 from environments.util import get_euler_from_quarternion
+import time
 
 def main():
     rclpy.init()
@@ -32,8 +33,8 @@ def main():
 
     state = controller.get_observation(policy_id)
     print("IN MPC")
-    goalx = -5
-    goaly = -2
+    goalx = -3
+    goaly = 1
     goal = np.asarray([goalx, goaly])
     
     while True:
@@ -45,6 +46,11 @@ def main():
 
         # moves car
         controller.step(action, policy_id)
+        time.sleep(0.2)
+        action = np.asarray([0, 0])
+        controller.step(action, policy_id)
+        time.sleep(1)
+
 
 class MPC():
 
@@ -58,7 +64,7 @@ class MPC():
         self.timeConst = 0.1
 
         # MPC parameters. Options defines how many alternative actions will be considered. Prediction steps defines how far into the future each action will be assessed.
-        self.predictionSteps = 2
+        self.predictionSteps = 5
         self.options = 10
 
         
@@ -77,11 +83,11 @@ class MPC():
         Y = np.array([[xcurr, ycurr, yawcurr, 0, x, y, yaw, 0]])
         Yref = np.array([[xdes, ydes, yawdes, 0, xdes, ydes, yawdes, 0]])
         Yarr = Y - Yref
-        qx = 10
-        qy = 100
-        qyaw = 1000
+        qx = 1
+        qy = 1
+        qyaw = 0
         Q = np.diag([qx, qy, qyaw, 0 , qx, qy, qyaw, 0])
-        qsteer = 50
+        qsteer = 1
 
         cost = Yarr@Q@np.transpose(Yarr) + qsteer*(steeringcurr - steering)**2 #(U - Uref)*R*(U-Uref)
         return cost
