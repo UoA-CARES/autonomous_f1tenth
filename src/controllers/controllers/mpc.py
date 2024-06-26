@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from .controller import Controller
 from rclpy.impl import rcutils_logger
+from environments.util import get_euler_from_quarternion
 
 def main():
     rclpy.init()
@@ -55,7 +56,10 @@ class MPC():
         self.deltaT = 0.1
         self.wheelbase = 0.315
         self.timeConst = 0.1
+
+        # MPC parameters. Options defines how many alternative actions will be considered. Prediction steps defines how far into the future each action will be assessed.
         self.predictionSteps = 2
+        self.options = 10
 
         
     
@@ -68,6 +72,7 @@ class MPC():
 
         return x, y, yaw, steeringAngle
     
+    #Needs fixing
     def cost(self, xcurr, x, xdes, ycurr, y, ydes, steeringcurr, steering, yawcurr, yaw, yawdes):
         Y = np.array([[xcurr, ycurr, yawcurr, 0, x, y, yaw, 0]])
         Yref = np.array([[xdes, ydes, yawdes, 0, xdes, ydes, yawdes, 0]])
@@ -82,8 +87,32 @@ class MPC():
         return cost
     
     def select_action(self, state, goal):
-        lin = 1
-        ang = 0
+        MAX_ACTIONS = np.asarray([1, 0.85])
+        MIN_ACTIONS = np.asarray([0, -0.85])
+        
+        lin = MAX_ACTIONS[0]
+        xcurr, ycurr = state[0:2]
+        steeringcurr = state[7]
+        desAngles = np.linspace(MIN_ACTIONS[1], MAX_ACTIONS[1], self.options, endpoint=True)
+        yawcurr = get_euler_from_quarternion(state[2],state[3],state[4],state[5])[2]       
+        lowestCost = inf
+        
+        for i in range(self.options):
+            desAngle = desAngles[i]
+            x = xcurr
+            y = ycurr
+            steeringAngle = steeringcurr
+            yaw = yawcurr
+            self.logger.info("CHECKING ANGLE = " +str(desAngle))
+            for j in range(self.predictionSteps):
+                x, y, yaw, steeringAngle = self.newStates(lin, x, y, steeringAngle, desAngle, yaw)
+            cost = self.cost(xcurr, x, goal[0], ycurr, y, goal[1], steeringcurr, steeringAngle, yawcurr, yaw, yawdes=0)
+            self.logger.info("COST = "+str(cost))
+            if (cost < lowestCost):
+                self.logger.info("COST LOWER THAN LOWEST COST OF:"+str(lowestCost))
+                lowestCost = cost
+                ang = desAngle
+        
         action = np.asarray([lin, ang])
         self.logger.info("DRIVE LIN_V: "+str(lin))
         self.logger.info("DRIVE ANGLE: "+str(ang))
