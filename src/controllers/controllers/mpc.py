@@ -62,7 +62,7 @@ class MPC():
         self.deltaT = 0.1
         self.wheelbase = 0.315
         self.timeConst = 0.1
-
+        self.goal_tolerance = 0.5
         # MPC parameters. Options defines how many alternative actions will be considered. Prediction steps defines how far into the future each action will be assessed.
         self.predictionSteps = 5
         self.options = 10
@@ -102,7 +102,16 @@ class MPC():
         desAngles = np.linspace(MIN_ACTIONS[1], MAX_ACTIONS[1], self.options, endpoint=True)
         yawcurr = get_euler_from_quarternion(state[2],state[3],state[4],state[5])[2]       
         lowestCost = inf
-        
+        distance = goal - state[0:2]
+        #Check if car is already at goal location
+        if ((abs(distance[0]) < self.goal_tolerance) and (abs(distance[1] < self.goal_tolerance))):
+            lin = 0
+            ang = 0
+            action = np.asarray([lin, ang])
+            self.logger.info("Reached goal")
+            return action
+
+        # Iterate through potential driving options
         for i in range(self.options):
             desAngle = desAngles[i]
             x = xcurr
