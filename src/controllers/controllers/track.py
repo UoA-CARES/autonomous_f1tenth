@@ -58,11 +58,13 @@ def policy_factory(alg):
             from .mpc import MPC
             policy = MPC()
             return policy
-        case 'random':
-            return policy
         case 'turn_and_drive':
             from .turn_and_drive import TurnAndDrive
             policy = TurnAndDrive(goal_tolerance=0.5)
+            return policy
+        case 'random':
+            from .random import Random
+            policy = Random()
             return policy
         case _:
             return policy
