@@ -87,7 +87,8 @@ def generate_launch_description():
         package='controllers',
         executable='track',
         output='screen',
-        parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')}],
+        parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')},
+                    {'alg': TextSubstitution(text=str(alg))}],
     )
     
 

@@ -16,15 +16,17 @@ def main():
         '',
         [
             ('car_name', 'f1tenth_two'),
+            ('alg', 'random'),
         ]
     )
     
-    params = param_node.get_parameters(['car_name'])
+    params = param_node.get_parameters(['car_name', 'alg'])
     params = [param.value for param in params]
     CAR_NAME = params[0]
+    ALG = params[1]
     
-    controller = Controller('turn_drive_', CAR_NAME, 0.25)
-    policy_id = 'turn_drive'
+    controller = Controller(ALG, CAR_NAME, 0.25)
+    policy_id = ALG
     policy = TurnAndDrive(goal_tolerance=0.5)
 
     # but index 5 seems to be quaternion angle??
