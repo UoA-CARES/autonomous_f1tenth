@@ -27,7 +27,7 @@ def main():
     
     controller = Controller(ALG, CAR_NAME, 0.25)
     policy_id = ALG
-    policy = TurnAndDrive(goal_tolerance=0.5)
+    policy = policy_factory(ALG)
 
     # but index 5 seems to be quaternion angle??
     #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
@@ -37,7 +37,7 @@ def main():
     
     # goalx = float(state[0]) + 2
     # goaly = float(state[1]) + 2
-    goalx = -5
+    goalx = 5
     goaly = -2
     goal = np.asarray([goalx, goaly])
     
@@ -50,6 +50,22 @@ def main():
 
         # moves car
         controller.step(action, policy_id)
+
+def policy_factory(alg):
+    policy = 0
+    match alg:
+        case 'mpc':
+            from .mpc import MPC
+            policy = MPC()
+            return policy
+        case 'random':
+            return policy
+        case 'turn_and_drive':
+            from .turn_and_drive import TurnAndDrive
+            policy = TurnAndDrive(goal_tolerance=0.5)
+            return policy
+        case _:
+            return policy
 
 
 if __name__ == '__main__':
