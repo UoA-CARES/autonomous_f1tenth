@@ -1,7 +1,7 @@
 sim:
   ros__parameters:
     tracking: True
-    algorithm: 'random'
+    algorithm: 'mpc'
     observation_mode: 'lidar_only'
     # environment: 'CarTrack'
     # track: 'multi_track'
