@@ -1,5 +1,6 @@
 import os
 from ament_index_python import get_package_share_directory
+import launch_ros
 from launch_ros.actions import Node, SetParameter
 from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -81,9 +82,24 @@ def generate_launch_description():
                 'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth'),
             }.items()
         )
+
+    lidar_attach_node = launch_ros.actions.Node( 
+        package='tf2_ros', 
+        executable='static_transform_publisher', 
+        arguments=['0', '0', '0', '0', '0', '0', "f1tenthbase_link", "f1tenthhokuyo_10lx_lidar_link"], 
+        output='screen'
+    )
+
+    odom_localization_node = launch_ros.actions.Node(
+       package='robot_localization',
+       executable='ekf_node',
+       name='ekf_filter_node',
+       output='screen',
+       parameters=[os.path.join(pkg_f1tenth_description, 'config/ekf.yaml'), {'use_sim_time': True}]
+    )
+    
     
 
-    
 
     return LaunchDescription([
         #TODO: Find a way to remove this
@@ -92,5 +108,7 @@ def generate_launch_description():
         environment,
         alg,
         sim,
+        lidar_attach_node,
+        odom_localization_node
         #algorithm
 ])
