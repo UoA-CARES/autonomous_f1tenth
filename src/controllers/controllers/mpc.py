@@ -11,33 +11,8 @@ from rclpy.impl import rcutils_logger
 from environments.util import get_euler_from_quarternion
 import time
 
-def main():
-    rclpy.init()
-    
-    param_node = rclpy.create_node('params')
-    
-    param_node.declare_parameters(
-        '',
-        [
-            ('car_name', 'f1tenth_two'),
-        ]
-    )
-    
-    params = param_node.get_parameters(['car_name'])
-    params = [param.value for param in params]
-    CAR_NAME = params[0]
-    
-    controller = Controller('mpc_', CAR_NAME, 0.25)
-    policy_id = 'mpc'
-    policy = MPC()
-
-    state = controller.get_observation(policy_id)
-    print("IN MPC")
-    goalx = -3
-    goaly = 1
-    goal = np.asarray([goalx, goaly])
-    
-    while True:
+   
+"""while True:
         # compute target [linear velocity, angular velocity]
         
         
@@ -49,7 +24,7 @@ def main():
         time.sleep(0.2)
         action = np.asarray([0, 0])
         controller.step(action, policy_id)
-        time.sleep(1)
+        time.sleep(1)"""
 
 
 class MPC():
