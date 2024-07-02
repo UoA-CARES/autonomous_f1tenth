@@ -88,10 +88,6 @@ def generate_launch_description():
                 }.items()
             )
     
-    
-    
-
-    
 
     return LaunchDescription([
         #TODO: Find a way to remove this
