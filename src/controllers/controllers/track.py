@@ -29,7 +29,6 @@ def main():
     policy_id = ALG
     policy = policy_factory(ALG)
 
-    # but index 5 seems to be quaternion angle??
     #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
     state = controller.get_observation(policy_id)
 

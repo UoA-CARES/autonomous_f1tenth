@@ -9,9 +9,9 @@ from message_filters import Subscriber, ApproximateTimeSynchronizer
 import rclpy.time
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
-# from tf2_ros import TransformListener, Buffer
-# from tf2_msgs.msg import TFMessage
-# from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+from tf2_ros import TransformListener, Buffer, Time
+from tf2_msgs.msg import TFMessage
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import math
 
 from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg
@@ -64,20 +64,20 @@ class Controller(Node):
             10
         )
 
-        ###### FOR LOCALIZED METHODS ONLY############################
-        # qos_profile = QoSProfile(
-        #     reliability=QoSReliabilityPolicy.BEST_EFFORT,
-        #     history=QoSHistoryPolicy.KEEP_LAST,
-        #     depth=100
-        # )
-        # self.tf_sub = Subscriber(
-        #     self,
-        #     TFMessage,
-        #     f'/tf'
-        # )
-        # self.tf_buffer = Buffer()
-        # self.tf_listener = TransformListener(self.tf_buffer, self, qos=qos_profile)
-        #-----------------------------------------------------------
+        ##### FOR LOCALIZED METHODS ONLY############################
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=20
+        )
+        self.tf_sub = Subscriber(
+            self,
+            TFMessage,
+            f'/tf'
+        )
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+        # -----------------------------------------------------------
 
         self.message_filter = ApproximateTimeSynchronizer(
             [self.odom_sub, self.lidar_sub],
@@ -93,7 +93,6 @@ class Controller(Node):
         self.timer_future = Future()
 
     def step(self, action, policy):
-
         lin_vel, steering_angle = action
         lin_vel = self.vel_mod(lin_vel)
         self.set_velocity(lin_vel, steering_angle)
@@ -122,15 +121,16 @@ class Controller(Node):
         #     self.get_logger().info(f"Coord: ({x}, {y})")
         #     return (x,y)
 
-        # latest = rclpy.time.Time()
+        # TODO: delete later
+        # latest = self.get_clock().now()
         # self.get_logger().info(f"getting coord")
         # try: 
-        #     transformation = self.tf_buffer.lookup_transform(f'{self.NAME}base_link', 'map', latest)
+        #     transformation = self.tf_buffer.lookup_transform('map', f'{self.NAME}base_link', Time())
         #     x = transformation.transform.translation.x
         #     y = transformation.transform.translation.y
         #     self.get_logger().info(f"Coord: ({x}, {y})")
-        # except Exception:
-        #     pass
+        # except Exception as e:
+        #     self.get_logger().info(str(e))
 
 
         odom, lidar = self.get_data()
@@ -204,6 +204,9 @@ class Controller(Node):
 
     def vel_mod(self, linear):
         max_vel = 0.5
+        linear = min(max_vel, linear)
+        return linear
+
     def angle_mod(self, angle):
         max_angle = 0.85
         angle = min(max_angle, angle)
