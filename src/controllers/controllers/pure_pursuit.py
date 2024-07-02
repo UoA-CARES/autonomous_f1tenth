@@ -1,0 +1,19 @@
+import rclpy
+import numpy as np
+import random
+from .controller import Controller
+from rclpy.impl import rcutils_logger
+   
+class PurePursuit():
+    logger = rcutils_logger.RcutilsLogger(name="pure_pursuit_log")
+
+    def __init__(self): 
+        self.logger.info("-------------------------------------------------")
+        self.logger.info("Pure Pursuit Alg created")
+
+    def select_action(self, state, goal):
+        action = np.asarray([random.uniform(0, 3), random.uniform(-3.14, 3.14)])
+        self.logger.info("DRIVE LIN_V: "+str(action[0]))
+        self.logger.info("DRIVE ANGLE: "+str(action[1]))
+        self.logger.info("-------------------------")
+        return action

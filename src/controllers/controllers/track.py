@@ -5,7 +5,6 @@ from rclpy.impl import rcutils_logger
 from .controller import Controller
 from environments.util import get_euler_from_quarternion
 import time, threading
-from .turn_and_drive import TurnAndDrive
 
 def main():
     rclpy.init()
@@ -65,6 +64,10 @@ def policy_factory(alg):
         case 'random':
             from .random import Random
             policy = Random()
+            return policy
+        case 'pure_pursuit':
+            from .pure_pursuit import PurePursuit
+            policy = PurePursuit()
             return policy
         case _:
             return policy
