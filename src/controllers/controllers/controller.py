@@ -6,8 +6,12 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from ackermann_msgs.msg import AckermannDriveStamped
 from message_filters import Subscriber, ApproximateTimeSynchronizer
+import rclpy.time
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
+# from tf2_ros import TransformListener, Buffer
+# from tf2_msgs.msg import TFMessage
+# from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import math
 
 from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg
@@ -60,6 +64,21 @@ class Controller(Node):
             10
         )
 
+        ###### FOR LOCALIZED METHODS ONLY############################
+        # qos_profile = QoSProfile(
+        #     reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        #     history=QoSHistoryPolicy.KEEP_LAST,
+        #     depth=100
+        # )
+        # self.tf_sub = Subscriber(
+        #     self,
+        #     TFMessage,
+        #     f'/tf'
+        # )
+        # self.tf_buffer = Buffer()
+        # self.tf_listener = TransformListener(self.tf_buffer, self, qos=qos_profile)
+        #-----------------------------------------------------------
+
         self.message_filter = ApproximateTimeSynchronizer(
             [self.odom_sub, self.lidar_sub],
             10,
@@ -92,6 +111,28 @@ class Controller(Node):
 
     def get_observation(self, policy):
         #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z]
+
+        # TODO: turn on later  |
+        #                      V
+        # if policy == 'a_star' or policy == 'd_star':
+        #     now = rclpy.time.Time()
+        #     transformation = self.tf_buffer.lookup_transform('map',f'{self.NAME}base_link', now)
+        #     x = transformation.transform.translation.x
+        #     y = transformation.transform.translation.y
+        #     self.get_logger().info(f"Coord: ({x}, {y})")
+        #     return (x,y)
+
+        # latest = rclpy.time.Time()
+        # self.get_logger().info(f"getting coord")
+        # try: 
+        #     transformation = self.tf_buffer.lookup_transform(f'{self.NAME}base_link', 'map', latest)
+        #     x = transformation.transform.translation.x
+        #     y = transformation.transform.translation.y
+        #     self.get_logger().info(f"Coord: ({x}, {y})")
+        # except Exception:
+        #     pass
+
+
         odom, lidar = self.get_data()
         odom = process_odom(odom)
         
@@ -163,9 +204,6 @@ class Controller(Node):
 
     def vel_mod(self, linear):
         max_vel = 0.5
-        linear = min(max_vel, linear)
-        return linear
-    
     def angle_mod(self, angle):
         max_angle = 0.85
         angle = min(max_angle, angle)
