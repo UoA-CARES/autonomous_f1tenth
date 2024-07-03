@@ -80,8 +80,8 @@ class PurePursuit():
         yawcurr = get_euler_from_quarternion(state[2],state[3],state[4],state[5])[2]  
 
         # Calculate angle same as turn and drive
-        trueGoal = self.findGoal(location, yawcurr)
-        ang = turn_to_goal(location, yawcurr, goal)
+        trueGoal = self.findGoal(location)
+        ang = turn_to_goal(location, yawcurr, trueGoal)
         action = np.asarray([lin, ang])
         self.logger.info("DRIVE LIN_V: "+str(action[0]))
         self.logger.info("DRIVE ANGLE: "+str(action[1]))
