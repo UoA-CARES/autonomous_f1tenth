@@ -5,7 +5,6 @@ from rclpy.impl import rcutils_logger
 from .controller import Controller
 from environments.util import get_euler_from_quarternion
 import time, threading
-from .turn_and_drive import TurnAndDrive
 
 def main():
     rclpy.init()
@@ -50,6 +49,10 @@ def main():
 
         # moves car
         controller.step(action, policy_id)
+        time.sleep(0.2)
+        action = np.asarray([0, 0])
+        controller.step(action, policy_id)
+        time.sleep(1)
 
 def policy_factory(alg):
     policy = 0
@@ -65,6 +68,11 @@ def policy_factory(alg):
         case 'random':
             from .random import Random
             policy = Random()
+            return policy
+        case 'pure_pursuit':
+            from .pure_pursuit import PurePursuit
+            coordinates = np.asarray([[0, 0], [3, 1], [4, 2], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0], [11, 0], [12, 0]])
+            policy = PurePursuit(coordinates)
             return policy
         case _:
             return policy
