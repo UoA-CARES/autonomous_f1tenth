@@ -245,7 +245,7 @@ def ackermann_to_twist(delta, linear_v, L):
     return omega
 
 # Returns steering angle to turn to goal
-def turn_to_goal(location, yaw, goal, goal_tolerance=0.5, angle_diff_tolerance=0.1):
+def turn_to_goal(location, yaw, goal, goal_tolerance=0.5, angle_diff_tolerance=0.1, max_turn=0.85):
 
     distance = goal - location # x, y array
 
@@ -265,10 +265,10 @@ def turn_to_goal(location, yaw, goal, goal_tolerance=0.5, angle_diff_tolerance=0
 
 
         # make sure turning angle is not more than 90deg
-        if ang > 1.5:
-            ang = 1.5
-        elif ang < -1.5:
-            ang = -1.5
+        if ang > max_turn:
+            ang = max_turn
+        elif ang < -1*max_turn:
+            ang = -1*max_turn
         return ang
     else:
          return 0
