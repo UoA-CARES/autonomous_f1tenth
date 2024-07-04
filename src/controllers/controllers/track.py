@@ -28,20 +28,16 @@ def main():
     policy_id = ALG
     policy = policy_factory(ALG)
 
-    # but index 5 seems to be quaternion angle??
     #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
     state = controller.get_observation(policy_id)
 
 
     
-    # goalx = float(state[0]) + 2
-    # goaly = float(state[1]) + 2
     goalx = 5
     goaly = -2
     goal = np.asarray([goalx, goaly])
     
     while True:
-        # compute target [linear velocity, angular velocity]
         
         
         state = controller.get_observation(policy_id)
@@ -50,9 +46,7 @@ def main():
         # moves car
         controller.step(action, policy_id)
         time.sleep(0.2)
-        action = np.asarray([0, 0])
-        controller.step(action, policy_id)
-        time.sleep(1)
+        #time.sleep(1)
 
 def policy_factory(alg):
     policy = 0

@@ -3,7 +3,7 @@ import numpy as np
 import random
 from rclpy.impl import rcutils_logger
 from .controller import Controller
-from environments.util import get_euler_from_quarternion
+from environments.util import get_euler_from_quarternion, turn_to_goal
 import time, threading
 
 class TurnAndDrive():
@@ -17,7 +17,7 @@ class TurnAndDrive():
         self.angle_diff_tolerance = angle_diff_tolerance
         self.goal_tolerance = goal_tolerance
 
-        self.steering_ang = 0
+        self.turnedLast = False
 
         self.steering_to_neutral_delay = steering_to_neutral_delay
         self.is_waiting_for_steering_neutral = False
@@ -35,60 +35,35 @@ class TurnAndDrive():
         self.logger.info("-------------------------------------------------")
         self.logger.info("STATE: "+str(location)+" "+str(self_angle))
 
-        
+        ang = turn_to_goal(location, self_angle, goal)
         distance = goal - location
 
         # if already at goal location
         if ((abs(distance[0]) < self.goal_tolerance) and (abs(distance[1] < self.goal_tolerance))):
             lin = 0
-            self.steering_ang = 0
-            action = np.asarray([lin, self.steering_ang])
+            action = np.asarray([lin, ang])
             return action
         
-        # if needing to turn
-        angle_to_goal = np.arctan2(distance[1], distance[0])
-        if (((angle_to_goal - self_angle) > self.angle_diff_tolerance) or ((angle_to_goal - self_angle) < -self.angle_diff_tolerance)):
-            
-            # take the shortest turning angle
-            self.steering_ang = angle_to_goal - self_angle
-            if self.steering_ang > np.pi:
-                self.steering_ang -= 2 * np.pi
-            elif self.steering_ang < -np.pi:
-                self.steering_ang += 2 * np.pi
-
-            self.logger.info("ANGLE TO GOAL: "+str(angle_to_goal))
-            self.logger.info("SELF ANGLE: "+str(self_angle))
-            self.logger.info("DELTA: "+str(self.steering_ang))
-
-            # make sure turning angle is not more than 90deg
-            if self.steering_ang > 1.5:
-                self.steering_ang = 1.5
-            elif self.steering_ang < -1.5:
-                self.steering_ang = -1.5
-
+        if abs(ang) > 0:
             lin = self.turning_lin_vel
+            action = np.asarray([lin, ang])
+            self.turnedLast = True
+            return action
         
         # if already heading toward goal
-        else:    
-            self.logger.info("ANGLE TO GOAL: "+str(angle_to_goal))
+        else:
 
             # transitioning from turning to straight, need to wait for steering to return to neutral
-            if self.steering_ang != 0:
+            if self.turnedLast:
+                self.turnedLast = False
                 self.is_waiting_for_steering_neutral = True
                 self.steering_neutral_timer = threading.Timer(self.steering_to_neutral_delay,self.complete_waiting_for_steering_neutral)
                 self.steering_neutral_timer.start()
-
-            # steering to 0
-            self.steering_ang = 0
             
             # ONLY go full speed after allowing steering to return to neutral
             if self.is_waiting_for_steering_neutral:
                 lin = self.turning_lin_vel
             else:
                 lin = self.straight_lin_vel
-        
-        
-        self.logger.info("RESULT LIN_V: "+str(lin))
-        self.logger.info("RESULT ANGLE: "+str(self.steering_ang))
-        action = np.asarray([lin, self.steering_ang*self.turning_ang_modifier])
+        action = np.asarray([lin, ang*self.turning_ang_modifier])
         return action    
