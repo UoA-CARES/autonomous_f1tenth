@@ -52,7 +52,7 @@ def main():
         time.sleep(0.2)
         action = np.asarray([0, 0])
         controller.step(action, policy_id)
-        time.sleep(1)
+        #time.sleep(1)
 
 def policy_factory(alg):
     policy = 0
