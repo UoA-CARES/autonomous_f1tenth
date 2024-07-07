@@ -5,7 +5,6 @@ from rclpy.impl import rcutils_logger
 from .controller import Controller
 from environments.util import get_euler_from_quarternion
 import time, threading
-from .turn_and_drive import TurnAndDrive
 
 def main():
     rclpy.init()
@@ -29,20 +28,16 @@ def main():
     policy_id = ALG
     policy = policy_factory(ALG)
 
-    # but index 5 seems to be quaternion angle??
     #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
     state = controller.get_observation(policy_id)
 
 
     
-    # goalx = float(state[0]) + 2
-    # goaly = float(state[1]) + 2
     goalx = 5
     goaly = -2
     goal = np.asarray([goalx, goaly])
     
     while True:
-        # compute target [linear velocity, angular velocity]
         
         
         state = controller.get_observation(policy_id)
@@ -50,6 +45,8 @@ def main():
 
         # moves car
         controller.step(action, policy_id)
+        time.sleep(0.2)
+        #time.sleep(1)
 
 def policy_factory(alg):
     policy = 0
@@ -65,6 +62,11 @@ def policy_factory(alg):
         case 'random':
             from .random import Random
             policy = Random()
+            return policy
+        case 'pure_pursuit':
+            from .pure_pursuit import PurePursuit
+            coordinates = np.asarray([[0, 0], [3, 1], [4, 2], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0], [11, 0], [12, 0]])
+            policy = PurePursuit(coordinates)
             return policy
         case _:
             return policy

@@ -62,10 +62,6 @@ def generate_launch_description():
             emulate_tty=True, # Allows python print to show
     )
 
-    """alg_config_path = os.path.join(
-        get_package_share_directory('controllers'),
-        f'{alg}_policy.yaml'
-    )"""
 
     if tracking:
         alg = Node(
@@ -91,10 +87,6 @@ def generate_launch_description():
                     'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth'),
                 }.items()
             )
-    
-    
-    
-
     
 
     return LaunchDescription([
