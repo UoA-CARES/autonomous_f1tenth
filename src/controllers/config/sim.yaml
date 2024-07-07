@@ -1,9 +1,12 @@
 sim:
   ros__parameters:
-    algorithm: 'random'
+    tracking: True
+    algorithm: 'turn_and_drive'
     observation_mode: 'lidar_only'
-    environment: 'CarTrack'
-    track: 'multi_track'
+    # environment: 'CarTrack'
+    # track: 'multi_track'
+    environment: 'CarGoal'
+    track: 'empty'
     step_length: 0.1
     reward_range: 3
     collision_range: 0.2
