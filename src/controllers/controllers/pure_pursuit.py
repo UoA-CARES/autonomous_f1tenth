@@ -35,7 +35,10 @@ class PurePursuit():
         else:  
             goal1Ind = lastPointInd
         goal1 = self.path[goal1Ind]
-        goal2 = self.path[goal1Ind+1]    
+        try:    
+            goal2 = self.path[goal1Ind+1]
+        except:
+            goal2 = self.path[0]    
         self.logger.info("Goal 1: "+str(goal1))
         self.logger.info("Goal 2: "+str(goal2))
         f = goal1 - location
