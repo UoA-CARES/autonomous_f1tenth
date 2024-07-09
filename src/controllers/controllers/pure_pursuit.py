@@ -17,7 +17,7 @@ class PurePursuit():
 
     # Need to write
     def findGoal(self, location):
-        look_ahead = 1
+        look_ahead = 3
         minDist = np.inf
         lastPointInd = -1
         row, _ = self.path.shape
@@ -30,11 +30,12 @@ class PurePursuit():
                 minDist = hyp
             if (hyp < look_ahead): # Find last point within lookahead distance to car
                 lastPointInd = i
-        if lastPointInd < 0: # If no points within lookahead range, go to closest point
-            goal = self.path[closestPointInd]
-            return goal  
-        goal1 = self.path[lastPointInd]
-        goal2 = self.path[lastPointInd+1]
+        if lastPointInd < 0: # If no points within lookahead range, goal1 is closest point
+            goal1 = self.path[closestPointInd]
+            goal2 = self.path[closestPointInd+1]
+        else:  
+            goal1 = self.path[lastPointInd]
+            goal2 = self.path[lastPointInd+1]
         f = goal1 - location
         theta1 = np.arctan2(f[1], f[0])
         d = goal2 - goal1
@@ -52,16 +53,16 @@ class PurePursuit():
 
         discriminant = b**2 - 4*a*c
         if discriminant < 0:
-            goal = self.path[lastPointInd]
+            goal = goal1
             return goal
         elif discriminant == 0:
             x = (-b - np.sqrt(discriminant))/(2*a)
-            goal = np.asarray([self.path[lastPointInd][0]+x*np.cos(theta2), self.path[lastPointInd][1]+x*np.sin(theta2)])
+            goal = np.asarray([goal1[0]+x*np.cos(theta2), goal1[1]+x*np.sin(theta2)])
         else:
             x1 = (-b - np.sqrt(discriminant))/(2*a)
             x2 = (-b + np.sqrt(discriminant))/(2*a)
-            goalx1 = np.asarray([self.path[lastPointInd][0]+x1*(np.cos(theta2)), self.path[lastPointInd][1]+x1*(np.sin(theta2))]) 
-            goalx2 = np.asarray([self.path[lastPointInd][0]+x2*(np.cos(theta2)), self.path[lastPointInd][1]+x2*(np.sin(theta2))])
+            goalx1 = np.asarray([goal1[0]+x1*(np.cos(theta2)), goal1[1]+x1*(np.sin(theta2))]) 
+            goalx2 = np.asarray([goal1[0]+x2*(np.cos(theta2)), goal1[1]+x2*(np.sin(theta2))])
             if ((abs(goal2[0] - goalx1[0]) < abs(goal2[0]-goalx2[0])) & (abs(goal2[1] - goalx1[1]) < abs(goal2[1] - goalx2[1]))):
                 return goalx1
             else:
