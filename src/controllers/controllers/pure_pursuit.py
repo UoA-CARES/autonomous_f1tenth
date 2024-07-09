@@ -31,11 +31,13 @@ class PurePursuit():
             if (hyp < look_ahead): # Find last point within lookahead distance to car
                 lastPointInd = i
         if lastPointInd < 0: # If no points within lookahead range, goal1 is closest point
-            goal1 = self.path[closestPointInd]
-            goal2 = self.path[closestPointInd+1]
+            goal1Ind = closestPointInd
         else:  
-            goal1 = self.path[lastPointInd]
-            goal2 = self.path[lastPointInd+1]
+            goal1Ind = lastPointInd
+        goal1 = self.path[goal1Ind]
+        goal2 = self.path[goal1Ind+1]    
+        self.logger.info("Goal 1: "+str(goal1))
+        self.logger.info("Goal 2: "+str(goal2))
         f = goal1 - location
         theta1 = np.arctan2(f[1], f[0])
         d = goal2 - goal1
