@@ -65,7 +65,8 @@ def policy_factory(alg):
             return policy
         case 'pure_pursuit':
             from .pure_pursuit import PurePursuit
-            coordinates = np.asarray([[0, 0], [3, 1], [4, 2], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0], [11, 0], [12, 0]])
+            from .test_path import austinLap
+            coordinates = austinLap()
             policy = PurePursuit(coordinates)
             return policy
         case _:
