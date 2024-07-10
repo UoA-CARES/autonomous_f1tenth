@@ -28,3 +28,20 @@ def turn_to_goal(location, yaw, goal, goal_tolerance=0.5, angle_diff_tolerance=0
         return ang
     else:
          return 0
+    
+def absoluteDistance(point1, point2):
+    distance = point2 - point1
+    hyp = np.hypot(distance[0], distance[1])
+    return hyp
+
+
+def closestPointInd(location, path):
+    index = -1
+    minDist = np.inf
+    row, _ = path.shape
+    for i in range(row):
+        distance = absoluteDistance(location, path[i])
+        if (distance < minDist):
+            minDist = distance
+            index = i
+    return index
