@@ -1,4 +1,3 @@
-
 import rclpy
 from rclpy import Future
 from rclpy.node import Node
@@ -6,12 +5,82 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from ackermann_msgs.msg import AckermannDriveStamped
 from message_filters import Subscriber, ApproximateTimeSynchronizer
+import rclpy.time
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
+from tf2_ros import TransformListener, Buffer, Time
+from tf2_msgs.msg import TFMessage
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import math
+import torch
+import scipy
 
-from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg
+from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, process_ae_lidar
 
+class LidarConvAE(torch.nn.Module):
+    def __init__(self):
+        super(LidarConvAE, self).__init__()
+
+        # Encoder
+        self.encoder = torch.nn.Sequential(
+            torch.nn.Conv1d(1, 32, kernel_size=4, stride=4),  # [B, 1, 512] -> [B, 32, 128]
+            torch.nn.ReLU(True),
+            torch.nn.Conv1d(32, 64, kernel_size=4, stride=4),  # [B, 32, 128] -> [B, 64, 32]
+            torch.nn.ReLU(True),
+            torch.nn.Conv1d(64, 128, kernel_size=4, stride=4),  # [B, 64, 32] -> [B, 128, 8]
+            torch.nn.ReLU(True),
+            torch.nn.Flatten(), # Flatten [B, 128, 8] -> [B, 1024]             
+            torch.nn.Linear(1024, 10)
+        )
+
+        # Decoder
+        self.decoder = torch.nn.Sequential(  
+            torch.nn.Linear(10,1024),
+            torch.nn.Unflatten(1,(128,8)),       
+            torch.nn.ConvTranspose1d(128, 64, kernel_size=4, stride=4),  # [B, 128, 8] -> [B, 64, 32]
+            torch.nn.ReLU(True),
+            torch.nn.ConvTranspose1d(64, 32, kernel_size=4, stride=4),  # [B, 64, 32] -> [B, 32, 128]
+            torch.nn.ReLU(True),
+            torch.nn.ConvTranspose1d(32, 1, kernel_size=4, stride=4),  # [B, 32, 128] -> [B, 1, 512]
+            # torch.nn.Sigmoid()  # Use Sigmoid for normalized output
+        )
+
+    def forward(self, x):
+        # x = torch.nn.functional.interpolate(x,(512))
+        # print(x.shape)
+        x = self.encoder(x)
+        # x = self.flatten(x)
+        # x = self.fc(x)
+        # x = self.fc_decoder(x)
+        # x = self.unflatten(x)
+        x = self.decoder(x)
+        # x = torch.nn.functional.interpolate(x,(682))
+        return x
+class LidarAE(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+         
+
+        self.encoder = torch.nn.Sequential(
+            torch.nn.Linear(682, 256),
+            torch.nn.ReLU(),
+            torch.nn.Linear(256, 128),
+            torch.nn.ReLU(),
+            torch.nn.Linear(128, 16),
+        )
+         
+        self.decoder = torch.nn.Sequential(
+            torch.nn.Linear(16, 128),
+            torch.nn.ReLU(),
+            torch.nn.Linear(128, 256),
+            torch.nn.ReLU(),
+            torch.nn.Linear(256, 682)
+        )
+ 
+    def forward(self, x):
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        return decoded
 
 class Controller(Node):
     def __init__(self, node_name, car_name, step_length, lidar_points = 10):
@@ -60,6 +129,21 @@ class Controller(Node):
             10
         )
 
+        ##### FOR LOCALIZED METHODS ONLY############################
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=20
+        )
+        self.tf_sub = Subscriber(
+            self,
+            TFMessage,
+            f'/tf'
+        )
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+        # -----------------------------------------------------------
+
         self.message_filter = ApproximateTimeSynchronizer(
             [self.odom_sub, self.lidar_sub],
             10,
@@ -73,8 +157,11 @@ class Controller(Node):
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
 
-    def step(self, action, policy):
+        self.ae_lidar_model = LidarConvAE()
+        self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidara_ae_18_1.pt"))
+        self.ae_lidar_model.eval()
 
+    def step(self, action, policy):
         lin_vel, steering_angle = action
         lin_vel = self.vel_mod(lin_vel)
         self.set_velocity(lin_vel, steering_angle)
@@ -92,6 +179,29 @@ class Controller(Node):
 
     def get_observation(self, policy):
         #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z]
+
+        # TODO: turn on later  |
+        #                      V
+        # if policy == 'a_star' or policy == 'd_star':
+        #     now = rclpy.time.Time()
+        #     transformation = self.tf_buffer.lookup_transform('map',f'{self.NAME}base_link', now)
+        #     x = transformation.transform.translation.x
+        #     y = transformation.transform.translation.y
+        #     self.get_logger().info(f"Coord: ({x}, {y})")
+        #     return (x,y)
+
+        # TODO: delete later
+        # latest = self.get_clock().now()
+        # self.get_logger().info(f"getting coord")
+        # try: 
+        #     transformation = self.tf_buffer.lookup_transform('map', f'{self.NAME}base_link', Time())
+        #     x = transformation.transform.translation.x
+        #     y = transformation.transform.translation.y
+        #     self.get_logger().info(f"Coord: ({x}, {y})")
+        # except Exception as e:
+        #     self.get_logger().info(str(e))
+
+
         odom, lidar = self.get_data()
         odom = process_odom(odom)
         
@@ -101,8 +211,11 @@ class Controller(Node):
             lidar_range = forward_reduce_lidar(lidar)
         else:
             lidar_range = avg_lidar(lidar, num_points)
+
+        ae_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
         
-        scan = create_lidar_msg(lidar, num_points, lidar_range)
+        # scan = create_lidar_msg(lidar, num_points, lidar_range)
+        scan = create_lidar_msg(lidar, len(ae_range), ae_range)
 
         self.processed_publisher.publish(scan)
 
@@ -165,7 +278,7 @@ class Controller(Node):
         max_vel = 0.5
         linear = min(max_vel, linear)
         return linear
-    
+
     def angle_mod(self, angle):
         max_angle = 0.85
         angle = min(max_angle, angle)

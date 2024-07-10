@@ -3,6 +3,7 @@ from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarTrackEnvironment import CarTrackEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
 from environments.CarBeatEnvironment import CarBeatEnvironment
+from environments.CarTrackProgressiveGoalEnvironment import CarTrackProgressiveGoalEnvironment
 
 class EnvironmentFactory:
     def __init__(self):
@@ -57,5 +58,16 @@ class EnvironmentFactory:
                 config['max_goals'],
                 config['num_lidar_points']
             )
+        elif name == 'CarTrackProgressiveGoal':
+            return CarTrackProgressiveGoalEnvironment(
+                config['car_name'], 
+                config['reward_range'], 
+                config['max_steps'], 
+                config['collision_range'], 
+                config['step_length'], 
+                config['track'], 
+                config['observation_mode'], 
+                config['max_goals']
+                )
         else:
             raise Exception('EnvironmentFactory: Environment not found')

@@ -1,10 +1,19 @@
 import numpy as np
 import random
 import math
+
+import scipy.signal
+import torch.types
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from .goal_positions import goal_positions
 from .waypoints import waypoints
+from .util_track_progress import TrackMathDef
+import torch
+import scipy
+
+from rclpy.impl import rcutils_logger
+logger = rcutils_logger.RcutilsLogger(name="util_log")
 
 def get_quaternion_from_euler(roll, pitch, yaw):
   """
@@ -120,18 +129,35 @@ def avg_lidar(lidar: LaserScan, num_points: int):
         
         return new_range
 
+def process_ae_lidar(lidar:LaserScan, ae_model, is_latent_only=True):
+    range_list = np.array(lidar.ranges)
+    range_list = np.nan_to_num(range_list, posinf=-5)
+    range_list = scipy.signal.resample(range_list, 512)
+    range_tensor = torch.tensor(range_list, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+
+    if (is_latent_only):
+         return ae_model.encoder(range_tensor).tolist()[0]
+    else:
+        return ae_model(range_tensor).tolist()[0][0]
+
+def reconstruct_ae_latent(original_lidar:LaserScan, ae_model, latent:list):
+    latent_tensor = torch.tensor(latent)
+    reconstructed_range = ae_model.decoder(latent_tensor).tolist()[0] #####
+    reconstructed_range = scipy.signal.resample(reconstructed_range, len(original_lidar.ranges))
+    return np.array(reconstructed_range,dtype=np.float32).tolist()
+
 def create_lidar_msg(lidar: LaserScan, num_points: int, lidar_range: list):
 
     scan = LaserScan()
     scan.header.stamp.sec = lidar.header.stamp.sec
     scan.header.stamp.nanosec = lidar.header.stamp.nanosec
     scan.header.frame_id = lidar.header.frame_id
-    scan.angle_min = -2.0923497676849365
-    scan.angle_max = 2.0923497676849365
-    scan.angle_increment = 240/num_points * (3.142 / 180)
-    scan.time_increment =9.765627328306437e-05
-    scan.range_min = 0.019999999552965164
-    scan.range_max = 5.599999904632568
+    scan.angle_min = lidar.angle_min
+    scan.angle_max = lidar.angle_min
+    scan.angle_increment = lidar.angle_max*2/(num_points-1) #240/num_points * (3.142 / 180)
+    scan.time_increment =  scan.angle_increment/ lidar.angle_increment * lidar.time_increment # processed ang / orig ang = processed time / orig time
+    scan.range_min = lidar.range_min
+    scan.range_max = lidar.range_max
     scan.ranges = lidar_range
 
     return scan
@@ -209,6 +235,15 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         }
 
     return all_car_goals, all_car_waypoints
+
+def get_track_math_defs(tracks_waypoints:dict) -> dict[str,TrackMathDef]:
+    '''Expect {trackname: [Waypoint]}, output {trackname: TrackMathDef}'''
+    track_math_models = {}
+
+    for track_name in tracks_waypoints.keys():
+        track_math_models[track_name] = TrackMathDef(np.array(tracks_waypoints[track_name])[:,:2])
+        print(track_math_models)
+    return track_math_models
 
 def twist_to_ackermann(omega, linear_v, L):
     '''

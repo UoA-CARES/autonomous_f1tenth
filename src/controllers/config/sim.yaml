@@ -1,14 +1,16 @@
 sim:
   ros__parameters:
-    tracking: True
-    algorithm: 'turn_and_drive'
+    algorithm: 'ftg'
     observation_mode: 'lidar_only'
-    # environment: 'CarTrack'
-    # track: 'multi_track'
-    environment: 'CarGoal'
-    track: 'empty'
+    environment: 'CarTrack'
+    # track: 'austin_track'
+    track: 'multi_track'
+    environment: 'CarTrackProgressiveGoal'
+    # track: 'budapest_track'
     step_length: 0.1
     reward_range: 3
     collision_range: 0.2
     number_eval_episodes: 100
     max_steps: 3000
+    tracking: False
+    # map_file_path: 'austin_1_save.yaml'

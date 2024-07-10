@@ -4,7 +4,7 @@ import launch_ros
 from launch_ros.actions import Node, SetParameter
 from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
+from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable, DeclareLaunchArgument
 from launch.substitutions import TextSubstitution
 import yaml
 
@@ -14,7 +14,6 @@ env_launch = {
     'CarBlock': 'carblock',
     'CarTrack': 'cartrack',
     'CarBeat': 'carbeat',
-    'CarTrackProgressiveGoal':'cartrackprogressivegoal'
 }
 
 alg_launch = {
@@ -22,7 +21,6 @@ alg_launch = {
     'rl': 'rl',
     'random': 'random',
     'turn_drive': 'turn_drive',
-    'mpc': 'mpc',
 }
 
 def generate_launch_description():
@@ -39,7 +37,6 @@ def generate_launch_description():
     config = yaml.load(open(config_path), Loader=yaml.Loader)
     env = config['sim']['ros__parameters']['environment']
     alg = config['sim']['ros__parameters']['algorithm']
-    tracking = config['sim']['ros__parameters']['tracking']
 
     environment =  IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
@@ -65,35 +62,29 @@ def generate_launch_description():
             emulate_tty=True, # Allows python print to show
     )
 
+    """alg_config_path = os.path.join(
+        get_package_share_directory('controllers'),
+        f'{alg}_policy.yaml'
+    )"""
 
-    if tracking:
+    if (f'{alg}' != 'rl'):
         alg = Node(
-        package='controllers',
-        executable='track',
-        output='screen',
-        parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')},
-                    {'alg': TextSubstitution(text=str(alg))}],
+            package='controllers',
+            executable=f'{alg}_policy',
+            output='screen',
+            parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')}],
         )
+    #algorithm = 0
     else:
-        if (f'{alg}' != 'rl'):
-            alg = Node(
-                package='controllers',
-                executable=f'{alg}_policy',
-                output='screen',
-                parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')}],
-            )
-        else:
-            alg = IncludeLaunchDescription(
-                launch_description_source = PythonLaunchDescriptionSource(
-                    os.path.join(pkg_controllers, f'{alg_launch[alg]}.launch.py')),
-                launch_arguments={
-                    'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth'),
-                }.items()
-            )
+        alg = IncludeLaunchDescription(
+            launch_description_source = PythonLaunchDescriptionSource(
+                os.path.join(pkg_controllers, f'{alg_launch[alg]}.launch.py')),
+            launch_arguments={
+                'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth'),
+            }.items()
+        )
     
-    ###################################################################
-    ######### NODES FOR LOCALIZATION ##################################
-    ###################################################################
+
     # TF TREE: map ------------ odom --------------- (baselink--lidar_link)
     # https://www.youtube.com/watch?v=ZaiA3hWaRzE
 
@@ -123,22 +114,6 @@ def generate_launch_description():
             'map':TextSubstitution(text=str(config['sim']['ros__parameters']['map_file_path']) if 'map_file_path' in config['sim']['ros__parameters'] else 'bruwhy')
         }.items() 
     )
-    #------------------------------------------------------------------------------------------------------
-    
-    # TODO: turn this on later  |
-    #                           V
-    # if (f'{alg}' == 'a_star' or f'{alg}' == '_star'):
-    #     return LaunchDescription([
-    #         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
-    #         SetParameter(name='use_sim_time', value=True),
-    #         environment,
-    #         alg,
-    #         sim,
-    #         lidar_to_base_tf_node,
-    #         odom_to_base_tf_node,
-    #         amcl_node
-    #         #algorithm
-    #     ])
 
     return LaunchDescription([
         #TODO: Find a way to remove this
@@ -146,6 +121,9 @@ def generate_launch_description():
         SetParameter(name='use_sim_time', value=True),
         environment,
         alg,
-        sim
+        sim,
+        lidar_to_base_tf_node,
+        odom_to_base_tf_node,
+        amcl_node
         #algorithm
-])
+    ])

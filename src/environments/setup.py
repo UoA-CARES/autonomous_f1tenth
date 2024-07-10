@@ -32,6 +32,8 @@ setup(
             'CarTrackReset = environments.CarTrackReset:main',
             'CarBeatReset = environments.CarBeatReset:main',
             'SteppingService = environments.SteppingService:main',
+            'CarTrackProgressiveGoalReset = environments.CarTrackProgressiveGoalReset:main',
+            'LidarLogger = environments.lidar_logger:main'
         ],
     },
 )

@@ -139,7 +139,7 @@ class F1tenthEnvironment(Node):
     def message_filter_callback(self, odom: Odometry, lidar: LaserScan):
         self.observation_future.set_result({'odom': odom, 'lidar': lidar})
 
-    def get_data(self):
+    def get_data(self) -> tuple[Odometry,LaserScan]:
         rclpy.spin_until_future_complete(self, self.observation_future)
         future = self.observation_future
         self.observation_future = Future()
