@@ -86,7 +86,7 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         # initiate lidar processing ae
         from .lidar_autoencoder import LidarConvAE
         self.ae_lidar_model = LidarConvAE()
-        self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidara_ae_18_1.pt"))#"/ws/lidara_ae_18_1.pt"
+        self.ae_lidar_model.load_state_dict(torch.load("/ws/lidar_ae_ftg_rand.pt"))#"/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"
         self.ae_lidar_model.eval()
 
         # Reset Client -----------------------------------------------

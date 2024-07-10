@@ -88,9 +88,9 @@ def main():
     BATCH_SIZE = 300
     LR = 1e-3
     WEIGHT_DECAY = 1e-8
-    EPOCH = 5
-    DATASET_PATH = "lidar_record.csv"
-    MODEL_SAVE_PATH = "lidara_ae_18_1.pt"
+    EPOCH = 8
+    DATASET_PATH = "lidar_record_mix_ftg-rand.csv"
+    MODEL_SAVE_PATH = "lidar_ae_ftg_rand.pt"
  
     print("INIT")
     model = LidarConvAE()
