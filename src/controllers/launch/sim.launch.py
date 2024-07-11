@@ -64,10 +64,6 @@ def generate_launch_description():
             emulate_tty=True, # Allows python print to show
     )
 
-    """alg_config_path = os.path.join(
-        get_package_share_directory('controllers'),
-        f'{alg}_policy.yaml'
-    )"""
 
     if tracking:
         alg = Node(
