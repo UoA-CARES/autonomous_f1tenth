@@ -49,8 +49,11 @@ def closestPointInd(location, path):
 def closestPointIndAhead(location, path):
     closestPointIndex = closestPointInd(location, path)
     closestPoint = path[closestPointIndex]
-    nextPoint = path[closestPointIndex+1]
+    try:    
+        nextPoint = path[closestPointIndex+1]
+    except:
+        nextPoint = path[0]
     if (absoluteDistance(location, nextPoint) < absoluteDistance(closestPoint, nextPoint)):
-        return closestPointInd + 1
+        return closestPointIndex + 1
     else:
         return closestPointIndex

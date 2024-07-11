@@ -9,6 +9,7 @@ import matplotlib as mpl
 from .controller import Controller
 from rclpy.impl import rcutils_logger
 from environments.util import get_euler_from_quarternion
+from .util import closestPointIndAhead
 import time
 
 class MPC():
@@ -55,7 +56,8 @@ class MPC():
     def select_action(self, state, goal):
         MAX_ACTIONS = np.asarray([1, 0.85])
         MIN_ACTIONS = np.asarray([0, -0.85])
-        
+        index = closestPointIndAhead(state[0:2], self.path)
+        goal = self.path[index]
         lin = MAX_ACTIONS[0]
         xcurr, ycurr = state[0:2]
         steeringcurr = state[7]
@@ -65,11 +67,15 @@ class MPC():
         distance = goal - state[0:2]
         #Check if car is already at goal location
         if ((abs(distance[0]) < self.goal_tolerance) and (abs(distance[1] < self.goal_tolerance))):
-            lin = 0
+            '''lin = 0
             ang = 0
             action = np.asarray([lin, ang])
             self.logger.info("Reached goal")
-            return action
+            return action'''
+            try:
+                goal = self.path[index+1]
+            except:
+                goal = self.path[0]
 
         # Iterate through potential driving options
         for i in range(self.options):
