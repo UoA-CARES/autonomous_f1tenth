@@ -13,6 +13,7 @@ from .util_track_progress import TrackMathDef
 from std_srvs.srv import SetBool
 import torch
 from sensor_msgs.msg import LaserScan
+import matplotlib.pyplot as plt
 
 class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
 
@@ -71,11 +72,11 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
 
         match observation_mode:
             case 'no_position':
-                self.OBSERVATION_SIZE = 6 + 10
+                self.OBSERVATION_SIZE = 6 + 10 + 1
             case 'lidar_only':
-                self.OBSERVATION_SIZE = 10 + 2
+                self.OBSERVATION_SIZE = 10 + 2 + 1
             case _:
-                self.OBSERVATION_SIZE = 8 + 10
+                self.OBSERVATION_SIZE = 8 + 10 + 1
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
@@ -86,7 +87,7 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         # initiate lidar processing ae
         from .lidar_autoencoder import LidarConvAE
         self.ae_lidar_model = LidarConvAE()
-        self.ae_lidar_model.load_state_dict(torch.load("/ws/lidar_ae_ftg_rand.pt"))#"/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"
+        self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))#"/ws/lidar_ae_ftg_rand.pt"
         self.ae_lidar_model.eval()
 
         # Reset Client -----------------------------------------------
@@ -98,6 +99,9 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         #progressive_goal
         self.last_step_progress = 0.03
         self.progress_not_met_cnt = 0
+
+        #turning control
+        self.last_steering_angle = 0
 
         if 'multi_track' not in track:
             self.all_goals = goal_positions[track]
@@ -116,6 +120,12 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
             self.all_track_models = get_track_math_defs(self.all_car_waypoints)
             self.track_model = self.all_track_models[self.current_track]
 
+        # # TEMP visualization
+        # self.steering_angles_reward_penalty = [0 for i in range(50)]
+        # self.progress_record = [0 for i in range(50)]
+        # plt.ion()
+        # plt.show()
+
         self.get_logger().info('Environment Setup Complete')
 
     def reset(self):
@@ -126,6 +136,9 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         #progressive
         self.last_step_progress = 0.03
         self.progress_not_met_cnt = 0
+
+        #turn control
+        self.last_steering_angle = 0
 
         self.set_velocity(0, 0)
         
@@ -165,9 +178,9 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         lin_vel, steering_angle = action
 
         # TODO: get rid of hard coded wheelbase
-        ang_vel = ackermann_to_twist(steering_angle, lin_vel, 0.315)
+        ang = ackermann_to_twist(steering_angle, lin_vel, 0.315)
 
-        self.set_velocity(lin_vel, ang_vel)
+        self.set_velocity(lin_vel, ang)
 
         self.sleep()
         
@@ -187,6 +200,8 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         terminated = self.is_terminated(full_state, raw_lidar.ranges)
         truncated = self.progress_not_met_cnt >= 3
         info = {}
+
+        self.last_steering_angle = steering_angle
 
         return next_state, reward, terminated, truncated, info
 
@@ -210,11 +225,11 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         
         match (self.observation_mode):
             case 'no_position':
-                state = odom[2:] + reduced_range
+                state = odom[2:] + reduced_range + [self.last_steering_angle]
             case 'lidar_only':
-                state = odom[-2:] + reduced_range 
+                state = odom[-2:] + reduced_range + [self.last_steering_angle]
             case _:
-                state = odom + reduced_range
+                state = odom + reduced_range + [self.last_steering_angle]
 
         
         reconstructed = reconstruct_ae_latent(lidar, self.ae_lidar_model, reduced_range)
@@ -241,7 +256,12 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
             reward += 0.01
         else:
             reward += self.last_step_progress
-        print(f"Reward: {reward}")
+
+        # turn spamming penalty
+        turn_penalty = abs(state[7] - next_state[7])*0.2
+        reward -= turn_penalty
+
+        print(f"Reward: {self.last_step_progress} - {turn_penalty} = {reward}")
        
 
         self.steps_since_last_goal += 1
