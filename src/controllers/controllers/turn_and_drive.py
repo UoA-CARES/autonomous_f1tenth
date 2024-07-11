@@ -3,7 +3,8 @@ import numpy as np
 import random
 from rclpy.impl import rcutils_logger
 from .controller import Controller
-from environments.util import get_euler_from_quarternion, turn_to_goal
+from environments.util import get_euler_from_quarternion
+from .util import turn_to_goal
 import time, threading
 
 class TurnAndDrive():
