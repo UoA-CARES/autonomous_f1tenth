@@ -3,7 +3,8 @@ import numpy as np
 import random
 from .controller import Controller
 from rclpy.impl import rcutils_logger
-from environments.util import get_euler_from_quarternion, turn_to_goal
+from environments.util import get_euler_from_quarternion
+from .util import turn_to_goal
    
 class PurePursuit():
     logger = rcutils_logger.RcutilsLogger(name="pure_pursuit_log")
