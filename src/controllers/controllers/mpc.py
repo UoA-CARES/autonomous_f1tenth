@@ -15,9 +15,10 @@ class MPC():
 
     logger = rcutils_logger.RcutilsLogger(name="mpc_log")
 
-    def __init__(self): 
+    def __init__(self, path): 
         self.logger.info("-------------------------------------------------")
         self.logger.info("MPC Alg created")
+        self.path = path
         self.deltaT = 0.1
         self.wheelbase = 0.315
         self.timeConst = 0.1
