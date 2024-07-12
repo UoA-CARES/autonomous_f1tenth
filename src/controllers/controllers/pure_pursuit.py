@@ -42,9 +42,9 @@ class PurePursuit():
             goal2 = self.path[0]    
         self.logger.info("Goal 1: "+str(goal1))
         self.logger.info("Goal 2: "+str(goal2))
-        f = goal1 - location
+        f = goal1 - location # vector f: location -> look ahead location
         theta1 = np.arctan2(f[1], f[0])
-        d = goal2 - goal1
+        d = goal2 - goal1 # vector d: look ahead location -> next coord on path
         theta2 = np.arctan2(d[1], d[0])
         phi = (np.pi - theta1) + theta2 # Internal angle at goal 1
 

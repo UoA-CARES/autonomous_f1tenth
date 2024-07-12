@@ -128,6 +128,11 @@ class Controller(Node):
         #     transformation = self.tf_buffer.lookup_transform('map', f'{self.NAME}base_link', Time())
         #     x = transformation.transform.translation.x
         #     y = transformation.transform.translation.y
+        #     quart_rot = (transformation.transform.rotation.w,
+        #            transformation.transform.rotation.x,
+        #            transformation.transform.rotation.y,
+        #            transformation.transform.rotation.z)
+            
         #     self.get_logger().info(f"Coord: ({x}, {y})")
         # except Exception as e:
         #     self.get_logger().info(str(e))
