@@ -9,6 +9,7 @@ from nav_msgs.msg import Odometry
 from .goal_positions import goal_positions
 from .waypoints import waypoints
 from .util_track_progress import TrackMathDef
+from .lidar_beta_vae import BetaVAE1D
 import torch
 import scipy
 
@@ -139,6 +140,18 @@ def process_ae_lidar(lidar:LaserScan, ae_model, is_latent_only=True):
          return ae_model.encoder(range_tensor).tolist()[0]
     else:
         return ae_model(range_tensor).tolist()[0][0]
+
+def process_ae_lidar_beta_vae(lidar:LaserScan, ae_model:BetaVAE1D, is_latent_only=True):
+    range_list = np.array(lidar.ranges)
+    range_list = np.nan_to_num(range_list, posinf=-5)
+    range_list = scipy.signal.resample(range_list, 512)
+    range_tensor = torch.tensor(range_list, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+
+    if (is_latent_only):
+         return ae_model.get_latent(range_tensor)
+    else:
+        print(ae_model.get_latent(range_tensor))
+        return ae_model.generate(range_tensor).tolist()[0][0]
 
 def reconstruct_ae_latent(original_lidar:LaserScan, ae_model, latent:list):
     latent_tensor = torch.tensor(latent)

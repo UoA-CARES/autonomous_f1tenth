@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import rclpy
 from rclpy import Future
 from rclpy.node import Node
@@ -13,9 +14,14 @@ from tf2_msgs.msg import TFMessage
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import math
 import torch
+from torch import nn
+from typing import List
 import scipy
 
-from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, process_ae_lidar
+from environments.lidar_beta_vae import BetaVAE1D
+
+from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, process_ae_lidar, process_ae_lidar_beta_vae
+
 
 class LidarConvAE(torch.nn.Module):
     def __init__(self):
@@ -156,9 +162,10 @@ class Controller(Node):
 
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
-
-        self.ae_lidar_model = LidarConvAE()
-        self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidara_ae_18_1.pt"))
+        
+        # Lidar processing 
+        self.ae_lidar_model = BetaVAE1D(1,10,beta=4)
+        self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))
         self.ae_lidar_model.eval()
 
     def step(self, action, policy):
@@ -212,7 +219,7 @@ class Controller(Node):
         else:
             lidar_range = avg_lidar(lidar, num_points)
 
-        ae_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
+        ae_range = process_ae_lidar_beta_vae(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
         
         # scan = create_lidar_msg(lidar, num_points, lidar_range)
         scan = create_lidar_msg(lidar, len(ae_range), ae_range)
