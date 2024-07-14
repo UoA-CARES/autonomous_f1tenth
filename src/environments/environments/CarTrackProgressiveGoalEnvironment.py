@@ -72,11 +72,11 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
 
         match observation_mode:
             case 'no_position':
-                self.OBSERVATION_SIZE = 6 + 10 #+ 1
+                self.OBSERVATION_SIZE = 6 + 10 + 1
             case 'lidar_only':
-                self.OBSERVATION_SIZE = 10 + 2 #+ 1
+                self.OBSERVATION_SIZE = 10 + 2 + 1
             case _:
-                self.OBSERVATION_SIZE = 8 + 10 #+ 1
+                self.OBSERVATION_SIZE = 8 + 10 + 1
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
@@ -101,7 +101,7 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         self.progress_not_met_cnt = 0
 
         #turning control
-        self.last_steering_angle = 0
+        self.prev_angular_vel = 0
 
         if 'multi_track' not in track:
             self.all_goals = goal_positions[track]
@@ -138,7 +138,7 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         self.progress_not_met_cnt = 0
 
         #turn control
-        self.last_steering_angle = 0
+        self.prev_angular_vel = 0
 
         self.set_velocity(0, 0)
         
@@ -201,8 +201,6 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         truncated = self.progress_not_met_cnt >= 3
         info = {}
 
-        self.last_steering_angle = steering_angle
-
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
@@ -216,6 +214,7 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         # Get Position and Orientation of F1tenth
         odom, lidar = self.get_data()
         odom = process_odom(odom)
+        # odom = process_odom_yaw_only(odom) # [pos x, pos y, yaw, lin vel, ang vel]
 
         num_points = self.LIDAR_POINTS
 
@@ -225,15 +224,18 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         
         match (self.observation_mode):
             case 'no_position':
-                state = odom[2:] + reduced_range# + [self.last_steering_angle]
+                state = odom[2:] + [self.prev_angular_vel] + reduced_range
             case 'lidar_only':
-                state = odom[-2:] + reduced_range# + [self.last_steering_angle]
+                state = odom[-2:] + [self.prev_angular_vel] + reduced_range
             case _:
-                state = odom + reduced_range #+ [self.last_steering_angle]
+                state = odom + [self.prev_angular_vel] + reduced_range
 
         
         # reconstructed = reconstruct_ae_latent(lidar, self.ae_lidar_model, reduced_range)
         # scan = create_lidar_msg(lidar, len(lidar.ranges), reconstructed)
+
+        #update angular velocity record
+        self.prev_angular_vel = odom[-1]
 
         scan = create_lidar_msg(lidar, len(reduced_range), reduced_range)
 
@@ -259,11 +261,11 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         else:
             reward += self.last_step_progress
 
-        # # turn spamming penalty
-        # turn_penalty = abs(state[7] - next_state[7])*0.2
-        # reward -= turn_penalty
+        # turn spamming penalty
+        turn_penalty = abs(state[7] - next_state[7])*0.12
+        reward -= turn_penalty
 
-        print(f"Reward: {reward}")
+        print(f"Reward: {self.last_step_progress} - {turn_penalty} = {reward}")
        
 
         self.steps_since_last_goal += 1
