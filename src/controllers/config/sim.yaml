@@ -3,9 +3,9 @@ sim:
     algorithm: 'ftg'
     observation_mode: 'lidar_only'
     environment: 'CarTrack'
-    # track: 'austin_track'
-    track: 'multi_track'
-    environment: 'CarTrackProgressiveGoal'
+    track: 'austin_track'
+    # track: 'multi_track'
+    # environment: 'CarTrackProgressiveGoal'
     # track: 'budapest_track'
     step_length: 0.1
     reward_range: 3
@@ -13,4 +13,4 @@ sim:
     number_eval_episodes: 100
     max_steps: 3000
     tracking: False
-    # map_file_path: 'austin_1_save.yaml'
+    map_file_path: 'austin_1_save.yaml'

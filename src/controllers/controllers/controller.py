@@ -20,7 +20,9 @@ import scipy
 
 from environments.lidar_beta_vae import BetaVAE1D
 
+
 from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, process_ae_lidar, process_ae_lidar_beta_vae
+
 
 
 class LidarConvAE(torch.nn.Module):
@@ -164,7 +166,8 @@ class Controller(Node):
         self.timer_future = Future()
         
         # Lidar processing 
-        self.ae_lidar_model = BetaVAE1D(1,10,beta=4)
+        self.ae_lidar_model = LidarConvAE()
+        # self.ae_lidar_model = BetaVAE1D(1,10,beta=4)
         self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))
         self.ae_lidar_model.eval()
 
@@ -219,7 +222,8 @@ class Controller(Node):
         else:
             lidar_range = avg_lidar(lidar, num_points)
 
-        ae_range = process_ae_lidar_beta_vae(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
+        # ae_range = process_ae_lidar_beta_vae(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
+        ae_range = process_ae_lidar(lidar, self.ae_lidar_model,is_latent_only = False)
         
         # scan = create_lidar_msg(lidar, num_points, lidar_range)
         scan = create_lidar_msg(lidar, len(ae_range), ae_range)

@@ -72,11 +72,11 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
 
         match observation_mode:
             case 'no_position':
-                self.OBSERVATION_SIZE = 6 + 10 + 1
+                self.OBSERVATION_SIZE = 6 + 10 #+ 1
             case 'lidar_only':
-                self.OBSERVATION_SIZE = 10 + 2 + 1
+                self.OBSERVATION_SIZE = 10 + 2 #+ 1
             case _:
-                self.OBSERVATION_SIZE = 8 + 10 + 1
+                self.OBSERVATION_SIZE = 8 + 10 #+ 1
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
@@ -84,11 +84,11 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         self.observation_mode = observation_mode
         self.track = track  
 
-        # initiate lidar processing ae
-        from .lidar_autoencoder import LidarConvAE
-        self.ae_lidar_model = LidarConvAE()
-        self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))#"/ws/lidar_ae_ftg_rand.pt"
-        self.ae_lidar_model.eval()
+        # # initiate lidar processing ae
+        # from .lidar_autoencoder import LidarConvAE
+        # self.ae_lidar_model = LidarConvAE()
+        # self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))#"/ws/lidar_ae_ftg_rand.pt"
+        # self.ae_lidar_model.eval()
 
         # Reset Client -----------------------------------------------
 
@@ -191,7 +191,7 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         self.last_step_progress = self.track_model.get_distance_along_track(full_state[:2], full_next_state[:2])
         # self.get_logger().info(str(self.last_step_progress))
         
-        if self.last_step_progress < 0.01:
+        if self.last_step_progress < 0.02:
             self.progress_not_met_cnt += 1
         else:
             self.progress_not_met_cnt = 0
@@ -219,21 +219,23 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
 
         num_points = self.LIDAR_POINTS
 
-        #reduced_range = avg_lidar(lidar, num_points)
-        reduced_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=True)
+        reduced_range = avg_lidar(lidar, num_points)
+        # reduced_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=True)
 
         
         match (self.observation_mode):
             case 'no_position':
-                state = odom[2:] + reduced_range + [self.last_steering_angle]
+                state = odom[2:] + reduced_range# + [self.last_steering_angle]
             case 'lidar_only':
-                state = odom[-2:] + reduced_range + [self.last_steering_angle]
+                state = odom[-2:] + reduced_range# + [self.last_steering_angle]
             case _:
-                state = odom + reduced_range + [self.last_steering_angle]
+                state = odom + reduced_range #+ [self.last_steering_angle]
 
         
-        reconstructed = reconstruct_ae_latent(lidar, self.ae_lidar_model, reduced_range)
-        scan = create_lidar_msg(lidar, len(lidar.ranges), reconstructed)
+        # reconstructed = reconstruct_ae_latent(lidar, self.ae_lidar_model, reduced_range)
+        # scan = create_lidar_msg(lidar, len(lidar.ranges), reconstructed)
+
+        scan = create_lidar_msg(lidar, len(reduced_range), reduced_range)
 
         self.processed_publisher.publish(scan)
 
@@ -257,11 +259,11 @@ class CarTrackProgressiveGoalEnvironment(F1tenthEnvironment):
         else:
             reward += self.last_step_progress
 
-        # turn spamming penalty
-        turn_penalty = abs(state[7] - next_state[7])*0.2
-        reward -= turn_penalty
+        # # turn spamming penalty
+        # turn_penalty = abs(state[7] - next_state[7])*0.2
+        # reward -= turn_penalty
 
-        print(f"Reward: {self.last_step_progress} - {turn_penalty} = {reward}")
+        print(f"Reward: {reward}")
        
 
         self.steps_since_last_goal += 1
