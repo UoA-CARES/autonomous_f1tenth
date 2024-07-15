@@ -142,7 +142,7 @@ def ppo_train(env, agent, memory, record, algorithm_config):
         action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
 
         next_state, reward, done, truncated, info = env.step(action_env)
-        memory.add(state=state, action=action, reward=reward, next_state=next_state, done=done, log_prob=log_prob)
+        memory.add(state, action, reward, next_state, done, log_prob)
 
         state = next_state
         episode_reward += reward
