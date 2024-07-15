@@ -17,7 +17,7 @@ class TurnAndDrive():
         self.straight_lin_vel = straight_lin_vel
         self.angle_diff_tolerance = angle_diff_tolerance
         self.goal_tolerance = goal_tolerance
-
+        self.multiCoord = False
         self.turnedLast = False
 
         self.steering_to_neutral_delay = steering_to_neutral_delay
