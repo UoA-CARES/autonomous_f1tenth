@@ -37,7 +37,8 @@ def main():
     while True:
         
         if policy.multiCoord == False:
-            goal = closestPointIndAhead(state[0:2], coordinates)
+            goalInd = closestPointIndAhead(state[0:2], coordinates)
+            goal = coordinates[goalInd]
         
         state = controller.get_observation(policy_id)
         action = policy.select_action(state, goal)   

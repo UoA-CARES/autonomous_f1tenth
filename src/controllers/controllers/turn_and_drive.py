@@ -35,7 +35,7 @@ class TurnAndDrive():
 
         self.logger.info("-------------------------------------------------")
         self.logger.info("STATE: "+str(location)+" "+str(self_angle))
-
+        self.logger.info("GOAL: "+str(goal))
         ang = turn_to_goal(location, self_angle, goal)
         distance = goal - location
 
