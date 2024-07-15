@@ -53,7 +53,9 @@ def policy_factory(alg):
     match alg:
         case 'mpc':
             from .mpc import MPC
-            policy = MPC()
+            from .test_path import austinLap
+            coordinates = austinLap()
+            policy = MPC(coordinates)
             return policy
         case 'turn_and_drive':
             from .turn_and_drive import TurnAndDrive

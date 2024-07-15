@@ -54,7 +54,8 @@ def closestPointIndAhead(location, path, buffer=1):
         except:
             closestPointIndex = 0
     closestPoint = path[closestPointIndex]
-    try:
+
+    try:    
         nextPoint = path[closestPointIndex+1]
     except:
         nextPoint = path[0]
