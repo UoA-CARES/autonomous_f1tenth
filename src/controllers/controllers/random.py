@@ -10,6 +10,7 @@ class Random():
     def __init__(self): 
         self.logger.info("-------------------------------------------------")
         self.logger.info("Random Alg created")
+        self.multiCoord = False
 
     def select_action(self, state, goal):
         action = np.asarray([random.uniform(0, 3), random.uniform(-3.14, 3.14)])

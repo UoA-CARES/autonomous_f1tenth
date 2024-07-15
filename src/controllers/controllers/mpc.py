@@ -37,7 +37,7 @@ class MPC():
         self.deltaT = 0.1
         self.wheelbase = 0.315
         self.timeConst = 0.1
-
+        self.multiCoord = True # Can be set to True or False. True will incorporate next coord in cost
         # MPC parameters. Options defines how many alternative actions will be considered. Prediction steps defines how far into the future each action will be assessed.
         self.predictionSteps = 5
         self.options = 10

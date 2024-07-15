@@ -15,6 +15,7 @@ class PurePursuit():
         self.path = path
         self.angle_diff_tolerance = angle_diff_tolerance
         self.look_ahead = look_ahead
+        self.multiCoord = True
 
     # Need to write
     def findGoal(self, location):

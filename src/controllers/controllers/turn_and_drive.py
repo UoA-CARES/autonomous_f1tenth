@@ -17,7 +17,7 @@ class TurnAndDrive():
         self.straight_lin_vel = straight_lin_vel
         self.angle_diff_tolerance = angle_diff_tolerance
         self.goal_tolerance = goal_tolerance
-
+        self.multiCoord = False
         self.turnedLast = False
 
         self.steering_to_neutral_delay = steering_to_neutral_delay
@@ -35,7 +35,7 @@ class TurnAndDrive():
 
         self.logger.info("-------------------------------------------------")
         self.logger.info("STATE: "+str(location)+" "+str(self_angle))
-
+        self.logger.info("GOAL: "+str(goal))
         ang = turn_to_goal(location, self_angle, goal)
         distance = goal - location
 
