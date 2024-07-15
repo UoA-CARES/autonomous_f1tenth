@@ -4,6 +4,7 @@ import random
 from rclpy.impl import rcutils_logger
 from .controller import Controller
 from environments.util import get_euler_from_quarternion
+from .util import closestPointIndAhead
 import time, threading
 
 def main():
@@ -27,18 +28,16 @@ def main():
     controller = Controller(ALG, CAR_NAME, 0.25)
     policy_id = ALG
     policy = policy_factory(ALG)
-
+    if controller.multiCoord == False:
+        from .test_path import austinLap
+        coordinates = austinLap()
     #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
     state = controller.get_observation(policy_id)
-
-
-    
-    goalx = 5
-    goaly = -2
-    goal = np.asarray([goalx, goaly])
     
     while True:
         
+        if controller.multiCoord == False:
+            goal = closestPointIndAhead(state[0:2], coordinates)
         
         state = controller.get_observation(policy_id)
         action = policy.select_action(state, goal)   
