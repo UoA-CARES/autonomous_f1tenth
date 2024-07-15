@@ -28,7 +28,7 @@ def main():
     controller = Controller(ALG, CAR_NAME, 0.25)
     policy_id = ALG
     policy = policy_factory(ALG)
-    if controller.multiCoord == False:
+    if policy.multiCoord == False:
         from .test_path import austinLap
         coordinates = austinLap()
     #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
@@ -36,7 +36,7 @@ def main():
     
     while True:
         
-        if controller.multiCoord == False:
+        if policy.multiCoord == False:
             goal = closestPointIndAhead(state[0:2], coordinates)
         
         state = controller.get_observation(policy_id)
