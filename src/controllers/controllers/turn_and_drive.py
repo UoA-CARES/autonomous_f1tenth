@@ -46,7 +46,9 @@ class TurnAndDrive():
             return action
         
         if abs(ang) > 0:
-            lin = self.turning_lin_vel
+            #lin = self.turning_lin_vel
+            from .util import linCalc
+            lin = linCalc(ang)
             action = np.asarray([lin, ang])
             self.turnedLast = True
             return action
