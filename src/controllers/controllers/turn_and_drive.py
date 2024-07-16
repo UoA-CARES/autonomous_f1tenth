@@ -41,12 +41,16 @@ class TurnAndDrive():
 
         # if already at goal location
         if ((abs(distance[0]) < self.goal_tolerance) and (abs(distance[1] < self.goal_tolerance))):
+            self.logger.info("At goal")
             lin = 0
             action = np.asarray([lin, ang])
             return action
         
         if abs(ang) > 0:
+            #lin = self.turning_lin_vel
+            from .util import linCalc
             lin = self.turning_lin_vel
+            self.logger.info("Turning to goal")
             action = np.asarray([lin, ang])
             self.turnedLast = True
             return action

@@ -63,3 +63,15 @@ def closestPointIndAhead(location, path, buffer=1):
         return closestPointIndex + 1
     else:
         return closestPointIndex
+    
+
+def linCalc(ang, maxLin=1, maxAng=0.85, fullSpeedCutoff = 0.05):
+    if ang < fullSpeedCutoff:
+        return maxLin
+    else:
+        minLin = 0.05*maxLin
+        # Calculate linear decreasing function
+        gradient = (minLin - maxLin)/(maxAng - fullSpeedCutoff)
+        c = minLin - (maxAng * gradient)
+        lin = gradient*ang + c
+        return lin
