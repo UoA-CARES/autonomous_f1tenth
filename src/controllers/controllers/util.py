@@ -48,10 +48,11 @@ def closestPointInd(location, path):
 
 def closestPointIndAhead(location, path, buffer=0.8): #buffer = 1 for turn and drive
     closestPointIndex = closestPointInd(location, path)
+    row, _ = path.shape
     if (absoluteDistance(location, path[closestPointIndex]) < buffer):
-        try:
+        if (closestPointIndex < (row-1)):
             closestPointIndex += 1
-        except:
+        else:
             closestPointIndex = 0
     closestPoint = path[closestPointIndex]
 
@@ -60,7 +61,10 @@ def closestPointIndAhead(location, path, buffer=0.8): #buffer = 1 for turn and d
     except:
         nextPoint = path[0]
     if (absoluteDistance(location, nextPoint) < absoluteDistance(closestPoint, nextPoint)):
-        return closestPointIndex + 1
+        if (closestPointIndex < (row-1)):
+            return closestPointIndex + 1
+        else:
+            return 0
     else:
         return closestPointIndex
     
