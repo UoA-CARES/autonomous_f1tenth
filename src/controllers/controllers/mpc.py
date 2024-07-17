@@ -51,7 +51,7 @@ class MPC():
         qy = 1
         qyaw = 0
         Q = np.diag([qx, qy, qyaw, 0 , qx, qy, qyaw, 0])
-        qsteer = 1
+        qsteer = 0
 
         cost = Yarr@Q@np.transpose(Yarr) + qsteer*(steeringcurr - steering)**2 #(U - Uref)*R*(U-Uref)
         return cost

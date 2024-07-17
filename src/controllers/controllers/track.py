@@ -30,9 +30,9 @@ def main():
     policy = policy_factory(ALG)
     if policy.multiCoord == False:
         from .test_path import austinLap, straightLine, circleCCW
-        #coordinates = austinLap()
+        coordinates = austinLap()
         #coordinates = straightLine()
-        coordinates = circleCCW()
+        #coordinates = circleCCW()
     #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
     state = controller.get_observation(policy_id)
     completed = False
@@ -43,7 +43,7 @@ def main():
             goal = coordinates[goalInd]
         else:
             goal = np.asarray([[0, 0]])
-        goal = np.asarray([4, 2])
+        #goal = np.asarray([-4, -2])
         prevGoal = goal
         state = controller.get_observation(policy_id)
         action = policy.select_action(state, goal)   
@@ -52,10 +52,10 @@ def main():
         controller.step(action, policy_id)
         '''if action[0] == 0:
             completed = True'''
-        time.sleep(0.2)
+        time.sleep(0.3)
         action = np.asarray([0,0])
         controller.step(action, policy_id)
-        time.sleep(1)
+        time.sleep(0.1)
         #time.sleep(1)
 
 def policy_factory(alg):
