@@ -135,11 +135,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         _, full_state = self.get_observation()
 
         lin_vel, steering_angle = action
+        
+        L = 0.315
+        angular = ackermann_to_twist(steering_angle, lin_vel, L)
 
-        # TODO: get rid of hard coded wheelbase
-        ang_vel = ackermann_to_twist(steering_angle, lin_vel, 0.315)
-
-        self.set_velocity(lin_vel, ang_vel)
+        self.set_velocity(lin_vel, angular)
 
         self.sleep()
         

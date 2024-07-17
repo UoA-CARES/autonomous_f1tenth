@@ -146,13 +146,12 @@ class F1tenthEnvironment(Node):
         data = future.result()
         return data['odom'], data['lidar']
 
-    def set_velocity(self, linear, angle):
+    def set_velocity(self, linear, angular):
         """
-        Publish Twist messages to f1tenth cmd_vel topic
+        Publish Twist Message
         """
-        L = 0.25
+
         velocity_msg = Twist()
-        angular = ackermann_to_twist(angle, linear, L)
         velocity_msg.angular.z = float(angular)
         velocity_msg.linear.x = float(linear)
 
