@@ -46,7 +46,7 @@ def closestPointInd(location, path):
             index = i
     return index
 
-def closestPointIndAhead(location, path, buffer=1):
+def closestPointIndAhead(location, path, buffer=0.8): #buffer = 1 for turn and drive
     closestPointIndex = closestPointInd(location, path)
     if (absoluteDistance(location, path[closestPointIndex]) < buffer):
         try:

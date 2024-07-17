@@ -57,7 +57,7 @@ class MPC():
         return cost
     
     def select_action(self, state, goal):
-        MAX_ACTIONS = np.asarray([1, 0.85])
+        MAX_ACTIONS = np.asarray([0.2, 0.85])
         MIN_ACTIONS = np.asarray([0, -0.85])
         #index = closestPointIndAhead(state[0:2], self.path)
         #goal = self.path[index]
@@ -71,7 +71,7 @@ class MPC():
         lowestCost = inf
         distance = goal - state[0:2]
         #Check if car is already at goal location
-        if ((abs(distance[0]) < self.goal_tolerance) and (abs(distance[1] < self.goal_tolerance))):
+        if ((abs(distance[0]) < self.goal_tolerance) and (abs(distance[1]) < self.goal_tolerance)):
             lin = 0
             ang = 0
             action = np.asarray([lin, ang])
@@ -100,9 +100,9 @@ class MPC():
                 ang = desAngle
         
         action = np.asarray([lin, ang])
-        #self.logger.info("DRIVE LIN_V: "+str(lin))
-        #self.logger.info("DRIVE ANGLE: "+str(ang))
-        #self.logger.info("-------------------------")
+        self.logger.info("DRIVE LIN_V: "+str(lin))
+        self.logger.info("DRIVE ANGLE: "+str(ang))
+        self.logger.info("-------------------------")
         return action 
 
     def mpcAlg(self, x, y, steering, des_angle, lin, yaw):
