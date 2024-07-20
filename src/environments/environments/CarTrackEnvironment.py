@@ -148,15 +148,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
         
         reward = self.compute_reward(full_state, full_next_state)
         terminated = self.is_terminated(full_next_state)
-        truncated = self.steps_since_last_goal >= 10
+        truncated = self.is_truncated()
         info = {}
 
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state):
         return has_collided(state[8:], self.COLLISION_RANGE) \
-            or has_flipped_over(state[2:6]) or \
-            self.goals_reached >= self.MAX_GOALS
+            or has_flipped_over(state[2:6])
+
+    def is_truncated(self):
+        return self.steps_since_last_goal >= 10 or \
+            self.goals_reached >= self.MAX_GOALS or \
+            self.step_counter >= self.MAX_STEPS
 
     def get_observation(self):
 
