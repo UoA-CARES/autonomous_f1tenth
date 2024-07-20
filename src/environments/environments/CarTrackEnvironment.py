@@ -6,10 +6,13 @@ import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from .termination import has_collided, has_flipped_over
-from .util import process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist
+from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist
+from .util_track_progress import TrackMathDef
 from .goal_positions import goal_positions
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
+from typing import Literal, List, Optional
+import torch
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -62,23 +65,69 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
 
+        
+
+        #####################################################################################################################
+        # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
+
+        # Reward configuration
+        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
+        self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
+
+        # Observation configuration
+        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'raw'
+        self.LIDAR_OBS_SIZE = 682 #10
+        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
+
+        #optional stuff
+        pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
+
+        #####################################################################################################################
+
         # Environment Details ----------------------------------------
         self.MAX_STEPS_PER_GOAL = max_steps
         self.MAX_GOALS = max_goals
 
+        # configure odom observation size:
         match observation_mode:
-            case 'no_position':
-                self.OBSERVATION_SIZE = 6 + 10
             case 'lidar_only':
-                self.OBSERVATION_SIZE = 10 + 2
+                odom_observation_size = 2
+            case 'no_position':
+                odom_observation_size = 6
             case _:
-                self.OBSERVATION_SIZE = 8 + 10
+                odom_observation_size = 10
+
+        # configure observation size
+        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_OBS_SIZE + self.get_extra_observation_size()
+        print(self.OBSERVATION_SIZE)
+      
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
 
-        self.observation_mode = observation_mode
+        self.odom_observation_mode = observation_mode
         self.track = track
+
+        # setup for lidar processing
+        if self.LIDAR_PROCESSING == 'pretrained_ae':
+            from .lidar_autoencoder import LidarConvAE
+            self.ae_lidar_model = LidarConvAE()
+            self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
+            self.ae_lidar_model.eval()
+
+        # optional variables for progressive reward:
+        if self.BASE_REWARD_FUNCTION == 'progressive':
+            self.prev_t = None
+            self.progress_not_met_cnt = 0
+            self.last_step_progress = 0
+
+            self.all_track_models = None
+            self.track_model = None
+        
+        # setup for extra observations
+        if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
+            self.prev_ang_vel = 0
+
 
         # Reset Client -----------------------------------------------
 
@@ -89,6 +138,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if 'multi_track' not in track:
             self.all_goals = goal_positions[track]
             self.car_waypoints = waypoints[track]
+
+            if self.BASE_REWARD_FUNCTION == 'progressive':
+                self.track_model = TrackMathDef(np.array(self.car_waypoints)[:,:2])
         else:
             self.all_car_goals, self.all_car_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
             self.current_track = list(self.all_car_goals.keys())[0]
@@ -96,7 +148,34 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.all_goals = self.all_car_goals[self.current_track]
             self.car_waypoints = self.all_car_waypoints[self.current_track]
 
+            if self.BASE_REWARD_FUNCTION == 'progressive':
+                self.all_track_models = get_track_math_defs(self.all_car_waypoints)
+                self.track_model = self.all_track_models[self.current_track]
+
         self.get_logger().info('Environment Setup Complete')
+
+
+
+#    ____ _        _    ____ ____    _____ _   _ _   _  ____ _____ ___ ___  _   _ ____  
+#   / ___| |      / \  / ___/ ___|  |  ___| | | | \ | |/ ___|_   _|_ _/ _ \| \ | / ___| 
+#  | |   | |     / _ \ \___ \___ \  | |_  | | | |  \| | |     | |  | | | | |  \| \___ \ 
+#  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
+#   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
+                                                                                      
+
+    def get_extra_observation_size(self):
+        if self.EXTRA_OBSERVATIONS:
+            total = 0
+            for obs in self.EXTRA_OBSERVATIONS:
+                match obs:
+                    case 'prev_ang_vel':
+                        total += 1
+                    case _:
+                        print("Unknown extra observation.")
+            return total
+        else:
+            return 0
+
 
     def reset(self):
         self.step_counter = 0
@@ -121,10 +200,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=goal_x, goal_y=goal_y, car_name=self.NAME)
 
         self.call_step(pause=False)
-        observation, _ = self.get_observation()
+        observation, _, _ = self.get_observation()
         self.call_step(pause=True)
 
         info = {}
+
+
+        if self.BASE_REWARD_FUNCTION == 'progressive':
+            self.prev_t = None
+            self.progress_not_met_cnt = 0
+
+        if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
+            self.prev_ang_vel = 0
+
 
         return observation, info
 
@@ -132,7 +220,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.step_counter += 1
 
         self.call_step(pause=False)
-        _, full_state = self.get_observation()
+        _, full_state, raw_lidar_range = self.get_observation()
 
         lin_vel, steering_angle = action
         
@@ -143,54 +231,97 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.sleep()
         
-        next_state, full_next_state = self.get_observation()
+        next_state, full_next_state, _ = self.get_observation()
         self.call_step(pause=True)
+
         
-        reward = self.compute_reward(full_state, full_next_state)
-        terminated = self.is_terminated(full_next_state)
+        
+        reward = self.compute_reward(full_state, full_next_state, raw_lidar_range)
+
+        terminated = self.is_terminated(full_next_state, raw_lidar_range)
         truncated = self.is_truncated()
+
         info = {}
 
         return next_state, reward, terminated, truncated, info
 
-    def is_terminated(self, state):
-        return has_collided(state[8:], self.COLLISION_RANGE) \
+    def is_terminated(self, state, ranges):
+        return has_collided(ranges, self.COLLISION_RANGE) \
             or has_flipped_over(state[2:6])
 
     def is_truncated(self):
-        return self.steps_since_last_goal >= 10 or \
-            self.goals_reached >= self.MAX_GOALS or \
-            self.step_counter >= self.MAX_STEPS
+        match self.BASE_REWARD_FUNCTION:
+            case 'goal_hitting':
+                return self.steps_since_last_goal >= 10 or \
+                self.goals_reached >= self.MAX_GOALS or \
+                self.step_counter >= self.MAX_STEPS
+            case 'progressive':
+                return self.progress_not_met_cnt >= 3 or \
+                self.goals_reached >= self.MAX_GOALS or \
+                self.step_counter >= self.MAX_STEPS
 
     def get_observation(self):
 
         # Get Position and Orientation of F1tenth
         odom, lidar = self.get_data()
         odom = process_odom(odom)
-
+        
         num_points = self.LIDAR_POINTS
-
-        reduced_range = avg_lidar(lidar, num_points)
         
-        match (self.observation_mode):
+        # init state
+        state = []
+        
+        # Add odom data
+        match (self.odom_observation_mode):
             case 'no_position':
-                state = odom[2:] + reduced_range
+                state += odom[2:]
             case 'lidar_only':
-                state = odom[-2:] + reduced_range 
+                state += odom[-2:] 
             case _:
-                state = odom + reduced_range
-
+                state += odom 
         
-        scan = create_lidar_msg(lidar, num_points, reduced_range)
-
+        # Add lidar data:
+        match self.LIDAR_PROCESSING:
+            case 'pretrained_ae':
+                processed_lidar_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=True)
+            case 'avg':
+                processed_lidar_range = avg_lidar(lidar, num_points)
+            case 'raw':
+                processed_lidar_range = np.array(lidar.ranges.tolist())
+                processed_lidar_range = np.nan_to_num(processed_lidar_range, posinf=-5, nan=-1, neginf=-5).tolist()  
+                
+        scan = create_lidar_msg(lidar, num_points, processed_lidar_range)
         self.processed_publisher.publish(scan)
 
-        full_state = odom + reduced_range
+        state += processed_lidar_range
+        
+        full_state = odom + processed_lidar_range
 
-        return state, full_state
+        return state, full_state, lidar.ranges
 
-    def compute_reward(self, state, next_state):
+    def compute_reward(self, state, next_state, raw_lidar_range):
+        reward = 0
 
+        # calculate base reward
+        match self.BASE_REWARD_FUNCTION:
+            case 'goal_hitting':
+                reward += self.calculate_goal_hitting_reward(state, next_state, raw_lidar_range)
+            case 'progressive':
+                reward += self.calculate_progressive_reward(state, next_state, raw_lidar_range)
+        
+        # calulate extra reward terms
+        for term in self.EXTRA_REWARD_TERMS:
+            match term:
+                case 'penalize_turn':
+                    turn_penalty = abs(state[7] - next_state[7])*0.12
+                    reward -= turn_penalty
+
+        return reward
+    
+    ##########################################################################################
+    ########################## Reward Calculation ############################################
+    ##########################################################################################
+    def calculate_goal_hitting_reward(self, state, next_state, raw_range):
         reward = 0
 
         goal_position = self.goal_position
@@ -218,13 +349,67 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.steps_since_last_goal >= 10:
             reward -= 10
 
-        if has_collided(next_state[8:], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+        if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25
 
         return reward
+    
+    def calculate_progressive_reward(self, state, next_state, raw_range):
+        reward = 0
+
+        goal_position = self.goal_position
+
+        current_distance = math.dist(goal_position, next_state[:2])
+
+        if not self.prev_t:
+            self.prev_t = self.track_model.get_closest_point_on_spline(state[:2], t_only=True)
+
+        t2 = self.track_model.get_closest_point_on_spline(next_state[:2], t_only=True)
+        
+        step_progress = self.track_model.get_distance_along_track_parametric(self.prev_t, t2)
+        self.prev_t = t2
+        
+        # keep track of non moving steps
+        if self.last_step_progress < 0.02:
+            self.progress_not_met_cnt += 1
+        else:
+            self.progress_not_met_cnt = 0
 
 
-    # Utility Functions --------------------------------------------
+        #guard against random error from progress estimate
+        if abs(step_progress) > 1:
+            reward += 0.01
+        else:
+            reward += step_progress
+
+        print(f"Reward: {step_progress}")
+       
+        self.steps_since_last_goal += 1
+
+        if current_distance < self.REWARD_RANGE:
+            print(f'Goal #{self.goals_reached} Reached')
+            # reward += 2
+            self.goals_reached += 1
+
+            # Updating Goal Position
+            new_x, new_y = self.all_goals[(self.start_goal_index + self.goals_reached) % len(self.all_goals)]
+            self.goal_position = [new_x, new_y]
+
+            self.update_goal_service(new_x, new_y)
+
+            self.steps_since_last_goal = 0
+
+        if self.progress_not_met_cnt >= 3:
+            reward -= 2
+
+        if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+            reward -= 2.5
+
+        return reward
+
+    ##########################################################################################
+    ########################## Utility Functions #############################################
+    ##########################################################################################
 
     def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y, car_name):
         """
@@ -270,7 +455,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         
         string = f'CarTrack Observation\n'
 
-        match (self.observation_mode):
+        match (self.odom_observation_mode):
             case 'no_position':
                 string += f'Orientation: {observation[:4]}\n'
                 string += f'Car Velocity: {observation[4]}\n'
