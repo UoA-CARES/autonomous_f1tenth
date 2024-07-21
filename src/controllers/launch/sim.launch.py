@@ -14,7 +14,6 @@ env_launch = {
     'CarBlock': 'carblock',
     'CarTrack': 'cartrack',
     'CarBeat': 'carbeat',
-    'CarTrackProgressiveGoal':'cartrackprogressivegoal'
 }
 
 alg_launch = {

@@ -5,7 +5,6 @@ sim:
     environment: 'CarTrack'
     track: 'austin_track'
     # track: 'multi_track'
-    # environment: 'CarTrackProgressiveGoal'
     # track: 'budapest_track'
     step_length: 0.1
     reward_range: 3

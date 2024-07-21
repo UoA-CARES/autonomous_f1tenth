@@ -38,11 +38,6 @@ class CarTrackEnvironmentConfig(EnvironmentConfig):
     observation_mode: str
     max_goals: int
 
-class CarTrackProgressiveGoalEnvironmentConfig(EnvironmentConfig):
-    track: str
-    observation_mode: str
-    max_goals: int
-
 class CarBeatEnvironmentConfig(EnvironmentConfig):
     ftg_car_name: str
     track: str
