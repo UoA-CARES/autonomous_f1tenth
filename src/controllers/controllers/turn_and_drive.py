@@ -17,7 +17,7 @@ class TurnAndDrive():
         self.straight_lin_vel = straight_lin_vel
         self.angle_diff_tolerance = angle_diff_tolerance
         self.goal_tolerance = goal_tolerance
-
+        self.multiCoord = False
         self.turnedLast = False
 
         self.steering_to_neutral_delay = steering_to_neutral_delay
@@ -35,18 +35,22 @@ class TurnAndDrive():
 
         self.logger.info("-------------------------------------------------")
         self.logger.info("STATE: "+str(location)+" "+str(self_angle))
-
+        self.logger.info("GOAL: "+str(goal))
         ang = turn_to_goal(location, self_angle, goal)
         distance = goal - location
 
         # if already at goal location
         if ((abs(distance[0]) < self.goal_tolerance) and (abs(distance[1] < self.goal_tolerance))):
+            self.logger.info("At goal")
             lin = 0
             action = np.asarray([lin, ang])
             return action
         
         if abs(ang) > 0:
+            #lin = self.turning_lin_vel
+            from .util import linCalc
             lin = self.turning_lin_vel
+            self.logger.info("Turning to goal")
             action = np.asarray([lin, ang])
             self.turnedLast = True
             return action

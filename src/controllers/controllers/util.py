@@ -46,11 +46,36 @@ def closestPointInd(location, path):
             index = i
     return index
 
-def closestPointIndAhead(location, path):
+def closestPointIndAhead(location, path, buffer=0.8): #buffer = 1 for turn and drive
     closestPointIndex = closestPointInd(location, path)
+    row, _ = path.shape
+    if (absoluteDistance(location, path[closestPointIndex]) < buffer):
+        if (closestPointIndex < (row-1)):
+            closestPointIndex += 1
+        else:
+            closestPointIndex = 0
     closestPoint = path[closestPointIndex]
-    nextPoint = path[closestPointIndex+1]
+
+    try:    
+        nextPoint = path[closestPointIndex+1]
+    except:
+        nextPoint = path[0]
     if (absoluteDistance(location, nextPoint) < absoluteDistance(closestPoint, nextPoint)):
-        return closestPointInd + 1
+        if (closestPointIndex < (row-1)):
+            return closestPointIndex + 1
+        else:
+            return 0
     else:
         return closestPointIndex
+    
+
+def linCalc(ang, maxLin=1, maxAng=0.85, fullSpeedCutoff = 0.05):
+    if ang < fullSpeedCutoff:
+        return maxLin
+    else:
+        minLin = 0.05*maxLin
+        # Calculate linear decreasing function
+        gradient = (minLin - maxLin)/(maxAng - fullSpeedCutoff)
+        c = minLin - (maxAng * gradient)
+        lin = gradient*ang + c
+        return lin

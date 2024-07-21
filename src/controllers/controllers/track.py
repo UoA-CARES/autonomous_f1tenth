@@ -4,6 +4,7 @@ import random
 from rclpy.impl import rcutils_logger
 from .controller import Controller
 from environments.util import get_euler_from_quarternion
+from .util import closestPointIndAhead
 import time, threading
 
 def main():
@@ -27,25 +28,34 @@ def main():
     controller = Controller(ALG, CAR_NAME, 0.25)
     policy_id = ALG
     policy = policy_factory(ALG)
-
+    if policy.multiCoord == False:
+        from .test_path import austinLap, straightLine, circleCCW
+        coordinates = austinLap()
+        #coordinates = straightLine()
+        #coordinates = circleCCW()
     #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
     state = controller.get_observation(policy_id)
-
-
-    
-    goalx = 5
-    goaly = -2
-    goal = np.asarray([goalx, goaly])
-    
-    while True:
+    completed = False
+    while completed == False:
         
-        
+        if policy.multiCoord == False:
+            goalInd = closestPointIndAhead(state[0:2], coordinates)
+            goal = coordinates[goalInd]
+        else:
+            goal = np.asarray([[0, 0]])
+        #goal = np.asarray([-4, -2])
+        prevGoal = goal
         state = controller.get_observation(policy_id)
         action = policy.select_action(state, goal)   
 
         # moves car
         controller.step(action, policy_id)
-        time.sleep(0.2)
+        '''if action[0] == 0:
+            completed = True'''
+        time.sleep(0.3)
+        action = np.asarray([0,0])
+        controller.step(action, policy_id)
+        time.sleep(0.1)
         #time.sleep(1)
 
 def policy_factory(alg):
@@ -53,7 +63,9 @@ def policy_factory(alg):
     match alg:
         case 'mpc':
             from .mpc import MPC
-            policy = MPC()
+            from .test_path import austinLap
+            coordinates = austinLap()
+            policy = MPC(coordinates)
             return policy
         case 'turn_and_drive':
             from .turn_and_drive import TurnAndDrive
