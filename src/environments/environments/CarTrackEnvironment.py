@@ -13,6 +13,7 @@ from .waypoints import waypoints
 from std_srvs.srv import SetBool
 from typing import Literal, List, Optional
 import torch
+from datetime import datetime
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -71,12 +72,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
         # Reward configuration
-        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
+        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'goal_hitting'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
 
         # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'raw'
-        self.LIDAR_OBS_SIZE = 682 #10
+        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
+        self.LIDAR_POINTS = 10 #682
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         #optional stuff
@@ -97,8 +98,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
             case _:
                 odom_observation_size = 10
 
-        # configure observation size
-        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_OBS_SIZE + self.get_extra_observation_size()
+        # configure overall observation size
+        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
         print(self.OBSERVATION_SIZE)
       
 
@@ -108,14 +109,17 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.odom_observation_mode = observation_mode
         self.track = track
 
-        # setup for lidar processing
+        # observation method specific setup
+        if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
+            self.prev_ang_vel = 0
+
         if self.LIDAR_PROCESSING == 'pretrained_ae':
             from .lidar_autoencoder import LidarConvAE
             self.ae_lidar_model = LidarConvAE()
             self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
             self.ae_lidar_model.eval()
 
-        # optional variables for progressive reward:
+        # reward function specific setup:
         if self.BASE_REWARD_FUNCTION == 'progressive':
             self.prev_t = None
             self.progress_not_met_cnt = 0
@@ -124,9 +128,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.all_track_models = None
             self.track_model = None
         
-        # setup for extra observations
-        if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
-            self.prev_ang_vel = 0
+        
 
 
         # Reset Client -----------------------------------------------
@@ -134,6 +136,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.goals_reached = 0
         self.start_goal_index = 0
         self.steps_since_last_goal = 0
+        self.full_current_state = None
 
         if 'multi_track' not in track:
             self.all_goals = goal_positions[track]
@@ -199,45 +202,51 @@ class CarTrackEnvironment(F1tenthEnvironment):
         goal_x, goal_y = self.goal_position
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=goal_x, goal_y=goal_y, car_name=self.NAME)
 
+        # Get initial observation
         self.call_step(pause=False)
-        observation, _, _ = self.get_observation()
+        state, full_state , _ = self.get_observation()
+        self.full_current_state = full_state
         self.call_step(pause=True)
 
         info = {}
 
-
-        if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.prev_t = None
-            self.progress_not_met_cnt = 0
-
+         # observation method specific resets
         if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
             self.prev_ang_vel = 0
 
+        # reward function specific resets
+        if self.BASE_REWARD_FUNCTION == 'progressive':
+            self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
+            self.progress_not_met_cnt = 0
 
-        return observation, info
+        return state, info
 
     def step(self, action):
         self.step_counter += 1
-
-        self.call_step(pause=False)
-        _, full_state, raw_lidar_range = self.get_observation()
-
-        lin_vel, steering_angle = action
         
+        # get current state
+        full_state = self.full_current_state
+
+        # unpause simulation
+        self.call_step(pause=False)
+
+        # take action and wait
+        lin_vel, steering_angle = action
         L = 0.315
         angular = ackermann_to_twist(steering_angle, lin_vel, L)
-
         self.set_velocity(lin_vel, angular)
 
         self.sleep()
         
-        next_state, full_next_state, _ = self.get_observation()
+        # record new state
+        next_state, full_next_state, raw_lidar_range = self.get_observation()
         self.call_step(pause=True)
 
+        # set new step as 'current state' for next step
+        self.full_current_state = full_next_state
         
-        
+        # calculate reward & end conditions
         reward = self.compute_reward(full_state, full_next_state, raw_lidar_range)
-
         terminated = self.is_terminated(full_next_state, raw_lidar_range)
         truncated = self.is_truncated()
 
@@ -252,7 +261,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def is_truncated(self):
         match self.BASE_REWARD_FUNCTION:
             case 'goal_hitting':
-                return self.steps_since_last_goal >= 10 or \
+                return self.steps_since_last_goal >= 20 or \
                 self.goals_reached >= self.MAX_GOALS or \
                 self.step_counter >= self.MAX_STEPS
             case 'progressive':
@@ -346,7 +355,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
             self.steps_since_last_goal = 0
         
-        if self.steps_since_last_goal >= 10:
+        if self.steps_since_last_goal >= 20:
             reward -= 10
 
         if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
@@ -370,7 +379,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.prev_t = t2
         
         # keep track of non moving steps
-        if self.last_step_progress < 0.02:
+        if step_progress < 0.02:
             self.progress_not_met_cnt += 1
         else:
             self.progress_not_met_cnt = 0
@@ -382,7 +391,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         else:
             reward += step_progress
 
-        print(f"Reward: {step_progress}")
+        print(f"Step progress: {step_progress}")
        
         self.steps_since_last_goal += 1
 
