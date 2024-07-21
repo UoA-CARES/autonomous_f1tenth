@@ -93,8 +93,6 @@ def __get_env_params(param_node: Node):
             config = cfg.CarTrackEnvironmentConfig(**params_dict)
         case 'CarBeat':
             config = cfg.CarBeatEnvironmentConfig(**params_dict)
-        case 'CarTrackProgressiveGoal':
-            config = cfg.CarTrackProgressiveGoalEnvironmentConfig(**params_dict)
         case _:
             raise Exception(f'Environment {params_dict["environment"]} not implemented')
     

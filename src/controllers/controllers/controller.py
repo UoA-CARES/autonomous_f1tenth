@@ -19,76 +19,10 @@ from typing import List
 import scipy
 
 from environments.lidar_beta_vae import BetaVAE1D
-
+from environments.lidar_autoencoder import LidarConvAE
 
 from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, process_ae_lidar, process_ae_lidar_beta_vae
 
-
-
-class LidarConvAE(torch.nn.Module):
-    def __init__(self):
-        super(LidarConvAE, self).__init__()
-
-        # Encoder
-        self.encoder = torch.nn.Sequential(
-            torch.nn.Conv1d(1, 32, kernel_size=4, stride=4),  # [B, 1, 512] -> [B, 32, 128]
-            torch.nn.ReLU(True),
-            torch.nn.Conv1d(32, 64, kernel_size=4, stride=4),  # [B, 32, 128] -> [B, 64, 32]
-            torch.nn.ReLU(True),
-            torch.nn.Conv1d(64, 128, kernel_size=4, stride=4),  # [B, 64, 32] -> [B, 128, 8]
-            torch.nn.ReLU(True),
-            torch.nn.Flatten(), # Flatten [B, 128, 8] -> [B, 1024]             
-            torch.nn.Linear(1024, 10)
-        )
-
-        # Decoder
-        self.decoder = torch.nn.Sequential(  
-            torch.nn.Linear(10,1024),
-            torch.nn.Unflatten(1,(128,8)),       
-            torch.nn.ConvTranspose1d(128, 64, kernel_size=4, stride=4),  # [B, 128, 8] -> [B, 64, 32]
-            torch.nn.ReLU(True),
-            torch.nn.ConvTranspose1d(64, 32, kernel_size=4, stride=4),  # [B, 64, 32] -> [B, 32, 128]
-            torch.nn.ReLU(True),
-            torch.nn.ConvTranspose1d(32, 1, kernel_size=4, stride=4),  # [B, 32, 128] -> [B, 1, 512]
-            # torch.nn.Sigmoid()  # Use Sigmoid for normalized output
-        )
-
-    def forward(self, x):
-        # x = torch.nn.functional.interpolate(x,(512))
-        # print(x.shape)
-        x = self.encoder(x)
-        # x = self.flatten(x)
-        # x = self.fc(x)
-        # x = self.fc_decoder(x)
-        # x = self.unflatten(x)
-        x = self.decoder(x)
-        # x = torch.nn.functional.interpolate(x,(682))
-        return x
-class LidarAE(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-         
-
-        self.encoder = torch.nn.Sequential(
-            torch.nn.Linear(682, 256),
-            torch.nn.ReLU(),
-            torch.nn.Linear(256, 128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128, 16),
-        )
-         
-        self.decoder = torch.nn.Sequential(
-            torch.nn.Linear(16, 128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128, 256),
-            torch.nn.ReLU(),
-            torch.nn.Linear(256, 682)
-        )
- 
-    def forward(self, x):
-        encoded = self.encoder(x)
-        decoded = self.decoder(encoded)
-        return decoded
 
 class Controller(Node):
     def __init__(self, node_name, car_name, step_length, lidar_points = 10):
@@ -222,12 +156,14 @@ class Controller(Node):
         else:
             lidar_range = avg_lidar(lidar, num_points)
 
-        # ae_range = process_ae_lidar_beta_vae(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
-        ae_range = process_ae_lidar(lidar, self.ae_lidar_model,is_latent_only = False)
-        
-        # scan = create_lidar_msg(lidar, num_points, lidar_range)
-        scan = create_lidar_msg(lidar, len(ae_range), ae_range)
+        # Testing code for pre trained AE
 
+        # # ae_range = process_ae_lidar_beta_vae(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
+        # ae_range = process_ae_lidar(lidar, self.ae_lidar_model,is_latent_only = False)
+        # # scan = create_lidar_msg(lidar, num_points, lidar_range)
+        # scan = create_lidar_msg(lidar, len(ae_range), ae_range)
+
+        scan = create_lidar_msg(lidar, len(lidar_range), lidar_range)
         self.processed_publisher.publish(scan)
 
         state = odom+lidar_range

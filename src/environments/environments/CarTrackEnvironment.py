@@ -6,7 +6,7 @@ import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from .termination import has_collided, has_flipped_over
-from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist
+from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent
 from .util_track_progress import TrackMathDef
 from .goal_positions import goal_positions
 from .waypoints import waypoints
@@ -72,12 +72,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
         # Reward configuration
-        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'goal_hitting'
+        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
-        self.LIDAR_POINTS = 10 #682
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         #optional stuff
@@ -100,8 +99,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # configure overall observation size
         self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
-        print(self.OBSERVATION_SIZE)
-      
+
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
@@ -293,13 +291,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
         match self.LIDAR_PROCESSING:
             case 'pretrained_ae':
                 processed_lidar_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=True)
+                visualized_range = reconstruct_ae_latent(lidar, self.ae_lidar_model, processed_lidar_range)
+                #TODO: get rid of hard coded lidar points num
+                scan = create_lidar_msg(lidar, 682, visualized_range)
             case 'avg':
                 processed_lidar_range = avg_lidar(lidar, num_points)
+                visualized_range = processed_lidar_range
+                scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'raw':
                 processed_lidar_range = np.array(lidar.ranges.tolist())
                 processed_lidar_range = np.nan_to_num(processed_lidar_range, posinf=-5, nan=-1, neginf=-5).tolist()  
-                
-        scan = create_lidar_msg(lidar, num_points, processed_lidar_range)
+                visualized_range = processed_lidar_range
+                scan = create_lidar_msg(lidar, num_points, visualized_range)
+        
         self.processed_publisher.publish(scan)
 
         state += processed_lidar_range
