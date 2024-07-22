@@ -21,7 +21,7 @@ def main():
     controller = Controller('ld_path_policy_', CAR_NAME, 0.1)
     file1 = open('mypath.txt', 'w')
     try:
-        createPath(controller=controller)
+        createPath(controller, file1)
     except KeyboardInterrupt:
         file1.close()
         print("Closed file")
@@ -44,9 +44,11 @@ def main():
 
         time.sleep(1)'''
 
-def createPath(controller):
+def createPath(controller, file):
     while True:
-        print("Hello")
+        state = np.asarray([0, 0])
+        s = '['+str(state[0])+', '+str(state[1]) + '], '
+        file.write(s)
         time.sleep(1)
 
 
