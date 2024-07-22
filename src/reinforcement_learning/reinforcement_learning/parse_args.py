@@ -26,7 +26,7 @@ def __declare_params():
             ('car_name', 'f1tenth'),
             ('ftg_car_name', 'ftg_car'),
             ('track', 'multi_track'),
-            ('max_steps', 100),
+            ('max_steps', 3000),
             ('step_length', 0.1),
             ('reward_range', 3),
             ('collision_range', 0.2),
@@ -53,6 +53,8 @@ def __declare_params():
             ('tau', 0.005),
             ('actor_lr', 1e-4),
             ('critic_lr', 1e-3),
+            ('is_1d', True),
+            ('latent_size',10)
 
         ]
     )
@@ -135,7 +137,9 @@ def __get_network_params(param_node: Node):
         'gamma',
         'tau',
         'actor_lr',
-        'critic_lr'
+        'critic_lr',
+        'is_1d',
+        'latent_size'
     ])
 
     # Convert to Dictionary
@@ -152,6 +156,8 @@ def __get_network_params(param_node: Node):
             config = cares_cfg.SACConfig(**params_dict)
         case 'TD3':
             config = cares_cfg.TD3Config(**params_dict)
+        case 'TD3AE':
+            config = cares_cfg.TD3AEConfig(**params_dict)
         case _:
             config = {'algorithm': 'traditional'}
     try:

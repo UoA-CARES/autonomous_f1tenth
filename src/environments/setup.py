@@ -7,7 +7,8 @@ package_name = 'environments'
 setup(
     name=package_name,
     version='0.0.0',
-    packages=[package_name],
+    packages=[package_name, 
+              f'{package_name}.autoencoders'],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -32,6 +33,7 @@ setup(
             'CarTrackReset = environments.CarTrackReset:main',
             'CarBeatReset = environments.CarBeatReset:main',
             'SteppingService = environments.SteppingService:main',
+            'LidarLogger = environments.lidar_logger:main'
         ],
     },
 )

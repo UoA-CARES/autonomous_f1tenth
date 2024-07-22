@@ -1,4 +1,4 @@
-
+from abc import abstractmethod
 import rclpy
 from rclpy import Future
 from rclpy.node import Node
@@ -6,11 +6,22 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from ackermann_msgs.msg import AckermannDriveStamped
 from message_filters import Subscriber, ApproximateTimeSynchronizer
+import rclpy.time
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
+from tf2_ros import TransformListener, Buffer, Time
+from tf2_msgs.msg import TFMessage
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import math
+import torch
+from torch import nn
+from typing import List
+import scipy
 
-from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg
+from environments.autoencoders.lidar_beta_vae import BetaVAE1D
+from environments.autoencoders.lidar_autoencoder import LidarConvAE
+
+from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, process_ae_lidar, process_ae_lidar_beta_vae
 
 
 class Controller(Node):
@@ -59,6 +70,21 @@ class Controller(Node):
             10
         )
 
+        ##### FOR LOCALIZED METHODS ONLY############################
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=20
+        )
+        self.tf_sub = Subscriber(
+            self,
+            TFMessage,
+            f'/tf'
+        )
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+        # -----------------------------------------------------------
+
         self.message_filter = ApproximateTimeSynchronizer(
             [self.odom_sub, self.lidar_sub],
             10,
@@ -71,9 +97,15 @@ class Controller(Node):
 
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
+        
+        #TODO:figure out what to do with this
+        # # Lidar processing 
+        # self.ae_lidar_model = LidarConvAE()
+        # # self.ae_lidar_model = BetaVAE1D(1,10,beta=4)
+        # self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/src/environments/environments/autoencoders/trained_models/lidar_ae_ftg_rand.pt"))
+        # self.ae_lidar_model.eval()
 
     def step(self, action, policy):
-
         lin_vel, steering_angle = action
         lin_vel = self.vel_mod(lin_vel)
         self.set_velocity(lin_vel, steering_angle)
@@ -91,6 +123,29 @@ class Controller(Node):
 
     def get_observation(self, policy):
         #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z]
+
+        # TODO: turn on later  |
+        #                      V
+        # if policy == 'a_star' or policy == 'd_star':
+        #     now = rclpy.time.Time()
+        #     transformation = self.tf_buffer.lookup_transform('map',f'{self.NAME}base_link', now)
+        #     x = transformation.transform.translation.x
+        #     y = transformation.transform.translation.y
+        #     self.get_logger().info(f"Coord: ({x}, {y})")
+        #     return (x,y)
+
+        # TODO: delete later
+        # latest = self.get_clock().now()
+        # self.get_logger().info(f"getting coord")
+        # try: 
+        #     transformation = self.tf_buffer.lookup_transform('map', f'{self.NAME}base_link', Time())
+        #     x = transformation.transform.translation.x
+        #     y = transformation.transform.translation.y
+        #     self.get_logger().info(f"Coord: ({x}, {y})")
+        # except Exception as e:
+        #     self.get_logger().info(str(e))
+
+
         odom, lidar = self.get_data()
         odom = process_odom(odom)
         
@@ -100,9 +155,15 @@ class Controller(Node):
             lidar_range = forward_reduce_lidar(lidar)
         else:
             lidar_range = avg_lidar(lidar, num_points)
-        
-        scan = create_lidar_msg(lidar, num_points, lidar_range)
 
+        # TODO: find out how to deal with this better. 
+        # Testing code for pre trained AE
+        # # ae_range = process_ae_lidar_beta_vae(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
+        # ae_range = process_ae_lidar(lidar, self.ae_lidar_model,is_latent_only = False)
+        # # scan = create_lidar_msg(lidar, num_points, lidar_range)
+        # scan = create_lidar_msg(lidar, len(ae_range), ae_range)
+
+        scan = create_lidar_msg(lidar, len(lidar_range), lidar_range)
         self.processed_publisher.publish(scan)
 
         state = odom+lidar_range
@@ -116,12 +177,12 @@ class Controller(Node):
         data = future.result()
         return data['odom'], data['lidar']
 
-    def set_velocity(self, lin_vel, steering_angle):
+    def set_velocity(self, lin_vel, steering_angle, L=0.315):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
 
-        ang_vel = ackermann_to_twist(steering_angle, lin_vel, 0.25)
+        ang_vel = ackermann_to_twist(steering_angle, lin_vel, L)
 
         car_velocity_msg = AckermannDriveStamped()
         sim_velocity_msg = Twist()
@@ -164,7 +225,7 @@ class Controller(Node):
         max_vel = 0.5
         linear = min(max_vel, linear)
         return linear
-    
+
     def angle_mod(self, angle):
         max_angle = 0.85
         angle = min(max_angle, angle)
