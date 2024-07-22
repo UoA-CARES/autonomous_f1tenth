@@ -1,11 +1,8 @@
-import rclpy
 import numpy as np
-import random
 from rclpy.impl import rcutils_logger
-from .controller import Controller
 from environments.util import get_euler_from_quarternion
 from .util import turn_to_goal
-import time, threading
+import threading
 
 class TurnAndDrive():
 
@@ -47,8 +44,6 @@ class TurnAndDrive():
             return action
         
         if abs(ang) > 0:
-            #lin = self.turning_lin_vel
-            from .util import linCalc
             lin = self.turning_lin_vel
             self.logger.info("Turning to goal")
             action = np.asarray([lin, ang])
