@@ -8,7 +8,7 @@ def generate_launch_description():
         package='controllers',
         executable='load_path',
         output='screen',
-        parameters=[{'car_name': TextSubstitution('f1tenth')}],
+        parameters=[{'car_name': 'f1tenth'}],
         
     )
 
