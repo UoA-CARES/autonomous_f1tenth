@@ -1,6 +1,7 @@
 import rclpy
 from .controller import Controller
 import time
+import numpy as np
 
 def main():
     rclpy.init()
@@ -19,9 +20,22 @@ def main():
     CAR_NAME = params[0]
     controller = Controller('ld_path_policy_', CAR_NAME, 0.1)
     file1 = open('mypath.txt', 'w')
-    s = '[0, 0]'
+    try:
+        createPath(controller=controller)
+    except KeyboardInterrupt:
+        file1.close()
+        print("Closed file")
+    
+    
+    '''state = np.asarray([0, 0])
+    s = '['+str(state[0])+', '+str(state[1]) + '],'
     file1.write(s)
     file1.close
+    file1 = open('mypath.txt', 'w')
+    state = np.asarray([1, 2])
+    s = '['+str(state[0])+', '+str(state[1]) + '],'
+    file1.write(s)
+    file1.close'''
     '''while True:
         state = controller.get_observation('ld_path')
 
@@ -30,6 +44,10 @@ def main():
 
         time.sleep(1)'''
 
+def createPath(controller):
+    while True:
+        print("Hello")
+        time.sleep(1)
 
 
 
