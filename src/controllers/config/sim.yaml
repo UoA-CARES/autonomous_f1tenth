@@ -3,8 +3,6 @@ sim:
     tracking: True
     algorithm: 'mpc'
     observation_mode: 'lidar_only'
-    # environment: 'CarTrack'
-    # track: 'multi_track'
     environment: 'CarTrack'
     track: 'austin_track'
     step_length: 0.1

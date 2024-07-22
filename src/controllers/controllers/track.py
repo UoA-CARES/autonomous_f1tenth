@@ -1,11 +1,8 @@
 import rclpy
 import numpy as np
-import random
-from rclpy.impl import rcutils_logger
 from .controller import Controller
-from environments.util import get_euler_from_quarternion
 from .util import closestPointIndAhead
-import time, threading
+import time
 
 def main():
     rclpy.init()
@@ -35,28 +32,22 @@ def main():
         #coordinates = circleCCW()
     #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
     state = controller.get_observation(policy_id)
-    completed = False
-    while completed == False:
+    while True:
         
         if policy.multiCoord == False:
             goalInd = closestPointIndAhead(state[0:2], coordinates)
             goal = coordinates[goalInd]
         else:
             goal = np.asarray([[0, 0]])
-        #goal = np.asarray([-4, -2])
-        prevGoal = goal
         state = controller.get_observation(policy_id)
         action = policy.select_action(state, goal)   
 
         # moves car
         controller.step(action, policy_id)
-        '''if action[0] == 0:
-            completed = True'''
         time.sleep(0.3)
         action = np.asarray([0,0])
         controller.step(action, policy_id)
         time.sleep(0.1)
-        #time.sleep(1)
 
 def policy_factory(alg):
     policy = 0

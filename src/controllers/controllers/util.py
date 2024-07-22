@@ -68,7 +68,7 @@ def closestPointIndAhead(location, path, buffer=0.8): #buffer = 1 for turn and d
     else:
         return closestPointIndex
     
-
+# Needs fix
 def linCalc(ang, maxLin=1, maxAng=0.85, fullSpeedCutoff = 0.05):
     if ang < fullSpeedCutoff:
         return maxLin

@@ -66,19 +66,6 @@ class FollowTheGapPolicy():
         lidar_poss_angles = np.linspace(-lidar_angle, lidar_angle, 10)
         meeting_dist = self.calc_func()
 
-
-        # rotation = np.arctan2((2*(state[2]*state[5]+state[3]*state[4])),(1-2*(state[4]**2+state[5]**2)))
-        # if (goal_pos[0] > state[0]):
-        #     if (goal_pos[1] > state[1]):
-        #         goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - rotation
-        #     else:
-        #         goal_angle = np.arctan((goal_pos[1]-state[1])/(goal_pos[0]-state[0])) - rotation
-        # else:
-        #     if (goal_pos[1] > state[1]):
-        #         goal_angle = abs(np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))) - rotation + np.pi/2
-        #     else:
-        #         goal_angle = np.arctan((goal_pos[0]-state[0])/(goal_pos[1]-state[1]))*-1 - rotation - np.pi/2
-        
         goal_angle = 0
 
         obstacles_angles = []
@@ -204,11 +191,7 @@ class FollowTheGapPolicy():
                 gap_centre_angle = np.arccos((d1**2+h**2-l**2)/(2*d1*h))-abs(theta1)
         gap_centre_angle = self.constrain_angle(gap_centre_angle)
 
-        # Calculate final heading angle
-        dmin = min(border_ranges)
-        alpha = 1
-        # goal_angle = self.constrain_angle(goal_angle)
-        ang = gap_centre_angle #((alpha/dmin)*gap_centre_angle+goal_angle)/((alpha/dmin)+1)
+        ang = gap_centre_angle 
         action = np.asarray([lin, ang])
         return action
 

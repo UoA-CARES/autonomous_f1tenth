@@ -1,7 +1,4 @@
-import rclpy
 import numpy as np
-import random
-from .controller import Controller
 from rclpy.impl import rcutils_logger
 from environments.util import get_euler_from_quarternion
 from .util import turn_to_goal
@@ -81,10 +78,8 @@ class PurePursuit():
         MAX_ACTIONS = np.asarray([1, 0.85])
         MIN_ACTIONS = np.asarray([0, -0.85])
 
-        closestPoint = goal # Need to check if this will actually be valid
         lin = MAX_ACTIONS[0]
         location = state[0:2]
-        steeringcurr = state[7]
         yawcurr = get_euler_from_quarternion(state[2],state[3],state[4],state[5])[2]  
 
         # Calculate angle same as turn and drive
