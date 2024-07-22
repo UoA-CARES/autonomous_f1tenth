@@ -1,16 +1,7 @@
-import rclpy
-from rclpy import Future
-from rclpy.node import Node
 import numpy as np
-import do_mpc
 from casadi import *
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-from .controller import Controller
 from rclpy.impl import rcutils_logger
 from environments.util import get_euler_from_quarternion
-from .util import closestPointIndAhead
-import time
 
 class MPC():
 
@@ -42,7 +33,6 @@ class MPC():
 
         return x, y, yaw, steeringAngle
     
-    #Needs fixing
     def cost(self, xcurr, x, xdes, ycurr, y, ydes, steeringcurr, steering, yawcurr, yaw, yawdes):
         Y = np.array([[xcurr, ycurr, yawcurr, 0, x, y, yaw, 0]])
         Yref = np.array([[xdes, ydes, yawdes, 0, xdes, ydes, yawdes, 0]])
@@ -59,8 +49,6 @@ class MPC():
     def select_action(self, state, goal):
         MAX_ACTIONS = np.asarray([0.2, 0.85])
         MIN_ACTIONS = np.asarray([0, -0.85])
-        #index = closestPointIndAhead(state[0:2], self.path)
-        #goal = self.path[index]
         self.logger.info("Current Location: "+str(state[0:2]))
         self.logger.info("Current goal: "+str(goal))
         lin = MAX_ACTIONS[0]
@@ -77,10 +65,6 @@ class MPC():
             action = np.asarray([lin, ang])
             self.logger.info("Reached goal")
             return action
-            try:
-                goal = self.path[index+1]
-            except:
-                goal = self.path[0]
 
         # Iterate through potential driving options
         for i in range(self.options):
@@ -89,13 +73,10 @@ class MPC():
             y = ycurr
             steeringAngle = steeringcurr
             yaw = yawcurr
-            #self.logger.info("CHECKING ANGLE = " +str(desAngle))
             for j in range(self.predictionSteps):
                 x, y, yaw, steeringAngle = self.newStates(lin, x, y, steeringAngle, desAngle, yaw)
             cost = self.cost(xcurr, x, goal[0], ycurr, y, goal[1], steeringcurr, steeringAngle, yawcurr, yaw, yawdes=0)
-            #self.logger.info("COST = "+str(cost))
             if (cost < lowestCost):
-                #self.logger.info("COST LOWER THAN LOWEST COST OF:"+str(lowestCost))
                 lowestCost = cost
                 ang = desAngle
         
@@ -104,8 +85,3 @@ class MPC():
         self.logger.info("DRIVE ANGLE: "+str(ang))
         self.logger.info("-------------------------")
         return action 
-
-    def mpcAlg(self, x, y, steering, des_angle, lin, yaw):
-        MAX_ACTIONS = np.asarray([0.5, 0.85])
-        MIN_ACTIONS = np.asarray([0, -0.85])
-        return lin, steering
