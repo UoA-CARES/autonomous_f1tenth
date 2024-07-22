@@ -1,7 +1,7 @@
 sim:
   ros__parameters:
-    tracking: True
-    algorithm: 'mpc'
+    tracking: False
+    algorithm: 'ftg'
     observation_mode: 'lidar_only'
     environment: 'CarTrack'
     track: 'austin_track'
@@ -13,5 +13,4 @@ sim:
     collision_range: 0.2
     number_eval_episodes: 100
     max_steps: 3000
-    tracking: False
-    map_file_path: 'austin_1_save.yaml'
+    map_file_path: './src/environments/map_info/austin_1_save.yaml'

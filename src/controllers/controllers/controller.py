@@ -18,8 +18,8 @@ from torch import nn
 from typing import List
 import scipy
 
-from environments.lidar_beta_vae import BetaVAE1D
-from environments.lidar_autoencoder import LidarConvAE
+from environments.autoencoders.lidar_beta_vae import BetaVAE1D
+from environments.autoencoders.lidar_autoencoder import LidarConvAE
 
 from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, process_ae_lidar, process_ae_lidar_beta_vae
 
@@ -99,10 +99,11 @@ class Controller(Node):
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
         
+        #TODO:figure out what to do with this
         # Lidar processing 
         self.ae_lidar_model = LidarConvAE()
         # self.ae_lidar_model = BetaVAE1D(1,10,beta=4)
-        self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))
+        self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/src/environments/environments/autoencoders/trained_models/lidar_ae_ftg_rand.pt"))
         self.ae_lidar_model.eval()
 
     def step(self, action, policy):
@@ -158,12 +159,12 @@ class Controller(Node):
 
         # Testing code for pre trained AE
 
-        # # ae_range = process_ae_lidar_beta_vae(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
-        # ae_range = process_ae_lidar(lidar, self.ae_lidar_model,is_latent_only = False)
-        # # scan = create_lidar_msg(lidar, num_points, lidar_range)
-        # scan = create_lidar_msg(lidar, len(ae_range), ae_range)
+        # ae_range = process_ae_lidar_beta_vae(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
+        ae_range = process_ae_lidar(lidar, self.ae_lidar_model,is_latent_only = False)
+        # scan = create_lidar_msg(lidar, num_points, lidar_range)
+        scan = create_lidar_msg(lidar, len(ae_range), ae_range)
 
-        scan = create_lidar_msg(lidar, len(lidar_range), lidar_range)
+        # scan = create_lidar_msg(lidar, len(lidar_range), lidar_range)
         self.processed_publisher.publish(scan)
 
         state = odom+lidar_range
@@ -177,12 +178,12 @@ class Controller(Node):
         data = future.result()
         return data['odom'], data['lidar']
 
-    def set_velocity(self, lin_vel, steering_angle):
+    def set_velocity(self, lin_vel, steering_angle, L=0.315):
         """
         Publish Twist messages to f1tenth cmd_vel topic
         """
 
-        ang_vel = ackermann_to_twist(steering_angle, lin_vel, 0.25)
+        ang_vel = ackermann_to_twist(steering_angle, lin_vel, L)
 
         car_velocity_msg = AckermannDriveStamped()
         sim_velocity_msg = Twist()

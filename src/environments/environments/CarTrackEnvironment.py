@@ -112,7 +112,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.prev_ang_vel = 0
 
         if self.LIDAR_PROCESSING == 'pretrained_ae':
-            from .lidar_autoencoder import LidarConvAE
+            from .autoencoders.lidar_autoencoder import LidarConvAE
             self.ae_lidar_model = LidarConvAE()
             self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
             self.ae_lidar_model.eval()
@@ -230,9 +230,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # take action and wait
         lin_vel, steering_angle = action
-        L = 0.315
-        angular = ackermann_to_twist(steering_angle, lin_vel, L)
-        self.set_velocity(lin_vel, angular)
+        self.set_velocity(lin_vel, steering_angle)
 
         self.sleep()
         

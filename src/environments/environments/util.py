@@ -9,7 +9,6 @@ from nav_msgs.msg import Odometry
 from .goal_positions import goal_positions
 from .waypoints import waypoints
 from .util_track_progress import TrackMathDef
-from .lidar_beta_vae import BetaVAE1D
 import torch
 import scipy
 
@@ -141,7 +140,7 @@ def process_ae_lidar(lidar:LaserScan, ae_model, is_latent_only=True):
     else:
         return ae_model(range_tensor).tolist()[0][0]
 
-def process_ae_lidar_beta_vae(lidar:LaserScan, ae_model:BetaVAE1D, is_latent_only=True):
+def process_ae_lidar_beta_vae(lidar:LaserScan, ae_model, is_latent_only=True):
     range_list = np.array(lidar.ranges)
     range_list = np.nan_to_num(range_list, posinf=-5)
     range_list = scipy.signal.resample(range_list, 512)
