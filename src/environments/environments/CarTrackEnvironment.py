@@ -77,6 +77,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
+        self.LIDAR_POINTS = 10 #682
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         #optional stuff

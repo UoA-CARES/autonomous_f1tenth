@@ -158,6 +158,8 @@ def __get_network_params(param_node: Node):
             config = cares_cfg.TD3Config(**params_dict)
         case 'TD3AE':
             config = cares_cfg.TD3AEConfig(**params_dict)
+        case 'SACAE':
+            config = cares_cfg.SACAEConfig(**params_dict)
         case _:
             config = {'algorithm': 'traditional'}
     try:
