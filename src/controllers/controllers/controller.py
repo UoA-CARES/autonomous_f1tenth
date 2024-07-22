@@ -100,11 +100,11 @@ class Controller(Node):
         self.timer_future = Future()
         
         #TODO:figure out what to do with this
-        # Lidar processing 
-        self.ae_lidar_model = LidarConvAE()
-        # self.ae_lidar_model = BetaVAE1D(1,10,beta=4)
-        self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/src/environments/environments/autoencoders/trained_models/lidar_ae_ftg_rand.pt"))
-        self.ae_lidar_model.eval()
+        # # Lidar processing 
+        # self.ae_lidar_model = LidarConvAE()
+        # # self.ae_lidar_model = BetaVAE1D(1,10,beta=4)
+        # self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/src/environments/environments/autoencoders/trained_models/lidar_ae_ftg_rand.pt"))
+        # self.ae_lidar_model.eval()
 
     def step(self, action, policy):
         lin_vel, steering_angle = action
@@ -157,14 +157,14 @@ class Controller(Node):
         else:
             lidar_range = avg_lidar(lidar, num_points)
 
+        # TODO: find out how to deal with this better. 
         # Testing code for pre trained AE
+        # # ae_range = process_ae_lidar_beta_vae(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
+        # ae_range = process_ae_lidar(lidar, self.ae_lidar_model,is_latent_only = False)
+        # # scan = create_lidar_msg(lidar, num_points, lidar_range)
+        # scan = create_lidar_msg(lidar, len(ae_range), ae_range)
 
-        # ae_range = process_ae_lidar_beta_vae(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
-        ae_range = process_ae_lidar(lidar, self.ae_lidar_model,is_latent_only = False)
-        # scan = create_lidar_msg(lidar, num_points, lidar_range)
-        scan = create_lidar_msg(lidar, len(ae_range), ae_range)
-
-        # scan = create_lidar_msg(lidar, len(lidar_range), lidar_range)
+        scan = create_lidar_msg(lidar, len(lidar_range), lidar_range)
         self.processed_publisher.publish(scan)
 
         state = odom+lidar_range
