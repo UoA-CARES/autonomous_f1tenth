@@ -1,11 +1,8 @@
 from .controller import Controller
 import rclpy
 import torch
-import time
 import numpy as np
 from cares_reinforcement_learning.util.helpers import denormalize
-from cares_reinforcement_learning.algorithm.policy import TD3
-from cares_reinforcement_learning.networks.TD3 import Actor, Critic
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from reinforcement_learning.parse_args import parse_args
 
