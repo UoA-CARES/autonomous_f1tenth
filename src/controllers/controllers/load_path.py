@@ -25,28 +25,10 @@ def main():
     except KeyboardInterrupt:
         file1.close()
         print("Closed file")
-    
-    
-    '''state = np.asarray([0, 0])
-    s = '['+str(state[0])+', '+str(state[1]) + '],'
-    file1.write(s)
-    file1.close
-    file1 = open('mypath.txt', 'w')
-    state = np.asarray([1, 2])
-    s = '['+str(state[0])+', '+str(state[1]) + '],'
-    file1.write(s)
-    file1.close'''
-    '''while True:
-        state = controller.get_observation('ld_path')
-
-        # Save state
-
-
-        time.sleep(1)'''
 
 def createPath(controller, file):
     while True:
-        state = np.asarray([0, 0])
+        state = controller.get_observation('ld_path')
         s = '['+str(state[0])+', '+str(state[1]) + '], '
         file.write(s)
         time.sleep(1)
