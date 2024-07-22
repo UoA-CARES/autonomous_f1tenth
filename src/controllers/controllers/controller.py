@@ -15,7 +15,6 @@ from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ack
 
 class Controller(Node):
     def __init__(self, node_name, car_name, step_length, lidar_points = 10):
-        #TODO: make node name dynamic
         super().__init__(node_name + 'controller')
 
         if lidar_points < 1:
