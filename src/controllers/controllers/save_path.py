@@ -11,14 +11,14 @@ def main():
     param_node.declare_parameters(
         '',
         [
-            ('car_name', 'ld_path_car'),
+            ('car_name', 'save_path_car'),
         ]
     )
 
     params = param_node.get_parameters(['car_name'])
     params = [param.value for param in params]
     CAR_NAME = params[0]
-    controller = Controller('ld_path_policy_', CAR_NAME, 0.1)
+    controller = Controller('save_path_policy_', CAR_NAME, 0.1)
     file1 = open('mypath.txt', 'w')
     try:
         createPath(controller, file1)
@@ -29,7 +29,7 @@ def main():
 def createPath(controller, file):
     while True:
         try:
-            state = controller.get_observation('ld_path')
+            state = controller.get_observation('save_path')
         except:
             break
         s = '['+str(state[0])+', '+str(state[1]) + '], '

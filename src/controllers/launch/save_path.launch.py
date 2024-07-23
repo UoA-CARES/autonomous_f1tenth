@@ -6,7 +6,7 @@ from launch.substitutions import TextSubstitution
 def generate_launch_description():
     load_path = Node(
         package='controllers',
-        executable='load_path',
+        executable='save_path',
         output='screen',
         parameters=[{'car_name': 'f1tenth'}],
         
