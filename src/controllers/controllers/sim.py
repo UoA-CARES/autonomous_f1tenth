@@ -24,6 +24,19 @@ def main():
 
     state, _ = env.reset()
     
+    # Path planning init
+    param_node = rclpy.create_node('params')
+    
+    param_node.declare_parameters(
+        '',
+        [
+            ('planning', 'test_path'),
+        ]
+    )
+    
+    params = param_node.get_parameters(['planning'])
+    params = [param.value for param in params]
+    planning = params[0]
 
 if __name__ == '__main__':
     main()

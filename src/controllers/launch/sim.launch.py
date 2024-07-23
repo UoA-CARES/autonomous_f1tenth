@@ -39,6 +39,7 @@ def generate_launch_description():
     env = config['sim']['ros__parameters']['environment']
     alg = config['sim']['ros__parameters']['algorithm']
     tracking = config['sim']['ros__parameters']['tracking']
+    planning = config['sim']['ros__parameters']['planning']
 
     environment =  IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
@@ -57,7 +58,7 @@ def generate_launch_description():
             package='controllers',
             executable='sim',
             parameters=[
-                config_path
+                config_path, {'planning': TextSubstitution(text=str(planning))}
             ],
             name='sim',
             output='screen',
