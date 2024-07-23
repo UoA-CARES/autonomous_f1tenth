@@ -2,10 +2,10 @@ import rclpy
 from .controller import Controller
 import time
 import numpy as np
+import sys
 
 def main():
     rclpy.init()
-    print("In node")
     param_node = rclpy.create_node('params')
     
     param_node.declare_parameters(
@@ -24,13 +24,17 @@ def main():
         createPath(controller, file1)
     except KeyboardInterrupt:
         file1.close()
-        print("Closed file")
+    file1.close()
 
 def createPath(controller, file):
     while True:
-        state = controller.get_observation('ld_path')
+        try:
+            state = controller.get_observation('ld_path')
+        except:
+            break
         s = '['+str(state[0])+', '+str(state[1]) + '], '
         file.write(s)
+        
         time.sleep(1)
 
 
