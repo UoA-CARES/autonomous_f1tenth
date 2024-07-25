@@ -15,7 +15,6 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
-
     evaluate = False
 
     state, _ = env.reset()
@@ -50,6 +49,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
         
         if (step_counter+1) % number_steps_per_evaluation == 0:
             evaluate = True
+            record.save_model(str(step_counter+1))
         
         if done or truncated:
             record.log_train(
@@ -67,12 +67,12 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
                 off_policy_evaluate(env, agent, number_eval_episodes, record, step_counter)
                 env.get_logger().info(f'*************--End Evaluation Loop--*************')
 
-
             # Reset environment
             state, _ = env.reset()
             episode_reward = 0
             episode_timesteps = 0
             episode_num += 1
+        
 
 def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0):
 
@@ -80,7 +80,10 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
     episode_timesteps = 0
     episode_num = 0
 
+    env.start_eval()
+    
     for episode_num in range(eval_episodes):
+        
         state, _ = env.reset()
         done = False
         truncated = False
@@ -112,7 +115,8 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
                 episode_timesteps = 0
                 episode_num += 1
                 break
-
+    
+    env.stop_eval()
 
 
 def ppo_train(env, agent, memory, record, algorithm_config):

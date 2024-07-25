@@ -26,7 +26,7 @@ def __declare_params():
             ('car_name', 'f1tenth'),
             ('ftg_car_name', 'ftg_car'),
             ('track', 'multi_track'),
-            ('max_steps', 3000),
+            ('max_steps', 2000),
             ('step_length', 0.1),
             ('reward_range', 3),
             ('collision_range', 0.2),

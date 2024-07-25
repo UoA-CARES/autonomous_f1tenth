@@ -50,7 +50,6 @@ def main():
         algorithm=network_config['algorithm'],
         task=env_config['environment'],
         network=agent,
-        checkpoint_frequency=500
     )
 
     record.save_config(env_config, 'env_config')
