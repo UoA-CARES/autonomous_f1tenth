@@ -1,5 +1,5 @@
 import numpy as np
-
+from typing import Dict, Literal, Optional, Tuple
 from cares_reinforcement_learning.util import helpers as hlp
 
 def off_policy_train(env, agent, memory, record, algorithm_config):
@@ -16,6 +16,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
     episode_reward = 0
     episode_num = 0
     evaluate = False
+    episode_info:Dict[str, list[Literal['avg','sum'],any]] = {}
 
     state, _ = env.reset()
     
@@ -27,6 +28,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
     for step_counter in range(max_steps_training):
         episode_timesteps += 1
 
+        # select and action
         if step_counter < max_steps_exploration:
             env.get_logger().info(f'Exploration Step #{step_counter} out of {max_steps_exploration}')
             action_env = np.random.uniform(env.MIN_ACTIONS, env.MAX_ACTIONS, env.ACTION_NUM)
@@ -34,35 +36,54 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
         else:
             action = agent.select_action_from_policy(state)
             action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
+
         
-        next_state, reward, done, truncated, info = env.step(action_env)
+        # perform action, step environment, and setup for next step
+        next_state, reward, done, truncated, step_info = env.step(action_env)
         memory.add(state, action, reward, next_state, done)
-
         state = next_state
-        episode_reward += reward
 
+        # record log relevant information
+        episode_reward += reward
+        for info_key, info_content in step_info.items():
+            # step info has form: { "info name": ["aggregate behavior type", value] }
+            if info_key in episode_info:
+                episode_info[info_key][1] += info_content[1]
+            else:
+                episode_info[info_key] = info_content
+        
+        # train agent
         if step_counter >= max_steps_exploration:
             for i in range(G):
-                # experience = memory.sample_uniform(batch_size)
                 info = agent.train_policy(memory,batch_size)
-                #memory.update_priorities(experience['indices'], info)
         
+        # handle if should evaluate at end of episode
         if (step_counter+1) % number_steps_per_evaluation == 0:
             evaluate = True
             record.save_model(str(step_counter+1))
         
+        # handle end of episode
         if done or truncated:
+            # aggregate episode information
+            # step info has form: { "info name": ("aggregate behavior type", value) }
+            for info_key, info_content in episode_info.items():
+                match info_content[0]:
+                    case 'avg':
+                        episode_info[info_key] = info_content[1]/(episode_timesteps+1)
+                    case 'sum':
+                        episode_info[info_key] = info_content[1]
+
             record.log_train(
                 total_steps = step_counter + 1,
                 episode = episode_num + 1,
                 episode_steps=episode_timesteps,
                 episode_reward = episode_reward,
-                display = True
+                display = True,
+                **episode_info
             )
 
             if evaluate:
                 evaluate = False
-
                 env.get_logger().info(f'*************--Begin Evaluation Loop--*************')
                 off_policy_evaluate(env, agent, number_eval_episodes, record, step_counter)
                 env.get_logger().info(f'*************--End Evaluation Loop--*************')
@@ -72,6 +93,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
             episode_reward = 0
             episode_timesteps = 0
             episode_num += 1
+            episode_info = {}
         
 
 def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0):
@@ -79,7 +101,9 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
     episode_reward = 0
     episode_timesteps = 0
     episode_num = 0
+    episode_info:Dict[str, list[Literal['avg','sum'],any]] = {}
 
+    # put environment in evaluation mode
     env.start_eval()
     
     for episode_num in range(eval_episodes):
@@ -90,23 +114,41 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
 
         while not done and not truncated:
             episode_timesteps += 1
+
+            # select and perform action, setup for next step
             action = agent.select_action_from_policy(state, evaluation=True)
             action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
-
-            next_state, reward, done, truncated, _ = env.step(action_env)
-
+            next_state, reward, done, truncated, step_info = env.step(action_env)
             state = next_state
+
+            # record relevant log information
             episode_reward += reward
-
+            for info_key, info_content in step_info.items():
+                # step info has form: { "info name": ["aggregate behavior type", value] }
+                if info_key in episode_info:
+                    episode_info[info_key][1] += info_content[1]
+                else:
+                    episode_info[info_key] = info_content
+            
+            # handle end of eval episode
             if done or truncated:
-
                 if record:
+                    # aggregate episode information
+                    # step info has form: { "info name": ("aggregate behavior type", value) }
+                    for info_key, info_content in episode_info.items():
+                        match info_content[0]:
+                            case 'avg':
+                                episode_info[info_key] = info_content[1]/(episode_timesteps+1)
+                            case 'sum':
+                                episode_info[info_key] = info_content[1]
+
                     record.log_eval(
                         total_steps = steps_counter + 1,
                         episode = episode_num + 1,
                         episode_steps=episode_timesteps,
                         episode_reward = episode_reward,
-                        display = True
+                        display = True,
+                        **episode_info
                     )
 
                 # Reset environment
@@ -114,6 +156,7 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
                 episode_reward = 0
                 episode_timesteps = 0
                 episode_num += 1
+                episode_info = {}
                 break
     
     env.stop_eval()

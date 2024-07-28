@@ -81,7 +81,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Evaluation settings
-        self.EVAL_MAX_STEPS = 2000
+        self.EVAL_MAX_STEPS = 8000
         self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
 
         #optional stuff
@@ -285,8 +285,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # additional information that might be logged: based on RESULT observation
         info = {
-            'linear_velocity': full_next_state[6],
-            'angular_velocity_diff': abs(full_next_state[7] - full_state[7]),
+            'linear_velocity':["avg", full_next_state[6]],
+            'angular_velocity_diff':["avg", abs(full_next_state[7] - full_state[7])],
         }
         info.update(reward_info)
 
@@ -383,7 +383,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 case 'penalize_turn':
                     turn_penalty = abs(state[7] - next_state[7])*0.12
                     reward -= turn_penalty
-                    reward_info.update({"turn_penalty":turn_penalty})
+                    reward_info.update({"turn_penalty":("avg",turn_penalty)})
 
         return reward, reward_info
     
@@ -478,7 +478,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             reward -= 2.5
 
         info = {
-            "step_progress": step_progress
+            "traveled distance": ['sum',step_progress]
         }
 
         return reward, info
