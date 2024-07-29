@@ -154,9 +154,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.track_goals = self.all_track_goals[self.current_track_key]
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
-            if self.BASE_REWARD_FUNCTION == 'progressive':
-                self.all_track_models = get_track_math_defs(self.all_track_waypoints)
-                self.track_model = self.all_track_models[self.current_track_key]
+            # set track models
+            self.all_track_models = get_track_math_defs(self.all_track_waypoints)
+            self.track_model = self.all_track_models[self.current_track_key]
 
 
         # Evaluation related setup ---------------------------------------------------
