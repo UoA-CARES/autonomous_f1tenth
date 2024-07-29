@@ -72,7 +72,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
         # Reward configuration
-        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
+        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'goal_hitting'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
 
         # Observation configuration
@@ -112,6 +112,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.odom_observation_mode = observation_mode
         self.track = track
 
+        # initialize track progress utilities
+        self.prev_t = None
+        self.all_track_models = None
+        self.track_model = None
+        self.step_progress = 0
+
         # observation method specific setup
         if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
             self.prev_ang_vel = 0
@@ -124,13 +130,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # reward function specific setup:
         if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.prev_t = None
             self.progress_not_met_cnt = 0
-            self.last_step_progress = 0
-
-            self.all_track_models = None
-            self.track_model = None
-        
 
 
         # Reset Client -----------------------------------------------
@@ -237,14 +237,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         info = {}
 
+        # get track progress related info
+        self.track_model = self.all_track_models[self.current_track_key]
+        self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
+
          # observation method specific resets
         if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
             self.prev_ang_vel = 0
 
         # reward function specific resets
         if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.track_model = self.all_track_models[self.current_track_key]
-            self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
             self.progress_not_met_cnt = 0
 
         return state, info
@@ -278,6 +280,23 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # set new step as 'current state' for next step
         self.full_current_state = full_next_state
         
+        # calculate progress along track
+        if not self.prev_t:
+            self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
+
+        t2 = self.track_model.get_closest_point_on_spline(full_next_state[:2], t_only=True)
+        
+        self.step_progress = self.track_model.get_distance_along_track_parametric(self.prev_t, t2)
+        self.prev_t = t2
+
+        # guard against random error from progress estimate. See get_closest_point_on_spline, suspect differential evo have something to do with this.
+        if abs(self.step_progress) > (full_next_state[6]/10*3): # traveled distance not too different from lin vel * step time
+            self.step_progress = full_next_state[6]/10*0.8 # reasonable estimation fo traveleled distance based on current lin vel
+        
+        # observation method specific step
+        if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
+            self.prev_ang_vel = full_next_state[7]
+
         # calculate reward & end conditions
         reward, reward_info = self.compute_reward(full_state, full_next_state, raw_lidar_range)
         terminated = self.is_terminated(full_next_state, raw_lidar_range)
@@ -287,6 +306,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         info = {
             'linear_velocity':["avg", full_next_state[6]],
             'angular_velocity_diff':["avg", abs(full_next_state[7] - full_state[7])],
+            'traveled distance': ['sum', self.step_progress]
         }
         info.update(reward_info)
 
@@ -431,30 +451,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
         goal_position = self.goal_position
 
         current_distance = math.dist(goal_position, next_state[:2])
-
-        if not self.prev_t:
-            self.prev_t = self.track_model.get_closest_point_on_spline(state[:2], t_only=True)
-
-        t2 = self.track_model.get_closest_point_on_spline(next_state[:2], t_only=True)
-        
-        step_progress = self.track_model.get_distance_along_track_parametric(self.prev_t, t2)
-        self.prev_t = t2
         
         # keep track of non moving steps
-        if step_progress < 0.02:
+        if self.step_progress < 0.02:
             self.progress_not_met_cnt += 1
         else:
             self.progress_not_met_cnt = 0
 
+        reward += self.step_progress
 
-        #guard against random error from progress estimate
-        if abs(step_progress) > 1:
-            step_progress = 0.02
-            reward += 0.02
-        else:
-            reward += step_progress
-
-        print(f"Step progress: {step_progress}")
+        print(f"Step progress: {self.step_progress}")
        
         self.steps_since_last_goal += 1
 
@@ -477,9 +483,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 2.5
 
-        info = {
-            "traveled distance": ['sum',step_progress]
-        }
+        info = {}
 
         return reward, info
 
