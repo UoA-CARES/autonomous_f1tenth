@@ -1,4 +1,5 @@
 car:
   ros__parameters:
+    tracking: False
     algorithm: 'random'
     observation_mode: 'lidar_only'
