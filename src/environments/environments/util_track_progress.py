@@ -38,7 +38,7 @@ class TrackMathDef():
     
     def get_closest_point_on_spline(self, coord:npt.NDArray, t_only = False):
         '''Get closest point's t value. If t_only false: give (t,[x,y])'''
-        result = optimize.differential_evolution(self.distance_to_spline_minimize_target, popsize=25, maxiter=1500, tol=0.001, bounds=[(0, 1)], args=([coord]))
+        result = optimize.differential_evolution(self.distance_to_spline_minimize_target, bounds=[(0, 1)], args=([coord]))
         t_optimal = result.x[0]
 
         if t_only:
@@ -63,7 +63,12 @@ class TrackMathDef():
         return length
     
     
-    def get_distance_along_track_parametric(self, t1, t2):
+    def get_distance_along_track_parametric(self, t1, t2, approximate=False):
+        ''' Calculate arc length along track. If approximate is true, simply take the absolute distance between the two points with the rationale being
+        given the small amount of time per step the progress can likely be approximated with a straight line.'''
+        if approximate:
+            return np.linalg.norm(self.get_spline_point(t1) - self.get_spline_point(t2))
+
         if t1 <= t2:
             if t2 - t1 < 0.5:
                 # going forward normally

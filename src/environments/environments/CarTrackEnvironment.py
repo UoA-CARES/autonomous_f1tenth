@@ -286,7 +286,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         t2 = self.track_model.get_closest_point_on_spline(full_next_state[:2], t_only=True)
         
-        self.step_progress = self.track_model.get_distance_along_track_parametric(self.prev_t, t2)
+        self.step_progress = self.track_model.get_distance_along_track_parametric(self.prev_t, t2, approximate=True)
         self.prev_t = t2
 
         # guard against random error from progress estimate. See get_closest_point_on_spline, suspect differential evo have something to do with this.
