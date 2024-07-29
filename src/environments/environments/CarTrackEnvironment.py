@@ -87,6 +87,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
 
+        # Speed limit
+        self.MAX_ACTIONS = np.asarray([3, 0.85])
+
         #####################################################################################################################
 
         # Environment Details ----------------------------------------
