@@ -51,18 +51,17 @@ class CarTrackEnvironment(F1tenthEnvironment):
             When the agent collides with a wall or the Follow The Gap car
         
         Truncation Condition:
-            When the number of steps surpasses MAX_GOALS
+            Reaching max_steps
     """
 
     def __init__(self, 
                  car_name, 
                  reward_range=0.5, 
-                 max_steps=500, 
+                 max_steps=3000, 
                  collision_range=0.2, 
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
-                 max_goals=500,
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
 
@@ -94,7 +93,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Environment Details ----------------------------------------
         self.MAX_STEPS_PER_GOAL = max_steps
-        self.MAX_GOALS = max_goals
 
         # configure odom observation size:
         match observation_mode:
@@ -333,11 +331,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
             case 'goal_hitting':
                 return self.steps_since_last_goal >= 20 or \
-                self.goals_reached >= self.MAX_GOALS or \
                 self.step_counter >= max_steps
             case 'progressive':
                 return self.progress_not_met_cnt >= 3 or \
-                self.goals_reached >= self.MAX_GOALS or \
                 self.step_counter >= max_steps
 
     def get_observation(self):
