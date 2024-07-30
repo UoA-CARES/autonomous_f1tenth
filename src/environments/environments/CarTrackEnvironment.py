@@ -80,7 +80,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Evaluation settings
-        self.EVAL_MAX_STEPS = 8000
         self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
 
         #optional stuff
@@ -321,20 +320,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
             or has_flipped_over(state[2:6])
 
     def is_truncated(self):
-        # may want eval steps to be longer idk
-        if self.is_evaluating:
-            max_steps = self.EVAL_MAX_STEPS
-        else:
-            max_steps = self.MAX_STEPS
 
         match self.BASE_REWARD_FUNCTION:
 
             case 'goal_hitting':
                 return self.steps_since_last_goal >= 20 or \
-                self.step_counter >= max_steps
+                self.step_counter >= self.MAX_STEPS
             case 'progressive':
-                return self.progress_not_met_cnt >= 3 or \
-                self.step_counter >= max_steps
+                return self.progress_not_met_cnt >= 5 or \
+                self.step_counter >= self.MAX_STEPS
 
     def get_observation(self):
 
@@ -476,7 +470,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
             self.steps_since_last_goal = 0
 
-        if self.progress_not_met_cnt >= 3:
+        if self.progress_not_met_cnt >= 5:
             reward -= 2
 
         if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
