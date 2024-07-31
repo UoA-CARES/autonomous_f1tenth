@@ -71,7 +71,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
         # Reward configuration
-        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'goal_hitting'
+        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive", "progressive_centered"] = 'progressive_centered'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
 
         # Observation configuration
@@ -248,6 +248,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # reward function specific resets
         if self.BASE_REWARD_FUNCTION == 'progressive':
             self.progress_not_met_cnt = 0
+        if self.BASE_REWARD_FUNCTION == 'progressive_centered':
+            self.progress_not_met_cnt = 0
 
         return state, info
     
@@ -285,8 +287,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         t2 = self.track_model.get_closest_point_on_spline(full_next_state[:2], t_only=True)
-        
         self.step_progress = self.track_model.get_distance_along_track_parametric(self.prev_t, t2, approximate=True)
+        self.center_line_offset = self.track_model.get_distance_to_spline_point(t2, full_next_state[:2])
+
         self.prev_t = t2
 
         # guard against random error from progress estimate. See get_closest_point_on_spline, suspect differential evo have something to do with this.
@@ -329,6 +332,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
             case 'progressive':
                 return self.progress_not_met_cnt >= 5 or \
                 self.step_counter >= self.MAX_STEPS
+            case 'progressive_centered':
+                return self.progress_not_met_cnt >= 5 or \
+                self.step_counter >= self.MAX_STEPS
+            case _:
+                raise Exception("Unknown truncate condition for reward function.")
+
 
     def get_observation(self):
 
@@ -389,6 +398,14 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
                 reward += base_reward
                 reward_info.update(base_reward_info)
+
+            case 'progressive_centered':
+                base_reward, base_reward_info = self.calculate_progressive_centered_reward(state, next_state, raw_lidar_range)
+                reward += base_reward
+                reward_info.update(base_reward_info)
+            
+            case _:
+                raise Exception("Unknown reward function. Check environment.")
 
         # calulate extra reward terms
         for term in self.EXTRA_REWARD_TERMS:
@@ -475,6 +492,56 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 2.5
+
+        info = {}
+
+        return reward, info
+    
+    def calculate_progressive_centered_reward(self, state, next_state, raw_range):
+        reward = 0
+
+        goal_position = self.goal_position
+
+        current_distance = math.dist(goal_position, next_state[:2])
+        
+        # keep track of non moving steps
+        if self.step_progress < 0.02:
+            self.progress_not_met_cnt += 1
+        else:
+            self.progress_not_met_cnt = 0
+
+        reward += self.step_progress
+        self.center_line_offset
+
+        print(f"Step progress: {self.step_progress}")
+       
+        self.steps_since_last_goal += 1
+
+        # update goal if reached
+        if current_distance < self.REWARD_RANGE:
+            print(f'Goal #{self.goals_reached} Reached')
+            # reward += 2
+            self.goals_reached += 1
+
+            # Updating Goal Position
+            new_x, new_y = self.track_goals[(self.start_goal_index + self.goals_reached) % len(self.track_goals)]
+            self.goal_position = [new_x, new_y]
+
+            self.update_goal_service(new_x, new_y)
+
+            self.steps_since_last_goal = 0
+
+        # penalize 
+        close_to_wall_penalize_factor = 1 / (1 + np.exp(35 * (min(raw_range) - 0.5)))
+
+        reward -= reward * close_to_wall_penalize_factor
+        print(f"Wall proximity penalty%: {close_to_wall_penalize_factor}")
+
+        if self.progress_not_met_cnt >= 5:
+            reward = -2
+
+        if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+            reward = -2.5
 
         info = {}
 
