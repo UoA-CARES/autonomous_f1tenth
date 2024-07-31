@@ -155,6 +155,7 @@ class Controller(Node):
         odom = process_odom(odom)
         if self.firstOdom:
             offset = odom[0:2]
+            self.firstOdom = False
         odom = odom - offset
         num_points = self.LIDAR_POINTS
 
