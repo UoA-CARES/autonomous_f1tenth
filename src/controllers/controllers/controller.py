@@ -100,7 +100,7 @@ class Controller(Node):
         self.timer_future = Future()
         
         self.firstOdom = isCar
-        self.offset = [0, 0]
+        self.offset = [0, 0, 0, 0, 0, 0]
         
         
         #TODO:figure out what to do with this
@@ -155,13 +155,17 @@ class Controller(Node):
         print("Getting data")
         odom = process_odom(odom)
         if self.firstOdom:
-            self.offset = odom[0:2]
+            self.offset = odom[0:6]
             self.firstOdom = False
         print("Reset odom")
         print(odom)
         print(self.offset)
         odom[0] = odom[0] - self.offset[0]
         odom[1] = odom[1] - self.offset[1]
+        odom[2] = odom[2] - self.offset[2]
+        odom[3] = odom[3] - self.offset[3]
+        odom[4] = odom[4] - self.offset[4]
+        odom[5] = odom[5] - self.offset[5]
         print("odom change")
         num_points = self.LIDAR_POINTS
         print("before ftg")
