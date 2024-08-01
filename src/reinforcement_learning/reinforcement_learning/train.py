@@ -45,12 +45,10 @@ def main():
 
 
     record = Record(
-        glob_log_dir='training_logs',
-        log_dir= f"{network_config['algorithm']}-{env_config['environment']}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}",
+        log_dir= f"training_logs/{network_config['algorithm']}-{env_config['environment']}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}",
         algorithm=network_config['algorithm'],
         task=env_config['environment'],
         network=agent,
-        checkpoint_frequency=500
     )
 
     record.save_config(env_config, 'env_config')

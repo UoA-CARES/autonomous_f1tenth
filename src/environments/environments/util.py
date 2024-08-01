@@ -198,7 +198,44 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
     all_car_goals = {}
     all_car_waypoints = {}
 
-    if track_name == 'multi_track':
+    if track_name == 'multi_track_full':
+
+        # Goal position
+        austin_gp = goal_positions['austin_track']
+        budapest_gp = [[x + 200, y] for x, y in goal_positions['budapest_track']]
+        hockenheim_gp = [[x + 300, y] for x, y in goal_positions['hockenheim_track']]
+        melbourne_gp = [[x + 500, y] for x, y in goal_positions['melbourne_track']]
+        saopaolo_gp = [[x + 600, y] for x, y in goal_positions['saopaolo_track']]
+        shanghai_gp = [[x + 750, y] for x, y in goal_positions['shanghai_track']]
+
+        all_car_goals = {
+            'austin_track': austin_gp,
+            'budapest_track': budapest_gp,
+            'hockenheim_track': hockenheim_gp,
+            'melbourne_track': melbourne_gp,
+            'saopaolo_track': saopaolo_gp,
+            'shanghai_track': shanghai_gp,
+        }
+
+        # Waypoints
+        austin_wp = waypoints['austin_track']
+        budapest_wp = [(x + 200, y, yaw, index) for x, y, yaw, index in waypoints['budapest_track']]
+        hockenheim_wp = [(x + 300, y, yaw, index) for x, y, yaw, index in waypoints['hockenheim_track']]
+        melbourne_wp =[(x + 500, y, yaw, index) for x, y, yaw, index in waypoints['melbourne_track']]
+        saopaolo_wp = [(x + 600, y, yaw, index) for x, y, yaw, index in waypoints['saopaolo_track']]
+        shanghai_wp = [(x + 750, y, yaw, index) for x, y, yaw, index in waypoints['shanghai_track']]
+
+        all_car_waypoints = {
+            'austin_track': austin_wp,
+            'budapest_track': budapest_wp,
+            'hockenheim_track': hockenheim_wp,
+            'melbourne_track': melbourne_wp,
+            'saopaolo_track': saopaolo_wp,
+            'shanghai_track': shanghai_wp
+        }
+
+
+    elif track_name == 'multi_track':
         # multi_track
         # Goal position
         austin_gp = goal_positions['austin_track']

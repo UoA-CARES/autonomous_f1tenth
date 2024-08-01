@@ -34,7 +34,6 @@ class EnvironmentFactory:
                 config['step_length'], 
                 config['track'], 
                 config['observation_mode'], 
-                config['max_goals']
                 )
         elif name == 'CarWall':
             return CarWallEnvironment(

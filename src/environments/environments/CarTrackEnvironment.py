@@ -51,18 +51,17 @@ class CarTrackEnvironment(F1tenthEnvironment):
             When the agent collides with a wall or the Follow The Gap car
         
         Truncation Condition:
-            When the number of steps surpasses MAX_GOALS
+            Reaching max_steps
     """
 
     def __init__(self, 
                  car_name, 
                  reward_range=0.5, 
-                 max_steps=500, 
+                 max_steps=3000, 
                  collision_range=0.2, 
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
-                 max_goals=500,
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
 
@@ -72,7 +71,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
         # Reward configuration
-        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
+        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'goal_hitting'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
 
         # Observation configuration
@@ -80,14 +79,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.LIDAR_POINTS = 10 #682
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
+        # Evaluation settings
+        self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
+
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
+
+        # Speed limit
+        self.MAX_ACTIONS = np.asarray([3, 0.85])
 
         #####################################################################################################################
 
         # Environment Details ----------------------------------------
         self.MAX_STEPS_PER_GOAL = max_steps
-        self.MAX_GOALS = max_goals
 
         # configure odom observation size:
         match observation_mode:
@@ -108,6 +112,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.odom_observation_mode = observation_mode
         self.track = track
 
+        # initialize track progress utilities
+        self.prev_t = None
+        self.all_track_models = None
+        self.track_model = None
+        self.step_progress = 0
+
         # observation method specific setup
         if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
             self.prev_ang_vel = 0
@@ -120,14 +130,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # reward function specific setup:
         if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.prev_t = None
             self.progress_not_met_cnt = 0
-            self.last_step_progress = 0
-
-            self.all_track_models = None
-            self.track_model = None
-        
-        
 
 
         # Reset Client -----------------------------------------------
@@ -138,21 +141,32 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.full_current_state = None
 
         if 'multi_track' not in track:
-            self.all_goals = goal_positions[track]
-            self.car_waypoints = waypoints[track]
+            self.track_goals = goal_positions[track]
+            self.track_waypoints = waypoints[track]
 
             if self.BASE_REWARD_FUNCTION == 'progressive':
-                self.track_model = TrackMathDef(np.array(self.car_waypoints)[:,:2])
+                self.track_model = TrackMathDef(np.array(self.track_waypoints)[:,:2])
         else:
-            self.all_car_goals, self.all_car_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
-            self.current_track = list(self.all_car_goals.keys())[0]
+            self.all_track_goals, self.all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
+            self.current_track_key = list(self.all_track_goals.keys())[0]
 
-            self.all_goals = self.all_car_goals[self.current_track]
-            self.car_waypoints = self.all_car_waypoints[self.current_track]
+            # set waypoint and goals for the current track
+            self.track_goals = self.all_track_goals[self.current_track_key]
+            self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
-            if self.BASE_REWARD_FUNCTION == 'progressive':
-                self.all_track_models = get_track_math_defs(self.all_car_waypoints)
-                self.track_model = self.all_track_models[self.current_track]
+            # set track models
+            self.all_track_models = get_track_math_defs(self.all_track_waypoints)
+            self.track_model = self.all_track_models[self.current_track_key]
+
+
+        # Evaluation related setup ---------------------------------------------------
+        self.is_evaluating = False
+
+        if 'multi_track' in track:
+            # define from which track in the track lists to be used for eval only
+            self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
+            # idx used to loop through eval tracks sequentially
+            self.eval_track_idx = 0
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -187,16 +201,30 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.set_velocity(0, 0)
         
         if 'multi_track' in self.track:
-            self.current_track = random.choice(list(self.all_car_goals.keys()))
-            self.all_goals = self.all_car_goals[self.current_track]
-            self.car_waypoints = self.all_car_waypoints[self.current_track]
+            # Evaluating: loop through eval tracks sequentially
+            if self.is_evaluating:
+                eval_track_key_list = list(self.all_track_goals.keys())[self.eval_track_begin_idx:]
+                self.current_track_key = eval_track_key_list[self.eval_track_idx]
+                self.eval_track_idx += 1
+                self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
 
-        # New random starting point for car
-        car_x, car_y, car_yaw, index = random.choice(self.car_waypoints)
+            # Training: choose a random track that is not used for evaluation
+            else:
+                self.current_track_key = random.choice(list(self.all_track_goals.keys())[:self.eval_track_begin_idx])
+            
+            self.track_goals = self.all_track_goals[self.current_track_key]
+            self.track_waypoints = self.all_track_waypoints[self.current_track_key]
+
+        # start at beginning of track when evaluating
+        if self.is_evaluating:
+            car_x, car_y, car_yaw, index = self.track_waypoints[10]
+        # start the car randomly along the track
+        else:
+            car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
         
         # Update goal pointer to reflect starting position
         self.start_goal_index = index
-        self.goal_position = self.all_goals[self.start_goal_index]
+        self.goal_position = self.track_goals[self.start_goal_index]
 
         goal_x, goal_y = self.goal_position
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=goal_x, goal_y=goal_y, car_name=self.NAME)
@@ -209,16 +237,26 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         info = {}
 
+        # get track progress related info
+        self.track_model = self.all_track_models[self.current_track_key]
+        self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
+
          # observation method specific resets
         if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
             self.prev_ang_vel = 0
 
         # reward function specific resets
         if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
             self.progress_not_met_cnt = 0
 
         return state, info
+    
+    def start_eval(self):
+        self.eval_track_idx = 0
+        self.is_evaluating = True
+    
+    def stop_eval(self):
+        self.is_evaluating = False
 
     def step(self, action):
         self.step_counter += 1
@@ -242,12 +280,38 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # set new step as 'current state' for next step
         self.full_current_state = full_next_state
         
+        # calculate progress along track
+        if not self.prev_t:
+            self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
+
+        t2 = self.track_model.get_closest_point_on_spline(full_next_state[:2], t_only=True)
+        
+        self.step_progress = self.track_model.get_distance_along_track_parametric(self.prev_t, t2, approximate=True)
+        self.prev_t = t2
+
+        # guard against random error from progress estimate. See get_closest_point_on_spline, suspect differential evo have something to do with this.
+        if abs(self.step_progress) > (full_next_state[6]/10*3): # traveled distance not too different from lin vel * step time
+            self.step_progress = full_next_state[6]/10*0.8 # reasonable estimation fo traveleled distance based on current lin vel
+        
+        # observation method specific step
+        if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
+            self.prev_ang_vel = full_next_state[7]
+
         # calculate reward & end conditions
-        reward = self.compute_reward(full_state, full_next_state, raw_lidar_range)
+        reward, reward_info = self.compute_reward(full_state, full_next_state, raw_lidar_range)
         terminated = self.is_terminated(full_next_state, raw_lidar_range)
         truncated = self.is_truncated()
 
-        info = {}
+        # additional information that might be logged: based on RESULT observation
+        info = {
+            'linear_velocity':["avg", full_next_state[6]],
+            'angular_velocity_diff':["avg", abs(full_next_state[7] - full_state[7])],
+            'traveled distance': ['sum', self.step_progress]
+        }
+        info.update(reward_info)
+
+        if self.is_evaluating and (terminated or truncated):
+            self.eval_track_idx
 
         return next_state, reward, terminated, truncated, info
 
@@ -256,14 +320,14 @@ class CarTrackEnvironment(F1tenthEnvironment):
             or has_flipped_over(state[2:6])
 
     def is_truncated(self):
+
         match self.BASE_REWARD_FUNCTION:
+
             case 'goal_hitting':
                 return self.steps_since_last_goal >= 20 or \
-                self.goals_reached >= self.MAX_GOALS or \
                 self.step_counter >= self.MAX_STEPS
             case 'progressive':
-                return self.progress_not_met_cnt >= 3 or \
-                self.goals_reached >= self.MAX_GOALS or \
+                return self.progress_not_met_cnt >= 5 or \
                 self.step_counter >= self.MAX_STEPS
 
     def get_observation(self):
@@ -313,22 +377,28 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
     def compute_reward(self, state, next_state, raw_lidar_range):
         reward = 0
+        reward_info = {}
 
         # calculate base reward
         match self.BASE_REWARD_FUNCTION:
             case 'goal_hitting':
-                reward += self.calculate_goal_hitting_reward(state, next_state, raw_lidar_range)
+                base_reward, base_reward_info = self.calculate_goal_hitting_reward(state, next_state, raw_lidar_range)
+                reward += base_reward
+                reward_info.update(base_reward_info)
             case 'progressive':
-                reward += self.calculate_progressive_reward(state, next_state, raw_lidar_range)
-        
+                base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
+                reward += base_reward
+                reward_info.update(base_reward_info)
+
         # calulate extra reward terms
         for term in self.EXTRA_REWARD_TERMS:
             match term:
                 case 'penalize_turn':
                     turn_penalty = abs(state[7] - next_state[7])*0.12
                     reward -= turn_penalty
+                    reward_info.update({"turn_penalty":("avg",turn_penalty)})
 
-        return reward
+        return reward, reward_info
     
     ##########################################################################################
     ########################## Reward Calculation ############################################
@@ -351,7 +421,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.goals_reached += 1
 
             # Updating Goal Position
-            new_x, new_y = self.all_goals[(self.start_goal_index + self.goals_reached) % len(self.all_goals)]
+            new_x, new_y = self.track_goals[(self.start_goal_index + self.goals_reached) % len(self.track_goals)]
             self.goal_position = [new_x, new_y]
 
             self.update_goal_service(new_x, new_y)
@@ -364,7 +434,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25
 
-        return reward
+        info = {}
+
+        return reward, info
     
     def calculate_progressive_reward(self, state, next_state, raw_range):
         reward = 0
@@ -372,29 +444,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
         goal_position = self.goal_position
 
         current_distance = math.dist(goal_position, next_state[:2])
-
-        if not self.prev_t:
-            self.prev_t = self.track_model.get_closest_point_on_spline(state[:2], t_only=True)
-
-        t2 = self.track_model.get_closest_point_on_spline(next_state[:2], t_only=True)
-        
-        step_progress = self.track_model.get_distance_along_track_parametric(self.prev_t, t2)
-        self.prev_t = t2
         
         # keep track of non moving steps
-        if step_progress < 0.02:
+        if self.step_progress < 0.02:
             self.progress_not_met_cnt += 1
         else:
             self.progress_not_met_cnt = 0
 
+        reward += self.step_progress
 
-        #guard against random error from progress estimate
-        if abs(step_progress) > 1:
-            reward += 0.01
-        else:
-            reward += step_progress
-
-        print(f"Step progress: {step_progress}")
+        print(f"Step progress: {self.step_progress}")
        
         self.steps_since_last_goal += 1
 
@@ -404,20 +463,22 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.goals_reached += 1
 
             # Updating Goal Position
-            new_x, new_y = self.all_goals[(self.start_goal_index + self.goals_reached) % len(self.all_goals)]
+            new_x, new_y = self.track_goals[(self.start_goal_index + self.goals_reached) % len(self.track_goals)]
             self.goal_position = [new_x, new_y]
 
             self.update_goal_service(new_x, new_y)
 
             self.steps_since_last_goal = 0
 
-        if self.progress_not_met_cnt >= 3:
+        if self.progress_not_met_cnt >= 5:
             reward -= 2
 
         if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 2.5
 
-        return reward
+        info = {}
+
+        return reward, info
 
     ##########################################################################################
     ########################## Utility Functions #############################################
