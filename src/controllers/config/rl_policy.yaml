@@ -1,6 +1,6 @@
 rl_policy:
   ros__parameters:
-    actor_path: training_logs/TD3-CarTrack-24_07_30_16:11:02/models/TD3-800000_critic.pht
-    critic_path: training_logs/TD3-CarTrack-24_07_30_16:11:02/models/TD3-800000_actor.pht
+    actor_path: training_logs/TD3-CarTrack-24_07_30_16:11:02/models/TD3-800000_actor.pht
+    critic_path: training_logs/TD3-CarTrack-24_07_30_16:11:02/models/TD3-800000_critic.pht
     algorithm: 'TD3'
     observation_mode: 'lidar_only'
