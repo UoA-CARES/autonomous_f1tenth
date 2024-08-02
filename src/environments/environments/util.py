@@ -296,10 +296,10 @@ def get_track_math_defs(tracks_waypoints:dict) -> dict[str,TrackMathDef]:
 
 def twist_to_ackermann(omega, linear_v, L):
     '''
-    Convert CG angular velocity to Ackerman steering angle.
+    Convert angular velocity about center of turn to Ackerman steering angle.
 
     Parameters:
-    - omega: CG angular velocity in rad/s
+    - omega: angular velocity about center of turn in rad/s
     - v: Vehicle speed in m/s
     - L: Wheelbase of the vehicle in m
 

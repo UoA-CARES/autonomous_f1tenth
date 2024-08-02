@@ -114,53 +114,53 @@ TRAINING_NAME = 'sanity_check-' + datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
 
 # For controlling the car
 linear_vel = 0
-angular_vel = 0
+steering_angle = 0
 
 OFFSET = 0.05
 
-MAX_SPEED = 1.5
-NEUTRAL_SPEED = 0
-MAX_ANGULAR = 1
+MAX_SPEED = 0.5
+NEUTRAL_SPEED = 0.001
+MAX_ANGLE = 0.85
 
-LEFT_ANGULAR = MAX_ANGULAR
-RIGHT_ANGULAR = -MAX_ANGULAR
-NEUTRAL_ANGULAR = 0
+LEFT_ANGLE = MAX_ANGLE
+RIGHT_ANGLE = -MAX_ANGLE
+NEUTRAL_ANGLE = 0
 # ====================
 
 
 def keyboard_on_key_press(key):
-    global linear_vel, angular_vel
+    global linear_vel, steering_angle
 
     if key == Key.up or (hasattr(key, 'char') and key.char == "w"):
         linear_vel = MAX_SPEED  # Set linear velocity to max
     elif key == Key.down or (hasattr(key, 'char') and key.char == "s"):
         linear_vel = (-MAX_SPEED) / 2  # Set linear velocity to 1/2 max
     elif key == Key.left or (hasattr(key, 'char') and key.char == "a"):
-        angular_vel = LEFT_ANGULAR  # Set angular velocity to left
+        steering_angle = LEFT_ANGLE  # Set angular velocity to left
     elif key == Key.right or (hasattr(key, 'char') and key.char == "d"):
-        angular_vel = RIGHT_ANGULAR  # Set angular velocity to right
+        steering_angle = RIGHT_ANGLE  # Set angular velocity to right
 
 
 def keyboard_on_key_release(key):
-    global linear_vel, angular_vel
+    global linear_vel, steering_angle
 
     if key in [Key.up] or (hasattr(key, 'char') and key.char in ["w", "s"]):
         linear_vel = NEUTRAL_SPEED  # Stop linear movement
     elif key in [Key.left, Key.right] or (hasattr(key, 'char') and key.char in ["a", "d"]):
-        angular_vel = NEUTRAL_ANGULAR  # Stop angular movement
+        steering_angle = NEUTRAL_ANGLE  # Stop angular movement
 
 
 def joystick_check():
-    global linear_vel, angular_vel
+    global linear_vel, steering_angle
 
     for event in pygame.event.get():
         if event.type == pygame.JOYAXISMOTION:
             # Left Joystick X-Axis
             if event.axis == 0:
                 if abs(event.value) < OFFSET:
-                    angular_vel = NEUTRAL_ANGULAR
+                    steering_angle = NEUTRAL_ANGLE
                 else:
-                    angular_vel = -1 * event.value * MAX_ANGULAR
+                    steering_angle = -1 * event.value * MAX_ANGLE
 
             # Left Trigger
             if event.axis == 2:
@@ -181,11 +181,11 @@ def joystick_check():
                 x_value, y_value = event.value
 
                 if x_value == 0:
-                    angular_vel = NEUTRAL_ANGULAR
+                    steering_angle = NEUTRAL_ANGLE
                 elif x_value == 1:  # Right
-                    angular_vel = RIGHT_ANGULAR
+                    steering_angle = RIGHT_ANGLE
                 elif x_value == -1:  # Left
-                    angular_vel = LEFT_ANGULAR
+                    steering_angle = LEFT_ANGLE
 
                 if y_value == 0:
                     linear_vel = NEUTRAL_SPEED
@@ -216,10 +216,10 @@ def main():
         joystick_check()
 
         if linear_vel < 0:
-            _, r, done, truncated, _ = env.step([linear_vel, -1 * angular_vel])
+            _, r, done, truncated, _ = env.step([linear_vel, -1 * steering_angle])
 
         else:
-            _, r, done, truncated, _ = env.step([linear_vel, angular_vel])
+            _, r, done, truncated, _ = env.step([linear_vel, steering_angle])
 
         if truncated or done:
             print("Finished -", r)

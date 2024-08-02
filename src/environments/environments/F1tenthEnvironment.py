@@ -107,8 +107,8 @@ class F1tenthEnvironment(Node):
 
         state = self.get_observation()
         
-        lin_vel, ang_vel = action
-        self.set_velocity(lin_vel, ang_vel)
+        lin_vel, steering_angle = action
+        self.set_velocity(lin_vel, steering_angle)
 
         while not self.timer_future.done():
             rclpy.spin_once(self)
