@@ -5,6 +5,7 @@ import numpy as np
 from cares_reinforcement_learning.util.helpers import denormalize
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from reinforcement_learning.parse_args import parse_args
+from pynput.keyboard import Key, Listener
 
 def main():
     rclpy.init()
@@ -12,7 +13,7 @@ def main():
     env_config, _, network_config, rest = parse_args()
     
 
-    MAX_ACTIONS = np.asarray([0.1, 0.85])
+    MAX_ACTIONS = np.asarray([0.3, 0.85])
     MIN_ACTIONS = np.asarray([0, -0.85])
 
     controller = Controller('rl_policy_', env_config['car_name'], step_length=0.1)
