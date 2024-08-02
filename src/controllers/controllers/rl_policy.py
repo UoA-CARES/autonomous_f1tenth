@@ -5,7 +5,6 @@ import numpy as np
 from cares_reinforcement_learning.util.helpers import denormalize
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from reinforcement_learning.parse_args import parse_args
-from pynput.keyboard import Key, Listener
 
 def main():
     rclpy.init()
