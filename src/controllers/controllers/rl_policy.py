@@ -12,7 +12,7 @@ def main():
     env_config, _, network_config, rest = parse_args()
     
 
-    MAX_ACTIONS = np.asarray([0.5, 0.85])
+    MAX_ACTIONS = np.asarray([0.1, 0.85])
     MIN_ACTIONS = np.asarray([0, -0.85])
 
     controller = Controller('rl_policy_', env_config['car_name'], step_length=0.1)
