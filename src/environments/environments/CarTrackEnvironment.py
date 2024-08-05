@@ -121,10 +121,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.track_model = None
         self.step_progress = 0
 
-        # observation method specific setup
-        if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
-            self.prev_ang_vel = 0
-
         if self.LIDAR_PROCESSING == 'pretrained_ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
             self.ae_lidar_model = LidarConvAE()
@@ -242,10 +238,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.track_model = self.all_track_models[self.current_track_key]
         self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
-         # observation method specific resets
-        if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
-            self.prev_ang_vel = 0
-
         # reward function specific resets
         if self.BASE_REWARD_FUNCTION == 'progressive':
             self.progress_not_met_cnt = 0
@@ -294,10 +286,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # guard against random error from progress estimate. See get_closest_point_on_spline, suspect differential evo have something to do with this.
         if abs(self.step_progress) > (full_next_state[6]/10*3): # traveled distance not too different from lin vel * step time
             self.step_progress = full_next_state[6]/10*0.8 # reasonable estimation fo traveleled distance based on current lin vel
-        
-        # observation method specific step
-        if 'prev_ang_vel' in self.EXTRA_OBSERVATIONS:
-            self.prev_ang_vel = full_next_state[7]
 
         # calculate reward & end conditions
         reward, reward_info = self.compute_reward(full_state, full_next_state, raw_lidar_range)
