@@ -430,7 +430,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     angular_vel_diff = abs(state[7] - next_state[7])
                     turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.3)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
                     reward -= reward * turning_penalty_factor * weight
-                    print(f"--- Wall proximity penalty factor: {weight} * {turning_penalty_factor}")  
+                    print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
 
         return reward, reward_info
     
