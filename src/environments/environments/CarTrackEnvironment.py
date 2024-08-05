@@ -11,7 +11,7 @@ from .util_track_progress import TrackMathDef
 from .goal_positions import goal_positions
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
-from typing import Literal, List, Optional
+from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
 
@@ -71,13 +71,14 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
         # Reward configuration
-        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive", "progressive_centered"] = 'progressive_centered'
+        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn',0.3),('wall_proximity',0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
         self.LIDAR_POINTS = 10 #682
-        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
+        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = ['prev_ang_vel']
 
         # Evaluation settings
         self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
@@ -85,8 +86,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
 
-        # Speed limit
-        self.MAX_ACTIONS = np.asarray([3, 0.85])
+        # Speed and turn limit
+        self.MAX_ACTIONS = np.asarray([2, 0.45])
+        self.MIN_ACTIONS = np.asarray([0, -0.45])
 
         #####################################################################################################################
 
@@ -104,6 +106,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # configure overall observation size
         self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
+        print(self.OBSERVATION_SIZE)
 
 
         self.COLLISION_RANGE = collision_range
@@ -180,17 +183,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
                                                                                       
 
     def get_extra_observation_size(self):
-        if self.EXTRA_OBSERVATIONS:
-            total = 0
-            for obs in self.EXTRA_OBSERVATIONS:
-                match obs:
-                    case 'prev_ang_vel':
-                        total += 1
-                    case _:
-                        print("Unknown extra observation.")
-            return total
-        else:
-            return 0
+        total = 0
+        for obs in self.EXTRA_OBSERVATIONS:
+            match obs:
+                case 'prev_ang_vel':
+                    total += 1
+                case _:
+                    print("Unknown extra observation.")
+        return total
+
 
 
     def reset(self):
@@ -247,8 +248,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # reward function specific resets
         if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.progress_not_met_cnt = 0
-        if self.BASE_REWARD_FUNCTION == 'progressive_centered':
             self.progress_not_met_cnt = 0
 
         return state, info
@@ -332,9 +331,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
             case 'progressive':
                 return self.progress_not_met_cnt >= 5 or \
                 self.step_counter >= self.MAX_STEPS
-            case 'progressive_centered':
-                return self.progress_not_met_cnt >= 5 or \
-                self.step_counter >= self.MAX_STEPS
             case _:
                 raise Exception("Unknown truncate condition for reward function.")
 
@@ -379,12 +375,23 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.processed_publisher.publish(scan)
 
         state += processed_lidar_range
+
+        # Add extra observation:
+        for extra_observation in self.EXTRA_OBSERVATIONS:
+            match extra_observation:
+                case 'prev_ang_vel':
+                    if self.full_current_state:
+                        state += [self.full_current_state[7]]
+                    else:
+                        state += [state[7]]
+
         
         full_state = odom + processed_lidar_range
 
         return state, full_state, lidar.ranges
 
     def compute_reward(self, state, next_state, raw_lidar_range):
+        '''Compute reward based on FULL states: odom + lidar + extra'''
         reward = 0
         reward_info = {}
 
@@ -398,11 +405,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
                 reward += base_reward
                 reward_info.update(base_reward_info)
-
-            case 'progressive_centered':
-                base_reward, base_reward_info = self.calculate_progressive_centered_reward(state, next_state, raw_lidar_range)
-                reward += base_reward
-                reward_info.update(base_reward_info)
             
             case _:
                 raise Exception("Unknown reward function. Check environment.")
@@ -414,6 +416,21 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     turn_penalty = abs(state[7] - next_state[7])*0.12
                     reward -= turn_penalty
                     reward_info.update({"turn_penalty":("avg",turn_penalty)})
+        
+        # calculate reward modifiers:
+        for modifier_type, weight in self.REWARD_MODIFIERS:
+            match modifier_type:
+                case 'wall_proximity':
+                    dist_to_wall = min(raw_lidar_range)
+                    close_to_wall_penalize_factor = 1 / (1 + np.exp(35 * (dist_to_wall - 0.5))) #y=\frac{1}{1+e^{35\left(x-0.5\right)}}
+                    reward -= reward * close_to_wall_penalize_factor * weight
+                    reward_info.update({"dist_to_wall":["avg",dist_to_wall]})
+                    print(f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}")   
+                case 'turn':
+                    angular_vel_diff = abs(state[7] - next_state[7])
+                    turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.3)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
+                    reward -= reward * turning_penalty_factor * weight
+                    print(f"--- Wall proximity penalty factor: {weight} * {turning_penalty_factor}")  
 
         return reward, reward_info
     
@@ -546,6 +563,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         info = {}
 
         return reward, info
+    
+    ##########################################################################################
+    #################### Reward Factors Calculation ##########################################
+    ##########################################################################################
+
 
     ##########################################################################################
     ########################## Utility Functions #############################################
