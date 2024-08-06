@@ -11,14 +11,14 @@ def main():
 
     env_config, _, network_config, rest = parse_args()
     
+    # speed and turn limit
+    MAX_ACTIONS = np.asarray([1, 0.45])
+    MIN_ACTIONS = np.asarray([0, -0.45])
 
-    MAX_ACTIONS = np.asarray([0.5, 0.85])
-    MIN_ACTIONS = np.asarray([0, -0.85])
-
-    controller = Controller('rl_policy_', env_config['car_name'], 0.25)
+    controller = Controller('rl_policy_', env_config['car_name'], step_length=0.1)
     policy_id = 'rl'
 
-    OBSERVATION_SIZE=12
+    OBSERVATION_SIZE=12 + 1
     ACTION_NUM=2
 
     network_factory = NetworkFactory()
