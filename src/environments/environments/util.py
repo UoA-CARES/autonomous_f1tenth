@@ -167,7 +167,7 @@ def create_lidar_msg(lidar: LaserScan, num_points: int, lidar_range: list):
     scan.angle_min = lidar.angle_min
     scan.angle_max = lidar.angle_min
     scan.angle_increment = lidar.angle_max*2/(num_points-1) #240/num_points * (3.142 / 180)
-    scan.time_increment =  scan.angle_increment/ lidar.angle_increment * lidar.time_increment # processed ang / orig ang = processed time / orig time
+    # scan.time_increment =  scan.angle_increment/ lidar.angle_increment * lidar.time_increment # processed ang / orig ang = processed time / orig time
     scan.range_min = lidar.range_min
     scan.range_max = lidar.range_max
     scan.ranges = lidar_range
@@ -296,10 +296,10 @@ def get_track_math_defs(tracks_waypoints:dict) -> dict[str,TrackMathDef]:
 
 def twist_to_ackermann(omega, linear_v, L):
     '''
-    Convert CG angular velocity to Ackerman steering angle.
+    Convert angular velocity about center of turn to Ackerman steering angle.
 
     Parameters:
-    - omega: CG angular velocity in rad/s
+    - omega: angular velocity about center of turn in rad/s
     - v: Vehicle speed in m/s
     - L: Wheelbase of the vehicle in m
 

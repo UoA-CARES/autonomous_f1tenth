@@ -32,13 +32,14 @@ class TrackMathDef():
         y = float(interpolate.splev(t,self.para_y))
         return np.array([x,y])
     
-    def distance_to_spline_minimize_target(self, t, coord:npt.NDArray):
+    def get_distance_to_spline_point(self, t, coord:npt.NDArray):
+        '''Calculate the distance between a coordinate and a point on the spline'''
         spline_coord = self.get_spline_point(t)
         return np.linalg.norm(spline_coord - coord)
     
     def get_closest_point_on_spline(self, coord:npt.NDArray, t_only = False):
         '''Get closest point's t value. If t_only false: give (t,[x,y])'''
-        result = optimize.differential_evolution(self.distance_to_spline_minimize_target, bounds=[(0, 1)], args=([coord]))
+        result = optimize.differential_evolution(self.get_distance_to_spline_point, bounds=[(0, 1)], args=([coord]))
         t_optimal = result.x[0]
 
         if t_only:
