@@ -283,6 +283,22 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
             'shanghai_track': shanghai_wp
         }
 
+    elif track_name == 'multi_track_1':
+        
+        # Usage of goals deprecated
+        all_car_goals = None
+         
+        # Waypoint
+        track_01_100_wp = [(x, y, yaw, index) for x, y, yaw, index in waypoints['track_01']]
+        track_01_150_wp = [(x + 10, y, yaw, index) for x, y, yaw, index in waypoints['track_01']]
+        track_01_200_wp = [(x + 20, y, yaw, index) for x, y, yaw, index in waypoints['track_01']]
+
+        all_car_waypoints = {
+            'track_01_100': track_01_100_wp,
+            'track_01_150': track_01_150_wp,
+            'track_01_200': track_01_200_wp
+        }
+
     return all_car_goals, all_car_waypoints
 
 def get_track_math_defs(tracks_waypoints:dict) -> dict[str,TrackMathDef]:
