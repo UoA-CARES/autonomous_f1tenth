@@ -8,7 +8,6 @@ from environments.F1tenthEnvironment import F1tenthEnvironment
 from .termination import has_collided, has_flipped_over
 from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent
 from .util_track_progress import TrackMathDef
-from .goal_positions import goal_positions
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
@@ -78,7 +77,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
         self.LIDAR_POINTS = 10 #682
-        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = ['prev_ang_vel']
+        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Evaluation settings
         self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
@@ -133,22 +132,20 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Reset Client -----------------------------------------------
 
         self.goals_reached = 0
-        self.start_goal_index = 0
+        self.start_waypoint_index = 0
         self.steps_since_last_goal = 0
         self.full_current_state = None
 
         if 'multi_track' not in track:
-            self.track_goals = goal_positions[track]
             self.track_waypoints = waypoints[track]
 
             if self.BASE_REWARD_FUNCTION == 'progressive':
                 self.track_model = TrackMathDef(np.array(self.track_waypoints)[:,:2])
         else:
-            self.all_track_goals, self.all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
-            self.current_track_key = list(self.all_track_goals.keys())[0]
+            _, self.all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
+            self.current_track_key = list(self.all_track_waypoints.keys())[0]
 
-            # set waypoint and goals for the current track
-            self.track_goals = self.all_track_goals[self.current_track_key]
+            # set current track waypoints
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
             # set track models
@@ -198,16 +195,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if 'multi_track' in self.track:
             # Evaluating: loop through eval tracks sequentially
             if self.is_evaluating:
-                eval_track_key_list = list(self.all_track_goals.keys())[self.eval_track_begin_idx:]
+                eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
                 self.current_track_key = eval_track_key_list[self.eval_track_idx]
                 self.eval_track_idx += 1
                 self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
 
             # Training: choose a random track that is not used for evaluation
             else:
-                self.current_track_key = random.choice(list(self.all_track_goals.keys())[:self.eval_track_begin_idx])
+                self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
             
-            self.track_goals = self.all_track_goals[self.current_track_key]
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
         # start at beginning of track when evaluating
@@ -218,11 +214,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
         
         # Update goal pointer to reflect starting position
-        self.start_goal_index = index
-        self.goal_position = self.track_goals[self.start_goal_index]
+        self.start_waypoint_index = index
+        x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
+        self.goal_position = [x,y]
 
-        goal_x, goal_y = self.goal_position
-        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=goal_x, goal_y=goal_y, car_name=self.NAME)
+        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
 
         # Get initial observation
         self.call_step(pause=False)
@@ -441,7 +437,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.goals_reached += 1
 
             # Updating Goal Position
-            new_x, new_y = self.track_goals[(self.start_goal_index + self.goals_reached) % len(self.track_goals)]
+            new_x, new_y, _, _ = self.track_waypoints[(self.start_waypoint_index + self.goals_reached) % len(self.track_waypoints)]
             self.goal_position = [new_x, new_y]
 
             self.update_goal_service(new_x, new_y)
@@ -483,7 +479,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.goals_reached += 1
 
             # Updating Goal Position
-            new_x, new_y = self.track_goals[(self.start_goal_index + self.goals_reached) % len(self.track_goals)]
+            new_x, new_y, _, _ = self.track_waypoints[(self.start_waypoint_index + self.goals_reached) % len(self.track_waypoints)]
             self.goal_position = [new_x, new_y]
 
             self.update_goal_service(new_x, new_y)
