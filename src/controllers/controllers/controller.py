@@ -152,29 +152,22 @@ class Controller(Node):
 
 
         odom, lidar = self.get_data()
-        print("Getting data")
         odom = process_odom(odom)
         if self.firstOdom:
             self.offset = odom[0:6]
             self.firstOdom = False
-        print("Reset odom")
-        print(odom)
-        print(self.offset)
         odom[0] = odom[0] - self.offset[0]
         odom[1] = odom[1] - self.offset[1]
         odom[2] = odom[2] - self.offset[2]
         odom[3] = odom[3] - self.offset[3]
         odom[4] = odom[4] - self.offset[4]
         odom[5] = odom[5] - self.offset[5]
-        print("odom change")
         num_points = self.LIDAR_POINTS
-        print("before ftg")
 
         if policy == 'ftg':
             lidar_range = forward_reduce_lidar(lidar)
         else:
             lidar_range = avg_lidar(lidar, num_points)
-        print("after ftg")
 
         # TODO: find out how to deal with this better. 
         # Testing code for pre trained AE
@@ -184,9 +177,7 @@ class Controller(Node):
         # scan = create_lidar_msg(lidar, len(ae_range), ae_range)
 
         scan = create_lidar_msg(lidar, len(lidar_range), lidar_range)
-        print("Created scan")
         self.processed_publisher.publish(scan)
-        print("returning state")
         state = odom+lidar_range
         return state
         
