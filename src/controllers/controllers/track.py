@@ -14,20 +14,22 @@ def main():
         [
             ('car_name', 'f1tenth_two'),
             ('alg', 'random'),
+            ('isCar', False)
         ]
     )
     
-    params = param_node.get_parameters(['car_name', 'alg'])
+    params = param_node.get_parameters(['car_name', 'alg', 'isCar'])
     params = [param.value for param in params]
     CAR_NAME = params[0]
     ALG = params[1]
+    isCar = params[2]
     
-    controller = Controller(ALG, CAR_NAME, 0.25)
+    controller = Controller(ALG, CAR_NAME, 0.25, isCar)
     policy_id = ALG
     policy = policy_factory(ALG)
     if policy.multiCoord == False:
-        from .test_path import austinLap, straightLine, circleCCW
-        coordinates = austinLap()
+        from .test_path import austinLap, straightLine, circleCCW, testing
+        coordinates = straightLine()
         #coordinates = straightLine()
         #coordinates = circleCCW()
     #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
