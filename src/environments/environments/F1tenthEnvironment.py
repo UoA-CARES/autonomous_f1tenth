@@ -146,7 +146,7 @@ class F1tenthEnvironment(Node):
         data = future.result()
         return data['odom'], data['lidar']
 
-    def set_velocity(self, lin_vel, steering_angle, L=0.315):
+    def set_velocity(self, lin_vel, steering_angle, L=0.325):
         """
         Publish Twist Message. In place since simulator takes angular velocity commands but policies should produce ackermann steering angle.
         Takes linear velocity and steering ANGLE, NOT angular velocity.
