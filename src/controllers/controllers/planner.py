@@ -23,8 +23,6 @@ def main():
     params = [param.value for param in params]
     ALG = params[0]
     MAP = params[1]
-    print(ALG)
-    print(MAP)
     # Read the PGM file
     image = cv2.imread(MAP, cv2.IMREAD_GRAYSCALE)
 
