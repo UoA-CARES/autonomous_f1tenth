@@ -7,10 +7,27 @@ from .path_planners.AStar import AStar
 from .path_planners.PriorityQueue import PriorityQueue
 from .path_planners.util import heuristic
 from.path_planners.ImageGraph import ImageGraph
+import rclpy
 
 
 def main():
     print("In Planner")
+
+    rclpy.init()
+    
+    param_node = rclpy.create_node('params')
+    
+    param_node.declare_parameters(
+        '',
+        [
+            ('alg', 'random'),
+        ]
+    )
+    
+    params = param_node.get_parameters(['alg'])
+    params = [param.value for param in params]
+    ALG = params[0]
+    print(ALG)
     # Read the PGM file
     image = cv2.imread('austin_1_save.pgm', cv2.IMREAD_GRAYSCALE)
 
