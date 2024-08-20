@@ -158,5 +158,19 @@ def main():
     # Close the CSV file
     file.close()
 
+def policy_factory(alg, start, goal, add_car_image):
+    policy = 0
+    match alg:
+        case 'astar':
+            from .path_planners.AStar import AStar
+            policy = AStar(start, goal, add_car_image)
+            return policy
+        case 'dstarlite':
+            from .path_planners.DStarLite import DStarLite
+            policy = DStarLite(start, goal, add_car_image)
+            return policy
+        case _:
+            return policy
+
 if __name__ == '__main__':
     main()
