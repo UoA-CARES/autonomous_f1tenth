@@ -1,0 +1,4 @@
+plan:
+  ros__parameters:
+    algorithm: 'dstarlite'
+    map: 'austin_1_save.pgm'

@@ -1,13 +1,30 @@
 import numpy as np
 import cv2
 import csv
-import heapq
+import rclpy
 
 
 def main():
     print("In Planner")
+
+    rclpy.init()
+    
+    param_node = rclpy.create_node('params')
+    
+    param_node.declare_parameters(
+        '',
+        [
+            ('alg', 'random'),
+            ('map', 'random')
+        ]
+    )
+    
+    params = param_node.get_parameters(['alg', 'map'])
+    params = [param.value for param in params]
+    ALG = params[0]
+    MAP = params[1]
     # Read the PGM file
-    image = cv2.imread('austin_1_save.pgm', cv2.IMREAD_GRAYSCALE)
+    image = cv2.imread(MAP, cv2.IMREAD_GRAYSCALE)
 
     # Open CSV file in write mode with 'newline=""'
     file = open("output.csv", 'w', newline='')
@@ -110,10 +127,10 @@ def main():
         max_value = 255         # Maximum pixel value after thresholding
         ret, add_car_image = cv2.threshold(add_car_image, threshold_value, max_value, cv2.THRESH_BINARY_INV)
         
-        dstar = DStarLite(start, goal, add_car_image)
-       
+        #dstar = DStarLite(start, goal, add_car_image)
+        policy = policy_factory(ALG, start, goal, add_car_image)
         # Run A* algorithm
-        path = dstar.get_path()     #a_star(add_car_image, start, goal)
+        path = policy.get_path()     #a_star(add_car_image, start, goal)
         if path is None:
             print(f"No valid path")
             exit()
@@ -136,167 +153,19 @@ def main():
     # Close the CSV file
     file.close()
 
-class ImageGraph:
-    def __init__(self, image):
-        self.image = image
-    
-    def neighbors(self, id):
-        x, y = id
-        neighbors = []
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < self.image.shape[0] and 0 <= ny < self.image.shape[1] and self.image[nx, ny] == 255:
-                neighbors.append((nx, ny))
-        return neighbors
-    
-    def cost(self, from_id, to_id):
-        # Here, you could use a simple distance metric (like Euclidean or Manhattan distance)
-        # Calculate Euclidean distance between from_id and to_id
-        return np.sqrt((from_id[0] - to_id[0]) ** 2 + (from_id[1] - to_id[1]) ** 2)
-
-class PriorityQueue:
-    def __init__(self):
-        self.elements = []
-    
-    def empty(self):
-        return len(self.elements) == 0
-    
-    def put(self, item, priority):
-        heapq.heappush(self.elements, (priority, item))
-    
-    def get(self):
-        return heapq.heappop(self.elements)[1]
-
-def heuristic(a, b):
-    #(x1, y1) = a
-    #(x2, y2) = b
-    #return abs(x1 - x2) + abs(y1 - y2) #Manhattan distance
-    return np.linalg.norm(np.array(a) - np.array(b)) #changed to Euclidean distance
-
-def a_star(image, start, goal):
-    graph = ImageGraph(image)
-    frontier = PriorityQueue()
-    frontier.put(start, 0)
-    came_from = {}
-    cost_so_far = {}
-    came_from[start] = None
-    cost_so_far[start] = 0
-    
-    while not frontier.empty():
-        current = frontier.get()
-        
-        if current == goal:
-            break
-        
-        for next in graph.neighbors(current):
-            new_cost = cost_so_far[current] + graph.cost(current, next)
-            if next not in cost_so_far or new_cost < cost_so_far[next]:
-                cost_so_far[next] = new_cost
-                priority = new_cost + heuristic(next, goal)
-                frontier.put(next, priority)
-                came_from[next] = current
-    
-    # If goal not reached, return None
-    if goal not in came_from:
-        return None
-    
-    # Reconstruct path
-    path = []
-    current = goal
-    while current != start:
-        path.append(current)  # Append each node to the path list
-        current = came_from[current]
-    path.append(start)
-    path.reverse()  # Reverse the path to start from the start node
-    
-    return path  # Return the list of nodes representing the path
-
-class DStarLite:
-    def __init__(self, start, goal, image):
-        self.start = start
-        self.goal = goal
-        self.image = image
-        self.g = {}
-        self.rhs = {}
-        self.U = PriorityQueue()
-        self.km = 0
-        self.initialize()
-
-    def initialize(self):
-        self.g[self.goal] = float('inf')
-        self.rhs[self.goal] = 0
-        self.U.put(self.goal, self.calculate_key(self.goal))
-    
-    def calculate_key(self, s):
-        g_rhs = min(self.g.get(s, float('inf')), self.rhs.get(s, float('inf')))
-        return (g_rhs + heuristic(self.start, s) + self.km, g_rhs)
-    
-    def update_vertex(self, u):
-        if u != self.goal:
-            self.rhs[u] = min(self.g.get(neigh, float('inf')) + self.cost(u, neigh) for neigh in self.neighbors(u))
-        if u in [x[1] for x in self.U.elements]:
-            self.U.elements = [x for x in self.U.elements if x[1] != u]
-            heapq.heapify(self.U.elements)
-        if self.g.get(u, float('inf')) != self.rhs.get(u, float('inf')):
-            self.U.put(u, self.calculate_key(u))
-    
-    def neighbors(self, id):
-        x, y = id
-        neighbors = []
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < self.image.shape[0] and 0 <= ny < self.image.shape[1] and self.image[nx, ny] == 255:
-                neighbors.append((nx, ny))
-        return neighbors
-
-    def cost(self, from_id, to_id):
-        return np.sqrt((from_id[0] - to_id[0]) ** 2 + (from_id[1] - to_id[1]) ** 2)
-
-    def compute_shortest_path(self):
-        while (self.U.empty() == False and 
-               (self.U.elements[0][0] < self.calculate_key(self.start) or self.rhs.get(self.start, float('inf')) != self.g.get(self.start, float('inf')))):
-            u = self.U.get()
-            if self.g.get(u, float('inf')) > self.rhs.get(u, float('inf')):
-                self.g[u] = self.rhs[u]
-                for neigh in self.neighbors(u):
-                    self.update_vertex(neigh)
-            else:
-                self.g[u] = float('inf')
-                for neigh in self.neighbors(u) + [u]:
-                    self.update_vertex(neigh)
-
-    def get_path(self):
-        self.compute_shortest_path()
-        path = []
-        current = self.start
-        while current != self.goal:
-            path.append(current)
-            min_cost = float('inf')
-            next_node = None
-            for neigh in self.neighbors(current):
-                cost = self.g.get(neigh, float('inf')) + self.cost(current, neigh)
-                if cost < min_cost:
-                    min_cost = cost
-                    next_node = neigh
-            if next_node is None:
-                break
-            current = next_node
-        path.append(self.goal)
-        return path
-
-    def update_graph(self, changed_edges):
-        self.km += heuristic(self.start, self.goal)
-        for (from_id, to_id, new_cost) in changed_edges:
-            if new_cost == float('inf'):
-                self.image[to_id[0], to_id[1]] = 0  # Mark as an obstacle
-            else:
-                self.image[to_id[0], to_id[1]] = 255  # Mark as traversable
-            
-            self.update_vertex(from_id)
-            self.update_vertex(to_id)
-        
-        self.compute_shortest_path()
-
+def policy_factory(alg, start, goal, add_car_image):
+    policy = 0
+    match alg:
+        case 'astar':
+            from .path_planners.AStar import AStar
+            policy = AStar(start, goal, add_car_image)
+            return policy
+        case 'dstarlite':
+            from .path_planners.DStarLite import DStarLite
+            policy = DStarLite(start, goal, add_car_image)
+            return policy
+        case _:
+            return policy
 
 if __name__ == '__main__':
     main()
