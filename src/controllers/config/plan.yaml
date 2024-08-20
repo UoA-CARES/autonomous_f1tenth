@@ -1,3 +1,4 @@
 plan:
   ros__parameters:
-    algorithm: 'astar'
+    algorithm: 'dstarlite'
+    map: 'austin_1_save.pgm'

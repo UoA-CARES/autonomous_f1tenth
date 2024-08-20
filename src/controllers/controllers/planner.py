@@ -15,15 +15,18 @@ def main():
         '',
         [
             ('alg', 'random'),
+            ('map', 'random')
         ]
     )
     
-    params = param_node.get_parameters(['alg'])
+    params = param_node.get_parameters(['alg', 'map'])
     params = [param.value for param in params]
     ALG = params[0]
+    MAP = params[1]
     print(ALG)
+    print(MAP)
     # Read the PGM file
-    image = cv2.imread('austin_1_save.pgm', cv2.IMREAD_GRAYSCALE)
+    image = cv2.imread(MAP, cv2.IMREAD_GRAYSCALE)
 
     # Open CSV file in write mode with 'newline=""'
     file = open("output.csv", 'w', newline='')

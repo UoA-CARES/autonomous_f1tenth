@@ -21,12 +21,13 @@ def generate_launch_description():
 
     config = yaml.load(open(config_path), Loader=yaml.Loader)
     alg = config['plan']['ros__parameters']['algorithm']
+    map = config['plan']['ros__parameters']['map']
     
     alg = Node(
             package='controllers',
             executable='planner',
             output='screen',
-            parameters=[{'alg': TextSubstitution(text=str(alg))}]
+            parameters=[{'alg': TextSubstitution(text=str(alg))}, {'map': TextSubstitution(text=str(map))}]
         )
 
 
