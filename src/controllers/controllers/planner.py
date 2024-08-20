@@ -133,9 +133,9 @@ def main():
         ret, add_car_image = cv2.threshold(add_car_image, threshold_value, max_value, cv2.THRESH_BINARY_INV)
         
         #dstar = DStarLite(start, goal, add_car_image)
-        astar = AStar(start, goal, add_car_image)
+        policy = policy_factory(ALG, start, goal, add_car_image)
         # Run A* algorithm
-        path = astar.get_path()     #a_star(add_car_image, start, goal)
+        path = policy.get_path()     #a_star(add_car_image, start, goal)
         if path is None:
             print(f"No valid path")
             exit()
