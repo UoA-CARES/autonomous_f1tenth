@@ -1,0 +1,3 @@
+plan:
+  ros__parameters:
+    algorithm: 'astar'

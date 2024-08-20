@@ -8,29 +8,28 @@ from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
 from launch.substitutions import TextSubstitution
 import yaml
 
-env_launch = {
-    'CarGoal': 'cargoal',
-    'CarWall': 'carwall',
-    'CarBlock': 'carblock',
-    'CarTrack': 'cartrack',
-    'CarBeat': 'carbeat',
-}
 
 alg_launch = {
-    'ftg': 'ftg',
-    'rl': 'rl',
-    'random': 'random',
-    'turn_drive': 'turn_drive',
-    'mpc': 'mpc',
+    'astar': 'astar',
+    'dstarlite': 'dstarlite',
 }
 
 def generate_launch_description():
+    pkg_controllers = get_package_share_directory('controllers')
 
+    config_path = os.path.join(
+        pkg_controllers,
+        'plan.yaml'
+    )
+
+    config = yaml.load(open(config_path), Loader=yaml.Loader)
+    alg = config['plan']['ros__parameters']['algorithm']
     
     alg = Node(
             package='controllers',
             executable='planner',
-            output='screen'
+            output='screen',
+            parameters=[{'alg': TextSubstitution(text=str(alg))}]
         )
 
 
