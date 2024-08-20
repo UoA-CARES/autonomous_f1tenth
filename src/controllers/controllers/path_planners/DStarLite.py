@@ -21,7 +21,7 @@ class DStarLite:
     
     def calculate_key(self, s):
         g_rhs = min(self.g.get(s, float('inf')), self.rhs.get(s, float('inf')))
-        return (g_rhs + heuristic(self.start, s) + self.km, g_rhs)
+        return (g_rhs + self.heuristic(self.start, s) + self.km, g_rhs)
     
     def update_vertex(self, u):
         if u != self.goal:
@@ -77,7 +77,7 @@ class DStarLite:
         return path
 
     def update_graph(self, changed_edges):
-        self.km += heuristic(self.start, self.goal)
+        self.km += self.heuristic(self.start, self.goal)
         for (from_id, to_id, new_cost) in changed_edges:
             if new_cost == float('inf'):
                 self.image[to_id[0], to_id[1]] = 0  # Mark as an obstacle
@@ -88,3 +88,9 @@ class DStarLite:
             self.update_vertex(to_id)
         
         self.compute_shortest_path()
+
+    def heuristic(self, a, b):
+        (x1, y1) = a
+        (x2, y2) = b
+        return abs(x1 - x2) + abs(y1 - y2)
+    

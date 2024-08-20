@@ -1,6 +1,7 @@
 from .ImageGraph import ImageGraph
 from .PriorityQueue import PriorityQueue
 from .util import heuristic
+import numpy as np
 
 class AStar:
     def __init__(self, start, goal, image):
@@ -27,7 +28,7 @@ class AStar:
                 new_cost = cost_so_far[current] + graph.cost(current, next)
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
                     cost_so_far[next] = new_cost
-                    priority = new_cost + heuristic(next, self.goal)
+                    priority = new_cost + self.heuristic(next, self.goal)
                     frontier.put(next, priority)
                     came_from[next] = current
         
@@ -45,3 +46,6 @@ class AStar:
         path.reverse()  # Reverse the path to start from the start node
         
         return path  # Return the list of nodes representing the path
+    
+    def heuristic(self, a, b):
+        return np.linalg.norm(np.array(a) - np.array(b))
