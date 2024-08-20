@@ -3,6 +3,7 @@ import cv2
 import csv
 import heapq
 from .path_planners.DStarLite import DStarLite
+from .path_planners.AStar import AStar
 from .path_planners.PriorityQueue import PriorityQueue
 from .path_planners.util import heuristic
 from.path_planners.ImageGraph import ImageGraph
@@ -114,10 +115,10 @@ def main():
         max_value = 255         # Maximum pixel value after thresholding
         ret, add_car_image = cv2.threshold(add_car_image, threshold_value, max_value, cv2.THRESH_BINARY_INV)
         
-        dstar = DStarLite(start, goal, add_car_image)
-       
+        #dstar = DStarLite(start, goal, add_car_image)
+        astar = AStar(start, goal, add_car_image)
         # Run A* algorithm
-        path = dstar.get_path()     #a_star(add_car_image, start, goal)
+        path = astar.get_path()     #a_star(add_car_image, start, goal)
         if path is None:
             print(f"No valid path")
             exit()
@@ -139,49 +140,6 @@ def main():
 
     # Close the CSV file
     file.close()
-
-
-
-def a_star(image, start, goal):
-    graph = ImageGraph(image)
-    frontier = PriorityQueue()
-    frontier.put(start, 0)
-    came_from = {}
-    cost_so_far = {}
-    came_from[start] = None
-    cost_so_far[start] = 0
-    
-    while not frontier.empty():
-        current = frontier.get()
-        
-        if current == goal:
-            break
-        
-        for next in graph.neighbors(current):
-            new_cost = cost_so_far[current] + graph.cost(current, next)
-            if next not in cost_so_far or new_cost < cost_so_far[next]:
-                cost_so_far[next] = new_cost
-                priority = new_cost + heuristic(next, goal)
-                frontier.put(next, priority)
-                came_from[next] = current
-    
-    # If goal not reached, return None
-    if goal not in came_from:
-        return None
-    
-    # Reconstruct path
-    path = []
-    current = goal
-    while current != start:
-        path.append(current)  # Append each node to the path list
-        current = came_from[current]
-    path.append(start)
-    path.reverse()  # Reverse the path to start from the start node
-    
-    return path  # Return the list of nodes representing the path
-
-
-
 
 if __name__ == '__main__':
     main()
