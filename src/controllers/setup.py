@@ -31,7 +31,8 @@ setup(
             'mpc_policy = controllers.mpc:main',
             'sim = controllers.sim:main',
             'track = controllers.track:main',
-            'load_path = controllers.load_path:main'
+            'load_path = controllers.load_path:main',
+            'planner = controllers.planner:main'
         ],
     },
 )
