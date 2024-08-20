@@ -5,7 +5,6 @@ import heapq
 from .path_planners.DStarLite import DStarLite
 from .path_planners.AStar import AStar
 from .path_planners.PriorityQueue import PriorityQueue
-from .path_planners.util import heuristic
 from.path_planners.ImageGraph import ImageGraph
 import rclpy
 
