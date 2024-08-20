@@ -1,6 +1,5 @@
 import heapq
 import numpy as np
-from .util import heuristic
 from.PriorityQueue import PriorityQueue
 
 class DStarLite:

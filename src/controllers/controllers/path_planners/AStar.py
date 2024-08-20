@@ -1,6 +1,5 @@
 from .ImageGraph import ImageGraph
 from .PriorityQueue import PriorityQueue
-from .util import heuristic
 import numpy as np
 
 class AStar:
