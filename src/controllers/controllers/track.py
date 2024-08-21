@@ -65,7 +65,7 @@ def policy_factory(alg):
             policy = TurnAndDrive(goal_tolerance=0.5)
             return policy
         case 'random':
-            from .random import Random
+            from .path_trackers.random import Random
             policy = Random()
             return policy
         case 'pure_pursuit':
