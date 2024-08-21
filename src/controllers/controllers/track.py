@@ -61,7 +61,7 @@ def policy_factory(alg):
             policy = MPC(coordinates)
             return policy
         case 'turn_and_drive':
-            from .turn_and_drive import TurnAndDrive
+            from .path_trackers.turn_and_drive import TurnAndDrive
             policy = TurnAndDrive(goal_tolerance=0.5)
             return policy
         case 'random':
