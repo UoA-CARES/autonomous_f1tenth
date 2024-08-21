@@ -69,7 +69,7 @@ def policy_factory(alg):
             policy = Random()
             return policy
         case 'pure_pursuit':
-            from .pure_pursuit import PurePursuit
+            from .path_trackers.pure_pursuit import PurePursuit
             from .test_path import austinLap
             coordinates = austinLap()
             policy = PurePursuit(coordinates)
