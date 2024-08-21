@@ -1,7 +1,7 @@
 sim:
   ros__parameters:
-    tracking: False
-    algorithm: 'ftg'
+    tracking: True
+    algorithm: 'random'
     observation_mode: 'lidar_only'
     environment: 'CarTrack'
     track: 'austin_track'
