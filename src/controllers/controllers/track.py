@@ -55,7 +55,7 @@ def policy_factory(alg):
     policy = 0
     match alg:
         case 'mpc':
-            from .mpc import MPC
+            from .path_trackers.mpc import MPC
             from .test_path import austinLap
             coordinates = austinLap()
             policy = MPC(coordinates)
