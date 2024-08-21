@@ -1,7 +1,7 @@
 sim:
   ros__parameters:
     tracking: True
-    algorithm: 'turn_and_drive'
+    algorithm: 'mpc'
     observation_mode: 'lidar_only'
     environment: 'CarTrack'
     track: 'austin_track'
