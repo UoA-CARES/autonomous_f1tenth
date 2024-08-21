@@ -29,7 +29,7 @@ def main():
     policy = policy_factory(ALG)
     if policy.multiCoord == False:
         from .test_path import austinLap, straightLine, circleCCW, testing
-        coordinates = straightLine()
+        coordinates = austinLap()
         #coordinates = straightLine()
         #coordinates = circleCCW()
     #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
