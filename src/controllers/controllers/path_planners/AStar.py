@@ -27,7 +27,7 @@ class AStar:
                 new_cost = cost_so_far[current] + 1
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
                     cost_so_far[next] = new_cost
-                    priority = new_cost + self.heuristic(next, self.goal)
+                    priority = new_cost + self.heuristic(next, self.goal) #Should rename, priority implies a high number should be considered first but this is not the case.
                     frontier.put(next, priority)
                     if (priority < lowest_cost):
                         came_from[next] = current
