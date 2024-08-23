@@ -30,7 +30,7 @@ class AStar:
                     priority = new_cost + self.heuristic(next, self.goal) #Should rename, priority implies a high number should be considered first but this is not the case.
                     frontier.put(next, priority)
                     if (priority < lowest_cost):
-                        came_from[next] = current
+                        came_from[next] = current # Need to reevaluate because alg should be able to switch nodes to go for the most efficient path.....
                         lowest_cost = priority
         
         # If goal not reached, return None
