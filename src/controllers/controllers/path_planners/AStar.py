@@ -22,14 +22,16 @@ class AStar:
             
             if current == self.goal:
                 break
-            
+            lowest_cost = np.inf
             for next in graph.neighbors(current):
                 new_cost = cost_so_far[current] + 1
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
                     cost_so_far[next] = new_cost
                     priority = new_cost + self.heuristic(next, self.goal)
                     frontier.put(next, priority)
-                    came_from[next] = current
+                    if (priority < lowest_cost):
+                        came_from[next] = current
+                        lowest_cost = priority
         
         # If goal not reached, return None
         if self.goal not in came_from:
