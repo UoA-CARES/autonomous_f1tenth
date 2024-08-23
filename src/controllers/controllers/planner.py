@@ -5,7 +5,6 @@ import rclpy
 
 
 def main():
-    print("In Planner")
 
     rclpy.init()
     
@@ -147,6 +146,7 @@ def main():
         
         cv2.imshow('Final Image', output_image)
         cv2.waitKey(3000)
+        cv2.imwrite('path.pgm', output_image)
 
         cv2.destroyAllWindows()
 
