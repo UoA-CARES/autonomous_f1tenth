@@ -2,7 +2,7 @@ from .ImageGraph import ImageGraph
 from .PriorityQueue import PriorityQueue
 import numpy as np
 
-class AStar:
+class AStar: #Need to follow DStar Lite structure more
     def __init__(self, start, goal, image):
         self.start = start
         self.goal = goal
