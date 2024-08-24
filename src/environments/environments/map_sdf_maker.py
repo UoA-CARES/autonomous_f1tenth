@@ -1,7 +1,12 @@
 import xml.etree.ElementTree as ET
 
+#######################################################################################################
+### CHANGE STUFF HERE TO MATCH ACTUAL STL FILES
 TRACK_NAMES = ['track_01','track_02', 'track_03', 'track_04', 'track_05', 'track_06']
 WIDTHS = [100, 150, 200, 250]
+OUTPUT_FILE_NAME = "multi_track_01"
+########################################################################################################
+
 BASE_SDF = '''<?xml version='1.0'?>
 <sdf version="1.6">
   <world name="empty">
@@ -110,5 +115,5 @@ if __name__ == "__main__":
 
   
   tree = ET.ElementTree(root)
-  tree.write("multi_track_01.sdf")
+  tree.write(f"{OUTPUT_FILE_NAME}.sdf")
 
