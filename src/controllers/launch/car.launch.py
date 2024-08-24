@@ -12,6 +12,7 @@ alg_launch = {
     'ftg': 'ftg',
     'rl': 'rl',
     'random': 'random',
+    'turn_and_drive': 'turn_and_drive',
 }
 
 def generate_launch_description():
@@ -24,15 +25,15 @@ def generate_launch_description():
 
     config = yaml.load(open(config_path), Loader=yaml.Loader)
     alg = config['car']['ros__parameters']['algorithm']
-    tracking = config['sim']['ros__parameters']['tracking']
+    tracking = config['car']['ros__parameters']['tracking']
 
     if tracking:
         alg = Node(
         package='controllers',
         executable='track',
         output='screen',
-        parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')},
-                    {'alg': TextSubstitution(text=str(alg))}],
+        parameters=[{'car_name': TextSubstitution(text=str(config['car']['ros__parameters']['car_name']) if 'car_name' in config['car']['ros__parameters'] else 'f1tenth')},
+                    {'alg': TextSubstitution(text=str(alg))}, {'isCar': True}],
         )
         return LaunchDescription([
             alg,

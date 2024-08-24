@@ -111,6 +111,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.odom_observation_mode = observation_mode
         self.track = track
+        self.is_multi_track = 'multi_track' in track
 
         # initialize track progress utilities
         self.prev_t = None
@@ -136,11 +137,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.steps_since_last_goal = 0
         self.full_current_state = None
 
-        if 'multi_track' not in track:
+        if not self.is_multi_track:
+            self.track_goals = goal_positions[track]
             self.track_waypoints = waypoints[track]
-
-            if self.BASE_REWARD_FUNCTION == 'progressive':
-                self.track_model = TrackMathDef(np.array(self.track_waypoints)[:,:2])
+            self.track_model = TrackMathDef(np.array(self.track_waypoints)[:,:2])
+            
         else:
             _, self.all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
             self.current_track_key = list(self.all_track_waypoints.keys())[0]
@@ -156,7 +157,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Evaluation related setup ---------------------------------------------------
         self.is_evaluating = False
 
-        if 'multi_track' in track:
+        if self.is_multi_track:
             # define from which track in the track lists to be used for eval only
             self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
             # idx used to loop through eval tracks sequentially
@@ -192,7 +193,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.set_velocity(0, 0)
         
-        if 'multi_track' in self.track:
+        if self.is_multi_track:
             # Evaluating: loop through eval tracks sequentially
             if self.is_evaluating:
                 eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
@@ -229,7 +230,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         info = {}
 
         # get track progress related info
-        self.track_model = self.all_track_models[self.current_track_key]
+        # set new track model if its multi track
+        if self.is_multi_track:
+            self.track_model = self.all_track_models[self.current_track_key]
         self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         # reward function specific resets
@@ -278,8 +281,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.prev_t = t2
 
         # guard against random error from progress estimate. See get_closest_point_on_spline, suspect differential evo have something to do with this.
-        if abs(self.step_progress) > (full_next_state[6]/10*3): # traveled distance not too different from lin vel * step time
-            self.step_progress = full_next_state[6]/10*0.8 # reasonable estimation fo traveleled distance based on current lin vel
+        if abs(self.step_progress) > (full_next_state[6]/10*3): # traveled distance should not too different from lin vel * step time
+            self.step_progress = full_next_state[6]/10*0.8 # reasonable estimation fo traveleled distance based on current lin vel but only 80% of it just in case its exploited by agent
 
         # calculate reward & end conditions
         reward, reward_info = self.compute_reward(full_state, full_next_state, raw_lidar_range)

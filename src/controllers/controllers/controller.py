@@ -17,6 +17,7 @@ import torch
 from torch import nn
 from typing import List
 import scipy
+import numpy as np
 
 from environments.autoencoders.lidar_beta_vae import BetaVAE1D
 from environments.autoencoders.lidar_autoencoder import LidarConvAE
@@ -25,7 +26,7 @@ from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ack
 
 
 class Controller(Node):
-    def __init__(self, node_name, car_name, step_length, lidar_points = 10):
+    def __init__(self, node_name, car_name, step_length, isCar=False, lidar_points = 10):
         super().__init__(node_name + 'controller')
 
         if lidar_points < 1:
@@ -98,6 +99,10 @@ class Controller(Node):
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
         
+        self.firstOdom = isCar
+        self.offset = [0, 0, 0, 0, 0, 0]
+        
+        
         #TODO:figure out what to do with this
         # # Lidar processing 
         # self.ae_lidar_model = LidarConvAE()
@@ -148,7 +153,15 @@ class Controller(Node):
 
         odom, lidar = self.get_data()
         odom = process_odom(odom)
-        
+        if self.firstOdom:
+            self.offset = odom[0:6]
+            self.firstOdom = False
+        odom[0] = odom[0] - self.offset[0]
+        odom[1] = odom[1] - self.offset[1]
+        odom[2] = odom[2] - self.offset[2]
+        odom[3] = odom[3] - self.offset[3]
+        odom[4] = odom[4] - self.offset[4]
+        odom[5] = odom[5] - self.offset[5]
         num_points = self.LIDAR_POINTS
 
         if policy == 'ftg':
@@ -165,7 +178,6 @@ class Controller(Node):
 
         scan = create_lidar_msg(lidar, len(lidar_range), lidar_range)
         self.processed_publisher.publish(scan)
-
         state = odom+lidar_range
         return state
         

@@ -1,7 +1,7 @@
 import numpy as np
 from rclpy.impl import rcutils_logger
 from environments.util import get_euler_from_quarternion
-from .util import turn_to_goal
+from ..util import turn_to_goal
    
 class PurePursuit():
     logger = rcutils_logger.RcutilsLogger(name="pure_pursuit_log")

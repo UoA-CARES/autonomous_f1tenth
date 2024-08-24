@@ -14,19 +14,21 @@ def main():
         [
             ('car_name', 'f1tenth_two'),
             ('alg', 'random'),
+            ('isCar', False)
         ]
     )
     
-    params = param_node.get_parameters(['car_name', 'alg'])
+    params = param_node.get_parameters(['car_name', 'alg', 'isCar'])
     params = [param.value for param in params]
     CAR_NAME = params[0]
     ALG = params[1]
+    isCar = params[2]
     
-    controller = Controller(ALG, CAR_NAME, 0.25)
+    controller = Controller(ALG, CAR_NAME, 0.25, isCar)
     policy_id = ALG
     policy = policy_factory(ALG)
     if policy.multiCoord == False:
-        from .test_path import austinLap, straightLine, circleCCW
+        from .test_path import austinLap, straightLine, circleCCW, testing
         coordinates = austinLap()
         #coordinates = straightLine()
         #coordinates = circleCCW()
@@ -53,21 +55,21 @@ def policy_factory(alg):
     policy = 0
     match alg:
         case 'mpc':
-            from .mpc import MPC
+            from .path_trackers.mpc import MPC
             from .test_path import austinLap
             coordinates = austinLap()
             policy = MPC(coordinates)
             return policy
         case 'turn_and_drive':
-            from .turn_and_drive import TurnAndDrive
+            from .path_trackers.turn_and_drive import TurnAndDrive
             policy = TurnAndDrive(goal_tolerance=0.5)
             return policy
         case 'random':
-            from .random import Random
+            from .path_trackers.random import Random
             policy = Random()
             return policy
         case 'pure_pursuit':
-            from .pure_pursuit import PurePursuit
+            from .path_trackers.pure_pursuit import PurePursuit
             from .test_path import austinLap
             coordinates = austinLap()
             policy = PurePursuit(coordinates)

@@ -7,7 +7,7 @@ package_name = 'controllers'
 setup(
     name=package_name,
     version='0.0.0',
-    packages=[package_name],
+    packages=[package_name, f'{package_name}.path_planners', f'{package_name}.path_trackers'],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -31,7 +31,8 @@ setup(
             'mpc_policy = controllers.mpc:main',
             'sim = controllers.sim:main',
             'track = controllers.track:main',
-            'load_path = controllers.load_path:main'
+            'load_path = controllers.load_path:main',
+            'planner = controllers.planner:main'
         ],
     },
 )
