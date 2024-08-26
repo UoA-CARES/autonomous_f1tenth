@@ -120,7 +120,7 @@ OFFSET = 0.05
 
 MAX_SPEED = 0.5
 NEUTRAL_SPEED = 0.001
-MAX_ANGLE = 0.45
+MAX_ANGLE = 0.9
 
 LEFT_ANGLE = MAX_ANGLE
 RIGHT_ANGLE = -MAX_ANGLE
@@ -215,11 +215,11 @@ def main():
     while True:
         joystick_check()
 
-        if linear_vel < 0:
-            _, r, done, truncated, _ = env.step([linear_vel, -1 * steering_angle])
+        # if linear_vel < 0:
+        #     _, r, done, truncated, _ = env.step([linear_vel, -1 * steering_angle])
 
-        else:
-            _, r, done, truncated, _ = env.step([linear_vel, steering_angle])
+        # else:
+        _, r, done, truncated, _ = env.step([linear_vel, steering_angle])
 
         if truncated or done:
             print("Finished -", r)

@@ -12,7 +12,7 @@ class MPC():
         self.logger.info("MPC Alg created")
         self.path = path
         self.deltaT = 0.1
-        self.wheelbase = 0.315
+        self.wheelbase = 0.325
         self.timeConst = 0.1
 
         self.multiCoord = False # Can be set to True or False. True will incorporate next coord in cost
