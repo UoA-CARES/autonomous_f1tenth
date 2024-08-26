@@ -29,9 +29,9 @@ class AStar: #Need to follow DStar Lite structure more
                     cost_so_far[next] = new_cost
                     priority = new_cost + self.heuristic(next, self.goal) #Should rename, priority implies a high number should be considered first but this is not the case.
                     frontier.put(next, priority)
-                    if (priority < lowest_cost):
-                        came_from[next] = current # Need to reevaluate because alg should be able to switch nodes to go for the most efficient path.....
-                        lowest_cost = priority
+                    #if (priority < lowest_cost):
+                    came_from[next] = current # Need to reevaluate because alg should be able to switch nodes to go for the most efficient path.....
+                        #lowest_cost = priority
         
         # If goal not reached, return None
         if self.goal not in came_from:
@@ -43,6 +43,7 @@ class AStar: #Need to follow DStar Lite structure more
         while current != self.start:
             path.append(current)  # Append each node to the path list
             current = came_from[current]
+            #print(current)
         path.append(self.start)
         path.reverse()  # Reverse the path to start from the start node
         
