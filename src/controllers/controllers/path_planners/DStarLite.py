@@ -34,7 +34,7 @@ class DStarLite:
     def neighbors(self, id):
         x, y = id
         neighbors = []
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        for dx, dy in [(-1, -1), (-1, 0), (-1, 1), (1, 0), (1, -1), (0, -1), (0, 1), (1, 1)]:
             nx, ny = x + dx, y + dy
             if 0 <= nx < self.image.shape[0] and 0 <= ny < self.image.shape[1] and self.image[nx, ny] == 255:
                 neighbors.append((nx, ny))
@@ -65,7 +65,7 @@ class DStarLite:
             min_cost = float('inf')
             next_node = None
             for neigh in self.neighbors(current):
-                cost = self.g.get(neigh, float('inf')) + self.cost(current, neigh)
+                cost = self.g.get(neigh, float('inf')) + 1 #self.cost(current, neigh)
                 if cost < min_cost:
                     min_cost = cost
                     next_node = neigh
