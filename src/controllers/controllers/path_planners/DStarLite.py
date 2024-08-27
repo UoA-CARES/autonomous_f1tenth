@@ -24,7 +24,7 @@ class DStarLite:
     
     def update_vertex(self, u):
         if u != self.goal:
-            self.rhs[u] = min(self.g.get(neigh, float('inf')) + self.cost(u, neigh) for neigh in self.neighbors(u))
+            self.rhs[u] = min(self.g.get(neigh, float('inf')) + 1 for neigh in self.neighbors(u)) # 1 Replacing self.cost(u, neigh)
         if u in [x[1] for x in self.U.elements]:
             self.U.elements = [x for x in self.U.elements if x[1] != u]
             heapq.heapify(self.U.elements)
