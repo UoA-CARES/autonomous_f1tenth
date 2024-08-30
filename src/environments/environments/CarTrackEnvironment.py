@@ -76,18 +76,21 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
-        self.LIDAR_POINTS = 10 #682
+        self.LIDAR_POINTS = 10 #683
+        self.LIDAR_OBS_STACK_SIZE = 1
+        self.INFO_VECTOR_LENGTH = 0
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
+        self.IS_AUTO_ENCODER_ALG = False    
 
         # Evaluation settings
-        self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
+        self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.6667 
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
 
         # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([2, 0.45])
-        self.MIN_ACTIONS = np.asarray([0, -0.45])
+        self.MAX_ACTIONS = np.asarray([4, 0.434])
+        self.MIN_ACTIONS = np.asarray([0, -0.434])
 
         #####################################################################################################################
 
@@ -104,7 +107,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 odom_observation_size = 10
 
         # configure overall observation size
-        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
+        # for auto encoder based algorithm, observation size only refer to each image input
+        if self.IS_AUTO_ENCODER_ALG:
+            self.OBSERVATION_SIZE = (self.LIDAR_OBS_STACK_SIZE, self.LIDAR_POINTS)
+        else:
+            self.OBSERVATION_SIZE = odom_observation_size + (self.LIDAR_POINTS * self.LIDAR_OBS_STACK_SIZE) + self.get_extra_observation_size()
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
@@ -138,7 +145,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.full_current_state = None
 
         if not self.is_multi_track:
-            self.track_goals = goal_positions[track]
             self.track_waypoints = waypoints[track]
             self.track_model = TrackMathDef(np.array(self.track_waypoints)[:,:2])
             
@@ -319,7 +325,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
             case _:
                 raise Exception("Unknown truncate condition for reward function.")
 
-
     def get_observation(self):
 
         # Get Position and Orientation of F1tenth
@@ -329,16 +334,17 @@ class CarTrackEnvironment(F1tenthEnvironment):
         num_points = self.LIDAR_POINTS
         
         # init state
-        state = []
+        # state = []
+        limited_odom = None
         
         # Add odom data
         match (self.odom_observation_mode):
             case 'no_position':
-                state += odom[2:]
+                limited_odom = odom[2:]
             case 'lidar_only':
-                state += odom[-2:] 
+                limited_odom = odom[-2:] 
             case _:
-                state += odom 
+                limited_odom = odom 
         
         # Add lidar data:
         match self.LIDAR_PROCESSING:
@@ -346,7 +352,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 processed_lidar_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=True)
                 visualized_range = reconstruct_ae_latent(lidar, self.ae_lidar_model, processed_lidar_range)
                 #TODO: get rid of hard coded lidar points num
-                scan = create_lidar_msg(lidar, 682, visualized_range)
+                scan = create_lidar_msg(lidar, 683, visualized_range)
             case 'avg':
                 processed_lidar_range = avg_lidar(lidar, num_points)
                 visualized_range = processed_lidar_range
@@ -359,24 +365,33 @@ class CarTrackEnvironment(F1tenthEnvironment):
         
         self.processed_publisher.publish(scan)
 
-        state += processed_lidar_range
+        # state += processed_lidar_range
 
         # Add extra observation:
+        extra_observation = []
         for extra_observation in self.EXTRA_OBSERVATIONS:
             match extra_observation:
                 case 'prev_ang_vel':
                     if self.full_current_state:
-                        state += [self.full_current_state[7]]
+                        extra_observation += [self.full_current_state[7]]
                     else:
-                        state += [state[7]]
+                        extra_observation += [odom[7]]
 
         
         full_state = odom + processed_lidar_range
 
+        if self.IS_AUTO_ENCODER_ALG:
+            state = {
+                'image': np.array([processed_lidar_range,processed_lidar_range]).reshape((self.LIDAR_OBS_STACK_SIZE,-1)), # e.g. shape (683,) -> (1,683)
+                'vector': np.array(limited_odom), # e.g. shape (2,)
+            }
+        else:
+            state = limited_odom + processed_lidar_range + extra_observation
+
         return state, full_state, lidar.ranges
 
     def compute_reward(self, state, next_state, raw_lidar_range):
-        '''Compute reward based on FULL states: odom + lidar + extra'''
+        '''Compute reward based on FULL states: [*odom, *lidar, *extra]'''
         reward = 0
         reward_info = {}
 
@@ -407,7 +422,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             match modifier_type:
                 case 'wall_proximity':
                     dist_to_wall = min(raw_lidar_range)
-                    close_to_wall_penalize_factor = 1 / (1 + np.exp(35 * (dist_to_wall - 0.5))) #y=\frac{1}{1+e^{35\left(x-0.5\right)}}
+                    close_to_wall_penalize_factor = 1 / (1 + np.exp(35 * (dist_to_wall - 0.35))) #y=\frac{1}{1+e^{35\left(x-0.35\right)}}
                     reward -= reward * close_to_wall_penalize_factor * weight
                     reward_info.update({"dist_to_wall":["avg",dist_to_wall]})
                     print(f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}")   
@@ -554,9 +569,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 string += f'Car Angular Velocity: {observation[5]}\n'
                 string += f'Lidar: {observation[6:]}\n'
             case 'lidar_only':
-                string += f'Car Velocity: {observation[0]}\n'
-                string += f'Car Angular Velocity: {observation[1]}\n'
-                string += f'Lidar: {observation[2:]}\n'
+                string += 'BRU'
+                # string += f'Car Velocity: {observation[0]}\n'
+                # string += f'Car Angular Velocity: {observation[1]}\n'
+                # string += f'Lidar: {observation[2:]}\n'
             case _:
                 string += f'Position: {observation[:2]}\n'
                 string += f'Orientation: {observation[2:6]}\n'

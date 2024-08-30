@@ -68,7 +68,23 @@ class TrackMathDef():
         ''' Calculate arc length along track. If approximate is true, simply take the absolute distance between the two points with the rationale being
         given the small amount of time per step the progress can likely be approximated with a straight line.'''
         if approximate:
-            return np.linalg.norm(self.get_spline_point(t1) - self.get_spline_point(t2))
+            if t1 <= t2:
+                if t2 - t1 < 0.5:
+                    # going forward normally
+                    sign = 1
+                else:
+                    # going backward passing origin
+                    sign = -1
+            else: # t1 > t2
+                if t1 - t2 < 0.5:
+                    # going backward
+                    sign = -1
+                else:
+                    # going forward passing origin
+                   sign = 1
+
+                    
+            return sign * np.linalg.norm(self.get_spline_point(t1) - self.get_spline_point(t2))
 
         if t1 <= t2:
             if t2 - t1 < 0.5:
