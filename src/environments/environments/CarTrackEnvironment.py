@@ -225,7 +225,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
         self.goal_position = [x,y]
 
+        print(f"New track: {self.current_track_key}")
+
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
+
 
         # Get initial observation
         self.call_step(pause=False)
@@ -305,6 +308,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         if self.is_evaluating and (terminated or truncated):
             self.eval_track_idx
+
+        print(f"Action: {lin_vel} | {steering_angle}")
 
         return next_state, reward, terminated, truncated, info
 
@@ -428,7 +433,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     print(f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}")   
                 case 'turn':
                     angular_vel_diff = abs(state[7] - next_state[7])
-                    turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.3)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
+                    turning_penalty_factor = 1 - (1 / (1 + np.exp(12 * (angular_vel_diff - 0.35)))) #y=1-\frac{1}{1+e^{12\left(x-0.35\right)}}
                     reward -= reward * turning_penalty_factor * weight
                     print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
 
@@ -450,7 +455,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.steps_since_last_goal += 1
 
         if current_distance < self.REWARD_RANGE:
-            print(f'Goal #{self.goals_reached} Reached')
+            # print(f'Goal #{self.goals_reached} Reached')
             reward += 2
             self.goals_reached += 1
 
