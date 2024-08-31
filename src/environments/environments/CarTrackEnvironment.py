@@ -75,12 +75,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
-        self.LIDAR_POINTS = 10 #683
+        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'raw'
+        self.LIDAR_POINTS = 683 #10
         self.LIDAR_OBS_STACK_SIZE = 1
-        self.INFO_VECTOR_LENGTH = 0
+        self.INFO_VECTOR_LENGTH = 2
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
-        self.IS_AUTO_ENCODER_ALG = False    
+        self.IS_AUTO_ENCODER_ALG = True  
 
         # Evaluation settings
         self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.6667 
@@ -387,7 +387,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         if self.IS_AUTO_ENCODER_ALG:
             state = {
-                'image': np.array([processed_lidar_range,processed_lidar_range]).reshape((self.LIDAR_OBS_STACK_SIZE,-1)), # e.g. shape (683,) -> (1,683)
+                'image': np.array([processed_lidar_range]).reshape((self.LIDAR_OBS_STACK_SIZE,-1)), # e.g. shape (683,) -> (1,683)
                 'vector': np.array(limited_odom), # e.g. shape (2,)
             }
         else:
@@ -497,7 +497,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.steps_since_last_goal += 1
 
         if current_distance < self.REWARD_RANGE:
-            print(f'Goal #{self.goals_reached} Reached')
+            # print(f'Goal #{self.goals_reached} Reached')
             # reward += 2
             self.goals_reached += 1
 
