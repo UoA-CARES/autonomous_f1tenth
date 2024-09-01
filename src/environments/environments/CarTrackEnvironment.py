@@ -86,8 +86,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
 
         # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([2, 0.45])
-        self.MIN_ACTIONS = np.asarray([0, -0.45])
+        self.MAX_ACTIONS = np.asarray([3, 0.434])
+        self.MIN_ACTIONS = np.asarray([0, -0.434])
 
         #####################################################################################################################
 
@@ -138,7 +138,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.full_current_state = None
 
         if not self.is_multi_track:
-            self.track_goals = goal_positions[track]
             self.track_waypoints = waypoints[track]
             self.track_model = TrackMathDef(np.array(self.track_waypoints)[:,:2])
             
