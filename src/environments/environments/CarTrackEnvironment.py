@@ -138,8 +138,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.full_current_state = None
 
         if not self.is_multi_track:
-            self.track_goals = goal_positions[track]
-            self.track_waypoints = waypoints[track]
+            if "test_track" in track:
+                track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
+            else:
+                track_key = track
+
+            self.track_waypoints = waypoints[track_key]
             self.track_model = TrackMathDef(np.array(self.track_waypoints)[:,:2])
             
         else:
