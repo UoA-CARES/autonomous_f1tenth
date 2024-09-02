@@ -31,14 +31,14 @@
     </light>
 
 
-    <model name="test_track_02_200">
+    <model name="test_track_02_300">
       <pose>0 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/test_track_02_200.stl</uri>
+              <uri>model://src/environments/meshes/test_track_02_300.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -51,7 +51,7 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/test_track_02_200.stl</uri>
+              <uri>model://src/environments/meshes/test_track_02_300.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>

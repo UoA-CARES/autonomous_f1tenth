@@ -1,4 +1,3 @@
-<?xml version='1.0'?>
 <sdf version="1.6">
   <world name="empty">
 
@@ -7,22 +6,14 @@
       <real_time_factor>10.0</real_time_factor>
     </physics>
 
-    <plugin
-      filename="gz-sim-physics-system"
-      name="gz::sim::systems::Physics">
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics">
     </plugin>
-    <plugin
-        filename="gz-sim-sensors-system"
-        name="gz::sim::systems::Sensors">
-        <render_engine>ogre2</render_engine>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
     </plugin>
-    <plugin
-      filename="gz-sim-user-commands-system"
-      name="gz::sim::systems::UserCommands">
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands">
     </plugin>
-    <plugin
-      filename="gz-sim-scene-broadcaster-system"
-      name="gz::sim::systems::SceneBroadcaster">
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster">
     </plugin>
 
     <light type="directional" name="sun">
@@ -39,14 +30,15 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-    <model name="test_track_01_100">
+
+    <model name="test_track_02_350">
       <pose>0 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/test_track_01_100.stl</uri>
+              <uri>model://src/environments/meshes/test_track_02_350.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -59,13 +51,12 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/test_track_01_100.stl</uri>
+              <uri>model://src/environments/meshes/test_track_02_350.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
         </collision>
       </link>
     </model>
-    
   </world>
 </sdf>

@@ -3,9 +3,11 @@ import xml.etree.ElementTree as ET
 #######################################################################################################
 ### CHANGE STUFF HERE TO MATCH ACTUAL STL FILES
 TRACK_NAMES = ['test_track_01', 'test_track_02']
-WIDTHS = [100, 150, 200, 250]
+WIDTHS = [150, 200, 250, 300, 350]
+IS_CREATING_INDIVIDUAL_TRACKS = True
 OUTPUT_FILE_NAME = "multi_track_test_01"
 ########################################################################################################
+# TRACK_NAMES = ['track_01', 'track_02', 'track_03', 'track_04', 'track_04', 'track_05', 'track_06']
 
 BASE_SDF = '''<?xml version='1.0'?>
 <sdf version="1.6">
@@ -102,18 +104,33 @@ def create_track_element(track_name:str, offset_x:int):
 ######################################################################################
 if __name__ == "__main__":
   
-  root = ET.fromstring(BASE_SDF)
-
-  i = 0
-
-  for track_name in TRACK_NAMES:
-    for width in WIDTHS:
-      current_track_name = f"{track_name}_{str(width)}"
-      element = create_track_element(current_track_name, offset_x=i*20) #each track offset by 20m
-      root.find('world').append(element)
-      i += 1
-
   
-  tree = ET.ElementTree(root)
-  tree.write(f"{OUTPUT_FILE_NAME}.sdf")
+  if IS_CREATING_INDIVIDUAL_TRACKS:
+
+    for track_name in TRACK_NAMES:
+      for width in WIDTHS:
+        root = ET.fromstring(BASE_SDF)
+
+        current_track_name = f"{track_name}_{str(width)}"
+        element = create_track_element(current_track_name, offset_x=0)
+        root.find('world').append(element)
+
+        tree = ET.ElementTree(root)
+        tree.write(f"{current_track_name}.xml")
+    
+  
+  else:
+    i = 0
+    root = ET.fromstring(BASE_SDF)
+
+    for track_name in TRACK_NAMES:
+      for width in WIDTHS:
+        current_track_name = f"{track_name}_{str(width)}"
+        element = create_track_element(current_track_name, offset_x=i*30) #each track offset by 30m
+        root.find('world').append(element)
+        i += 1
+
+    
+    tree = ET.ElementTree(root)
+    tree.write(f"{OUTPUT_FILE_NAME}.sdf")
 

@@ -285,7 +285,7 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
 
     elif track_name == 'multi_track_01':
 
-        WIDTHS = [100, 150, 200, 250]
+        WIDTHS = [150, 200, 250, 300, 350]
         TRACKS = ['track_01', 'track_02', 'track_03', 'track_04', 'track_05', 'track_06']
         
         # Usage of goals deprecated
@@ -304,12 +304,12 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
                   # combine to get the correct key for returned dict
                   track_name = f"{track}_{str(width)}"
                   # set correct x offset
-                  global_wp = [(x + i*20, y, yaw, index) for x, y, yaw, index in waypoints[track]]
+                  global_wp = [(x + i*30, y, yaw, index) for x, y, yaw, index in waypoints[track]]
                   all_car_waypoints.update({track_name : global_wp})
                   i += 1
 
     elif track_name == 'multi_track_test_01':
-        WIDTHS = [100, 150, 200, 250]
+        WIDTHS = [150, 200, 250, 300, 350]
         TRACKS = ['test_track_01','test_track_02']
         
         # Usage of goals deprecated
@@ -324,7 +324,7 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         for track in TRACKS:
              for width in WIDTHS:
                   track_name = f"{track}_{str(width)}"
-                  global_wp = [(x + i*20, y, yaw, index) for x, y, yaw, index in waypoints[track]]
+                  global_wp = [(x + i*30, y, yaw, index) for x, y, yaw, index in waypoints[track]]
                   all_car_waypoints.update({track_name : global_wp})
                   i += 1
          
