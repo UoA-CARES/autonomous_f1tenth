@@ -75,15 +75,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'raw'
-        self.LIDAR_POINTS = 683 #10
+        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
+        self.LIDAR_POINTS = 10 #10, 683
         self.LIDAR_OBS_STACK_SIZE = 1
         self.INFO_VECTOR_LENGTH = 2
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
-        self.IS_AUTO_ENCODER_ALG = True  
+        self.IS_AUTO_ENCODER_ALG = False
 
         # Evaluation settings
-        self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.6667 
+        self.eval_track_begin_idx = 20
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
@@ -171,8 +171,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.is_evaluating = False
 
         if self.is_multi_track:
-            # define from which track in the track lists to be used for eval only
-            self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
             # idx used to loop through eval tracks sequentially
             self.eval_track_idx = 0
 
@@ -319,7 +317,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.is_evaluating and (terminated or truncated):
             self.eval_track_idx
 
-        # print(f"Action: {lin_vel} | {steering_angle}")
+        print(f"Action: {lin_vel} | {steering_angle}")
 
         return next_state, reward, terminated, truncated, info
 
@@ -448,12 +446,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     close_to_wall_penalize_factor = 1 / (1 + np.exp(35 * (dist_to_wall - 0.35))) #y=\frac{1}{1+e^{35\left(x-0.35\right)}}
                     reward -= reward * close_to_wall_penalize_factor * weight
                     reward_info.update({"dist_to_wall":["avg",dist_to_wall]})
-                    # print(f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}")   
+                    print(f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}")   
                 case 'turn':
                     angular_vel_diff = abs(state[7] - next_state[7])
                     turning_penalty_factor = 1 - (1 / (1 + np.exp(12 * (angular_vel_diff - 0.35)))) #y=1-\frac{1}{1+e^{12\left(x-0.35\right)}}
                     reward -= reward * turning_penalty_factor * weight
-                    # print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
+                    print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
 
         return reward, reward_info
     
