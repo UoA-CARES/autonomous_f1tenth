@@ -6020,3 +6020,23 @@ waypoints = {
     'test_track_01': TEST_TRACK_01_WAYPOINTS,
     'test_track_02': TEST_TRACK_02_WAYPOINTS,
 }
+
+if __name__ == "__main__":
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+
+    TRACK_KEY = 'test_track_01'
+
+    x_list = [wp.x for wp in waypoints[TRACK_KEY]]
+    y_list = [wp.y for wp in waypoints[TRACK_KEY]]
+    dx = [np.cos(wp.Y) for wp in waypoints[TRACK_KEY]]  # dx is the cosine of the orientation angle Y
+    dy = [np.sin(wp.Y) for wp in waypoints[TRACK_KEY]]  # dy is the sine of the orientation angle Y
+
+    index_list = [wp.index for wp in waypoints[TRACK_KEY]]
+
+    ax.quiver(x_list, y_list, dx, dy,
+            scale = 30) 
+
+    plt.show()
