@@ -2,12 +2,12 @@ import xml.etree.ElementTree as ET
 
 #######################################################################################################
 ### CHANGE STUFF HERE TO MATCH ACTUAL STL FILES
-TRACK_NAMES = ['test_track_01', 'test_track_02']
+TRACK_NAMES = ['track_01', 'track_02', 'track_03', 'track_04', 'track_05', 'track_06']
 WIDTHS = [150, 200, 250, 300, 350]
-IS_CREATING_INDIVIDUAL_TRACKS = True
-OUTPUT_FILE_NAME = "multi_track_test_01"
+IS_CREATING_INDIVIDUAL_TRACKS = False
+OUTPUT_FILE_NAME = "multi_track_01"
 ########################################################################################################
-# TRACK_NAMES = ['track_01', 'track_02', 'track_03', 'track_04', 'track_04', 'track_05', 'track_06']
+# TRACK_NAMES = ['track_01', 'track_02', 'track_03', 'track_04', 'track_05', 'track_06']
 
 BASE_SDF = '''<?xml version='1.0'?>
 <sdf version="1.6">
