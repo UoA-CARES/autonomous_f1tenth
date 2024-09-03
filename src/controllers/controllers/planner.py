@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import csv
 import rclpy
+from .util import absoluteDistance
 
 
 def main():
@@ -27,6 +28,7 @@ def main():
 
     # Open CSV file in write mode with 'newline=""'
     file = open("output.csv", 'w', newline='')
+    newPath = open("newpath.txt", 'w')
     csv_writer = csv.writer(file)
 
     # Check if the image was loaded correctly
@@ -142,16 +144,26 @@ def main():
         for pos in path:
             csv_writer.writerow([pos[1], pos[0]])  # Write x and y in separate columns
             output_image[pos[0], pos[1]] = 128
-    
+
         
         cv2.imshow('Final Image', output_image)
         cv2.waitKey(3000)
         cv2.imwrite('path.pgm', output_image)
 
         cv2.destroyAllWindows()
+        origin = np.asarray([-9.75, -30.4])
+        shape = output_image.shape
+        resolution = 0.1
+        newcoords = coordinateShift(path, origin, shape, resolution)
+        newcoords = trimCoords(newcoords, 1)
+        for state in newcoords:
+            #print("Current state: " + str(state))
+            s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
+            newPath.write(s)
 
     # Close the CSV file
     file.close()
+    newPath.close()
 
 def policy_factory(alg, start, goal, add_car_image):
     policy = 0
@@ -166,6 +178,30 @@ def policy_factory(alg, start, goal, add_car_image):
             return policy
         case _:
             return policy
+
+def coordinateShift(path, origin, shape, resolution):
+    mx = resolution
+    my = -1*resolution
+    coordinates = []
+    ymax = origin[1]+shape[0]*resolution
+    for pos in path:
+        newposx = mx*pos[1] + origin[0]
+        newposy = my*pos[0] + ymax
+        coordinates.append([newposx, newposy])
+    return coordinates
+
+def trimCoords(path, minDist):
+    coordinates = []
+    prev = np.asarray([np.inf, np.inf])
+    path = np.array(path)
+    for pos in path:
+        distance = absoluteDistance(pos, prev)
+        if distance > minDist:
+            coordinates.append(pos)
+            prev = pos
+        elif (np.all(pos == path[-1]) & (absoluteDistance(pos, path[0]) > minDist)):
+            coordinates.append(pos)
+    return coordinates
 
 if __name__ == '__main__':
     main()
