@@ -159,9 +159,10 @@ def main():
         cv2.imwrite('path.pgm', output_image)
 
         cv2.destroyAllWindows()
-        origin = np.asarray([-9.75, -30.4])
+
+        origin = np.asarray([ORIGINX, ORIGINY])
         shape = output_image.shape
-        resolution = 0.1
+        resolution = RESOLUTION
         newcoords = coordinateShift(path, origin, shape, resolution)
         newcoords = trimCoords(newcoords, 1)
         for state in newcoords:
