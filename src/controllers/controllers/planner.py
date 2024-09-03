@@ -15,14 +15,22 @@ def main():
         '',
         [
             ('alg', 'random'),
-            ('map', 'random')
+            ('map', 'random'),
+            ('originx', np.inf),
+            ('originy', np.inf),
+            ('resolution', 0.0)
         ]
     )
     
-    params = param_node.get_parameters(['alg', 'map'])
+    params = param_node.get_parameters(['alg', 'map', 'originx', 'originy', 'resolution'])
     params = [param.value for param in params]
     ALG = params[0]
     MAP = params[1]
+    ORIGINX = params[2]
+    ORIGINY = params[3]
+    RESOLUTION = params[4]
+
+    
     # Read the PGM file
     image = cv2.imread(MAP, cv2.IMREAD_GRAYSCALE)
 
@@ -151,9 +159,10 @@ def main():
         cv2.imwrite('path.pgm', output_image)
 
         cv2.destroyAllWindows()
-        origin = np.asarray([-9.75, -30.4])
+
+        origin = np.asarray([ORIGINX, ORIGINY])
         shape = output_image.shape
-        resolution = 0.1
+        resolution = RESOLUTION
         newcoords = coordinateShift(path, origin, shape, resolution)
         newcoords = trimCoords(newcoords, 1)
         for state in newcoords:

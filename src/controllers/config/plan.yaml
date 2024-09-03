@@ -2,3 +2,4 @@ plan:
   ros__parameters:
     algorithm: 'astar'
     map: 'austin_1_save.pgm'
+    yaml_path: 'map_info/austin_1_save.yaml'
