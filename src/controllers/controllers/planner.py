@@ -30,8 +30,7 @@ def main():
     ORIGINY = params[3]
     RESOLUTION = params[4]
 
-    print(ORIGINX, ORIGINY)
-    print(RESOLUTION)
+    
     # Read the PGM file
     image = cv2.imread(MAP, cv2.IMREAD_GRAYSCALE)
 

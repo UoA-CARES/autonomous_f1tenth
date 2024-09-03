@@ -34,8 +34,6 @@ def generate_launch_description():
     data = yaml.load(open(config_path2), Loader=yaml.SafeLoader)
     origin = data['origin']
     resolution = data['resolution']
-    print(data)
-    print(origin[0])
     
     alg = Node(
             package='controllers',
