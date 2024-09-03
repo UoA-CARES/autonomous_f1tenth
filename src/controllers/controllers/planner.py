@@ -15,14 +15,23 @@ def main():
         '',
         [
             ('alg', 'random'),
-            ('map', 'random')
+            ('map', 'random'),
+            ('originx', np.inf),
+            ('originy', np.inf),
+            ('resolution', 0.0)
         ]
     )
     
-    params = param_node.get_parameters(['alg', 'map'])
+    params = param_node.get_parameters(['alg', 'map', 'originx', 'originy', 'resolution'])
     params = [param.value for param in params]
     ALG = params[0]
     MAP = params[1]
+    ORIGINX = params[2]
+    ORIGINY = params[3]
+    RESOLUTION = params[4]
+
+    print(ORIGINX, ORIGINY)
+    print(RESOLUTION)
     # Read the PGM file
     image = cv2.imread(MAP, cv2.IMREAD_GRAYSCALE)
 
