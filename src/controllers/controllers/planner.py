@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import csv
 import rclpy
+from .util import absoluteDistance
 
 
 def main():
@@ -154,6 +155,7 @@ def main():
         shape = output_image.shape
         resolution = 0.1
         newcoords = coordinateShift(path, origin, shape, resolution)
+        newcoords = trimCoords(newcoords, 1)
         for state in newcoords:
             #print("Current state: " + str(state))
             s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
@@ -186,6 +188,19 @@ def coordinateShift(path, origin, shape, resolution):
         newposx = mx*pos[1] + origin[0]
         newposy = my*pos[0] + ymax
         coordinates.append([newposx, newposy])
+    return coordinates
+
+def trimCoords(path, minDist):
+    coordinates = []
+    prev = np.asarray([np.inf, np.inf])
+    path = np.array(path)
+    for pos in path:
+        distance = absoluteDistance(pos, prev)
+        if distance > minDist:
+            coordinates.append(pos)
+            prev = pos
+        elif (np.all(pos == path[-1]) & (absoluteDistance(pos, path[0]) > minDist)):
+            coordinates.append(pos)
     return coordinates
 
 if __name__ == '__main__':
