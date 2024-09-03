@@ -83,10 +83,10 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
             )
 
             if evaluate:
-                evaluate = False
                 env.get_logger().info(f'*************--Begin Evaluation Loop--*************')
                 off_policy_evaluate(env, agent, number_eval_episodes, record, step_counter)
                 env.get_logger().info(f'*************--End Evaluation Loop--*************')
+                evaluate = False
 
             # Reset environment
             state, _ = env.reset()
@@ -151,8 +151,6 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
                         **episode_info
                     )
 
-                # Reset environment
-                state, _ = env.reset()
                 episode_reward = 0
                 episode_timesteps = 0
                 episode_num += 1

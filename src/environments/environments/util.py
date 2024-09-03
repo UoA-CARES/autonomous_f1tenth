@@ -347,7 +347,7 @@ def get_track_math_defs(tracks_waypoints:dict) -> dict[str,TrackMathDef]:
 
     for track_name in tracks_waypoints.keys():
         track_math_models[track_name] = TrackMathDef(np.array(tracks_waypoints[track_name])[:,:2])
-        print(track_math_models)
+        # print(track_math_models)
     return track_math_models
 
 def twist_to_ackermann(omega, linear_v, L):

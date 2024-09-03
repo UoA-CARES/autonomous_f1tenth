@@ -6,7 +6,7 @@ import rclpy
 import torch
 
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
-import cares_reinforcement_learning.util.configurations as cfg
+import cares_reinforcement_learning.util.configurations as cares_cfg
 
 from .parse_args import parse_args
 from .EnvironmentFactory import EnvironmentFactory
@@ -29,6 +29,17 @@ def main():
 
     env_factory = EnvironmentFactory()
     network_factory = NetworkFactory()
+
+    autoencoder_config = cares_cfg.VanillaAEConfig(
+        latent_dim= 10,
+        is_1d= True
+    )
+
+    network_config = cares_cfg.TD3AEConfig (
+        autoencoder_config=autoencoder_config,
+        info_vector_size=2,
+    )
+    print(str(network_config))
 
     env = env_factory.create(env_config['environment'], env_config)
     agent = network_factory.create_network(env.OBSERVATION_SIZE, env.ACTION_NUM, config=network_config)

@@ -74,10 +74,12 @@ class TrackMathDef():
                     sign = 1
                 else:
                     # going backward passing origin
+                    print("BACK PAST ORIGIN")
                     sign = -1
             else: # t1 > t2
                 if t1 - t2 < 0.5:
                     # going backward
+                    print("BACKWARD NORMAL")
                     sign = -1
                 else:
                     # going forward passing origin

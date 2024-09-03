@@ -204,7 +204,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.steps_since_last_goal = 0
         self.goals_reached = 0
 
+
         self.set_velocity(0, 0)
+        print("---- RESET CALLED")
         
         if self.is_multi_track:
             # Evaluating: loop through eval tracks sequentially
@@ -233,6 +235,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.goal_position = [x,y]
 
         print(f"New track: {self.current_track_key}")
+        # print(f"LOC: ({car_x},{car_y},{car_yaw})")
 
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
 
@@ -316,11 +319,14 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.is_evaluating and (terminated or truncated):
             self.eval_track_idx
 
-        print(f"Action: {lin_vel} | {steering_angle}")
+        # print(f"Action: {lin_vel} | {steering_angle}")
 
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
+        if has_collided(ranges, self.COLLISION_RANGE) \
+            or has_flipped_over(state[2:6]):
+            print(f"TERMINATED: wall {has_collided(ranges, self.COLLISION_RANGE)} | flip {has_flipped_over(state[2:6])}")
         return has_collided(ranges, self.COLLISION_RANGE) \
             or has_flipped_over(state[2:6])
 
@@ -332,6 +338,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 return self.steps_since_last_goal >= 20 or \
                 self.step_counter >= self.MAX_STEPS
             case 'progressive':
+                if self.progress_not_met_cnt >= 5:
+                    print(f"TRUNCATED: progress not met") 
+                elif self.step_counter >= self.MAX_STEPS:
+                    print(f"TRUNCATED: max steps exceeded")
+
                 return self.progress_not_met_cnt >= 5 or \
                 self.step_counter >= self.MAX_STEPS
             case _:
@@ -371,7 +382,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'raw':
                 processed_lidar_range = np.array(lidar.ranges.tolist())
-                processed_lidar_range = np.nan_to_num(processed_lidar_range, posinf=-5, nan=-1, neginf=-5).tolist()  
+                processed_lidar_range = np.nan_to_num(processed_lidar_range, posinf=-5, nan=-5, neginf=-5).tolist()  
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
         
@@ -437,12 +448,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     close_to_wall_penalize_factor = 1 / (1 + np.exp(35 * (dist_to_wall - 0.35))) #y=\frac{1}{1+e^{35\left(x-0.35\right)}}
                     reward -= reward * close_to_wall_penalize_factor * weight
                     reward_info.update({"dist_to_wall":["avg",dist_to_wall]})
-                    print(f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}")   
+                    # print(f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}")   
                 case 'turn':
                     angular_vel_diff = abs(state[7] - next_state[7])
                     turning_penalty_factor = 1 - (1 / (1 + np.exp(12 * (angular_vel_diff - 0.35)))) #y=1-\frac{1}{1+e^{12\left(x-0.35\right)}}
                     reward -= reward * turning_penalty_factor * weight
-                    print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
+                    # print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
 
         return reward, reward_info
     

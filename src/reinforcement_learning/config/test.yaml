@@ -3,11 +3,12 @@ test:
     environment: 'CarTrack'
     track: 'multi_track_test_01' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     number_eval_episodes: 1000
-    max_steps: 3000
-    actor_path: training_logs/good/models/TD3-280000_actor.pht
-    critic_path: training_logs/good/models/TD3-280000_critic.pht
-    algorithm: 'TD3'
+    max_steps: 200
+    actor_path: training_logs/aething/models/TD3AE-990000_actor.pht
+    critic_path: training_logs/aething/models/TD3AE-990000_critic.pht
+    algorithm: 'TD3AE'
     step_length: 0.1
     reward_range: 3
     collision_range: 0.2
     observation_mode: 'lidar_only'
+
