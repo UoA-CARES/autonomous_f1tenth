@@ -30,13 +30,6 @@ def main():
     policy_id = ALG
     coordinates = loadPath(filename)
     policy = policy_factory(ALG, coordinates)
-    if policy.multiCoord == False:
-        from .test_path import austinLap, straightLine, circleCCW, testing
-        
-        #coordinates = testing()
-        #coordinates = straightLine()
-        #coordinates = circleCCW()
-    #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
     state = controller.get_observation(policy_id)
     while True:
         
