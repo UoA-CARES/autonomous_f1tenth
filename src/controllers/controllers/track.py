@@ -29,7 +29,7 @@ def main():
     controller = Controller(ALG, CAR_NAME, 0.25, isCar)
     policy_id = ALG
     coordinates = loadPath(filename)
-    policy = policy_factory(ALG, coordinates)
+    policy = policy_factory(ALG)
     state = controller.get_observation(policy_id)
     while True:
         
@@ -48,7 +48,7 @@ def main():
         controller.step(action, policy_id)
         time.sleep(0.1)
 
-def policy_factory(alg, coordinates):
+def policy_factory(alg):
     policy = 0
     match alg:
         case 'mpc':
