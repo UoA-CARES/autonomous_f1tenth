@@ -14,22 +14,24 @@ def main():
         [
             ('car_name', 'f1tenth_two'),
             ('alg', 'random'),
-            ('isCar', False)
+            ('isCar', False),
+            ('path_file_path', 'random')
         ]
     )
     
-    params = param_node.get_parameters(['car_name', 'alg', 'isCar'])
+    params = param_node.get_parameters(['car_name', 'alg', 'isCar', 'path_file_path'])
     params = [param.value for param in params]
     CAR_NAME = params[0]
     ALG = params[1]
     isCar = params[2]
+    filename = params[3]
     
     controller = Controller(ALG, CAR_NAME, 0.25, isCar)
     policy_id = ALG
     policy = policy_factory(ALG)
     if policy.multiCoord == False:
         from .test_path import austinLap, straightLine, circleCCW, testing
-        coordinates = loadPath('newpath.txt')
+        coordinates = loadPath(filename)
         #coordinates = testing()
         #coordinates = straightLine()
         #coordinates = circleCCW()
