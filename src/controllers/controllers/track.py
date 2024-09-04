@@ -1,7 +1,7 @@
 import rclpy
 import numpy as np
 from .controller import Controller
-from .util import closestPointIndAhead
+from .util import closestPointIndAhead, loadPath
 import time
 
 def main():
@@ -29,7 +29,8 @@ def main():
     policy = policy_factory(ALG)
     if policy.multiCoord == False:
         from .test_path import austinLap, straightLine, circleCCW, testing
-        coordinates = testing()
+        coordinates = loadPath('newpath.txt')
+        #coordinates = testing()
         #coordinates = straightLine()
         #coordinates = circleCCW()
     #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
