@@ -28,14 +28,8 @@ def main():
     
     controller = Controller(ALG, CAR_NAME, 0.25, isCar)
     policy_id = ALG
-    policy = policy_factory(ALG)
-    if policy.multiCoord == False:
-        from .test_path import austinLap, straightLine, circleCCW, testing
-        coordinates = loadPath(filename)
-        #coordinates = testing()
-        #coordinates = straightLine()
-        #coordinates = circleCCW()
-    #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z], lidar:...
+    coordinates = loadPath(filename)
+    policy = policy_factory(ALG, coordinates)
     state = controller.get_observation(policy_id)
     while True:
         
@@ -54,13 +48,11 @@ def main():
         controller.step(action, policy_id)
         time.sleep(0.1)
 
-def policy_factory(alg):
+def policy_factory(alg, coordinates):
     policy = 0
     match alg:
         case 'mpc':
             from .path_trackers.mpc import MPC
-            from .test_path import austinLap
-            coordinates = austinLap()
             policy = MPC(coordinates)
             return policy
         case 'turn_and_drive':
@@ -73,8 +65,6 @@ def policy_factory(alg):
             return policy
         case 'pure_pursuit':
             from .path_trackers.pure_pursuit import PurePursuit
-            from .test_path import austinLap
-            coordinates = austinLap()
             policy = PurePursuit(coordinates)
             return policy
         case _:

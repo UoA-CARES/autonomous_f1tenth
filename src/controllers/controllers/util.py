@@ -86,10 +86,8 @@ def loadPath(filename):
     file = open(filename, "r")
     txt = file.read()
     file.close()
-    #print(txt)
     i = 0
     while i < len(txt)-1:
-        #print(i)
         if txt[i] == '[': # New coordinate
             i+= 1
             string = ''
