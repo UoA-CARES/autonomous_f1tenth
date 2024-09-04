@@ -7,7 +7,7 @@ class MPC():
 
     logger = rcutils_logger.RcutilsLogger(name="mpc_log")
 
-    def __init__(self, path): 
+    def __init__(self, path=[]): 
         self.logger.info("-------------------------------------------------")
         self.logger.info("MPC Alg created")
         self.path = path
