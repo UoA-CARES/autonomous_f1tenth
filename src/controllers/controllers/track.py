@@ -65,7 +65,7 @@ def policy_factory(alg, coordinates):
             return policy
         case 'pure_pursuit':
             from .path_trackers.pure_pursuit import PurePursuit
-            policy = PurePursuit(coordinates)
+            policy = PurePursuit()
             return policy
         case _:
             return policy
