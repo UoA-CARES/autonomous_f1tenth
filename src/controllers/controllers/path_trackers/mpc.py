@@ -22,7 +22,8 @@ class MPC():
         self.predictionSteps = 5
         self.options = 10
 
-        
+    def loadPath(self, path):
+        self.path = path  
     
     def newStates(self, lin, x, y, steeringAngle, desAngle, yaw):
         # Uses simple bicycle model
