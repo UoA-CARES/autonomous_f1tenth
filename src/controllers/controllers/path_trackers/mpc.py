@@ -7,7 +7,7 @@ class MPC():
 
     logger = rcutils_logger.RcutilsLogger(name="mpc_log")
 
-    def __init__(self, path): 
+    def __init__(self, path=[]): 
         self.logger.info("-------------------------------------------------")
         self.logger.info("MPC Alg created")
         self.path = path
@@ -22,7 +22,8 @@ class MPC():
         self.predictionSteps = 5
         self.options = 10
 
-        
+    def loadPath(self, path):
+        self.path = path  
     
     def newStates(self, lin, x, y, steeringAngle, desAngle, yaw):
         # Uses simple bicycle model

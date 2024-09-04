@@ -165,7 +165,7 @@ def main():
         resolution = RESOLUTION
         newcoords = coordinateShift(path, origin, shape, resolution)
         newcoords = trimCoords(newcoords, 1)
-        for state in newcoords:
+        for state in reversed(newcoords):
             s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
             newPath.write(s)
 

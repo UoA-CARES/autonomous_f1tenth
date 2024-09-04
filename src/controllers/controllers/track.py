@@ -29,7 +29,7 @@ def main():
     controller = Controller(ALG, CAR_NAME, 0.25, isCar)
     policy_id = ALG
     coordinates = loadPath(filename)
-    policy = policy_factory(ALG, coordinates)
+    policy = policy_factory(ALG)
     state = controller.get_observation(policy_id)
     while True:
         
@@ -37,6 +37,7 @@ def main():
             goalInd = closestPointIndAhead(state[0:2], coordinates)
             goal = coordinates[goalInd]
         else:
+            policy.loadPath(coordinates)
             goal = np.asarray([[0, 0]])
         state = controller.get_observation(policy_id)
         action = policy.select_action(state, goal)   
@@ -48,12 +49,12 @@ def main():
         controller.step(action, policy_id)
         time.sleep(0.1)
 
-def policy_factory(alg, coordinates):
+def policy_factory(alg):
     policy = 0
     match alg:
         case 'mpc':
             from .path_trackers.mpc import MPC
-            policy = MPC(coordinates)
+            policy = MPC()
             return policy
         case 'turn_and_drive':
             from .path_trackers.turn_and_drive import TurnAndDrive
@@ -65,7 +66,7 @@ def policy_factory(alg, coordinates):
             return policy
         case 'pure_pursuit':
             from .path_trackers.pure_pursuit import PurePursuit
-            policy = PurePursuit(coordinates)
+            policy = PurePursuit()
             return policy
         case _:
             return policy

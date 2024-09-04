@@ -6,7 +6,7 @@ from ..util import turn_to_goal
 class PurePursuit():
     logger = rcutils_logger.RcutilsLogger(name="pure_pursuit_log")
 
-    def __init__(self, path, look_ahead = 1, angle_diff_tolerance = 0.1): 
+    def __init__(self, path = np.asarray([]), look_ahead = 1, angle_diff_tolerance = 0.1): 
         self.logger.info("-------------------------------------------------")
         self.logger.info("Pure Pursuit Alg created")
         self.path = path
@@ -14,6 +14,9 @@ class PurePursuit():
         self.look_ahead = look_ahead
         self.multiCoord = True
 
+    def loadPath(self, path):
+        self.path = path
+    
     # Need to write
     def findGoal(self, location):
         look_ahead = 3
@@ -80,7 +83,10 @@ class PurePursuit():
 
         lin = MAX_ACTIONS[0]
         location = state[0:2]
-        yawcurr = get_euler_from_quarternion(state[2],state[3],state[4],state[5])[2]  
+        yawcurr = get_euler_from_quarternion(state[2],state[3],state[4],state[5])[2]
+
+        if self.path.shape[0] == 0:
+            raise Exception("No path loaded")
 
         # Calculate angle same as turn and drive
         trueGoal = self.findGoal(location)
