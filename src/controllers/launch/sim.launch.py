@@ -71,7 +71,7 @@ def generate_launch_description():
         executable='track',
         output='screen',
         parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')},
-                    {'alg': TextSubstitution(text=str(alg))}],
+                    {'alg': TextSubstitution(text=str(alg))}, {'path_file_path': TextSubstitution(text=str(config['sim']['ros__parameters']['path_file_path']))}],
         )
         # TF TREE: map ------------ odom --------------- (baselink--lidar_link)
         # https://www.youtube.com/watch?v=ZaiA3hWaRzE
