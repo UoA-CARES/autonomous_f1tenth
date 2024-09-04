@@ -79,3 +79,31 @@ def linCalc(ang, maxLin=1, maxAng=0.85, fullSpeedCutoff = 0.05):
         c = minLin - (maxAng * gradient)
         lin = gradient*ang + c
         return lin
+    
+
+def loadPath(filename):
+    path = []
+    file = open(filename, "r")
+    txt = file.read()
+    file.close()
+    #print(txt)
+    i = 0
+    while i < len(txt)-1:
+        #print(i)
+        if txt[i] == '[': # New coordinate
+            i+= 1
+            string = ''
+            while txt[i] != ',': # First value
+                string += txt[i]
+                i += 1
+            num1 = float(string)
+            string = ''
+            i += 2
+            while txt[i] != ']': # Second value
+                string += txt[i]
+                i+=1
+            num2 = float(string)
+        path.append([num1, num2])
+        i += 1 
+    path = np.array(path)
+    return path
