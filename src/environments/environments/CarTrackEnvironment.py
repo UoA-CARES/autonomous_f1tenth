@@ -75,12 +75,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
-        self.LIDAR_POINTS = 10 #10, 683
+        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'raw'
+        self.LIDAR_POINTS = 683 #10, 683
         self.LIDAR_OBS_STACK_SIZE = 1
         
         # TD3AE and SACAE config
-        self.IS_AUTO_ENCODER_ALG = False # Here since observation needs to be different: AE alg has dict states
+        self.IS_AUTO_ENCODER_ALG = True # Here since observation needs to be different: AE alg has dict states
         self.INFO_VECTOR_LENGTH = 2
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
         
