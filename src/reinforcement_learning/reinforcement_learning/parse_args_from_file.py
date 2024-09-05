@@ -1,5 +1,5 @@
 import cares_reinforcement_learning.util.configurations as cares_cfg
-from environments.environments import configurations as cfg
+from environments import configurations as cfg
 
 
 # Here because currently settings are passed to train and test nodes as ROS parameters,

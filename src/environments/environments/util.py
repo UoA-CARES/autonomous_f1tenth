@@ -345,8 +345,9 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         NARROW_WIDTH = [100, 150]
         all_car_goals = None
 
-        all_car_waypoints = { }
-
+        all_car_waypoints = { } 
+        
+        i = 0
         # loop through each track
         for track in TRACKS:
             if "narrow" in track:
@@ -362,7 +363,7 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
                 all_car_waypoints.update({track_name : global_wp})
                 i += 1
 
-        i = 0
+       
 
     return all_car_goals, all_car_waypoints
 

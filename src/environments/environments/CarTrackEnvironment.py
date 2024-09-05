@@ -75,17 +75,17 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'raw'
-        self.LIDAR_POINTS = 683 #10, 683
+        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
+        self.LIDAR_POINTS = 10 #10, 683
         self.LIDAR_OBS_STACK_SIZE = 1
         
         # TD3AE and SACAE config
-        self.IS_AUTO_ENCODER_ALG = True
+        self.IS_AUTO_ENCODER_ALG = False # Here since observation needs to be different: AE alg has dict states
         self.INFO_VECTOR_LENGTH = 2
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
         
         # Evaluation settings
-        self.eval_track_begin_idx = 20 # multi_track_01: 20, multi_track_02: 26
+        self.eval_track_begin_idx = 26 # multi_track_01: 20, multi_track_02: 26
         self.MAX_STEPS_EVAL = 3000
 
         # Respawning balancing setting: respawn car on track with least steps trained trained on it.
@@ -166,7 +166,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.current_track_key = all_track_keys[0]
 
             if self.IS_BALANCING_RESET:
-                self.training_counter_per_track = {track_key:0 for track_key in all_track_keys}
+                self.training_counter_per_track = {track_key:0 for track_key in all_track_keys[:self.eval_track_begin_idx]}
 
             # set current track waypoints
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
@@ -227,7 +227,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             else:
                 if self.IS_BALANCING_RESET:
                     # choose track with least steps trained on it
-                    self.current_track_key = min(self.training_counter_per_track[:self.eval_track_begin_idx], key=self.training_counter_per_track.get)
+                    self.current_track_key = min(self.training_counter_per_track, key=self.training_counter_per_track.get)
                 else:
                     self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
             
