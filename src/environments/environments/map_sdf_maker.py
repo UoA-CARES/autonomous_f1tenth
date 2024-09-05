@@ -2,12 +2,14 @@ import xml.etree.ElementTree as ET
 
 #######################################################################################################
 ### CHANGE STUFF HERE TO MATCH ACTUAL STL FILES
-TRACK_NAMES = ['track_01', 'track_02', 'track_03', 'track_04', 'track_05', 'track_06']
-WIDTHS = [150, 200, 250, 300, 350]
+TRACK_NAMES = ['track_01','track_02','track_03','track_04','narrow_track_01','narrow_track_02','narrow_track_03', 'track_05', 'track_06', 'narrow_track_04']
+WIDE_WIDTH = [150, 200, 250, 300, 350]
+NARROW_WIDTH = [100, 150]
 IS_CREATING_INDIVIDUAL_TRACKS = False
-OUTPUT_FILE_NAME = "multi_track_01"
+OUTPUT_FILE_NAME = "multi_track_02"
 ########################################################################################################
-# TRACK_NAMES = ['track_01', 'track_02', 'track_03', 'track_04', 'track_05', 'track_06']
+# multi_track_01 ['track_01', 'track_02', 'track_03', 'track_04', 'track_05', 'track_06']
+# multi_track_02 ['track_01','track_02','track_03','track_04','narrow_track_01','narrow_track_02','narrow_track_03', 'track_05', 'track_06', 'narrow_track_03']
 
 BASE_SDF = '''<?xml version='1.0'?>
 <sdf version="1.6">
@@ -108,7 +110,7 @@ if __name__ == "__main__":
   if IS_CREATING_INDIVIDUAL_TRACKS:
 
     for track_name in TRACK_NAMES:
-      for width in WIDTHS:
+      for width in WIDE_WIDTH:
         root = ET.fromstring(BASE_SDF)
 
         current_track_name = f"{track_name}_{str(width)}"
@@ -124,7 +126,13 @@ if __name__ == "__main__":
     root = ET.fromstring(BASE_SDF)
 
     for track_name in TRACK_NAMES:
-      for width in WIDTHS:
+
+      if "narrow" in track_name:
+        width_range = NARROW_WIDTH
+      else:
+        width_range = WIDE_WIDTH
+
+      for width in width_range:
         current_track_name = f"{track_name}_{str(width)}"
         element = create_track_element(current_track_name, offset_x=i*30) #each track offset by 30m
         root.find('world').append(element)

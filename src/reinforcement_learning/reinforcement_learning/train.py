@@ -15,6 +15,7 @@ import cares_reinforcement_learning.util.configurations as cares_cfg
 from .parse_args import parse_args
 from .EnvironmentFactory import EnvironmentFactory
 from .training_loops import off_policy_train, ppo_train
+from .parse_args_from_file import parse_args_from_file
 
 def main():
     rclpy.init()
@@ -39,16 +40,10 @@ def main():
     env_factory = EnvironmentFactory()
     network_factory = NetworkFactory()
 
-    autoencoder_config = cares_cfg.VanillaAEConfig(
-        latent_dim= 10,
-        is_1d= True
-    )
-
-    network_config = cares_cfg.TD3AEConfig (
-        autoencoder_config=autoencoder_config,
-        info_vector_size=2,
-    )
-    print(str(network_config))
+    ##############################################################
+    ## TEMPORARILY OVERRIDING NETWORK CONFIG FOR TD3AE AND SACAE
+    ##############################################################
+    _,_,network_config = parse_args_from_file()
 
 
     env = env_factory.create(env_config['environment'], env_config)

@@ -78,9 +78,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'raw'
         self.LIDAR_POINTS = 683 #10, 683
         self.LIDAR_OBS_STACK_SIZE = 1
+        
+        # TD3AE and SACAE config
+        self.IS_AUTO_ENCODER_ALG = True
         self.INFO_VECTOR_LENGTH = 2
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
-        self.IS_AUTO_ENCODER_ALG = True
+        
 
         # Evaluation settings
         self.eval_track_begin_idx = 20
