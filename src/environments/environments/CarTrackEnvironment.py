@@ -84,9 +84,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.INFO_VECTOR_LENGTH = 2
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
         
-
         # Evaluation settings
-        self.eval_track_begin_idx = 20
+        self.eval_track_begin_idx = 20 # multi_track_01: 20, multi_track_02: 26
+        self.MAX_STEPS_EVAL = 3000
+
+        # Respawning balancing setting: respawn car on track with least steps trained trained on it.
+        self.IS_BALANCING_RESET = True
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
@@ -146,7 +149,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.start_waypoint_index = 0
         self.steps_since_last_goal = 0
         self.full_current_state = None
-
+        ######## NOT ON MULTI TRACK ########
         if not self.is_multi_track:
             if "test_track" in track:
                 track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
@@ -155,10 +158,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
             self.track_waypoints = waypoints[track_key]
             self.track_model = TrackMathDef(np.array(self.track_waypoints)[:,:2])
-            
+        
+        ######## ON MULTI TRACK ########
         else:
             _, self.all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
-            self.current_track_key = list(self.all_track_waypoints.keys())[0]
+            all_track_keys = list(self.all_track_waypoints.keys())
+            self.current_track_key = all_track_keys[0]
+
+            if self.IS_BALANCING_RESET:
+                self.training_counter_per_track = {track_key:0 for track_key in all_track_keys}
 
             # set current track waypoints
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
@@ -215,15 +223,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 self.eval_track_idx += 1
                 self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
 
-            # Training: choose a random track that is not used for evaluation
+            # Training: choose a track that is not used for evaluation
             else:
-                self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
+                if self.IS_BALANCING_RESET:
+                    # choose track with least steps trained on it
+                    self.current_track_key = min(self.training_counter_per_track[:self.eval_track_begin_idx], key=self.training_counter_per_track.get)
+                else:
+                    self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
         # start at beginning of track when evaluating
         if self.is_evaluating:
-            car_x, car_y, car_yaw, index = self.track_waypoints[10]
+            car_x, car_y, car_yaw, index = self.track_waypoints[3] # 3 in case track_model being weird with start of spline or something, probably just me being schizo
         # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
@@ -267,7 +279,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.is_evaluating = False
 
     def step(self, action):
+        # update counters
         self.step_counter += 1
+
+        if self.IS_BALANCING_RESET:
+            if not self.is_evaluating:
+                self.training_counter_per_track[self.current_track_key] += 1
         
         # get current state
         full_state = self.full_current_state
@@ -336,14 +353,22 @@ class CarTrackEnvironment(F1tenthEnvironment):
             case 'goal_hitting':
                 return self.steps_since_last_goal >= 20 or \
                 self.step_counter >= self.MAX_STEPS
+            
             case 'progressive':
                 if self.progress_not_met_cnt >= 5:
                     print(f"TRUNCATED: progress not met") 
-                elif self.step_counter >= self.MAX_STEPS:
+                    return True
+                # truncate when training
+                elif self.is_evaluating == False and self.step_counter >= self.MAX_STEPS:
                     print(f"TRUNCATED: max steps exceeded")
+                    return True
+                # truncate when evaluation: might be longer
+                elif self.is_evaluating == True and self.step_counter >= self.MAX_STEPS_EVAL:
+                    print("TRUNCATED: EVAL LAP COMPLETE")
+                    return True
+                else:
+                    return False
 
-                return self.progress_not_met_cnt >= 5 or \
-                self.step_counter >= self.MAX_STEPS
             case _:
                 raise Exception("Unknown truncate condition for reward function.")
 
