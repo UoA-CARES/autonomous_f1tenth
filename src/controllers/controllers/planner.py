@@ -2,7 +2,10 @@ import numpy as np
 import cv2
 import csv
 import rclpy
+import time
+import os
 from .util import absoluteDistance
+
 
 
 def main():
@@ -30,6 +33,8 @@ def main():
     ORIGINY = params[3]
     RESOLUTION = params[4]
 
+    while (os.path.isfile(MAP) == False):
+        time.sleep(1)
     
     # Read the PGM file
     image = cv2.imread(MAP, cv2.IMREAD_GRAYSCALE)
