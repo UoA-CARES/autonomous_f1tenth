@@ -75,21 +75,25 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'raw'
-        self.LIDAR_POINTS = 683 #10, 683
+        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
+        self.LIDAR_POINTS = 10 #10, 683
         self.LIDAR_OBS_STACK_SIZE = 1
         
         # TD3AE and SACAE config
-        self.IS_AUTO_ENCODER_ALG = True # Here since observation needs to be different: AE alg has dict states
+        self.IS_AUTO_ENCODER_ALG = False # Here since observation needs to be different: AE alg has dict states
         self.INFO_VECTOR_LENGTH = 2
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
         
         # Evaluation settings
-        self.eval_track_begin_idx = 26 # multi_track_01: 20, multi_track_02: 26
-        self.MAX_STEPS_EVAL = 3000
+        self.EVAL_TRACK_BEGIN_IDX = 30 # multi_track_01: 20, multi_track_02: 26, multi_track_03: 30
+        self.MAX_STEPS_EVAL = 1000
+        # self.MAX_EVAL_STEPS_PER_TRACK = 400 # 400 * 6 = 2400 eval steps per xxxxxx steps trained 
+        # self.MAX_STEP_PER_EVAL_EPISODE = 20
+        # self.eval_episode_step_counter = 0
 
         # Respawning balancing setting: respawn car on track with least steps trained trained on it.
         self.IS_BALANCING_RESET = True
+        
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
@@ -166,7 +170,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.current_track_key = all_track_keys[0]
 
             if self.IS_BALANCING_RESET:
-                self.training_counter_per_track = {track_key:0 for track_key in all_track_keys[:self.eval_track_begin_idx]}
+                self.training_counter_per_track = {track_key:0 for track_key in all_track_keys[:self.EVAL_TRACK_BEGIN_IDX]}
 
             # set current track waypoints
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
@@ -218,8 +222,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.is_multi_track:
             # Evaluating: loop through eval tracks sequentially
             if self.is_evaluating:
-                eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
+                eval_track_key_list = list(self.all_track_waypoints.keys())[self.EVAL_TRACK_BEGIN_IDX:]
                 self.current_track_key = eval_track_key_list[self.eval_track_idx]
+
                 self.eval_track_idx += 1
                 self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
 
@@ -229,7 +234,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     # choose track with least steps trained on it
                     self.current_track_key = min(self.training_counter_per_track, key=self.training_counter_per_track.get)
                 else:
-                    self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
+                    self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.EVAL_TRACK_BEGIN_IDX])
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
@@ -274,6 +279,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def start_eval(self):
         self.eval_track_idx = 0
         self.is_evaluating = True
+
+        # eval_track_key_list = list(self.all_track_waypoints.keys())[self.EVAL_TRACK_BEGIN_IDX:]
+        # self.eval_counter_per_track = {track_key:0 for track_key in eval_track_key_list}
+
     
     def stop_eval(self):
         self.is_evaluating = False
@@ -283,8 +292,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.step_counter += 1
 
         if self.IS_BALANCING_RESET:
+            # Add to training counter if training
             if not self.is_evaluating:
                 self.training_counter_per_track[self.current_track_key] += 1
+            # # Add to eval counter if evaluating
+            # else:
+            #     self.eval_counter_per_track[self.current_track_key] += 1
         
         # get current state
         full_state = self.full_current_state

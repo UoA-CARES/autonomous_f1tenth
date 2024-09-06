@@ -1,15 +1,16 @@
 train:
   ros__parameters:
     environment: 'CarTrack'  #'CarTrack' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat, CarTrackProgressiveGoal, CarTrack
-    track: 'multi_track_02' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
+    track: 'multi_track_03' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     car_name: 'f1tenth'
-    algorithm: 'TD3AE'
+    algorithm: 'TD3'
     g: 1
     buffer_size: 1000000
     max_steps_exploration: 1000
     observation_mode: 'lidar_only'
     max_steps: 1000
     max_steps_training: 1000000
+    number_steps_per_evaluation: 10000
     is_1d: True
     latent_size: 10
-    number_eval_episodes: 12
+    number_eval_episodes: 6
