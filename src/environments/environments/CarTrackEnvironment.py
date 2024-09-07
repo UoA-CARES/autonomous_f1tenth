@@ -14,6 +14,8 @@ from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
 import random
+from collections import deque
+from itertools import chain
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -76,12 +78,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'raw'
-        self.LIDAR_POINTS = 683 #10, 683
-        self.LIDAR_OBS_STACK_SIZE = 1
+        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
+        self.LIDAR_POINTS = 10 #10, 683
+        self.LIDAR_OBS_STACK_SIZE = 3
         
         # TD3AE and SACAE config
-        self.IS_AUTO_ENCODER_ALG = True # Here since observation needs to be different: AE alg has dict states
+        self.IS_AUTO_ENCODER_ALG = False # Here since observation needs to be different: AE alg has dict states
         self.INFO_VECTOR_LENGTH = 2
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
         
@@ -93,7 +95,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # self.eval_episode_step_counter = 0
 
         # Steering noise addition: to simulate steering command not 100% accurate in real life, sampled uniformly between += noise amp
-        self.STEERING_NOISE_AMP = 0.02 #0.02
+        self.STEERING_NOISE_AMP = 0 #0.02
         
 
         # Respawning balancing setting: respawn car on track with least steps trained trained on it.
@@ -163,8 +165,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.STEERING_NOISE_AMP != 0:
             self.episode_steering_skew = random.uniform(-self.STEERING_NOISE_AMP, self.STEERING_NOISE_AMP)
 
-        # if self.LIDAR_OBS_STACK_SIZE > 1:
-        #     self.lidar_obs_stack = []
+        # using multiple observations
+        if self.LIDAR_OBS_STACK_SIZE > 1:
+            self.lidar_obs_stack = deque([], maxlen=self.LIDAR_OBS_STACK_SIZE)
 
         ######## NOT ON MULTI TRACK ########
         if not self.is_multi_track:
@@ -458,16 +461,49 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     else:
                         extra_observation += [odom[7]]
 
-        
         full_state = odom + processed_lidar_range
+        
+        # is using lidar scan stack for temporal info
+        if self.LIDAR_OBS_STACK_SIZE > 1:
+            # if is first observation, fill stack with current observation
+            if len(self.lidar_obs_stack) <= 1:
+                for _ in range(0,self.OBSERVATION_SIZE):
+                    self.lidar_obs_stack.append(processed_lidar_range)
+            # add current observation to stack.
+            else:
+                self.lidar_obs_stack.append(processed_lidar_range)
 
+        #######################################################
+        ####### FORMING ACTUAL STATE TO BE PASSED ON ##########
+
+        #### Check if should pass a dict state
         if self.IS_AUTO_ENCODER_ALG:
-            state = {
-                'image': np.array([processed_lidar_range]).reshape((self.LIDAR_OBS_STACK_SIZE,-1)), # e.g. shape (683,) -> (1,683)
-                'vector': np.array(limited_odom), # e.g. shape (2,)
-            }
+            
+            # is using lidar scan stack for temporal info
+            if self.LIDAR_OBS_STACK_SIZE > 1:
+                state = {
+                    'image': np.array(self.lidar_obs_stack).reshape((self.LIDAR_OBS_STACK_SIZE,-1)), # e.g. shape (683,) -> (1,683)
+                    'vector': np.array(limited_odom), # e.g. shape (2,)
+                }
+            
+            # not using scan stack
+            else:
+                state = {
+                    'image': np.array([processed_lidar_range]).reshape((self.LIDAR_OBS_STACK_SIZE,-1)), # e.g. shape (683,) -> (1,683)
+                    'vector': np.array(limited_odom), # e.g. shape (2,)
+                }
+
+        #### normal algorithm: flat state
         else:
-            state = limited_odom + processed_lidar_range + extra_observation
+            # is using lidar scan stack for temporal info
+            if self.LIDAR_OBS_STACK_SIZE > 1:
+                flattened_lidar_stack = list(chain(*self.lidar_obs_stack))
+                state = limited_odom + flattened_lidar_stack + extra_observation
+            # not using scan stack
+            else:
+                state = state = limited_odom + processed_lidar_range + extra_observation
+
+        print(np.array(self.lidar_obs_stack))
 
         return state, full_state, lidar.ranges
 
