@@ -13,6 +13,7 @@ from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
+import random
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -75,12 +76,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'raw'
-        self.LIDAR_POINTS = 683 #10, 683
+        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
+        self.LIDAR_POINTS = 10 #10, 683
         self.LIDAR_OBS_STACK_SIZE = 1
         
         # TD3AE and SACAE config
-        self.IS_AUTO_ENCODER_ALG = True # Here since observation needs to be different: AE alg has dict states
+        self.IS_AUTO_ENCODER_ALG = False # Here since observation needs to be different: AE alg has dict states
         self.INFO_VECTOR_LENGTH = 2
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
         
@@ -90,6 +91,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # self.MAX_EVAL_STEPS_PER_TRACK = 400 # 400 * 6 = 2400 eval steps per xxxxxx steps trained 
         # self.MAX_STEP_PER_EVAL_EPISODE = 20
         # self.eval_episode_step_counter = 0
+
+        # Steering noise addition: to simulate steering command not 100% accurate in real life, sampled uniformly between += noise amp
+        self.STEERING_NOISE_AMP = 0.02
+        
 
         # Respawning balancing setting: respawn car on track with least steps trained trained on it.
         self.IS_BALANCING_RESET = True
@@ -153,6 +158,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.start_waypoint_index = 0
         self.steps_since_last_goal = 0
         self.full_current_state = None
+        
+        # simulate steering command not 100% true to actual steer
+        if self.STEERING_NOISE_AMP != 0:
+            self.episode_steering_skew = random.uniform(-self.STEERING_NOISE_AMP, self.STEERING_NOISE_AMP)
+
         ######## NOT ON MULTI TRACK ########
         if not self.is_multi_track:
             if "test_track" in track:
@@ -218,6 +228,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.set_velocity(0, 0)
         print("---- RESET CALLED")
+
+        # adjust episode steering skew (simulate actual car)
+        if self.STEERING_NOISE_AMP != 0:
+            self.episode_steering_skew = random.uniform(-self.STEERING_NOISE_AMP, self.STEERING_NOISE_AMP)
         
         if self.is_multi_track:
             # Evaluating: loop through eval tracks sequentially
@@ -307,6 +321,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # take action and wait
         lin_vel, steering_angle = action
+            # take in steering noise
+        if self.STEERING_NOISE_AMP != 0:
+            steering_angle = steering_angle + self.episode_steering_skew
+
         self.set_velocity(lin_vel, steering_angle)
 
         self.sleep()
