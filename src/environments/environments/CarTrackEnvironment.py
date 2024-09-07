@@ -95,7 +95,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # self.eval_episode_step_counter = 0
 
         # Steering noise addition: to simulate steering command not 100% accurate in real life, sampled uniformly between += noise amp
-        self.STEERING_NOISE_AMP = 0.02 #0.02
+        self.STEERING_NOISE_AMP = 0 #0.02
         
 
         # Respawning balancing setting: respawn car on track with least steps trained trained on it.
