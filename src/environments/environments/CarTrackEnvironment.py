@@ -568,7 +568,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
             reward -= 2
 
         if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
-            reward -= 2.5
+            # reward -= 2.5
+            pass
 
         info = {}
 
