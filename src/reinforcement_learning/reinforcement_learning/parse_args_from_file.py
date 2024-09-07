@@ -50,7 +50,7 @@ def parse_args_from_file():
         is_1d= True
     )
 
-    network_config = cares_cfg.TD3AEConfig (
+    network_config_TD3AE = cares_cfg.TD3AEConfig (
         autoencoder_config=autoencoder_config,
         info_vector_size=2,
         buffer_size=1000000,
@@ -58,8 +58,19 @@ def parse_args_from_file():
         actor_lr=1e-4,
         critic_lr=1e-3
     )
+
+    network_config_SACAE = cares_cfg.SACAEConfig (
+        autoencoder_config=autoencoder_config,
+        info_vector_size=2,
+        buffer_size=1000000,
+        gamma=0.95,
+        actor_lr=1e-4,
+        critic_lr=1e-3
+    )
+
+
     #     env      alg     network
-    return None, None, network_config
+    return None, None, network_config_SACAE
 
 
     
