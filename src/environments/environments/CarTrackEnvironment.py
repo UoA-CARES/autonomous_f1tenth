@@ -163,6 +163,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.STEERING_NOISE_AMP != 0:
             self.episode_steering_skew = random.uniform(-self.STEERING_NOISE_AMP, self.STEERING_NOISE_AMP)
 
+        # if self.LIDAR_OBS_STACK_SIZE > 1:
+        #     self.lidar_obs_stack = []
+
         ######## NOT ON MULTI TRACK ########
         if not self.is_multi_track:
             if "test_track" in track:
