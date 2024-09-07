@@ -467,7 +467,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.LIDAR_OBS_STACK_SIZE > 1:
             # if is first observation, fill stack with current observation
             if len(self.lidar_obs_stack) <= 1:
-                for _ in range(0,self.OBSERVATION_SIZE):
+                for _ in range(0,self.LIDAR_OBS_STACK_SIZE):
                     self.lidar_obs_stack.append(processed_lidar_range)
             # add current observation to stack.
             else:
