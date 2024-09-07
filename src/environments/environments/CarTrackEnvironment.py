@@ -68,7 +68,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         super().__init__('car_track', car_name, max_steps, step_length)
 
         
-
+        #
         #####################################################################################################################
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
