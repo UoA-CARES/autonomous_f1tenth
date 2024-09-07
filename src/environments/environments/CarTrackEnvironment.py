@@ -503,8 +503,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
             else:
                 state = state = limited_odom + processed_lidar_range + extra_observation
 
-        print(np.array(self.lidar_obs_stack))
-
         return state, full_state, lidar.ranges
 
     def compute_reward(self, state, next_state, raw_lidar_range):
