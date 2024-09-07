@@ -6,7 +6,7 @@ train:
     algorithm: 'SACAE'
     g: 1
     buffer_size: 1000000
-    max_steps_exploration: 50
+    max_steps_exploration: 1000
     observation_mode: 'lidar_only'
     max_steps: 1000
     max_steps_training: 1000000
