@@ -54,7 +54,9 @@ def parse_args_from_file():
         autoencoder_config=autoencoder_config,
         info_vector_size=2,
         buffer_size=1000000,
-        gamma=0.95
+        gamma=0.95,
+        actor_lr=1e-4,
+        critic_lr=1e-3
     )
     #     env      alg     network
     return None, None, network_config
