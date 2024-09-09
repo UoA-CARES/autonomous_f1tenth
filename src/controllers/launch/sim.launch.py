@@ -38,7 +38,10 @@ def generate_launch_description():
     config = yaml.load(open(config_path), Loader=yaml.Loader)
     env = config['sim']['ros__parameters']['environment']
     alg = config['sim']['ros__parameters']['algorithm']
-    tracking = config['sim']['ros__parameters']['tracking']
+    if ((alg == 'turn_and_drive') or (alg == 'mpc') or (alg == 'random') or (alg == 'pure_pursuit')):
+        tracking = True
+    else:
+        tracking = False
 
     environment =  IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
