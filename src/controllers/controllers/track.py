@@ -1,5 +1,6 @@
 import rclpy
 import numpy as np
+import os
 from .controller import Controller
 from .util import closestPointIndAhead, loadPath
 import time
@@ -28,6 +29,10 @@ def main():
     
     controller = Controller(ALG, CAR_NAME, 0.25, isCar)
     policy_id = ALG
+
+    while(os.path.isfile(filename) == False):
+        time.sleep(1)
+    
     coordinates = loadPath(filename)
     policy = policy_factory(ALG)
     state = controller.get_observation(policy_id)
