@@ -67,6 +67,13 @@ def generate_launch_description():
             emulate_tty=True, # Allows python print to show
     )
 
+    state_machine = Node(
+        package='controllers',
+        executable= 'state_machine',
+        output='screen',
+        emulate_tty=True,
+    )
+
 
     if tracking:
         alg = Node(
@@ -111,7 +118,8 @@ def generate_launch_description():
             sim,
             lidar_to_base_tf_node,
             odom_to_base_tf_node,
-            amcl_node
+            amcl_node,
+            state_machine
             #algorithm
         ])
 
@@ -139,5 +147,6 @@ def generate_launch_description():
         environment,
         alg,
         sim,
+        state_machine
 ])
 
