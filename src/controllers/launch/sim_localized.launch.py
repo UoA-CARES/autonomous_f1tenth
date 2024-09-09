@@ -115,6 +115,13 @@ def generate_launch_description():
         }.items() 
     )
 
+    mapping = Node(
+        package='controllers',
+        executable = 'mapping',
+        output='screen',
+        emulate_tty=True,
+    )
+
     return LaunchDescription([
         #TODO: Find a way to remove this
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
@@ -124,6 +131,7 @@ def generate_launch_description():
         sim,
         lidar_to_base_tf_node,
         odom_to_base_tf_node,
-        amcl_node
+        amcl_node,
+        mapping
         #algorithm
     ])

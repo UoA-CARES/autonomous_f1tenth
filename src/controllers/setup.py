@@ -29,7 +29,8 @@ setup(
             'sim = controllers.sim:main',
             'track = controllers.track:main',
             'load_path = controllers.load_path:main',
-            'planner = controllers.planner:main'
+            'planner = controllers.planner:main',
+            'mapping = controllers.mapping:main'
         ],
     },
 )
