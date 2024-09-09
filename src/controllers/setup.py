@@ -24,11 +24,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'random_policy = controllers.random:main',
             'ftg_policy = controllers.ftg_policy:main',
             'rl_policy = controllers.rl_policy:main',
-            'turn_drive_policy = controllers.turn_and_drive:main',
-            'mpc_policy = controllers.mpc:main',
             'sim = controllers.sim:main',
             'track = controllers.track:main',
             'load_path = controllers.load_path:main',
