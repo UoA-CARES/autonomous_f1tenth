@@ -106,16 +106,6 @@ def generate_launch_description():
        parameters=[os.path.join(pkg_f1tenth_description, 'config/ekf.yaml'), {'use_sim_time': True}]
     )
 
-    
-    # amcl_node = IncludeLaunchDescription(
-    #     launch_description_source = os.path.join(pkg_nav2_bringup,f'launch/localization_launch.py'),
-    #     launch_arguments = {
-    #         'use_sim_time': 'True',
-    #         'params_file':"./src/f1tenth/f1tenth_description/config/nav2_localize_sim.yaml",
-    #         'map':TextSubstitution(text=str(config['sim']['ros__parameters']['map_file_path']) if 'map_file_path' in config['sim']['ros__parameters'] else 'bruwhy')
-    #     }.items() 
-    # )
-
     slam_node = IncludeLaunchDescription(
         launch_description_source = os.path.join(pkg_slam,f'launch/online_async_launch.py'),
         launch_arguments = {
