@@ -116,13 +116,13 @@ def generate_launch_description():
     #     }.items() 
     # )
 
-    # slam_node = IncludeLaunchDescription(
-    #     launch_description_source = os.path.join(pkg_slam,f'launch/online_async_launch.py'),
-    #     launch_arguments = {
-    #         'use_sim_time': 'True',
-    #         'params_file':"./src/f1tenth/f1tenth_description/config/slam_toolbox.yaml"
-    #     }.items() 
-    # )
+    slam_node = IncludeLaunchDescription(
+        launch_description_source = os.path.join(pkg_slam,f'launch/online_async_launch.py'),
+        launch_arguments = {
+            'use_sim_time': 'True',
+            'slam_params_file':"./src/f1tenth/f1tenth_description/config/slam_toolbox.yaml"
+        }.items() 
+    )
 
     mapping = Node(
         package='controllers',
