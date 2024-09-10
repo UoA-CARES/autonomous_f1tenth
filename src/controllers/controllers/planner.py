@@ -124,8 +124,9 @@ def main():
             print(image[start[0], start[1]])
             if int(image[start[0], start[1]]) != 254:
                 print("Not possible")
-            goalx = start[0] -0.5
-            goaly = start[1] - 0.5
+            goalx = start[0] -3
+            goaly = start[1] - 3
+            goal = [goalx, goaly]
             
         # Dilation (to adjust for thickness of car)
         kernel = np.ones((5, 5), np.uint8)  # Kernel for dilation
@@ -140,6 +141,14 @@ def main():
         dilated_image[start[0]-1, start[1]] = 128
         dilated_image[start[0]-1, start[1]+1] = 128
         #cv2.line(dilated_image, start, newPoint, 150, 4)
+        dilated_image[goal[0], goal[1]] = 200
+        dilated_image[goal[0]+1, goal[1]+1] = 200
+        dilated_image[goal[0]-1, goal[1]-1] = 200
+        dilated_image[goal[0], goal[1]+1] = 200
+        dilated_image[goal[0], goal[1]-1] = 200
+        dilated_image[goal[0]+1, goal[1]] = 200
+        dilated_image[goal[0]-1, goal[1]] = 200
+        dilated_image[goal[0]-1, goal[1]+1] = 200
         cv2.imshow("Drawing", dilated_image)
         cv2.waitKey(5000)
         goal = (goalx, goaly)
