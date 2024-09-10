@@ -48,25 +48,18 @@ def main():
     rclpy.init()
     state_machine = StateMachine()
     print("In state machine")
-    stringToPrint = "Current state: " + str(state_machine.getCurrState())
-    state_machine.get_logger().info(stringToPrint)
     # Get initial odometry
     while(len(state_machine.odom) == 0):
         rclpy.spin_once(state_machine)
         state_machine.get_logger().info(str(state_machine.odom))
         time.sleep(2)
     state_machine.init_odom = state_machine.odom
-    stringToPrint = "Initial State: " + str(state_machine.init_odom) + ", Current State: " + str(state_machine.odom)
-    state_machine.get_logger().info(stringToPrint)
+
     #Waiting to move
     while (absoluteDistance(np.array(state_machine.init_odom), np.array(state_machine.odom)) < 0.2):
         rclpy.spin_once(state_machine)
         time.sleep(0.1)
-    stringToPrint = "Robot moved: Initial State: " + str(state_machine.init_odom) + ", Current State: " + str(state_machine.odom)
-    state_machine.get_logger().info(stringToPrint)
     state_machine.changeState("mapping")
-    stringToPrint = "Current state: " + str(state_machine.getCurrState())
-    state_machine.get_logger().info(stringToPrint)
 
 
     state_machine.destroy_node()
