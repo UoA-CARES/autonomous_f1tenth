@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from itertools import chain
 import rclpy
 from rclpy import Future
 from rclpy.node import Node
@@ -18,6 +19,8 @@ from torch import nn
 from typing import List
 import scipy
 import numpy as np
+from typing import Literal
+from collections import deque
 
 from environments.autoencoders.lidar_beta_vae import BetaVAE1D
 from environments.autoencoders.lidar_autoencoder import LidarConvAE
@@ -34,9 +37,30 @@ class Controller(Node):
           
 
         # Environment Details ----------------------------------------
+        
         self.NAME = car_name
         self.STEP_LENGTH = step_length
-        self.LIDAR_POINTS = lidar_points
+        
+        ######################################################
+        ##### Observation configuration ######################
+
+        self.IS_AUTOENCODER_ALG = False
+        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw", 'forward_reduce'] = 'avg'
+        self.LIDAR_POINTS = 10 #10, 683
+        self.LIDAR_OBS_STACK_SIZE = 1
+
+        #---------------------------------------------
+        if self.IS_AUTOENCODER_ALG:
+            self.OBSERVATION_SIZE = (self.LIDAR_OBS_STACK_SIZE, self.LIDAR_POINTS)
+        else:
+            self.OBSERVATION_SIZE = 2 + (self.LIDAR_POINTS * self.LIDAR_OBS_STACK_SIZE)
+
+         # using multiple observations
+        if self.LIDAR_OBS_STACK_SIZE > 1:
+            self.lidar_obs_stack = deque([], maxlen=self.LIDAR_OBS_STACK_SIZE)
+        
+        ######################################################
+        
         
         # Pub/Sub ----------------------------------------------------
         # Ackermann pub only works for physical version
@@ -153,32 +177,76 @@ class Controller(Node):
 
         odom, lidar = self.get_data()
         odom = process_odom(odom)
-        if self.firstOdom:
-            self.offset = odom[0:6]
-            self.firstOdom = False
-        odom[0] = odom[0] - self.offset[0]
-        odom[1] = odom[1] - self.offset[1]
-        odom[2] = odom[2] - self.offset[2]
-        odom[3] = odom[3] - self.offset[3]
-        odom[4] = odom[4] - self.offset[4]
-        odom[5] = odom[5] - self.offset[5]
+
+        limited_odom = odom[-2:]
+        # if self.firstOdom:
+        #     self.offset = odom[0:6]
+        #     self.firstOdom = False
+        # odom[0] = odom[0] - self.offset[0]
+        # odom[1] = odom[1] - self.offset[1]
+        # odom[2] = odom[2] - self.offset[2]
+        # odom[3] = odom[3] - self.offset[3]
+        # odom[4] = odom[4] - self.offset[4]
+        # odom[5] = odom[5] - self.offset[5]
+        
         num_points = self.LIDAR_POINTS
 
-        if policy == 'ftg':
-            lidar_range = forward_reduce_lidar(lidar)
-        else:
-            lidar_range = avg_lidar(lidar, num_points)
 
-        # TODO: find out how to deal with this better. 
-        # Testing code for pre trained AE
-        # # ae_range = process_ae_lidar_beta_vae(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
-        # ae_range = process_ae_lidar(lidar, self.ae_lidar_model,is_latent_only = False)
-        # # scan = create_lidar_msg(lidar, num_points, lidar_range)
-        # scan = create_lidar_msg(lidar, len(ae_range), ae_range)
+        match self.LIDAR_PROCESSING:
+            case 'avg':
+                processed_lidar_range = avg_lidar(lidar, num_points)
+                visualized_range = processed_lidar_range
+                scan = create_lidar_msg(lidar, num_points, visualized_range)
+            case 'raw':
+                processed_lidar_range = np.array(lidar.ranges.tolist())
+                processed_lidar_range = np.nan_to_num(processed_lidar_range, posinf=-5, nan=-5, neginf=-5).tolist()  
+                visualized_range = processed_lidar_range
+                scan = create_lidar_msg(lidar, num_points, visualized_range)
+            case 'forward_reduce':
+                processed_lidar_range = forward_reduce_lidar(lidar)
 
-        scan = create_lidar_msg(lidar, len(lidar_range), lidar_range)
+
         self.processed_publisher.publish(scan)
-        state = odom+lidar_range
+
+        # is using lidar scan stack for temporal info
+        if self.LIDAR_OBS_STACK_SIZE > 1:
+            # if is first observation, fill stack with current observation
+            if len(self.lidar_obs_stack) <= 1:
+                for _ in range(0,self.LIDAR_OBS_STACK_SIZE):
+                    self.lidar_obs_stack.append(processed_lidar_range)
+            # add current observation to stack.
+            else:
+                self.lidar_obs_stack.append(processed_lidar_range)
+
+        #######################################################
+        ####### FORMING ACTUAL STATE TO BE PASSED ON ##########
+
+        #### Check if should pass a dict state
+        if self.IS_AUTOENCODER_ALG:
+            # is using lidar scan stack for temporal info
+            if self.LIDAR_OBS_STACK_SIZE > 1:
+                state = {
+                    'image': np.array(self.lidar_obs_stack).reshape((self.LIDAR_OBS_STACK_SIZE,-1)), # e.g. shape (683,) -> (1,683)
+                    'vector': np.array(limited_odom), # e.g. shape (2,)
+                }
+            
+            # not using scan stack
+            else:
+                state = {
+                    'image': np.array([processed_lidar_range]).reshape((self.LIDAR_OBS_STACK_SIZE,-1)), # e.g. shape (683,) -> (1,683)
+                    'vector': np.array(limited_odom), # e.g. shape (2,)
+                }
+
+        #### normal algorithm: flat state
+        else:
+            # is using lidar scan stack for temporal info
+            if self.LIDAR_OBS_STACK_SIZE > 1:
+                flattened_lidar_stack = list(chain(*self.lidar_obs_stack))
+                state = limited_odom + flattened_lidar_stack 
+            # not using scan stack
+            else:
+                state = state = limited_odom + processed_lidar_range 
+        
         return state
         
 
@@ -232,11 +300,14 @@ class Controller(Node):
         delta = math.atan((L * omega) / linear_v)
 
         return delta
+    
+    ###############################################
+    #### Action modifier ##########################
 
-    def vel_mod(self, linear):
-        max_vel = 0.5
-        linear = min(max_vel, linear)
-        return linear
+    def vel_mod(self, linear_v):
+        max_vel = 3
+        linear_v = min(max_vel, linear_v)
+        return linear_v
 
     def angle_mod(self, angle):
         max_angle = 0.85
@@ -245,6 +316,7 @@ class Controller(Node):
             angle = 0
         return angle
 
+    #####################################################
     def sleep(self):
         while not self.timer_future.done():
             rclpy.spin_once(self)

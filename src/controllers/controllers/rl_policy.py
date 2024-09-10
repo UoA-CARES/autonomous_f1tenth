@@ -5,6 +5,7 @@ import numpy as np
 from cares_reinforcement_learning.util.helpers import denormalize
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from reinforcement_learning.parse_args import parse_args
+from reinforcement_learning.parse_args_from_file import parse_args_from_file
 
 def main():
     rclpy.init()
@@ -12,17 +13,21 @@ def main():
     env_config, _, network_config, rest = parse_args()
     
     # speed and turn limit
-    MAX_ACTIONS = np.asarray([1, 0.45])
-    MIN_ACTIONS = np.asarray([0, -0.45])
+    MAX_ACTIONS = np.asarray([3, 0.434])
+    MIN_ACTIONS = np.asarray([0, -0.434])
 
     controller = Controller('rl_policy_', env_config['car_name'], step_length=0.1)
     policy_id = 'rl'
 
-    OBSERVATION_SIZE=12 + 1
     ACTION_NUM=2
 
+    ##############################################################
+    ## TEMPORARILY OVERRIDING NETWORK CONFIG FOR TD3AE AND SACAE
+    ##############################################################
+    # _,_,network_config = parse_args_from_file()
+
     network_factory = NetworkFactory()
-    agent = network_factory.create_network(OBSERVATION_SIZE, ACTION_NUM, config=network_config)
+    agent = network_factory.create_network(controller.OBSERVATION_SIZE, ACTION_NUM, config=network_config)
 
     # Load models if both paths are provided
     if rest['actor_path'] and rest['critic_path']:
@@ -35,11 +40,11 @@ def main():
     
 
     state = controller.step([0, 0], policy_id)
-    state = state[6:]
+    # state = state[6:]
 
     while True:
         action = agent.select_action_from_policy(state)
      
         action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
         state = controller.step(action, policy_id)
-        state = state[6:]
+        # state = state[6:]

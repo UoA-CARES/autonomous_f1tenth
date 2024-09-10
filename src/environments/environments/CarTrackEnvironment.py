@@ -257,6 +257,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.EVAL_TRACK_BEGIN_IDX])
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
+            
+            print(f"New track: {self.current_track_key}")
 
         # start at beginning of track when evaluating
         if self.is_evaluating:
@@ -269,9 +271,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
         self.goal_position = [x,y]
-
-        print(f"New track: {self.current_track_key}")
-        # print(f"LOC: ({car_x},{car_y},{car_yaw})")
 
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
 
