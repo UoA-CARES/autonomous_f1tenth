@@ -4,6 +4,8 @@ from std_msgs.msg import String
 import time
 from message_filters import Subscriber
 from nav_msgs.msg import Odometry
+from .util import absoluteDistance
+import numpy as np
 
 class StateMachine(Node):
     def __init__(self):
@@ -22,12 +24,13 @@ class StateMachine(Node):
             10
         )   
     
-        self.currState = 'mapping'
+        self.currState = 'setup'
         self.odom = []
+        self.init_odom = []
 
     def odom_callback(self, msg):
         position = msg.pose.pose.position
-        self.odom = [position.x, position.y, position.z]
+        self.odom = [position.x, position.y]
         #self.get_logger().info("reading odom")
     
     def pubState(self, str):
@@ -38,18 +41,33 @@ class StateMachine(Node):
     def getCurrState(self):
         return self.currState
     
-    def moveState(self, newState):
+    def changeState(self, newState):
         self.currState = newState
 
 def main():
     rclpy.init()
     state_machine = StateMachine()
     print("In state machine")
-    
-    while(1):
+    stringToPrint = "Current state: " + str(state_machine.getCurrState())
+    state_machine.get_logger().info(stringToPrint)
+    # Get initial odometry
+    while(len(state_machine.odom) == 0):
         rclpy.spin_once(state_machine)
         state_machine.get_logger().info(str(state_machine.odom))
         time.sleep(2)
+    state_machine.init_odom = state_machine.odom
+    stringToPrint = "Initial State: " + str(state_machine.init_odom) + ", Current State: " + str(state_machine.odom)
+    state_machine.get_logger().info(stringToPrint)
+    #Waiting to move
+    while (absoluteDistance(np.array(state_machine.init_odom), np.array(state_machine.odom)) < 0.2):
+        rclpy.spin_once(state_machine)
+        time.sleep(0.1)
+    stringToPrint = "Robot moved: Initial State: " + str(state_machine.init_odom) + ", Current State: " + str(state_machine.odom)
+    state_machine.get_logger().info(stringToPrint)
+    state_machine.changeState("mapping")
+    stringToPrint = "Current state: " + str(state_machine.getCurrState())
+    state_machine.get_logger().info(stringToPrint)
+
 
     state_machine.destroy_node()
     rclpy.shutdown()
