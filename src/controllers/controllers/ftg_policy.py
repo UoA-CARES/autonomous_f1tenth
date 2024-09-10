@@ -1,6 +1,7 @@
 import rclpy
 import numpy as np
 from .controller import Controller
+import os
 
 def main():
     rclpy.init()
@@ -24,9 +25,11 @@ def main():
     policy_id = 'ftg'
     state = controller.get_observation(policy_id)
 
-    while True:
+    while (os.path.isfile('stateMap.pgm') == False):
         action = policy.select_action(state)
         state = controller.step(action, policy_id)
+    action = np.asarray([0, 0])
+    state = controller.step(action, policy_id)
 
 
 

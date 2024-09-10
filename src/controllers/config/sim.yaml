@@ -1,9 +1,9 @@
 sim:
   ros__parameters:
-    algorithm: 'ftg'
+    algorithm: 'pure_pursuit'
     observation_mode: 'lidar_only'
     environment: 'CarTrack'
-    track: 'austin_track'
+    track: 'test_track_02_300'
     step_length: 0.1
     reward_range: 3
     collision_range: 0.2

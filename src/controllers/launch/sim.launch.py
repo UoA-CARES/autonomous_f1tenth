@@ -101,15 +101,22 @@ def generate_launch_description():
             output='screen',
             parameters=[os.path.join(pkg_f1tenth_description, 'config/ekf.yaml'), {'use_sim_time': True}]
         )
-        # AMCL node to actually provide localization info
-        amcl_node = IncludeLaunchDescription(
-            launch_description_source = os.path.join(pkg_nav2_bringup,f'launch/localization_launch.py'),
-            launch_arguments = {
-                'use_sim_time': 'True',
-                'params_file':"./src/f1tenth/f1tenth_description/config/nav2_localize_sim.yaml",
-                'map':TextSubstitution(text=str(config['sim']['ros__parameters']['map_file_path']) if 'map_file_path' in config['sim']['ros__parameters'] else 'bruwhy')
-            }.items() 
+
+        slam_node = IncludeLaunchDescription(
+        launch_description_source = os.path.join(pkg_slam,f'launch/online_async_launch.py'),
+        launch_arguments = {
+            'use_sim_time': 'True',
+            'slam_params_file':"./src/f1tenth/f1tenth_description/config/slam_toolbox.yaml"
+        }.items() 
         )
+
+        ftg_node = Node(
+                package='controllers',
+                executable='ftg_policy',
+                output='screen',
+                parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')}],
+        )
+        
 
         return LaunchDescription([
             SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
@@ -119,8 +126,9 @@ def generate_launch_description():
             sim,
             lidar_to_base_tf_node,
             odom_to_base_tf_node,
-            amcl_node,
-            state_machine
+            slam_node,
+            state_machine,
+            ftg_node
             #algorithm
         ])
 
