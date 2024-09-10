@@ -39,12 +39,23 @@ def main():
     
     # Read the PGM file
     image = cv2.imread(MAP, cv2.IMREAD_GRAYSCALE)
+    for row in range(image.shape[0]):
+        if image[row, 0] == 254:
+            image[row, 0] = 0
+        if image[row, image.shape[1]-1] == 254:
+            image[row, image.shape[1]-1] = 0
+        
+    for col in range(image.shape[1]):
+        if image[0, col] == 254:
+            image[0, col] = 0
+        if image[image.shape[0]-1, col] == 254:
+            image[image.shape[0]-1, col] = 0
     # Open CSV file in write mode with 'newline=""'
     file = open("output.csv", 'w', newline='')
-    newPath = open("newpath.txt", 'w')
+    
     csv_writer = csv.writer(file)
-    cv2.imshow("Image", image)
-    cv2.waitKey(3000)
+    #cv2.imshow("Image", image)
+    #cv2.waitKey(3000)
     # Check if the image was loaded correctly
     if image is None:
         print("Error: Could not open or find the image.")
@@ -120,8 +131,8 @@ def main():
             shape = image.shape
             resolution = resolution
             start = findOrigin(origin, shape, resolution)
-            print(image.shape)
-            print(image[start[0], start[1]])
+            #print(image.shape)
+            #print(image[start[0], start[1]])
             if int(image[start[0], start[1]]) != 254:
                 print("Not possible")
             goalx = start[0] -3
@@ -131,24 +142,36 @@ def main():
         # Dilation (to adjust for thickness of car)
         kernel = np.ones((5, 5), np.uint8)  # Kernel for dilation
         dilated_image = cv2.dilate(thresholded_image, kernel, iterations=1)
+        colour = 0
+        i = start[0]
+        while colour == 0:
+            dilated_image[i, start[1]-1] = 254
+            i +=1
+            colour = dilated_image[i, start[1]-1]
+        colour = 0
+        i = start[0]-1
+        while colour == 0:
+            dilated_image[i, start[1]-1] = 254
+            i-=1
+            colour = dilated_image[i, start[1]-1]
         # Draw the perpendicular line
-        dilated_image[start[0], start[1]] = 128
-        dilated_image[start[0]+1, start[1]+1] = 128
-        dilated_image[start[0]-1, start[1]-1] = 128
-        dilated_image[start[0], start[1]+1] = 128
-        dilated_image[start[0], start[1]-1] = 128
-        dilated_image[start[0]+1, start[1]] = 128
-        dilated_image[start[0]-1, start[1]] = 128
-        dilated_image[start[0]-1, start[1]+1] = 128
+        # dilated_image[start[0], start[1]] = 128
+        # dilated_image[start[0]+1, start[1]+1] = 128
+        # dilated_image[start[0]-1, start[1]-1] = 128
+        # dilated_image[start[0], start[1]+1] = 128
+        # dilated_image[start[0], start[1]-1] = 128
+        # dilated_image[start[0]+1, start[1]] = 128
+        # dilated_image[start[0]-1, start[1]] = 128
+        # dilated_image[start[0]-1, start[1]+1] = 128
         #cv2.line(dilated_image, start, newPoint, 150, 4)
-        dilated_image[goal[0], goal[1]] = 200
-        dilated_image[goal[0]+1, goal[1]+1] = 200
-        dilated_image[goal[0]-1, goal[1]-1] = 200
-        dilated_image[goal[0], goal[1]+1] = 200
-        dilated_image[goal[0], goal[1]-1] = 200
-        dilated_image[goal[0]+1, goal[1]] = 200
-        dilated_image[goal[0]-1, goal[1]] = 200
-        dilated_image[goal[0]-1, goal[1]+1] = 200
+        # dilated_image[goal[0], goal[1]] = 200
+        # dilated_image[goal[0]+1, goal[1]+1] = 200
+        # dilated_image[goal[0]-1, goal[1]-1] = 200
+        # dilated_image[goal[0], goal[1]+1] = 200
+        # dilated_image[goal[0], goal[1]-1] = 200
+        # dilated_image[goal[0]+1, goal[1]] = 200
+        # dilated_image[goal[0]-1, goal[1]] = 200
+        # dilated_image[goal[0]-1, goal[1]+1] = 200
         cv2.imshow("Drawing", dilated_image)
         cv2.waitKey(5000)
         goal = (goalx, goaly)
@@ -204,6 +227,7 @@ def main():
         resolution = resolution
         newcoords = coordinateShift(path, origin, shape, resolution)
         newcoords = trimCoords(newcoords, 1)
+        newPath = open("newpath.txt", 'w')
         for state in reversed(newcoords):
             s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
             newPath.write(s)
