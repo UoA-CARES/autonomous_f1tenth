@@ -9,6 +9,7 @@ from .util import absoluteDistance
 import numpy as np
 from .controller import Controller
 from .mapping import MinimalClientAsync
+import os
 
 class StateMachine(Node):
     def __init__(self):
@@ -34,6 +35,7 @@ class StateMachine(Node):
     
     def changeState(self, newState):
         self.currState = newState
+        self.pubState(self.currState[0])
 
     def getOdom(self):
         state = self.odomController.get_observation("stateMachine")
@@ -73,7 +75,11 @@ def main():
 
     map_saver.destroy_node()
     state_machine.changeState("planning")
-
+    while(os.path.isfile('newpath.txt') == False):
+        time.sleep(0.2)
+    state_machine.changeState('tracking')
+    while(1):
+        time.sleep(1)
     state_machine.destroy_node()
     rclpy.shutdown()
         
