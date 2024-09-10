@@ -29,6 +29,7 @@ def generate_launch_description():
     pkg_environments = get_package_share_directory('environments')
     pkg_controllers = get_package_share_directory('controllers')
     pkg_nav2_bringup = get_package_share_directory('nav2_bringup')
+    pkg_slam = get_package_share_directory('slam_toolbox')
 
     config_path = os.path.join(
         pkg_controllers,
@@ -139,7 +140,28 @@ def generate_launch_description():
                     'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth'),
                 }.items()
             )
+    lidar_to_base_tf_node = launch_ros.actions.Node( 
+            package='tf2_ros', 
+            executable='static_transform_publisher', 
+            arguments=['0', '0', '0', '0', '0', '0', "f1tenthbase_link", "f1tenthhokuyo_10lx_lidar_link"], 
+            output='screen'
+        )
+    # Launch odom localization node to provide TF info from odom reading to base_link
+    odom_to_base_tf_node = launch_ros.actions.Node(
+        package='robot_localization',
+        executable='ekf_node',
+        name='ekf_filter_node',
+        output='screen',
+        parameters=[os.path.join(pkg_f1tenth_description, 'config/ekf.yaml'), {'use_sim_time': True}]
+    )
 
+    slam_node = IncludeLaunchDescription(
+        launch_description_source = os.path.join(pkg_slam,f'launch/online_async_launch.py'),
+        launch_arguments = {
+            'use_sim_time': 'True',
+            'slam_params_file':"./src/f1tenth/f1tenth_description/config/slam_toolbox.yaml"
+        }.items() 
+    )
 
     return LaunchDescription([
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
@@ -147,6 +169,9 @@ def generate_launch_description():
         environment,
         alg,
         sim,
-        state_machine
+        state_machine,
+        lidar_to_base_tf_node,
+        odom_to_base_tf_node,
+        slam_node
 ])
 
