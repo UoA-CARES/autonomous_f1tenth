@@ -1,7 +1,7 @@
 import numpy as np
 
 # Returns steering angle to turn to goal
-def turn_to_goal(location, yaw, goal, goal_tolerance=0.5, angle_diff_tolerance=0.1, max_turn=0.85):
+def turn_to_goal(location, yaw, goal, goal_tolerance=0.5, angle_diff_tolerance=0.2, max_turn=1):
 
     distance = goal - location # x, y array
 

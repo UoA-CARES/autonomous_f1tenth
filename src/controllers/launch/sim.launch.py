@@ -68,12 +68,12 @@ def generate_launch_description():
             emulate_tty=True, # Allows python print to show
     )
 
-    state_machine = Node(
-        package='controllers',
-        executable= 'state_machine',
-        output='screen',
-        emulate_tty=True,
-    )
+    # state_machine = Node(
+    #     package='controllers',
+    #     executable= 'state_machine',
+    #     output='screen',
+    #     emulate_tty=True,
+    # )
 
 
     if tracking:
@@ -127,7 +127,7 @@ def generate_launch_description():
             lidar_to_base_tf_node,
             odom_to_base_tf_node,
             slam_node,
-            state_machine,
+            #state_machine,
             ftg_node
             #algorithm
         ])

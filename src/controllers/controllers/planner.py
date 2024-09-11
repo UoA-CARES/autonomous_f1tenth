@@ -140,7 +140,7 @@ def main():
             goal = [goalx, goaly]
             
         # Dilation (to adjust for thickness of car)
-        kernel = np.ones((10, 10), np.uint8)  # Kernel for dilation
+        kernel = np.ones((15, 15), np.uint8)  # Kernel for dilation
         dilated_image = cv2.dilate(thresholded_image, kernel, iterations=1)
         colour = 0
         i = start[0]

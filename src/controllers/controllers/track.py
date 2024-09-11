@@ -49,7 +49,7 @@ def main():
 
         # moves car
         controller.step(action, policy_id)
-        time.sleep(0.3)
+        time.sleep(0.1)
         action = np.asarray([0,0])
         controller.step(action, policy_id)
         time.sleep(0.1)
