@@ -2,7 +2,7 @@ import rclpy
 import numpy as np
 import os
 from .controller import Controller
-from .util import closestPointIndAhead, loadPath
+from .util import closestPointIndAhead, loadPath, furthestPointInRange
 import time
 
 def main():
@@ -39,13 +39,17 @@ def main():
     while True:
         
         if policy.multiCoord == False:
-            goalInd = closestPointIndAhead(state[0:2], coordinates)
+            goalInd = furthestPointInRange(state[0:2], coordinates, 0.8)
             goal = coordinates[goalInd]
+            if goalInd != (len(coordinates)-1):
+                nextGoal = coordinates[goalInd + 1]
+            else:
+                nextGoal = coordinates[0]
         else:
             policy.loadPath(coordinates)
             goal = np.asarray([[0, 0]])
         state = controller.get_observation(policy_id)
-        action = policy.select_action(state, goal)   
+        action = policy.select_action(state, goal, nextGoal)   
 
         # moves car
         controller.step(action, policy_id)

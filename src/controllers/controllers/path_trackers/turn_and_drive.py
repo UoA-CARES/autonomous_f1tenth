@@ -8,7 +8,7 @@ class TurnAndDrive():
 
     logger = rcutils_logger.RcutilsLogger(name="tnd_log")
 
-    def __init__(self, turning_lin_vel = 0.2, turning_ang_modifier = 1, straight_lin_vel = 1, angle_diff_tolerance = 0.1, goal_tolerance = 0.2, steering_to_neutral_delay = 0.5):
+    def __init__(self, turning_lin_vel = 0.2, turning_ang_modifier = 1, straight_lin_vel = 0.8, angle_diff_tolerance = 0.1, goal_tolerance = 0.2, steering_to_neutral_delay = 0.5):
         self.turning_lin_vel = turning_lin_vel
         self.turning_ang_modifier = turning_ang_modifier
         self.straight_lin_vel = straight_lin_vel
@@ -26,7 +26,7 @@ class TurnAndDrive():
         self.is_waiting_for_steering_neutral = False
 
     # Still fixing
-    def select_action(self, state, goal):
+    def select_action(self, state, goal, nextGoal):
         location = state[0:2]
         self_angle = get_euler_from_quarternion(state[2],state[3],state[4],state[5])[2]
 
@@ -38,10 +38,16 @@ class TurnAndDrive():
 
         # if already at goal location
         if ((abs(distance[0]) < self.goal_tolerance) and (abs(distance[1] < self.goal_tolerance))):
+            #self.logger.info("At goal")
+            #lin = 0
+            #action = np.asarray([lin, ang])
+            #return action
             self.logger.info("At goal")
-            lin = 0
-            action = np.asarray([lin, ang])
-            return action
+            goal = nextGoal
+            self.logger.info("Next goal: "+str(goal))
+            ang = turn_to_goal(location, self_angle, goal)
+            distance = goal - location
+
         
         if abs(ang) > 0:
             lin = self.turning_lin_vel

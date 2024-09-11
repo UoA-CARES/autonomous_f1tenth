@@ -68,6 +68,30 @@ def closestPointIndAhead(location, path, buffer=0.8): #buffer = 1 for turn and d
     else:
         return closestPointIndex
     
+def furthestPointInRange(location, path, look_ahead):
+    row, _ = path.shape
+    minDist = np.inf
+    lastPointInd = -1
+    for i in range(row):
+        point = path[i]
+        distance = point - location
+        hyp = np.hypot(distance[0], distance[1])    
+        if (hyp < minDist): # Find closest point on path to car
+            closestPointInd = i
+            minDist = hyp
+        if (hyp < look_ahead): # Find last point within lookahead distance to car
+            lastPointInd = i
+    if lastPointInd == (range(row-1)):
+        for i in range(2):
+            point = path[i]
+            distance = point - location
+            hyp = np.hypot(distance[0], distance[1])
+            if (hyp < look_ahead):
+                lastPointInd = i
+    if lastPointInd < 0: # If no points within lookahead range, goal1 is closest point
+        return closestPointInd
+    return lastPointInd
+
 # Needs fix
 def linCalc(ang, maxLin=1, maxAng=0.85, fullSpeedCutoff = 0.05):
     if ang < fullSpeedCutoff:

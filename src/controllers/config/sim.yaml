@@ -1,6 +1,6 @@
 sim:
   ros__parameters:
-    algorithm: 'pure_pursuit'
+    algorithm: 'mpc'
     observation_mode: 'lidar_only'
     environment: 'CarTrack'
     track: 'test_track_02_300'

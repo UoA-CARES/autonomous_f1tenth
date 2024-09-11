@@ -87,7 +87,7 @@ class PurePursuit():
         goal = np.asarray([0, 0])
         return goal
     
-    def select_action(self, state, goal):
+    def select_action(self, state, goal, nextGoal):
         MAX_ACTIONS = np.asarray([0.5, 0.5])
         MIN_ACTIONS = np.asarray([0, -0.7])
 
