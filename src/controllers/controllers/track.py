@@ -32,6 +32,7 @@ def main():
 
     while(os.path.isfile(filename) == False):
         time.sleep(1)
+    time.sleep(1)
     
     coordinates = loadPath(filename)
     policy = policy_factory(ALG)
@@ -53,7 +54,7 @@ def main():
 
         # moves car
         controller.step(action, policy_id)
-        time.sleep(0.1)
+        time.sleep(0.15)
         action = np.asarray([0,0])
         controller.step(action, policy_id)
         time.sleep(0.1)

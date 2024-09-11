@@ -48,7 +48,7 @@ class MPC():
         return cost
     
     def select_action(self, state, goal, nextGoal):
-        MAX_ACTIONS = np.asarray([0.2, 0.85])
+        MAX_ACTIONS = np.asarray([0.4, 0.85])
         MIN_ACTIONS = np.asarray([0, -0.85])
         self.logger.info("Current Location: "+str(state[0:2]))
         self.logger.info("Current goal: "+str(goal))

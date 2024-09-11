@@ -2,6 +2,7 @@ import rclpy
 import numpy as np
 from .controller import Controller
 import os
+import time
 
 def main():
     rclpy.init()
@@ -29,6 +30,7 @@ def main():
         action = policy.select_action(state)
         state = controller.step(action, policy_id)
     action = np.asarray([0, 0])
+    time.sleep(1)
     state = controller.step(action, policy_id)
 
 
