@@ -18,7 +18,7 @@ def main():
     controller = Controller('rl_policy_', env_config['car_name'], step_length=0.1)
     policy_id = 'rl'
 
-    OBSERVATION_SIZE=12 + 1
+    OBSERVATION_SIZE=12
     ACTION_NUM=2
 
     network_factory = NetworkFactory()
@@ -36,10 +36,13 @@ def main():
 
     state = controller.step([0, 0], policy_id)
     state = state[6:]
+    file = open("coords.txt", 'w')
 
     while True:
         action = agent.select_action_from_policy(state)
-     
+        s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
+        file.write(s)
         action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
         state = controller.step(action, policy_id)
         state = state[6:]
+    file.close()

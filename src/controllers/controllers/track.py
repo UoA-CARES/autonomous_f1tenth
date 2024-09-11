@@ -19,7 +19,7 @@ def main():
             ('path_file_path', 'random')
         ]
     )
-    
+    location = []
     params = param_node.get_parameters(['car_name', 'alg', 'isCar', 'path_file_path'])
     params = [param.value for param in params]
     CAR_NAME = params[0]
@@ -33,7 +33,7 @@ def main():
     while(os.path.isfile(filename) == False):
         time.sleep(1)
     time.sleep(1)
-    
+    file = open("coords.txt", 'w')
     coordinates = loadPath(filename)
     policy = policy_factory(ALG)
     state = controller.get_observation(policy_id)
@@ -49,15 +49,18 @@ def main():
         else:
             policy.loadPath(coordinates)
             goal = np.asarray([[0, 0]])
+            nextGoal = goal
         state = controller.get_observation(policy_id)
         action = policy.select_action(state, goal, nextGoal)   
-
         # moves car
         controller.step(action, policy_id)
+        s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
+        file.write(s)
         time.sleep(0.15)
         action = np.asarray([0,0])
         controller.step(action, policy_id)
         time.sleep(0.1)
+    file.close()
 
 def policy_factory(alg):
     policy = 0

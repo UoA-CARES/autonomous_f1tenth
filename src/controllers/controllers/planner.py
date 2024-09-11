@@ -131,6 +131,8 @@ def main():
             shape = image.shape
             resolution = resolution
             start = findOrigin(origin, shape, resolution)
+            #Only for track 1
+            start[0] = start[0] +5
             #print(image.shape)
             #print(image[start[0], start[1]])
             if int(image[start[0], start[1]]) != 254:
@@ -140,7 +142,7 @@ def main():
             goal = [goalx, goaly]
             
         # Dilation (to adjust for thickness of car)
-        kernel = np.ones((15, 15), np.uint8)  # Kernel for dilation
+        kernel = np.ones((15, 15), np.uint8)  # Kernel for dilation 15, 15, for track2
         dilated_image = cv2.dilate(thresholded_image, kernel, iterations=1)
         colour = 0
         i = start[0]
@@ -172,8 +174,8 @@ def main():
         # dilated_image[goal[0]+1, goal[1]] = 200
         # dilated_image[goal[0]-1, goal[1]] = 200
         # dilated_image[goal[0]-1, goal[1]+1] = 200
-        cv2.imshow("Drawing", dilated_image)
-        cv2.waitKey(5000)
+        #cv2.imshow("Drawing", dilated_image)
+        #cv2.waitKey(5000)
         goal = (goalx, goaly)
         start = (start[0], start[1])
         # Coordinates of the pixel to change (starting position on start line)
@@ -196,8 +198,8 @@ def main():
         threshold_value = 127  # Example threshold value
         max_value = 255         # Maximum pixel value after thresholding
         ret, add_car_image = cv2.threshold(add_car_image, threshold_value, max_value, cv2.THRESH_BINARY_INV)
-        cv2.imshow("With marker", add_car_image)
-        cv2.waitKey(3000)
+        #cv2.imshow("With marker", add_car_image)
+        #cv2.waitKey(3000)
         #dstar = DStarLite(start, goal, add_car_image)
         policy = policy_factory(ALG, start, goal, add_car_image)
         # Run A* algorithm
@@ -216,8 +218,8 @@ def main():
             output_image[pos[0], pos[1]] = 128
 
         
-        cv2.imshow('Final Image', output_image)
-        cv2.waitKey(3000)
+        #cv2.imshow('Final Image', output_image)
+        #cv2.waitKey(3000)
         cv2.imwrite('path.pgm', output_image)
 
         cv2.destroyAllWindows()
@@ -229,7 +231,7 @@ def main():
         newcoords = trimCoords(newcoords, 1)
         newPath = open("newpath.txt", 'w')
         #for state in reversed(newcoords):
-        for state in reversed(newcoords):
+        for state in (newcoords):
             s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
             newPath.write(s)
 

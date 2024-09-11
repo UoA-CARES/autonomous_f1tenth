@@ -25,11 +25,15 @@ def main():
     policy = FollowTheGapPolicy()
     policy_id = 'ftg'
     state = controller.get_observation(policy_id)
+    file = open("coords.txt", "w")
 
     while (os.path.isfile('stateMap.pgm') == False):
         action = policy.select_action(state)
         state = controller.step(action, policy_id)
+        s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
+        file.write(s)
     action = np.asarray([0, 0])
+    file.close()
     time.sleep(1)
     state = controller.step(action, policy_id)
 
@@ -45,7 +49,7 @@ class FollowTheGapPolicy():
         return meeting_point
     
     def calc_border_distances(self,range):
-        obstacle_buffer = 0.0001 # value needs to be tinkered with
+        obstacle_buffer = 0.001 # value needs to be tinkered with
         chassis_width = 0.16
 
         d_n = np.sqrt(max(0.001,range**2-(obstacle_buffer+chassis_width)**2))

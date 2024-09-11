@@ -68,12 +68,12 @@ def generate_launch_description():
             emulate_tty=True, # Allows python print to show
     )
 
-    state_machine = Node(
-        package='controllers',
-        executable= 'state_machine',
-        output='screen',
-        emulate_tty=True,
-    )
+    # state_machine = Node(
+    #     package='controllers',
+    #     executable= 'state_machine',
+    #     output='screen',
+    #     emulate_tty=True,
+    # )
 
 
     if tracking:
@@ -110,12 +110,12 @@ def generate_launch_description():
         }.items() 
         )
 
-        ftg_node = Node(
-                package='controllers',
-                executable='ftg_policy',
-                output='screen',
-                parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')}],
-        )
+        # ftg_node = Node(
+        #         package='controllers',
+        #         executable='ftg_policy',
+        #         output='screen',
+        #         parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')}],
+        # )
         
 
         return LaunchDescription([
@@ -127,8 +127,8 @@ def generate_launch_description():
             lidar_to_base_tf_node,
             odom_to_base_tf_node,
             slam_node,
-            state_machine,
-            ftg_node
+            #state_machine,
+            #ftg_node
             #algorithm
         ])
 
@@ -148,28 +148,28 @@ def generate_launch_description():
                     'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth'),
                 }.items()
             )
-    lidar_to_base_tf_node = launch_ros.actions.Node( 
-            package='tf2_ros', 
-            executable='static_transform_publisher', 
-            arguments=['0', '0', '0', '0', '0', '0', "f1tenthbase_link", "f1tenthhokuyo_10lx_lidar_link"], 
-            output='screen'
-        )
+    # lidar_to_base_tf_node = launch_ros.actions.Node( 
+    #         package='tf2_ros', 
+    #         executable='static_transform_publisher', 
+    #         arguments=['0', '0', '0', '0', '0', '0', "f1tenthbase_link", "f1tenthhokuyo_10lx_lidar_link"], 
+    #         output='screen'
+    #     )
     # Launch odom localization node to provide TF info from odom reading to base_link
-    odom_to_base_tf_node = launch_ros.actions.Node(
-        package='robot_localization',
-        executable='ekf_node',
-        name='ekf_filter_node',
-        output='screen',
-        parameters=[os.path.join(pkg_f1tenth_description, 'config/ekf.yaml'), {'use_sim_time': True}]
-    )
+    # odom_to_base_tf_node = launch_ros.actions.Node(
+    #     package='robot_localization',
+    #     executable='ekf_node',
+    #     name='ekf_filter_node',
+    #     output='screen',
+    #     parameters=[os.path.join(pkg_f1tenth_description, 'config/ekf.yaml'), {'use_sim_time': True}]
+    # )
 
-    slam_node = IncludeLaunchDescription(
-        launch_description_source = os.path.join(pkg_slam,f'launch/online_async_launch.py'),
-        launch_arguments = {
-            'use_sim_time': 'True',
-            'slam_params_file':"./src/f1tenth/f1tenth_description/config/slam_toolbox.yaml"
-        }.items() 
-    )
+    # slam_node = IncludeLaunchDescription(
+    #     launch_description_source = os.path.join(pkg_slam,f'launch/online_async_launch.py'),
+    #     launch_arguments = {
+    #         'use_sim_time': 'True',
+    #         'slam_params_file':"./src/f1tenth/f1tenth_description/config/slam_toolbox.yaml"
+    #     }.items() 
+    # )
 
     return LaunchDescription([
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
@@ -177,9 +177,9 @@ def generate_launch_description():
         environment,
         alg,
         sim,
-        state_machine,
-        lidar_to_base_tf_node,
-        odom_to_base_tf_node,
-        slam_node
+        #state_machine,
+        #lidar_to_base_tf_node,
+        #odom_to_base_tf_node,
+        #slam_node
 ])
 
