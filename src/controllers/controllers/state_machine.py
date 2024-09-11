@@ -53,6 +53,10 @@ def main():
         state_machine.odom = state_machine.getOdom()
         time.sleep(2)
     state_machine.init_odom = state_machine.odom
+    while ((state_machine.odom[0] > 2.9)& (state_machine.odom[0] < 3.1)):
+        state_machine.odom = state_machine.getOdom()
+        time.sleep(0.1)
+    state_machine.init_odom = state_machine.odom
     state_machine.get_logger().info(str(state_machine.init_odom))
     #Waiting to move
     state_machine.odom = state_machine.getOdom()
@@ -63,7 +67,7 @@ def main():
     state_machine.get_logger().info("Begin mapping")
     time.sleep(5)
     state_machine.odom = state_machine.getOdom()
-    while (absoluteDistance(np.array(state_machine.init_odom), np.array(state_machine.odom)) > 0.5):
+    while (absoluteDistance(np.array(state_machine.init_odom), np.array(state_machine.odom)) > 1):
         stringToPrint = "Initial odom" + str(state_machine.init_odom) + " , current odom: " + str(state_machine.odom) + ", distance: " + str(absoluteDistance(np.array(state_machine.init_odom), np.array(state_machine.odom)))
         state_machine.get_logger().info(stringToPrint) 
         state_machine.odom = state_machine.getOdom()

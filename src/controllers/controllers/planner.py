@@ -228,6 +228,7 @@ def main():
         newcoords = coordinateShift(path, origin, shape, resolution)
         newcoords = trimCoords(newcoords, 1)
         newPath = open("newpath.txt", 'w')
+        #for state in reversed(newcoords):
         for state in reversed(newcoords):
             s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
             newPath.write(s)
