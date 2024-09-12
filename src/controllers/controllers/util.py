@@ -1,7 +1,7 @@
 import numpy as np
 
 # Returns steering angle to turn to goal
-def turn_to_goal(location, yaw, goal, goal_tolerance=0.5, angle_diff_tolerance=0.1, max_turn=0.85):
+def turn_to_goal(location, yaw, goal, goal_tolerance=0.5, angle_diff_tolerance=0.2, max_turn=1):
 
     distance = goal - location # x, y array
 
@@ -68,6 +68,30 @@ def closestPointIndAhead(location, path, buffer=0.8): #buffer = 1 for turn and d
     else:
         return closestPointIndex
     
+def furthestPointInRange(location, path, look_ahead):
+    row, _ = path.shape
+    minDist = np.inf
+    lastPointInd = -1
+    for i in range(row):
+        point = path[i]
+        distance = point - location
+        hyp = np.hypot(distance[0], distance[1])    
+        if (hyp < minDist): # Find closest point on path to car
+            closestPointInd = i
+            minDist = hyp
+        if (hyp < look_ahead): # Find last point within lookahead distance to car
+            lastPointInd = i
+    if lastPointInd == (range(row-1)):
+        for i in range(2):
+            point = path[i]
+            distance = point - location
+            hyp = np.hypot(distance[0], distance[1])
+            if (hyp < look_ahead):
+                lastPointInd = i
+    if lastPointInd < 0: # If no points within lookahead range, goal1 is closest point
+        return closestPointInd
+    return lastPointInd
+
 # Needs fix
 def linCalc(ang, maxLin=1, maxAng=0.85, fullSpeedCutoff = 0.05):
     if ang < fullSpeedCutoff:
@@ -79,3 +103,29 @@ def linCalc(ang, maxLin=1, maxAng=0.85, fullSpeedCutoff = 0.05):
         c = minLin - (maxAng * gradient)
         lin = gradient*ang + c
         return lin
+    
+
+def loadPath(filename):
+    path = []
+    file = open(filename, "r")
+    txt = file.read()
+    file.close()
+    i = 0
+    while i < len(txt)-1:
+        if txt[i] == '[': # New coordinate
+            i+= 1
+            string = ''
+            while txt[i] != ',': # First value
+                string += txt[i]
+                i += 1
+            num1 = float(string)
+            string = ''
+            i += 2
+            while txt[i] != ']': # Second value
+                string += txt[i]
+                i+=1
+            num2 = float(string)
+        path.append([num1, num2])
+        i += 1 
+    path = np.array(path)
+    return path

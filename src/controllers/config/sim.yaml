@@ -1,13 +1,13 @@
 sim:
   ros__parameters:
-    tracking: False
     algorithm: 'rl'
     observation_mode: 'lidar_only'
     environment: 'CarTrack'
-    track: 'test_track_01_200'
+    track: 'test_track_02_300'
     step_length: 0.1
     reward_range: 3
     collision_range: 0.2
     number_eval_episodes: 100
     max_steps: 3000
     map_file_path: './src/environments/map_info/austin_1_save.yaml'
+    path_file_path: 'newpath.txt'

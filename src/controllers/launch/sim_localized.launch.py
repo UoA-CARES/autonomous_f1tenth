@@ -28,6 +28,7 @@ def generate_launch_description():
     pkg_environments = get_package_share_directory('environments')
     pkg_controllers = get_package_share_directory('controllers')
     pkg_nav2_bringup = get_package_share_directory('nav2_bringup')
+    pkg_slam = get_package_share_directory('slam_toolbox')
 
     config_path = os.path.join(
         pkg_controllers,
@@ -105,14 +106,19 @@ def generate_launch_description():
        parameters=[os.path.join(pkg_f1tenth_description, 'config/ekf.yaml'), {'use_sim_time': True}]
     )
 
-    
-    amcl_node = IncludeLaunchDescription(
-        launch_description_source = os.path.join(pkg_nav2_bringup,f'launch/localization_launch.py'),
+    slam_node = IncludeLaunchDescription(
+        launch_description_source = os.path.join(pkg_slam,f'launch/online_async_launch.py'),
         launch_arguments = {
             'use_sim_time': 'True',
-            'params_file':"./src/f1tenth/f1tenth_description/config/nav2_localize_sim.yaml",
-            'map':TextSubstitution(text=str(config['sim']['ros__parameters']['map_file_path']) if 'map_file_path' in config['sim']['ros__parameters'] else 'bruwhy')
+            'slam_params_file':"./src/f1tenth/f1tenth_description/config/slam_toolbox.yaml"
         }.items() 
+    )
+
+    mapping = Node(
+        package='controllers',
+        executable = 'mapping',
+        output='screen',
+        emulate_tty=True,
     )
 
     return LaunchDescription([
@@ -124,6 +130,8 @@ def generate_launch_description():
         sim,
         lidar_to_base_tf_node,
         odom_to_base_tf_node,
-        amcl_node
+        #amcl_node,
+        slam_node,
+        mapping
         #algorithm
     ])
