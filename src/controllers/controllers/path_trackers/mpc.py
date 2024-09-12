@@ -47,8 +47,8 @@ class MPC():
         cost = Yarr@Q@np.transpose(Yarr) + qsteer*(steeringcurr - steering)**2 #(U - Uref)*R*(U-Uref)
         return cost
     
-    def select_action(self, state, goal):
-        MAX_ACTIONS = np.asarray([0.2, 0.85])
+    def select_action(self, state, goal, nextGoal):
+        MAX_ACTIONS = np.asarray([0.4, 0.85])
         MIN_ACTIONS = np.asarray([0, -0.85])
         self.logger.info("Current Location: "+str(state[0:2]))
         self.logger.info("Current goal: "+str(goal))
@@ -61,11 +61,14 @@ class MPC():
         distance = goal - state[0:2]
         #Check if car is already at goal location
         if ((abs(distance[0]) < self.goal_tolerance) and (abs(distance[1]) < self.goal_tolerance)):
-            lin = 0
-            ang = 0
-            action = np.asarray([lin, ang])
-            self.logger.info("Reached goal")
-            return action
+            #lin = 0
+            #ang = 0
+            #action = np.asarray([lin, ang])
+            #self.logger.info("Reached goal")
+            #return action
+            goal = nextGoal
+            distance = goal - state[0:2]
+
 
         # Iterate through potential driving options
         for i in range(self.options):

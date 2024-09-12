@@ -31,15 +31,15 @@ def generate_launch_description():
         pkg_environments,
         yaml_path
     )
-    data = yaml.load(open(config_path2), Loader=yaml.SafeLoader)
-    origin = data['origin']
-    resolution = data['resolution']
+    #data = yaml.load(open(config_path2), Loader=yaml.SafeLoader)
+    #origin = data['origin']
+    #resolution = data['resolution']
     
     alg = Node(
             package='controllers',
             executable='planner',
             output='screen',
-            parameters=[{'alg': TextSubstitution(text=str(alg))}, {'map': TextSubstitution(text=str(map))}, {'originx': origin[0]}, {'originy': origin[1]}, {'resolution': resolution}]
+            parameters=[{'alg': TextSubstitution(text=str(alg))}, {'map': TextSubstitution(text=str(map))}, {'yaml_path': TextSubstitution(text=str(yaml_path))}]
         )
 
 

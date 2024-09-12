@@ -6,7 +6,7 @@ from ..util import turn_to_goal
 class PurePursuit():
     logger = rcutils_logger.RcutilsLogger(name="pure_pursuit_log")
 
-    def __init__(self, path = np.asarray([]), look_ahead = 1, angle_diff_tolerance = 0.1): 
+    def __init__(self, path = np.asarray([]), look_ahead = 2, angle_diff_tolerance = 0.1): 
         self.logger.info("-------------------------------------------------")
         self.logger.info("Pure Pursuit Alg created")
         self.path = path
@@ -19,7 +19,7 @@ class PurePursuit():
     
     # Need to write
     def findGoal(self, location):
-        look_ahead = 3
+        look_ahead = self.look_ahead
         minDist = np.inf
         lastPointInd = -1
         row, _ = self.path.shape
@@ -32,7 +32,15 @@ class PurePursuit():
                 minDist = hyp
             if (hyp < look_ahead): # Find last point within lookahead distance to car
                 lastPointInd = i
+        if lastPointInd == (range(row-1)):
+             for i in range(2):
+                point = self.path[i]
+                distance = point - location
+                hyp = np.hypot(distance[0], distance[1])
+                if (hyp < look_ahead):
+                    lastPointInd = i
         if lastPointInd < 0: # If no points within lookahead range, goal1 is closest point
+            self.logger.info("Nothing within lookahead")
             goal1Ind = closestPointInd
         else:  
             goal1Ind = lastPointInd
@@ -70,16 +78,18 @@ class PurePursuit():
             x2 = (-b + np.sqrt(discriminant))/(2*a)
             goalx1 = np.asarray([goal1[0]+x1*(np.cos(theta2)), goal1[1]+x1*(np.sin(theta2))]) 
             goalx2 = np.asarray([goal1[0]+x2*(np.cos(theta2)), goal1[1]+x2*(np.sin(theta2))])
-            if ((abs(goal2[0] - goalx1[0]) < abs(goal2[0]-goalx2[0])) & (abs(goal2[1] - goalx1[1]) < abs(goal2[1] - goalx2[1]))):
+            if ((abs(goal2[0] - goalx1[0]) < abs(goal2[0]-goal1[0])) & (abs(goal2[1] - goalx1[1]) < abs(goal2[1] - goal1[1]))):
+                self.logger.info("USING GOAL X1: "+str(goalx1))
                 return goalx1
             else:
+                self.logger.info("USING GOALX2: "+str(goalx2))
                 return goalx2
         goal = np.asarray([0, 0])
         return goal
     
-    def select_action(self, state, goal):
-        MAX_ACTIONS = np.asarray([1, 0.85])
-        MIN_ACTIONS = np.asarray([0, -0.85])
+    def select_action(self, state, goal, nextGoal):
+        MAX_ACTIONS = np.asarray([0.5, 0.5])
+        MIN_ACTIONS = np.asarray([0, -0.7])
 
         lin = MAX_ACTIONS[0]
         location = state[0:2]
@@ -90,9 +100,13 @@ class PurePursuit():
 
         # Calculate angle same as turn and drive
         trueGoal = self.findGoal(location)
+        self.logger.info("CURRENT LOCATION: " + str(location))
+        self.logger.info("Current yaw: "+str(yawcurr))
+        
         ang = turn_to_goal(location, yawcurr, trueGoal)
+        #Saturate ang
+        ang = ang*MAX_ACTIONS[1]
         action = np.asarray([lin, ang])
-        self.logger.info("DRIVE LIN_V: "+str(action[0]))
         self.logger.info("DRIVE ANGLE: "+str(action[1]))
         self.logger.info("-------------------------")
         return action
