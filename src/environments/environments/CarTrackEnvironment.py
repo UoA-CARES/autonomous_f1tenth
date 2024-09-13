@@ -6,7 +6,7 @@ import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from .termination import has_collided, has_flipped_over
-from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent
+from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, avg_lidar_w_consensus, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent
 from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
@@ -18,7 +18,7 @@ from collections import deque
 from itertools import chain
 
 class CarTrackEnvironment(F1tenthEnvironment):
-
+    #TODO: outdated doc
     """
     CarTrack Reinforcement Learning Environment:
 
@@ -75,17 +75,25 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Reward configuration
         self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity','lin_acc'],float]] = [('turn', 0.2), ('wall_proximity', 0.6), ('lin_acc',0.2)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+
+        
+        #TODO: Think step and get_observation should be handled by "Controller", and environments should *have* one or more Controllers. The environment 
+        # itself should probably only be responsible for reset behaviour and reward calculation. get_observation should return (state, ground_truth_state): 
+        # state *should* be able to be accepted by whatever algorithm is using them as is, the shape of this should be defined *probably* in creation time of 
+        # the Controller, which should come from some config.  
+         
+        #TODO: observation config and AE config are mostly for parsing observations. Remove here and re-delegate
 
         # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'raw'
-        self.LIDAR_POINTS = 683 #10, 683
-        self.LIDAR_OBS_STACK_SIZE = 3
-        
+        self.LIDAR_PROCESSING:Literal["avg","avg_w_consensus","pretrained_ae", "raw"] = 'avg_w_consensus'
+        self.LIDAR_POINTS = 16 #10, 683
+        self.LIDAR_OBS_STACK_SIZE = 1
+
         # TD3AE and SACAE config
-        self.IS_AUTO_ENCODER_ALG = True # Here since observation needs to be different: AE alg has dict states
+        self.IS_AUTO_ENCODER_ALG = False # Here since observation needs to be different: AE alg has dict states
         self.INFO_VECTOR_LENGTH = 2
-        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
+    
         
         # Evaluation settings
         self.EVAL_TRACK_BEGIN_IDX = 30 # multi_track_01: 20, multi_track_02: 26, multi_track_03: 30
@@ -95,18 +103,25 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # self.eval_episode_step_counter = 0
 
         # Steering noise addition: to simulate steering command not 100% accurate in real life, sampled uniformly between += noise amp
-        self.STEERING_NOISE_AMP = 0.02 #0.02
-        
+        self.STEERING_NOISE_AMP = 0 #0.02
+
+        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Respawning balancing setting: respawn car on track with least steps trained trained on it.
         self.IS_BALANCING_RESET = True
+
+        # Action Record
+        self.ACTION_RECORD_DEPTH = 2
+        self.action_record = deque([], maxlen=self.ACTION_RECORD_DEPTH)
+        for _ in range(0,self.ACTION_RECORD_DEPTH):
+            self.action_record.append((0,0))
         
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
 
         # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([3, 0.434])
+        self.MAX_ACTIONS = np.asarray([1, 0.434])
         self.MIN_ACTIONS = np.asarray([0, -0.434])
 
         #####################################################################################################################
@@ -224,8 +239,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     print("Unknown extra observation.")
         return total
 
-
-
     def reset(self):
         self.step_counter = 0
         self.steps_since_last_goal = 0
@@ -238,6 +251,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # adjust episode steering skew (simulate actual car)
         if self.STEERING_NOISE_AMP != 0:
             self.episode_steering_skew = random.uniform(-self.STEERING_NOISE_AMP, self.STEERING_NOISE_AMP)
+
+        # reset observation stack if it is in use
+        if self.LIDAR_OBS_STACK_SIZE > 1:
+            self.lidar_obs_stack = deque([], maxlen=self.LIDAR_OBS_STACK_SIZE)
+
+        # reset action record
+        self.action_record = deque([], maxlen=self.ACTION_RECORD_DEPTH)
+        for _ in range(0,self.ACTION_RECORD_DEPTH):
+            self.action_record.append((0,0))
         
         if self.is_multi_track:
             # Evaluating: loop through eval tracks sequentially
@@ -355,6 +377,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if abs(self.step_progress) > (full_next_state[6]/10*3): # traveled distance should not too different from lin vel * step time
             self.step_progress = full_next_state[6]/10*0.8 # reasonable estimation fo traveleled distance based on current lin vel but only 80% of it just in case its exploited by agent
 
+        # is using lidar scan stack for temporal info
+        if self.LIDAR_OBS_STACK_SIZE > 1:
+            # if is first observation, fill stack with current observation
+            if len(self.lidar_obs_stack) <= 1:
+                for _ in range(0,self.LIDAR_OBS_STACK_SIZE):
+                    self.lidar_obs_stack.append(next_state)
+            # add current observation to stack.
+            else:
+                self.lidar_obs_stack.append(next_state)
+
+        # fill action records
+        self.action_record.append(action)
+
         # calculate reward & end conditions
         reward, reward_info = self.compute_reward(full_state, full_next_state, raw_lidar_range)
         terminated = self.is_terminated(full_next_state, raw_lidar_range)
@@ -440,6 +475,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 processed_lidar_range = avg_lidar(lidar, num_points)
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
+            case 'avg_w_consensus':
+                processed_lidar_range = avg_lidar_w_consensus(lidar, num_points)
+                visualized_range = processed_lidar_range
+                scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'raw':
                 processed_lidar_range = np.array(lidar.ranges.tolist())
                 processed_lidar_range = np.nan_to_num(processed_lidar_range, posinf=-5, nan=-5, neginf=-5).tolist()  
@@ -461,16 +500,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
                         extra_observation += [odom[7]]
 
         full_state = odom + processed_lidar_range
-        
-        # is using lidar scan stack for temporal info
-        if self.LIDAR_OBS_STACK_SIZE > 1:
-            # if is first observation, fill stack with current observation
-            if len(self.lidar_obs_stack) <= 1:
-                for _ in range(0,self.LIDAR_OBS_STACK_SIZE):
-                    self.lidar_obs_stack.append(processed_lidar_range)
-            # add current observation to stack.
-            else:
-                self.lidar_obs_stack.append(processed_lidar_range)
 
         #######################################################
         ####### FORMING ACTUAL STATE TO BE PASSED ON ##########
@@ -545,6 +574,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     turning_penalty_factor = 1 - (1 / (1 + np.exp(12 * (angular_vel_diff - 0.35)))) #y=1-\frac{1}{1+e^{12\left(x-0.35\right)}}
                     reward -= reward * turning_penalty_factor * weight
                     print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
+                case 'lin_acc':
+                    lin_vel_diff = abs(self.action_record[-1][0] - self.action_record[-2][0])
+                    if lin_vel_diff > 0.2: #y=1\left\{x\ >\ 0.2\right\}
+                        lin_acc_penalty_factor = 1
+                    elif lin_vel_diff < 0.1: # y=0\ \left\{x\ <\ 0.1\right\}
+                        lin_acc_penalty_factor = 0
+                    else: # y=(0.1-x)/(0.1-0.2)\ \left\{0.1\le x\le0.2\right\}
+                        lin_acc_penalty_factor = (0.1-lin_vel_diff)/(0.1-0.2)
+                    print(f"--- Lin Acc penalty factor: {weight} * {lin_acc_penalty_factor}")  
+                    reward -= reward * lin_acc_penalty_factor * weight
 
         return reward, reward_info
     

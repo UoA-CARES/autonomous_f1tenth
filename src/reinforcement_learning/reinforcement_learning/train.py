@@ -43,7 +43,7 @@ def main():
     ##############################################################
     ## TEMPORARILY OVERRIDING NETWORK CONFIG FOR TD3AE AND SACAE
     ##############################################################
-    _,_,network_config = parse_args_from_file()
+    # _,_,network_config = parse_args_from_file()
 
     print(network_config)
 
