@@ -25,7 +25,7 @@ from collections import deque
 from environments.autoencoders.lidar_beta_vae import BetaVAE1D
 from environments.autoencoders.lidar_autoencoder import LidarConvAE
 
-from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, process_ae_lidar, process_ae_lidar_beta_vae
+from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, avg_lidar_w_consensus, process_ae_lidar, process_ae_lidar_beta_vae
 
 
 class Controller(Node):
@@ -44,9 +44,9 @@ class Controller(Node):
         ######################################################
         ##### Observation configuration ######################
 
-        self.IS_AUTOENCODER_ALG = True
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw", 'forward_reduce'] = 'raw'
-        self.LIDAR_POINTS = 683 #10, 683
+        self.IS_AUTOENCODER_ALG = False
+        self.LIDAR_PROCESSING:Literal["avg","avg_w_consensus","pretrained_ae", "raw"] = 'avg_w_consensus'
+        self.LIDAR_POINTS = 16 #10, 683
         self.LIDAR_OBS_STACK_SIZE = 1
 
         #---------------------------------------------
@@ -204,6 +204,10 @@ class Controller(Node):
                 processed_lidar_range = np.nan_to_num(processed_lidar_range, posinf=-5, nan=-5, neginf=-5).tolist()  
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
+            case 'avg_w_consensus':
+                processed_lidar_range = avg_lidar_w_consensus(lidar, num_points)
+                visualized_range = processed_lidar_range
+                scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'forward_reduce':
                 processed_lidar_range = forward_reduce_lidar(lidar)
 
@@ -248,7 +252,7 @@ class Controller(Node):
             # not using scan stack
             else:
                 state = state = limited_odom + processed_lidar_range 
-        
+
         return state, odom
         
 

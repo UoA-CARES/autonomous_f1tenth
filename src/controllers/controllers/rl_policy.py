@@ -14,7 +14,7 @@ def main():
     env_config, _, network_config, rest = parse_args()
     
     # speed and turn limit
-    MAX_ACTIONS = np.asarray([1, 0.434])
+    MAX_ACTIONS = np.asarray([2, 0.434])
     MIN_ACTIONS = np.asarray([0, -0.434])
 
     controller = Controller('rl_policy_', env_config['car_name'], step_length=0.1)
@@ -25,7 +25,7 @@ def main():
     ##############################################################
     ## TEMPORARILY OVERRIDING NETWORK CONFIG FOR TD3AE AND SACAE
     ##############################################################
-    _,_,network_config = parse_args_from_file()
+    # _,_,network_config = parse_args_from_file()
 
     network_factory = NetworkFactory()
     agent = network_factory.create_network(controller.OBSERVATION_SIZE, ACTION_NUM, config=network_config)
@@ -40,25 +40,25 @@ def main():
         raise Exception('Both actor and critic paths must be provided')
     
 
-    state = controller.step([0, 0], policy_id)
+    state, _ = controller.step([0, 0], policy_id)
 
-    if controller.IS_AUTOENCODER_ALG:
-        state:AECompositeState
-    else:
-        state = state[6:]
+    # if controller.IS_AUTOENCODER_ALG:
+    #     state:AECompositeState
+    # else:
+    #     state = state[6:]
     
-    file = open("coords.txt", 'w')
+    # file = open("coords.txt", 'w')
 
     while True:
-        action = agent.select_action_from_policy(state)
+        action = agent.select_action_from_policy(state, evaluation=True)
         # s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
         # file.write(s)
         action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
-        state = controller.step(action, policy_id)
+        state, _ = controller.step(action, policy_id)
 
-        if controller.IS_AUTOENCODER_ALG:
-            state:AECompositeState
-        else:
-            state = state[6:]
+        # if controller.IS_AUTOENCODER_ALG:
+        #     state:AECompositeState
+        # else:
+        #     state = state[6:]
 
-    file.close()
+    # file.close()
