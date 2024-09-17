@@ -82,7 +82,7 @@ class CarGoalEnvironment(F1tenthEnvironment):
         rclpy.spin_until_future_complete(future=future, node=self)
         
     def get_observation(self):
-        odom, _ = self.get_data()
+        odom, _, _ = self.get_data()
         odom = process_odom(odom)
 
         return odom + self.goal_position

@@ -103,8 +103,8 @@ match ENVIRONMENT:
     case _:
         env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
 
-MAX_ACTIONS = np.asarray([3, 1])
-MIN_ACTIONS = np.asarray([0, -1])
+MAX_ACTIONS = np.asarray([8, 0.434])
+MIN_ACTIONS = np.asarray([0, -0.434])
 
 OBSERVATION_SIZE = 8 + 10 + 2  # Car position + Lidar rays + goal position
 ACTION_NUM = 2
@@ -118,9 +118,9 @@ steering_angle = 0
 
 OFFSET = 0.05
 
-MAX_SPEED = 0.5
+MAX_SPEED = 7
 NEUTRAL_SPEED = 0.001
-MAX_ANGLE = 0.9
+MAX_ANGLE = 0.434
 
 LEFT_ANGLE = MAX_ANGLE
 RIGHT_ANGLE = -MAX_ANGLE

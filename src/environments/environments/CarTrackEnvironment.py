@@ -121,7 +121,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
 
         # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([2, 0.434])
+        self.MAX_ACTIONS = np.asarray([3, 0.434])
         self.MIN_ACTIONS = np.asarray([0, -0.434])
 
         #####################################################################################################################
@@ -446,7 +446,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def get_observation(self):
 
         # Get Position and Orientation of F1tenth
-        odom, lidar = self.get_data()
+        odom, lidar, _ = self.get_data()
         odom = process_odom(odom)
         
         num_points = self.LIDAR_POINTS

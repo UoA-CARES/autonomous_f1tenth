@@ -4,7 +4,7 @@ from geometry_msgs.msg import Twist
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from rclpy import Future
 from rclpy.node import Node
-from sensor_msgs.msg import LaserScan
+from sensor_msgs.msg import LaserScan, Imu
 from nav_msgs.msg import Odometry
 from std_srvs.srv import SetBool
 from environment_interfaces.srv import Reset
@@ -59,6 +59,12 @@ class F1tenthEnvironment(Node):
             f'/{self.NAME}/scan',
         )
 
+        self.imu_sub = Subscriber(
+            self,
+            Imu,
+            f'/{self.NAME}/imu'
+        )
+
         self.processed_publisher = self.create_publisher(
             LaserScan,
             f'/{self.NAME}/processed_scan',
@@ -66,7 +72,7 @@ class F1tenthEnvironment(Node):
         )
 
         self.message_filter = ApproximateTimeSynchronizer(
-            [self.odom_sub, self.lidar_sub],
+            [self.odom_sub, self.lidar_sub, self.imu_sub],
             10,
             0.1,
         )
@@ -136,15 +142,15 @@ class F1tenthEnvironment(Node):
     def is_terminated(self, state):
         raise NotImplementedError('is_terminated() not implemented')
 
-    def message_filter_callback(self, odom: Odometry, lidar: LaserScan):
-        self.observation_future.set_result({'odom': odom, 'lidar': lidar})
+    def message_filter_callback(self, odom: Odometry, lidar: LaserScan, imu:Imu):
+        self.observation_future.set_result({'odom': odom, 'lidar': lidar, 'imu': imu})
 
-    def get_data(self) -> tuple[Odometry,LaserScan]:
+    def get_data(self) -> tuple[Odometry,LaserScan,Imu]:
         rclpy.spin_until_future_complete(self, self.observation_future)
         future = self.observation_future
         self.observation_future = Future()
         data = future.result()
-        return data['odom'], data['lidar']
+        return data['odom'], data['lidar'], data['imu']
 
     def set_velocity(self, lin_vel, steering_angle, L=0.325):
         """
