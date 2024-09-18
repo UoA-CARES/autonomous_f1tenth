@@ -1,6 +1,6 @@
 rl_policy:
   ros__parameters:
-    actor_path: 'training_logs/ID_46/models/SAC_actor.pht'
-    critic_path: 'training_logs/ID_46/models/SAC_critic.pht'
-    algorithm: 'SAC'
+    actor_path: 'training_logs/ID_30/models/TD3AE_actor.pht'
+    critic_path: 'training_logs/ID_30/models/TD3AE_critic.pht'
+    algorithm: 'TD3AE'
     observation_mode: 'lidar_only'
