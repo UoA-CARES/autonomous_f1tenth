@@ -2,6 +2,7 @@ import numpy as np
 import random
 import math
 
+import scipy.ndimage
 import scipy.signal
 import torch.types
 from sensor_msgs.msg import LaserScan
@@ -11,6 +12,8 @@ from .waypoints import waypoints
 from .util_track_progress import TrackMathDef
 import torch
 import scipy
+
+import numpy.typing as npt
 
 from rclpy.impl import rcutils_logger
 logger = rcutils_logger.RcutilsLogger(name="util_log")
@@ -158,6 +161,13 @@ def avg_lidar_w_consensus(lidar:LaserScan, num_points:int):
                 processed_data.append(float(10))  # All rays are non-hitting
         
     return processed_data
+
+def process_lidar_med_filt(lidar:LaserScan, window_size:int, nan_to = -5) -> npt.ArrayLike:
+    ranges = np.array(lidar.ranges.tolist())
+    ranges = np.nan_to_num(ranges, posinf=nan_to, nan=nan_to, neginf=nan_to).tolist()  
+    processed_ranges = scipy.ndimage.median_filter(ranges, window_size, mode='nearest').tolist()
+    return processed_ranges
+
 
 def process_ae_lidar(lidar:LaserScan, ae_model, is_latent_only=True):
     range_list = np.array(lidar.ranges)

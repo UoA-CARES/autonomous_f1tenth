@@ -25,7 +25,7 @@ from collections import deque
 from environments.autoencoders.lidar_beta_vae import BetaVAE1D
 from environments.autoencoders.lidar_autoencoder import LidarConvAE
 
-from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, avg_lidar_w_consensus, process_ae_lidar, process_ae_lidar_beta_vae
+from environments.util import process_odom, avg_lidar, process_lidar_med_filt, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, avg_lidar_w_consensus, process_ae_lidar, process_ae_lidar_beta_vae
 
 
 class Controller(Node):
@@ -44,9 +44,9 @@ class Controller(Node):
         ######################################################
         ##### Observation configuration ######################
 
-        self.IS_AUTOENCODER_ALG = False
-        self.LIDAR_PROCESSING:Literal["avg","avg_w_consensus","pretrained_ae", "raw"] = 'avg_w_consensus'
-        self.LIDAR_POINTS = 16 #10, 683
+        self.IS_AUTOENCODER_ALG = True
+        self.LIDAR_PROCESSING:Literal["avg","avg_w_consensus","pretrained_ae", "raw"] = 'raw'
+        self.LIDAR_POINTS = 683 #10, 683
         self.LIDAR_OBS_STACK_SIZE = 1
 
         #---------------------------------------------
@@ -200,8 +200,7 @@ class Controller(Node):
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'raw':
-                processed_lidar_range = np.array(lidar.ranges.tolist())
-                processed_lidar_range = np.nan_to_num(processed_lidar_range, posinf=-5, nan=-5, neginf=-5).tolist()  
+                processed_lidar_range = process_lidar_med_filt(lidar, 15)
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'avg_w_consensus':
