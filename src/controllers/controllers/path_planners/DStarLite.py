@@ -24,7 +24,7 @@ class DStarLite:
     
     def update_vertex(self, u):
         if u != self.goal:
-            self.rhs[u] = min(self.g.get(neigh, float('inf')) + self.cost(u, neigh) for neigh in self.neighbors(u))
+            self.rhs[u] = min(self.g.get(neigh, float('inf')) + self.cost(u, neigh) for neigh in self.neighbors(u)) #Consider changing cost to 1
         if u in [x[1] for x in self.U.elements]:
             self.U.elements = [x for x in self.U.elements if x[1] != u]
             heapq.heapify(self.U.elements)
@@ -34,7 +34,7 @@ class DStarLite:
     def neighbors(self, id):
         x, y = id
         neighbors = []
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]: #Include diagonals
             nx, ny = x + dx, y + dy
             if 0 <= nx < self.image.shape[0] and 0 <= ny < self.image.shape[1] and self.image[nx, ny] == 255:
                 neighbors.append((nx, ny))
@@ -65,7 +65,7 @@ class DStarLite:
             min_cost = float('inf')
             next_node = None
             for neigh in self.neighbors(current):
-                cost = self.g.get(neigh, float('inf')) + self.cost(current, neigh)
+                cost = self.g.get(neigh, float('inf')) + self.cost(current, neigh) #Consider changing cost to 1
                 if cost < min_cost:
                     min_cost = cost
                     next_node = neigh
