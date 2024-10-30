@@ -36,13 +36,13 @@ def main():
 
     state = controller.step([0, 0], policy_id)
     state = state[6:]
-    file = open("coords.txt", 'w')
+    #file = open("coords.txt", 'w')
 
     while True:
         action = agent.select_action_from_policy(state)
-        s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
-        file.write(s)
+        #s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
+        #file.write(s)
         action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
         state = controller.step(action, policy_id)
         state = state[6:]
-    file.close()
+    #file.close()
