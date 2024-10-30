@@ -2,3 +2,6 @@
 	path = src/f1tenth
 	url = https://github.com/UoA-CARES/f1tenth.git
 	branch = simulation
+[submodule "cares_reinforcement_learning"]
+	path = cares_reinforcement_learning
+	url = https://github.com/UoA-CARES/cares_reinforcement_learning.git
