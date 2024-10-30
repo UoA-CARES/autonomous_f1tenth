@@ -38,7 +38,7 @@
           <geometry>
             <plane>
               <normal>0 0 1</normal>
-              <size>29 39</size>
+              <size>29 40</size>
             </plane>
           </geometry>
           <material>
@@ -93,14 +93,14 @@
     </light>
 
 
-    <model name="test_track_01">
+    <model name="track_05">
       <pose>0 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/test_track_01.stl</uri>
+              <uri>model://src/environments/meshes/track_05.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -113,7 +113,7 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/test_track_01.stl</uri>
+              <uri>model://src/environments/meshes/track_05.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
