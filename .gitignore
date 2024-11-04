@@ -7,7 +7,6 @@ notes
 training_logs
 testing_logs
 checkpoint
-cares_reinforcement_learning
 __pycache__
 rl_logs
 .idea
