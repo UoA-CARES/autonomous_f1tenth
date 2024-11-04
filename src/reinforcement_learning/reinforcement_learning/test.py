@@ -6,7 +6,9 @@ import rclpy
 import torch
 
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
+from cares_reinforcement_learning.util.record import Record
 import cares_reinforcement_learning.util.configurations as cares_cfg
+from .parse_args_from_file import parse_args_from_file
 
 from .parse_args import parse_args
 from .EnvironmentFactory import EnvironmentFactory
@@ -34,10 +36,18 @@ def main():
     ##############################################################
     ## TEMPORARILY OVERRIDING NETWORK CONFIG FOR TD3AE AND SACAE
     ##############################################################
-    # _,_,network_config = parse_args_from_file()
+    #TODO: remove later
+    _,_,network_config = parse_args_from_file()
 
     env = env_factory.create(env_config['environment'], env_config)
     agent = network_factory.create_network(env.OBSERVATION_SIZE, env.ACTION_NUM, config=network_config)
+
+    record = Record(
+        log_dir= f"testing_logs/{network_config['algorithm']}-{env_config['environment']}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}",
+        algorithm=network_config['algorithm'],
+        task=env_config['environment'],
+        network=agent,
+    )
 
     # Load models if both paths are provided
     if rest['actor_path'] and rest['critic_path']:
@@ -52,7 +62,7 @@ def main():
         case 'PPO':
             ppo_evaluate(env, agent, algorithm_config)
         case _:
-            off_policy_evaluate(env, agent, algorithm_config['number_eval_episodes'])
+            off_policy_evaluate(env, agent, algorithm_config['number_eval_episodes'], record=record)
 
 if __name__ == '__main__':
     main()

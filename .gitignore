@@ -5,6 +5,7 @@ data
 models
 notes
 training_logs
+testing_logs
 checkpoint
 cares_reinforcement_learning
 __pycache__

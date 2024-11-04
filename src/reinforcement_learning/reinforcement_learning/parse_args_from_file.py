@@ -46,7 +46,7 @@ def parse_args_from_file():
 
 
     autoencoder_config = cares_cfg.VanillaAEConfig(
-        latent_dim= 10,
+        latent_dim= 30,
         is_1d= True
     )
 
@@ -70,7 +70,6 @@ def parse_args_from_file():
 
 
     #     env      alg     network
-    return None, None, network_config_TD3AE
-
+    return None, None, network_config_SACAE
 
     

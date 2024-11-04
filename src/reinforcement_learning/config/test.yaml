@@ -1,12 +1,12 @@
 test:
   ros__parameters:
     environment: 'CarTrack'
-    track: 'test_track_02_300' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
+    track: 'test_track_02_150' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     number_eval_episodes: 1000
     max_steps: 1500
-    actor_path: 'training_logs/ID_46/models/SAC_actor.pht'
-    critic_path: 'training_logs/ID_46/models/SAC_critic.pht'
-    algorithm: 'SAC'
+    actor_path: 'training_logs/ID_44/models/SACAE_actor.pht'
+    critic_path: 'training_logs/ID_44/models/SACAE_critic.pht'
+    algorithm: 'SACAE'
     step_length: 0.1
     reward_range: 3
     collision_range: 0.2

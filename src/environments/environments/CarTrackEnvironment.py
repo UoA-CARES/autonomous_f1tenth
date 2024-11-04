@@ -86,18 +86,18 @@ class CarTrackEnvironment(F1tenthEnvironment):
         #TODO: observation config and AE config are mostly for parsing observations. Remove here and re-delegate
 
         # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","avg_w_consensus","pretrained_ae", "raw"] = 'avg_w_consensus'
-        self.LIDAR_POINTS = 16 #10, 683
-        self.LIDAR_OBS_STACK_SIZE = 1
+        self.LIDAR_PROCESSING:Literal["avg","avg_w_consensus","pretrained_ae", "raw"] = 'raw'
+        self.LIDAR_POINTS = 683 #10, 683
+        self.LIDAR_OBS_STACK_SIZE = 3
 
         # TD3AE and SACAE config
-        self.IS_AUTO_ENCODER_ALG = False # Here since observation needs to be different: AE alg has dict states
+        self.IS_AUTO_ENCODER_ALG = True # Here since observation needs to be different: AE alg has dict states
         self.INFO_VECTOR_LENGTH = 2
     
         
         # Evaluation settings
         self.EVAL_TRACK_BEGIN_IDX = 30 # multi_track_01: 20, multi_track_02: 26, multi_track_03: 30
-        self.MAX_STEPS_EVAL = 1000
+        self.MAX_STEPS_EVAL = 650 #1000
         # self.MAX_EVAL_STEPS_PER_TRACK = 400 # 400 * 6 = 2400 eval steps per xxxxxx steps trained 
         # self.MAX_STEP_PER_EVAL_EPISODE = 20
         # self.eval_episode_step_counter = 0
@@ -213,6 +213,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Evaluation related setup ---------------------------------------------------
         self.is_evaluating = False
+
+        self.file = open("coords.txt", 'w')
 
         if self.is_multi_track:
             # idx used to loop through eval tracks sequentially
@@ -377,15 +379,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if abs(self.step_progress) > (full_next_state[6]/10*3): # traveled distance should not too different from lin vel * step time
             self.step_progress = full_next_state[6]/10*0.8 # reasonable estimation fo traveleled distance based on current lin vel but only 80% of it just in case its exploited by agent
 
-        # is using lidar scan stack for temporal info
-        if self.LIDAR_OBS_STACK_SIZE > 1:
-            # if is first observation, fill stack with current observation
-            if len(self.lidar_obs_stack) <= 1:
-                for _ in range(0,self.LIDAR_OBS_STACK_SIZE):
-                    self.lidar_obs_stack.append(next_state)
-            # add current observation to stack.
-            else:
-                self.lidar_obs_stack.append(next_state)
 
         # fill action records
         self.action_record.append(action)
@@ -406,7 +399,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.is_evaluating and (terminated or truncated):
             self.eval_track_idx
 
-        print(f"Action: {lin_vel} | {steering_angle}")
+        print(f"Action: {lin_vel} | {steering_angle}") 
+
+        s = '['+str(round(full_state[0], 2))+', '+str(round(full_state[1], 2)) + '], '
+        self.file.write(s)
 
         return next_state, reward, terminated, truncated, info
 
@@ -500,6 +496,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
                         extra_observation += [odom[7]]
 
         full_state = odom + processed_lidar_range
+
+        # is using lidar scan stack for temporal info
+        if self.LIDAR_OBS_STACK_SIZE > 1:
+            # if is first observation, fill stack with current observation
+            if len(self.lidar_obs_stack) != self.LIDAR_OBS_STACK_SIZE:
+                for _ in range(0,self.LIDAR_OBS_STACK_SIZE):
+                    self.lidar_obs_stack.append(processed_lidar_range)
+            # add current observation to stack.
+            else:
+                self.lidar_obs_stack.append(processed_lidar_range)
 
         #######################################################
         ####### FORMING ACTUAL STATE TO BE PASSED ON ##########
