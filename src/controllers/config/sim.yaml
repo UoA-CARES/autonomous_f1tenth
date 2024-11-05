@@ -3,7 +3,7 @@ sim:
     algorithm: 'ftg'
     observation_mode: 'lidar_only'
     environment: 'CarTrack'
-    track: 'track6'
+    track: 'track_06'
     preplan: False
     step_length: 0.1
     reward_range: 3
