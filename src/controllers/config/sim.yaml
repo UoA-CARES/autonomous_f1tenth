@@ -4,6 +4,7 @@ sim:
     observation_mode: 'lidar_only'
     environment: 'CarTrack'
     track: 'track6'
+    preplan: False
     step_length: 0.1
     reward_range: 3
     collision_range: 0.2
