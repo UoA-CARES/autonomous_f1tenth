@@ -28,7 +28,6 @@ def generate_launch_description():
     pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
     pkg_environments = get_package_share_directory('environments')
     pkg_controllers = get_package_share_directory('controllers')
-    #pkg_nav2_bringup = get_package_share_directory('nav2_bringup')
     pkg_slam = get_package_share_directory('slam_toolbox')
 
     config_path = os.path.join(
