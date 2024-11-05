@@ -139,13 +139,6 @@ def generate_launch_description():
             }.items() 
             )
 
-            # mapping = Node(
-            #     package='controllers',
-            #     executable = 'mapping',
-            #     output='screen',
-            #     emulate_tty=True,
-            # )
-
             ftg_node = Node(
                     package='controllers',
                     executable='ftg_policy',
@@ -163,7 +156,6 @@ def generate_launch_description():
                 lidar_to_base_tf_node,
                 odom_to_base_tf_node,
                 slam_node,
-                # mapping,
                 state_machine,
                 ftg_node
             ])
