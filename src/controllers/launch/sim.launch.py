@@ -89,6 +89,9 @@ def generate_launch_description():
             executable= 'state_machine',
             output='screen',
             emulate_tty=True,
+            parameters = [
+                ispreplanned
+            ]
         )
 
         alg = Node(
