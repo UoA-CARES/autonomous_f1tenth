@@ -30,7 +30,6 @@ setup(
             'track = controllers.track:main',
             'load_path = controllers.load_path:main',
             'planner = controllers.planner:main',
-            'mapping = controllers.mapping:main',
             'state_machine = controllers.state_machine:main'
         ],
     },
