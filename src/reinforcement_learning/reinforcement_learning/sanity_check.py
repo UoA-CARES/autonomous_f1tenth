@@ -93,15 +93,24 @@ print(
     f'---------------------------------------------\n'
 )
 
+config = {
+    'car_name': 'f1tenth',
+    'step_length': STEP_LENGTH,
+    'max_steps': MAX_STEPS,
+    'reward_range': REWARD_RANGE,
+    'collision_range': COLLISION_RANGE
+}
+
 match ENVIRONMENT:
     case 'CarWall':
-        env = CarWallEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
+        env = CarWallEnvironment(config)
     case 'CarBlock':
-        env = CarBlockEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE)
+        env = CarBlockEnvironment(config)
     case 'CarTrack':
-        env = CarTrackEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE, collision_range=COLLISION_RANGE, track=TRACK)
+        config['track'] = TRACK
+        env = CarTrackEnvironment(config)
     case _:
-        env = CarGoalEnvironment('f1tenth', step_length=STEP_LENGTH, max_steps=MAX_STEPS, reward_range=REWARD_RANGE)
+        env = CarGoalEnvironment(config)
 
 MAX_ACTIONS = np.asarray([3, 1])
 MIN_ACTIONS = np.asarray([0, -1])
