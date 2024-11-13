@@ -38,7 +38,7 @@ def generate_launch_description():
     config = yaml.load(open(config_path), Loader=yaml.Loader)
     env = config['sim']['ros__parameters']['environment']
     alg = config['sim']['ros__parameters']['algorithm']
-    ispreplanned = config['sim']['ros__parameters']['preplan']
+    startStage = config['sim']['ros__parameters']['start_stage']
 
 
     match alg:
@@ -90,7 +90,7 @@ def generate_launch_description():
             output='screen',
             emulate_tty=True,
             parameters = [
-                {'ispreplanned': TextSubstitution(text=str(config['sim']['ros__parameters']['preplan']))}
+                {'startStage': TextSubstitution(text=str(config['sim']['ros__parameters']['start_stage']))}
             ]
         )
 
@@ -102,7 +102,7 @@ def generate_launch_description():
                         {'alg': TextSubstitution(text=str(alg))}, {'path_file_path': TextSubstitution(text=str(config['sim']['ros__parameters']['path_file_path']))}],
         )
 
-        if ispreplanned:
+        if startStage == 'track':
 
             return LaunchDescription([
             SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
