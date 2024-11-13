@@ -10,5 +10,4 @@ sim:
     collision_range: 0.2
     number_eval_episodes: 100
     max_steps: 3000
-    map_file_path: './src/environments/map_info/austin_1_save.yaml'
     path_file_path: 'newpath.txt'
