@@ -108,14 +108,20 @@ def main():
     param_node.declare_parameters(
         '',
         [
-            ('isPrePlanned', False)
+            ('ispreplanned', 'False')
         ]
     )
-    params = param_node.get_parameters(['isPrePlanned'])
+    params = param_node.get_parameters(['ispreplanned'])
     params = [param.value for param in params]
     isPrePlanned = params[0]
-
+    if isPrePlanned == 'T':
+        isPrePlanned = True
+    else:
+        isPrePlanned = False
+    
     state_machine = StateMachine(isPrePlanned)
+    while(1):
+        time.sleep(1)
     while(1):
         match(state_machine.getCurrState()):
             case "init":

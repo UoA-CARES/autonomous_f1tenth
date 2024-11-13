@@ -90,7 +90,7 @@ def generate_launch_description():
             output='screen',
             emulate_tty=True,
             parameters = [
-                #ispreplanned
+                {'ispreplanned': TextSubstitution(text=str(config['sim']['ros__parameters']['preplan']))}
             ]
         )
 

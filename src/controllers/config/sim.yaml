@@ -1,10 +1,10 @@
 sim:
   ros__parameters:
-    algorithm: 'ftg'
+    algorithm: 'mpc'
     observation_mode: 'lidar_only'
     environment: 'CarTrack'
     track: 'track_06'
-    preplan: False
+    preplan: 'T'
     step_length: 0.1
     reward_range: 3
     collision_range: 0.2
