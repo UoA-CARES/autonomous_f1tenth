@@ -8,22 +8,6 @@ from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
 from launch.substitutions import TextSubstitution
 import yaml
 
-env_launch = {
-    'CarGoal': 'cargoal',
-    'CarWall': 'carwall',
-    'CarBlock': 'carblock',
-    'CarTrack': 'cartrack',
-    'CarBeat': 'carbeat',
-}
-
-alg_launch = {
-    'ftg': 'ftg',
-    'rl': 'rl',
-    'random': 'random',
-    'turn_drive': 'turn_drive',
-    'mpc': 'mpc',
-}
-
 def generate_launch_description():
     pkg_f1tenth_description = get_package_share_directory('f1tenth_description')
     pkg_environments = get_package_share_directory('environments')
@@ -42,27 +26,18 @@ def generate_launch_description():
 
 
     match alg:
-        case 'rl':
+        case 'rl' | 'ftg':
             tracking = False
-        case 'ftg':
-            tracking = False
-        case 'random':
+        case 'random' | 'turn_drive' | 'mpc' | 'pure_pursuit':
             tracking = True
-        case 'turn_drive':
-            tracking = True
-        case 'mpc':
-            tracking = True
-        case 'pure_pursuit':
-            tracking = True
-
 
     environment =  IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_environments, f'{env_launch[env]}.launch.py')),
+            os.path.join(pkg_environments, f'{env.lower()}.launch.py')),
         launch_arguments={
             'track': TextSubstitution(text=str(config['sim']['ros__parameters']['track'])),
-            'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth'),
-            'car_one': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth'),
+            'car_name': TextSubstitution(text=str(config['sim']['ros__parameters'].get('car_name', 'f1tenth'))),
+            'car_one': TextSubstitution(text=str(config['sim']['ros__parameters'].get('car_name', 'f1tenth'))),
             #'car_two': TextSubstitution(text=str(config['sim']['ros__parameters']['ftg_car_name']) if 'ftg_car_name' in config['sim']['ros__parameters'] else 'ftg_car'),
         }.items() #TODO: this doesn't do anything
     )
@@ -98,7 +73,7 @@ def generate_launch_description():
             package='controllers',
             executable='track',
             output='screen',
-            parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')},
+            parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters'].get('car_name', 'f1tenth')))},
                         {'alg': TextSubstitution(text=str(alg))}, {'path_file_path': TextSubstitution(text=str(config['sim']['ros__parameters']['path_file_path']))}],
         )
 
@@ -145,7 +120,7 @@ def generate_launch_description():
                     package='controllers',
                     executable='ftg_policy',
                     output='screen',
-                    parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')}],
+                    parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters'].get('car_name', 'f1tenth')))}],
             )
             
 
@@ -168,14 +143,14 @@ def generate_launch_description():
                 package='controllers',
                 executable=f'{alg}_policy',
                 output='screen',
-                parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth')}],
+                parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters'].get('car_name', 'f1tenth')))}],
             )
         else:
             alg = IncludeLaunchDescription(
                 launch_description_source = PythonLaunchDescriptionSource(
-                    os.path.join(pkg_controllers, f'{alg_launch[alg]}.launch.py')),
+                    os.path.join(pkg_controllers, f'{alg}.launch.py')),
                 launch_arguments={
-                    'car_name': TextSubstitution(text=str(config['sim']['ros__parameters']['car_name']) if 'car_name' in config['sim']['ros__parameters'] else 'f1tenth'),
+                    'car_name': TextSubstitution(text=str(config['sim']['ros__parameters'].get('car_name', 'f1tenth'))),
                 }.items()
             )
 
