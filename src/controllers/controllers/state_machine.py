@@ -12,7 +12,7 @@ from .mapping import MinimalClientAsync
 import os
 
 class StateMachine(Node):
-    def __init__(self, isPreplanned):
+    def __init__(self, startStage):
         super().__init__('state_machine')
         
         self.init_odom = []
@@ -24,10 +24,7 @@ class StateMachine(Node):
             10
         )
         self.odomController = Controller("odom_controller", 'f1tenth', 0.1)
-        if isPreplanned:
-            self.currState = "tracking"
-        else: 
-            self.currState = "init"
+        self.currState = startStage
         self.pubState(self.currState[0])
 
     def pubState(self, str):
@@ -108,14 +105,16 @@ def main():
     param_node.declare_parameters(
         '',
         [
-            ('isPrePlanned', False)
+            ('startStage', 'init')
         ]
     )
-    params = param_node.get_parameters(['isPrePlanned'])
+    params = param_node.get_parameters(['startStage'])
     params = [param.value for param in params]
-    isPrePlanned = params[0]
-
-    state_machine = StateMachine(isPrePlanned)
+    startStage = params[0]
+    
+    state_machine = StateMachine(startStage)
+    while(1):
+        time.sleep(1)
     while(1):
         match(state_machine.getCurrState()):
             case "init":
