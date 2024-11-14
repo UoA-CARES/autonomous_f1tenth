@@ -9,6 +9,10 @@ map_infos = []
 for folder in folders:
     map_infos.append((os.path.join('share', package_name, 'map_info'), glob(f"{folder}/*")))
 
+arucoFolders = glob('aruco_marker_models/*')
+aruco_markers = []
+for arucoFolder in arucoFolders:
+    aruco_markers.append((os.path.join('share', package_name, 'sdf'), glob(f"{arucoFolder}/*")))
 setup(
     name=package_name,
     version='0.0.0',
@@ -23,6 +27,7 @@ setup(
         (os.path.join('share', package_name, 'worlds'), glob('worlds/*')),
         (os.path.join('share', package_name, 'meshes'), glob('meshes/*')),
         *map_infos,
+        *aruco_markers,
     ],
     install_requires=['setuptools'],
     zip_safe=True,
