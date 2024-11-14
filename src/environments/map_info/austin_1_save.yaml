@@ -1,7 +1,0 @@
-image: austin_1_save.pgm
-mode: trinary
-resolution: 0.1
-origin: [-9.75, -30.4, 0]
-negate: 0
-occupied_thresh: 0.65
-free_thresh: 0.25
