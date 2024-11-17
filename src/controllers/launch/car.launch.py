@@ -8,13 +8,6 @@ from launch.substitutions import TextSubstitution
 import yaml
 
 
-alg_launch = {
-    'ftg': 'ftg',
-    'rl': 'rl',
-    'random': 'random',
-    'turn_and_drive': 'turn_and_drive',
-}
-
 def generate_launch_description():
     pkg_controllers = get_package_share_directory('controllers')
 
@@ -32,7 +25,7 @@ def generate_launch_description():
         package='controllers',
         executable='track',
         output='screen',
-        parameters=[{'car_name': TextSubstitution(text=str(config['car']['ros__parameters']['car_name']) if 'car_name' in config['car']['ros__parameters'] else 'f1tenth')},
+        parameters=[{'car_name': TextSubstitution(text=str(config['car']['ros__parameters'].get('car_name', 'f1tenth')))},
                     {'alg': TextSubstitution(text=str(alg))}, {'isCar': True}],
         )
         return LaunchDescription([
@@ -46,15 +39,15 @@ def generate_launch_description():
                 package='controllers',
                 executable=f'{alg}_policy',
                 output='screen',
-                parameters=[{'car_name': TextSubstitution(text=str(config['car']['ros__parameters']['car_name']) if 'car_name' in config['car']['ros__parameters'] else 'f1tenth')}],
+                parameters=[{'car_name': TextSubstitution(text=str(config['car']['ros__parameters'].get('car_name', 'f1tenth')))}],
             )
         #algorithm = 0
         else:
             alg = IncludeLaunchDescription(
                 launch_description_source = PythonLaunchDescriptionSource(
-                    os.path.join(pkg_controllers, f'{alg_launch[alg]}.launch.py')),
+                    os.path.join(pkg_controllers, f'{alg}.launch.py')),
                 launch_arguments={
-                    'car_name': TextSubstitution(text=str(config['car']['ros__parameters']['car_name']) if 'car_name' in config['car']['ros__parameters'] else 'f1tenth'),
+                    'car_name': TextSubstitution(text=str(config['car']['ros__parameters'].get('car_name', 'f1tenth'))),
                 }.items()
             )
     
