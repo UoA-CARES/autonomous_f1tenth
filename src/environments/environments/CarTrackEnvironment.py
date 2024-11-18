@@ -53,17 +53,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
             Reaching max_steps
     """
 
-    def __init__(self, config):
-        
-        # extract parameters from config dictionary
-        car_name = config['car_name']
-        reward_range = config.get('reward_range', 0.2)
-        max_steps = config.get('max_steps', 50)
-        collision_range = config.get('collision_range', 0.2)
-        step_length = config.get('step_length', 0.5)
-        track = config.get('track', 'track_1')
-        observation_mode = config.get('observation_mode', 'lidar_only')
-
+    def __init__(self, 
+                 car_name, 
+                 reward_range=0.5, 
+                 max_steps=3000, 
+                 collision_range=0.2, 
+                 step_length=0.5, 
+                 track='track_1',
+                 observation_mode='lidar_only',
+                 ):
         super().__init__('car_track', car_name, max_steps, step_length)
 
         
