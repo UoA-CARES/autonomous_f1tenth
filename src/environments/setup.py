@@ -4,6 +4,14 @@ from glob import glob
 
 package_name = 'environments'
 
+folders = glob('map_info/*')
+map_infos = []
+for folder in folders:
+    try:
+        map_infos.append((os.path.join('share', package_name, 'map_info'), glob(f"{folder}/*")))
+    except:
+        print("Not working")
+
 setup(
     name=package_name,
     version='0.0.0',
@@ -17,12 +25,7 @@ setup(
         (os.path.join('share', package_name, 'sdf'), glob('sdf/*')),
         (os.path.join('share', package_name, 'worlds'), glob('worlds/*')),
         (os.path.join('share', package_name, 'meshes'), glob('meshes/*')),
-        (os.path.join('share', package_name, 'map_info'), glob('map_info/track_01/*')),
-        (os.path.join('share', package_name, 'map_info'), glob('map_info/track_02/*')),
-        (os.path.join('share', package_name, 'map_info'), glob('map_info/track_03/*')),
-        (os.path.join('share', package_name, 'map_info'), glob('map_info/track_04/*')),
-        (os.path.join('share', package_name, 'map_info'), glob('map_info/track_05/*')),
-        (os.path.join('share', package_name, 'map_info'), glob('map_info/track_06/*')),
+        *map_infos,
     ],
     install_requires=['setuptools'],
     zip_safe=True,
