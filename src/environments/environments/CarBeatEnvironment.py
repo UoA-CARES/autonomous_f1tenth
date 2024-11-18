@@ -62,20 +62,18 @@ class CarBeatEnvironment(Node):
         Truncation Condition:
             When the number of steps surpasses MAX_GOALS
     """
-    def __init__(self, config):
-        
-        # extract parameters from config dictionary
-        rl_car_name = config['car_name']
-        ftg_car_name = config['ftg_car_name']
-        reward_range = config.get('reward_range', 1)
-        max_steps = config.get('max_steps', 50)
-        collision_range = config.get('collision_range', 0.2)
-        step_length = config.get('step_length', 0.5)
-        track = config.get('track', 'multi_track')
-        observation_mode = config.get('observation_mode', 'lidar_only')
-        max_goals = config.get('max_goals', 500)
-        num_lidar_points = config.get('num_lidar_points', 10)
-
+    def __init__(self,
+                 rl_car_name,
+                 ftg_car_name,
+                 reward_range=1,
+                 max_steps=50,
+                 collision_range=0.2,
+                 step_length=0.5,
+                 track='multi_track',
+                 observation_mode='lidar_only',
+                 max_goals=500,
+                 num_lidar_points=10
+                 ):
         super().__init__('car_beat_environment')
 
         # Environment Details ----------------------------------------
