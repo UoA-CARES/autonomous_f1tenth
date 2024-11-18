@@ -1,9 +1,9 @@
-float64 gx      # goal x
-float64 gy      # goal y
-float64 cx      # car x
-float64 cy      # car y
-float64 cyaw    # car yaw
-string car_name
+float64 gx      # Goal x
+float64 gy      # Goal y
+string[] car_names  # List of car names
+float64[] car_x    # List of car x positions
+float64[] car_y    # List of car y positions
+float64[] car_yaw  # List of car yaw
 string flag     # flag
 ---
 bool success

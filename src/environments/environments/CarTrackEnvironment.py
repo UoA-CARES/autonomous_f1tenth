@@ -513,12 +513,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         """
 
         request = Reset.Request()
-        request.car_name = car_name
+        request.car_names = [car_name]
         request.gx = float(goal_x)
         request.gy = float(goal_y)
-        request.cx = float(car_x)
-        request.cy = float(car_y)
-        request.cyaw = float(car_Y)
+        request.car_x = [float(car_x)]
+        request.car_y = [float(car_y)]
+        request.car_yaw = [float(car_Y)]
         request.flag = "car_and_goal"
 
         future = self.reset_client.call_async(request)

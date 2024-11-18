@@ -34,7 +34,7 @@ class CarTrackReset(Node):
     def service_callback(self, request, response):
 
         goal_req = self.create_request('goal', x=request.gx, y=request.gy, z=1)
-        car_req = self.create_request(request.car_name, x=request.cx, y=request.cy, z=0, yaw=request.cyaw)
+        car_req = self.create_request(request.car_names[0], x=request.car_x[0], y=request.car_y[0], z=0, yaw=request.car_yaw[0])
 
         while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('set_pose service not available, waiting again...')

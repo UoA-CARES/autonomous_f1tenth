@@ -1,6 +1,6 @@
 sim:
   ros__parameters:
-    algorithm: 'mpc'
+    algorithm: 'ftg'
     observation_mode: 'lidar_only'
     environment: 'CarTrack'
     track: 'track_06'
