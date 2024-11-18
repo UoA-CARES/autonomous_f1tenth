@@ -11,50 +11,14 @@ class EnvironmentFactory:
     def create(self, name, config):
         print(config)
         if name == 'CarBlock':
-            return CarBlockEnvironment(
-                config['car_name'],
-                config['reward_range'],
-                config['max_steps'],
-                config['collision_range'],
-                config['step_length']
-            )
+            return CarBlockEnvironment(config)
         elif name == 'CarGoal':
-            return CarGoalEnvironment(
-                config['car_name'],
-                config['reward_range'],
-                config['max_steps'],
-                config['step_length']
-            )
+            return CarGoalEnvironment(config)
         elif name == 'CarTrack':
-            return CarTrackEnvironment(
-                config['car_name'], 
-                config['reward_range'], 
-                config['max_steps'], 
-                config['collision_range'], 
-                config['step_length'], 
-                config['track'], 
-                config['observation_mode'], 
-                )
+            return CarTrackEnvironment(config)
         elif name == 'CarWall':
-            return CarWallEnvironment(
-                config['car_name'],
-                config['reward_range'],
-                config['max_steps'],
-                config['collision_range'],
-                config['step_length']
-            )
+            return CarWallEnvironment(config)
         elif name == 'CarBeat':
-            return CarBeatEnvironment(
-                config['car_name'],
-                config['ftg_car_name'], 
-                config['reward_range'], 
-                config['max_steps'], 
-                config['collision_range'], 
-                config['step_length'], 
-                config['track'], 
-                config['observation_mode'], 
-                config['max_goals'],
-                config['num_lidar_points']
-            )
+            return CarBeatEnvironment(config)
         else:
             raise Exception('EnvironmentFactory: Environment not found')
