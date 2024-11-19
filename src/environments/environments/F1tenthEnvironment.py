@@ -20,7 +20,7 @@ class F1tenthEnvironment(Node):
             - fetching of car data (raw)
             - define the interface for environments to implement
     '''
-    def __init__(self, env_name, car_name, max_steps, step_length, lidar_points = 10):
+    def __init__(self, env_name, car_names, max_steps, step_length, lidar_points = 10):
         super().__init__(env_name + '_environment')
 
         if lidar_points < 1:
@@ -28,7 +28,7 @@ class F1tenthEnvironment(Node):
         
 
         # Environment Details ----------------------------------------
-        self.NAME = car_name
+        self.NAMES = car_names
         self.MAX_STEPS = max_steps
         self.STEP_LENGTH = step_length
         self.LIDAR_POINTS = lidar_points
@@ -40,40 +40,44 @@ class F1tenthEnvironment(Node):
 
         self.step_counter = 0
 
+        # ROS Entities for each car
+        self.cmd_vel_pubs = {}
+        self.odom_subs = {}
+        self.lidar_subs = {}
+        self.observation_futures = {}
+        self.message_filters = {}
+
         # Pub/Sub ----------------------------------------------------
-        self.cmd_vel_pub = self.create_publisher(
-            Twist,
-            f'/{self.NAME}/cmd_vel',
-            10
-        )
+        for car_name in car_names:
 
-        self.odom_sub = Subscriber(
-            self,
-            Odometry,
-            f'/{self.NAME}/odometry',
-        )
+            self.cmd_vel_pubs[car_name] = self.create_publisher(
+                Twist, f'/{car_name}/cmd_vel', 10
+            )
 
-        self.lidar_sub = Subscriber(
-            self,
-            LaserScan,
-            f'/{self.NAME}/scan',
-        )
+            self.odom_subs[car_name] = Subscriber(
+                self,
+                Odometry,
+                f'/{car_name}/odometry')
+            
+            self.lidar_subs[car_name] = Subscriber(
+                self,
+                LaserScan, 
+                f'/{car_name}/scan')
 
-        self.processed_publisher = self.create_publisher(
-            LaserScan,
-            f'/{self.NAME}/processed_scan',
-            10
-        )
+            self.processed_publisher = self.create_publisher(
+                LaserScan,
+                f'/{car_name}/processed_scan',
+                10
+            )
 
-        self.message_filter = ApproximateTimeSynchronizer(
-            [self.odom_sub, self.lidar_sub],
-            10,
-            0.1,
-        )
-
-        self.message_filter.registerCallback(self.message_filter_callback)
-
-        self.observation_future = Future()
+            self.message_filters[car_name] = ApproximateTimeSynchronizer(
+                [self.odom_subs[car_name], 
+                self.lidar_subs[car_name]], 
+                10,
+                0.1
+            )
+            self.message_filters[car_name].registerCallback(self.message_filter_callback)
+            self.observation_futures[car_name] = Future()
 
         # Reset Client -----------------------------------------------
         self.reset_client = self.create_client(
@@ -137,16 +141,17 @@ class F1tenthEnvironment(Node):
         raise NotImplementedError('is_terminated() not implemented')
 
     def message_filter_callback(self, odom: Odometry, lidar: LaserScan):
-        self.observation_future.set_result({'odom': odom, 'lidar': lidar})
+        car_name = odom.header.frame_id[0:-4]
+        self.observation_futures[car_name].set_result({'odom': odom, 'lidar': lidar})
 
-    def get_data(self) -> tuple[Odometry,LaserScan]:
-        rclpy.spin_until_future_complete(self, self.observation_future)
-        future = self.observation_future
-        self.observation_future = Future()
+    def get_data(self, car_name) -> tuple[Odometry, LaserScan]:
+        future = self.observation_futures[car_name]
+        rclpy.spin_until_future_complete(self, future)
+        self.observation_futures[car_name] = Future() 
         data = future.result()
         return data['odom'], data['lidar']
 
-    def set_velocity(self, lin_vel, steering_angle, L=0.325):
+    def set_velocity(self, car_name, lin_vel, steering_angle, L=0.325):
         """
         Publish Twist Message. In place since simulator takes angular velocity commands but policies should produce ackermann steering angle.
         Takes linear velocity and steering ANGLE, NOT angular velocity.
@@ -156,7 +161,7 @@ class F1tenthEnvironment(Node):
         velocity_msg.angular.z = float(angular)
         velocity_msg.linear.x = float(lin_vel)
 
-        self.cmd_vel_pub.publish(velocity_msg)
+        self.cmd_vel_pubs[car_name].publish(velocity_msg)
 
     def sleep(self):
         while not self.timer_future.done():

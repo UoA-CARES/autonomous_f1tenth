@@ -62,7 +62,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  track='track_1',
                  observation_mode='lidar_only',
                  ):
-        super().__init__('car_track', car_name, max_steps, step_length)
+        super().__init__('car_track', [car_name], max_steps, step_length)
 
         
 
@@ -195,7 +195,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.steps_since_last_goal = 0
         self.goals_reached = 0
 
-        self.set_velocity(0, 0)
+        self.set_velocity(self.NAMES[0], 0, 0)
         
         if self.is_multi_track:
             # Evaluating: loop through eval tracks sequentially
@@ -223,7 +223,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
         self.goal_position = [x,y]
 
-        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
+        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAMES[0])
 
         # Get initial observation
         self.call_step(pause=False)
@@ -263,7 +263,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # take action and wait
         lin_vel, steering_angle = action
-        self.set_velocity(lin_vel, steering_angle)
+        self.set_velocity(self.NAMES[0], lin_vel, steering_angle)
 
         self.sleep()
         
@@ -327,7 +327,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def get_observation(self):
 
         # Get Position and Orientation of F1tenth
-        odom, lidar = self.get_data()
+        odom, lidar = self.get_data(self.NAMES[0])
         odom = process_odom(odom)
         
         num_points = self.LIDAR_POINTS
