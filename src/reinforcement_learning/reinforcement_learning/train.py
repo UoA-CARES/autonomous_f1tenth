@@ -22,6 +22,7 @@ def main():
     env_config, algorithm_config, network_config, _ = parse_args()
 
     # Set Seeds
+    # TODO replace with cares helper set_seed
     torch.manual_seed(algorithm_config['seed'])
     torch.cuda.manual_seed_all(algorithm_config['seed'])
     np.random.seed(algorithm_config['seed'])
@@ -45,11 +46,14 @@ def main():
 
 
     record = Record(
-        log_dir= f"training_logs/{network_config['algorithm']}-{env_config['environment']}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}",
+        base_directory=f"/home/anyone/training_logs/{network_config['algorithm']}-{env_config['environment']}-{datetime.now().strftime('%y_%m_%d_%H-%M-%S')}",
         algorithm=network_config['algorithm'],
         task=env_config['environment'],
-        network=agent,
+        agent=None,
     )
+
+    record.set_sub_directory(algorithm_config['seed'])
+    record.set_agent(agent)
 
     record.save_config(env_config, 'env_config')
     record.save_config(algorithm_config, 'algorithm_config')
