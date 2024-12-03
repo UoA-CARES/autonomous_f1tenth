@@ -9,8 +9,6 @@ def generate_launch_description():
         get_package_share_directory('controllers'),
         'rl_policy.yaml'
     )
-
-    #config = yaml.load(open(config_path), Loader=yaml.Loader)
     
     main = Node(
         package='controllers',

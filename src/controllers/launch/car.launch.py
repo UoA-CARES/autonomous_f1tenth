@@ -30,7 +30,6 @@ def generate_launch_description():
         )
         return LaunchDescription([
             alg,
-            #algorithm
         ])
 
     else:
@@ -41,7 +40,6 @@ def generate_launch_description():
                 output='screen',
                 parameters=[{'car_name': TextSubstitution(text=str(config['car']['ros__parameters'].get('car_name', 'f1tenth')))}],
             )
-        #algorithm = 0
         else:
             alg = IncludeLaunchDescription(
                 launch_description_source = PythonLaunchDescriptionSource(
@@ -49,13 +47,8 @@ def generate_launch_description():
                 launch_arguments={
                     'car_name': TextSubstitution(text=str(config['car']['ros__parameters'].get('car_name', 'f1tenth'))),
                 }.items()
-            )
-    
-
-    
+            )  
 
     return LaunchDescription([
-        #TODO: Find a way to remove this
         alg,
-        #algorithm
 ])
