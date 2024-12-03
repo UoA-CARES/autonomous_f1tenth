@@ -1,7 +1,6 @@
 import numpy as np
 import random
 import math
-
 import scipy.signal
 import torch.types
 from sensor_msgs.msg import LaserScan
@@ -101,20 +100,15 @@ def reduce_lidar(lidar: LaserScan, num_points: int):
 
         return new_range
 
-# Reduce lidar so all values are facing forward from the robot
-
 def avg_lidar(lidar: LaserScan, num_points: int):
   
         ranges = lidar.ranges
         ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
-        ranges = ranges[1:]
-                                                   
+        ranges = ranges[1:]                                           
         new_range = []
-
         angle = 240/num_points
         iter = 240/len(ranges)
         num_ind = np.ceil(angle/iter)
-
         x = 1
         sum = ranges[0]
 
@@ -174,15 +168,12 @@ def create_lidar_msg(lidar: LaserScan, num_points: int, lidar_range: list):
 
     return scan
 
-
-
 def forward_reduce_lidar(lidar: LaserScan):
     num_outputs = 10
     ranges = lidar.ranges
     max_angle = abs(lidar.angle_max)
     ideal_angle = 1.396
     angle_incr = lidar.angle_increment
-    
     ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(-10))
     ranges = ranges[1:]
     idx_cut = int((max_angle-ideal_angle)/angle_incr)
@@ -236,7 +227,6 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
 
 
     elif track_name == 'multi_track':
-        # multi_track
         # Goal position
         austin_gp = goal_positions['austin_track']
         budapest_gp = [[x + 200, y] for x, y in goal_positions['budapest_track']]
@@ -260,7 +250,6 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         }
 
     elif track_name == 'multi_track_testing':
-        # multi_track_testing
         # Goal position
         melbourne_gp = goal_positions['melbourne_track']
         saopaolo_gp = [[x + 100, y] for x, y in goal_positions['saopaolo_track']]
@@ -290,11 +279,8 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         
         # Usage of goals deprecated
         all_car_goals = None
-
-        all_car_waypoints = {
-             
+        all_car_waypoints = {    
         }
-
         i = 0
         
         # loop through each track
@@ -314,11 +300,8 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         
         # Usage of goals deprecated
         all_car_goals = None
-
-        all_car_waypoints = {
-             
+        all_car_waypoints = {     
         }
-
         i = 0
         
         for track in TRACKS:
