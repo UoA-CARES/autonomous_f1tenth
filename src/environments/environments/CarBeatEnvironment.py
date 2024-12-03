@@ -13,9 +13,7 @@ from nav_msgs.msg import Odometry
 import numpy as np
 from environment_interfaces.srv import CarBeatReset
 from std_srvs.srv import SetBool
-from .termination import has_collided, has_flipped_over
-
-from .util import process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist
+from .util import process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, has_collided, has_flipped_over
 
 from .goal_positions import goal_positions
 from .waypoints import waypoints

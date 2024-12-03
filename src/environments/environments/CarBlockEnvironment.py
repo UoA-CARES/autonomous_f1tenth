@@ -7,9 +7,7 @@ from rclpy import Future
 
 from environments.F1tenthEnvironment import F1tenthEnvironment
  
-from .util import reduce_lidar, process_odom, generate_position
-from .termination import reached_goal, has_collided, has_flipped_over
-
+from .util import reduce_lidar, process_odom, generate_position, reached_goal, has_collided, has_flipped_over
 from environment_interfaces.srv import Reset
 
 class CarBlockEnvironment(F1tenthEnvironment):
