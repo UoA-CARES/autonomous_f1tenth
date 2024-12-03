@@ -62,7 +62,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  track='track_1',
                  observation_mode='lidar_only',
                  ):
-        super().__init__('car_track', [car_name], max_steps, step_length)
+        super().__init__('car_track', ['f1tenth', 'f1tenth_2'], max_steps, step_length)
 
         
 
@@ -191,12 +191,18 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
 
     def reset(self):
+        """
+        Reset the environment, including car positions, orientations, and goal positions.
+        Handles both single and multi-car setups.
+        """
         self.step_counter = 0
         self.steps_since_last_goal = 0
         self.goals_reached = 0
 
-        self.set_velocity(self.NAMES[0], 0, 0)
-        
+        car_positions = []
+        car_orientations = []
+        goal_position = None
+
         if self.is_multi_track:
             # Evaluating: loop through eval tracks sequentially
             if self.is_evaluating:
@@ -223,7 +229,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
         self.goal_position = [x,y]
 
-        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAMES[0])
+        # Set positions for all cars
+        i=0
+        for car_name in self.NAMES:
+            car_positions.append([car_x+i, car_y])
+            car_orientations.append(car_yaw)
+            i=i+0.4
+
+        # Reset simulation state
+        self.call_reset_service(car_positions, car_orientations, goal_position)
 
         # Get initial observation
         self.call_step(pause=False)
@@ -506,21 +520,23 @@ class CarTrackEnvironment(F1tenthEnvironment):
     ##########################################################################################
     ########################## Utility Functions #############################################
     ##########################################################################################
-
-    def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y, car_name):
+    def call_reset_service(self, car_positions, car_orientations, goal_position):
         """
-        Reset the car and goal position
+        Call the reset service to update car positions, orientations, and goal position.
         """
+        if not car_positions or not car_orientations or not goal_position:
+            raise ValueError("Car positions, orientations, and goal positions must be provided.")
 
         request = Reset.Request()
-        request.car_names = [car_name]
-        request.gx = float(goal_x)
-        request.gy = float(goal_y)
-        request.car_x = [float(car_x)]
-        request.car_y = [float(car_y)]
-        request.car_yaw = [float(car_Y)]
+        request.car_names = self.NAMES
+        request.car_x = [pos[0] for pos in car_positions]
+        request.car_y = [pos[1] for pos in car_positions]
+        request.car_yaw = car_orientations
+        request.gx = goal_position[0]
+        request.gy = goal_position[1]
         request.flag = "car_and_goal"
 
+        # Wait for reset service to complete
         future = self.reset_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 

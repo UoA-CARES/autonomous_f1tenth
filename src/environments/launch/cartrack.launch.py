@@ -1,10 +1,10 @@
 import os
-from ament_index_python import get_package_share_directory
-from launch_ros.actions import Node 
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def launch(context, *args, **kwargs):
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
@@ -12,8 +12,8 @@ def launch(context, *args, **kwargs):
     pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
 
     track = LaunchConfiguration('track').perform(context)
-    car_name = LaunchConfiguration('car_name').perform(context)
-    
+    car_name = LaunchConfiguration('car_name').perform(context).split(',')
+
     gz_sim = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
@@ -22,17 +22,19 @@ def launch(context, *args, **kwargs):
         }.items()
     )
 
-    f1tenth = IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
-        launch_arguments={
-            'name': car_name,
-            'world': 'empty'
-        }.items()
-    )
+    car_nodes = []
+    for car_name in ['f1tenth', 'f1tenth_2']:
+        car_node = IncludeLaunchDescription(
+            launch_description_source=PythonLaunchDescriptionSource(
+                os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
+            launch_arguments={
+                'name': car_name,
+                'world': 'empty'
+            }.items()
+        )
+        car_nodes.append(car_node)
 
-
-    return[gz_sim, f1tenth]
+    return [gz_sim] + car_nodes
 
 def generate_launch_description():
 

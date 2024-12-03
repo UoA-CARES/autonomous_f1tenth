@@ -112,7 +112,9 @@ class F1tenthEnvironment(Node):
         state = self.get_observation()
         
         lin_vel, steering_angle = action
-        self.set_velocity(lin_vel, steering_angle)
+
+        for car_name in self.NAMES:
+            self.set_velocity(car_name, lin_vel, steering_angle)
 
         while not self.timer_future.done():
             rclpy.spin_once(self)
@@ -160,7 +162,7 @@ class F1tenthEnvironment(Node):
         velocity_msg = Twist()
         velocity_msg.angular.z = float(angular)
         velocity_msg.linear.x = float(lin_vel)
-
+        
         self.cmd_vel_pubs[car_name].publish(velocity_msg)
 
     def sleep(self):
