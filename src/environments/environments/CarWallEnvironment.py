@@ -3,8 +3,7 @@ import random
 
 import rclpy
 from rclpy import Future
-from .util import process_odom, reduce_lidar, generate_position
-from .termination import has_collided, has_flipped_over, reached_goal
+from .util import process_odom, reduce_lidar, generate_position, has_collided, has_flipped_over, reached_goal
 from environments.F1tenthEnvironment import F1tenthEnvironment
 
 from environment_interfaces.srv import Reset

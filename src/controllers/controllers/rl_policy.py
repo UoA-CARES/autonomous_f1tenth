@@ -10,16 +10,13 @@ def main():
     rclpy.init()
 
     env_config, _, network_config, rest = parse_args()
-    
-    # speed and turn limit
     MAX_ACTIONS = np.asarray([1, 0.45])
     MIN_ACTIONS = np.asarray([0, -0.45])
+    OBSERVATION_SIZE=12
+    ACTION_NUM=2
 
     controller = Controller('rl_policy_', env_config['car_name'], step_length=0.1)
     policy_id = 'rl'
-
-    OBSERVATION_SIZE=12
-    ACTION_NUM=2
 
     network_factory = NetworkFactory()
     agent = network_factory.create_network(OBSERVATION_SIZE, ACTION_NUM, config=network_config)
@@ -33,16 +30,11 @@ def main():
     else:
         raise Exception('Both actor and critic paths must be provided')
     
-
     state = controller.step([0, 0], policy_id)
     state = state[6:]
-    #file = open("coords.txt", 'w')
 
     while True:
         action = agent.select_action_from_policy(state)
-        #s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
-        #file.write(s)
         action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
         state = controller.step(action, policy_id)
         state = state[6:]
-    #file.close()

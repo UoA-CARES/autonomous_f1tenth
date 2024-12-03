@@ -24,7 +24,6 @@ def generate_launch_description():
     alg = config['sim']['ros__parameters']['algorithm']
     startStage = config['sim']['ros__parameters']['start_stage']
 
-
     match alg:
         case 'rl' | 'ftg':
             tracking = False
@@ -42,7 +41,6 @@ def generate_launch_description():
         }.items() #TODO: this doesn't do anything
     )
 
-
     # Launch the Environment
     sim = Node(
             package='controllers',
@@ -54,9 +52,6 @@ def generate_launch_description():
             output='screen',
             emulate_tty=True, # Allows python print to show
     )
-
-    
-
 
     if tracking:
         state_machine = Node(
@@ -123,7 +118,6 @@ def generate_launch_description():
                     parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters'].get('car_name', 'f1tenth')))}],
             )
             
-
             return LaunchDescription([
                 SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
                 SetParameter(name='use_sim_time', value=True),

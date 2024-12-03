@@ -29,7 +29,6 @@ def main():
     MAP = params[1]
     YAML_PATH = params[2]
     
-
     while (os.path.isfile(MAP) == False):
         time.sleep(1)
 
@@ -50,12 +49,10 @@ def main():
             image[0, col] = 0
         if image[image.shape[0]-1, col] == 254:
             image[image.shape[0]-1, col] = 0
-    # Open CSV file in write mode with 'newline=""'
     file = open("output.csv", 'w', newline='')
     
     csv_writer = csv.writer(file)
-    #cv2.imshow("Image", image)
-    #cv2.waitKey(3000)
+
     # Check if the image was loaded correctly
     if image is None:
         print("Error: Could not open or find the image.")
@@ -64,9 +61,6 @@ def main():
         threshold_value = 127  # Example threshold value
         max_value = 255         # Maximum pixel value after thresholding
         ret, thresholded_image = cv2.threshold(image, threshold_value, max_value, cv2.THRESH_BINARY_INV)
-        #cv2.imshow("Image", thresholded_image)
-        #cv2.waitKey(3000)
-        # Coordinates of the dot (start position on the starting line)
         dot_x, dot_y = 0, 0  # Change these values to the coordinates of your dot
 
         # Edge Detection
@@ -133,8 +127,6 @@ def main():
             start = findOrigin(origin, shape, resolution)
             #Only for track 1
             start[0] = start[0] +5
-            #print(image.shape)
-            #print(image[start[0], start[1]])
             if int(image[start[0], start[1]]) != 254:
                 print("Not possible")
             goalx = start[0] -3
@@ -174,8 +166,6 @@ def main():
         # dilated_image[goal[0]+1, goal[1]] = 200
         # dilated_image[goal[0]-1, goal[1]] = 200
         # dilated_image[goal[0]-1, goal[1]+1] = 200
-        #cv2.imshow("Drawing", dilated_image)
-        #cv2.waitKey(5000)
         goal = (goalx, goaly)
         start = (start[0], start[1])
         # Coordinates of the pixel to change (starting position on start line)
@@ -198,17 +188,11 @@ def main():
         threshold_value = 127  # Example threshold value
         max_value = 255         # Maximum pixel value after thresholding
         ret, add_car_image = cv2.threshold(add_car_image, threshold_value, max_value, cv2.THRESH_BINARY_INV)
-        #cv2.imshow("With marker", add_car_image)
-        #cv2.waitKey(3000)
-        #dstar = DStarLite(start, goal, add_car_image)
         policy = policy_factory(ALG, start, goal, add_car_image)
-        # Run A* algorithm
-        path = policy.get_path()     #a_star(add_car_image, start, goal)
+        path = policy.get_path()
         if path is None:
             print(f"No valid path")
             exit()
-    
-        print(f"Path size:", len(path))
     
         output_image = add_car_image.copy()
         
@@ -217,11 +201,7 @@ def main():
             csv_writer.writerow([pos[1], pos[0]])  # Write x and y in separate columns
             output_image[pos[0], pos[1]] = 128
 
-        
-        #cv2.imshow('Final Image', output_image)
-        #cv2.waitKey(3000)
         cv2.imwrite('path.pgm', output_image)
-
         cv2.destroyAllWindows()
 
         origin = np.asarray([origin[0], origin[1]])
@@ -230,7 +210,6 @@ def main():
         newcoords = coordinateShift(path, origin, shape, resolution)
         newcoords = trimCoords(newcoords, 1)
         newPath = open("newpath.txt", 'w')
-        #for state in reversed(newcoords):
         for state in (newcoords):
             s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
             newPath.write(s)
