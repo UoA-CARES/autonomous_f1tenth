@@ -5,6 +5,7 @@ from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
+from environments.waypoints import waypoints  # Import the waypoints dictionary
 
 def launch(context, *args, **kwargs):
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
@@ -13,6 +14,12 @@ def launch(context, *args, **kwargs):
 
     track = LaunchConfiguration('track').perform(context)
     car_name = LaunchConfiguration('car_name').perform(context)
+    
+    # Get the waypoints for the track
+    track_waypoints = waypoints[track]
+    
+    car_2_pos = track_waypoints[1]
+    car_3_pos = track_waypoints[10]
     
     gz_sim = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
@@ -37,10 +44,10 @@ def launch(context, *args, **kwargs):
         launch_arguments={
             'name': 'f1tenth_2',
             'world': 'empty',
-            'x': '5.6381453149577005',
-            'y': '21.04368959065046',
+            'x': str(car_2_pos[0]),
+            'y': str(car_2_pos[1]),
             'z': '1',
-            'Y': '-1.8327275928719056',
+            'Y': str(car_2_pos[2]),
         }.items()
     )
 
@@ -50,10 +57,10 @@ def launch(context, *args, **kwargs):
         launch_arguments={
             'name': 'f1tenth_3',
             'world': 'empty',
-            'x': '5.731695266168151',
-            'y': '20.706341404541618',
+            'x': str(car_3_pos[0]),
+            'y': str(car_3_pos[1]),
             'z': '1',
-            'Y': '-1.849939949867108',
+            'Y': str(car_3_pos[2]),
         }.items()
     )
 
@@ -85,7 +92,7 @@ def launch(context, *args, **kwargs):
     )
 
 
-    return[gz_sim, controller_1, controller_2, f1tenth, f1tenth_2, f1tenth_3]
+    return [gz_sim, controller_1, controller_2, f1tenth, f1tenth_2, f1tenth_3]
 
 def generate_launch_description():
 
@@ -136,4 +143,4 @@ def generate_launch_description():
         reset,
         stepping_service,
         car_name,
-])
+    ])
