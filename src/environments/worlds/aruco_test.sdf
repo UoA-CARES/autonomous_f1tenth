@@ -71,6 +71,7 @@
 
     <include>
       <uri>model://src/environments/sdf/aruco_total.sdf</uri>
+      <pose>1 0 0 0 0 0</pose>
     </include>
 
   </world>

@@ -1,6 +1,6 @@
 <?xml version='1.0'?>
 <sdf version="1.4">
-  <model name="box1">
+  <model name="build">
     <include>
       <uri>model://src/environments/sdf/aruco.sdf</uri>
     </include>
@@ -8,5 +8,14 @@
     <include>
       <uri>model://src/environments/sdf/aruco_base.sdf</uri>
     </include>
+
+    <joint name="joint_00" type="fixed">
+      <parent>box1::link</parent>
+      <child>aruco1::aruco1</child>
+      <pose>0 0 0 0.0 0.0 0.0</pose>
+      <!-- <axis>
+        <xyz>1.0 0.0 0.0</xyz>
+      </axis> -->
+    </joint>
   </model>
 </sdf>
