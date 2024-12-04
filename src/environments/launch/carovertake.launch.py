@@ -57,14 +57,14 @@ def launch(context, *args, **kwargs):
         }.items()
     )
 
-    # controller = Node(
-    #     package='controllers',
-    #     executable='ftg_policy',
-    #     output='screen',
-    #     parameters=[
-    #         {'car_name': 'f1tenth', 'track_name': track},
-    #     ],
-    # )
+    controller = Node(
+        package='controllers',
+        executable='ftg_policy',
+        output='screen',
+        parameters=[
+            {'car_name': 'f1tenth', 'track_name': track},
+        ],
+    )
 
     controller_1 = Node(
         package='controllers',
@@ -124,7 +124,7 @@ def generate_launch_description():
 
     reset = Node(
             package='environments',
-            executable='CarTrackReset',
+            executable='CarOvertakeReset',
             output='screen',
             emulate_tty=True,
     )
