@@ -1,7 +1,7 @@
 <?xml version='1.0'?>
 <sdf version="1.4">
   <model name="aruco1">
-      <pose>0 0 0 0 0 0</pose>
+      <pose>0 0 0.5 0 1.57 0</pose>
       <static>true</static>
       <link name="aruco1">
         <visual name="aruco1_vis">
