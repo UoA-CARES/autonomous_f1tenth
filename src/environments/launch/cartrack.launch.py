@@ -26,66 +26,13 @@ def launch(context, *args, **kwargs):
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
         launch_arguments={
-            'name': 'f1tenth',
-            'world': 'empty',
+            'name': car_name,
+            'world': 'empty'
         }.items()
     )
 
-    f1tenth_2 = IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
-        launch_arguments={
-            'name': 'f1tenth_2',
-            'world': 'empty',
-            'x': '5.6381453149577005',
-            'y': '21.04368959065046',
-            'z': '1',
-            'Y': '-1.8327275928719056',
-        }.items()
-    )
 
-    f1tenth_3 = IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
-        launch_arguments={
-            'name': 'f1tenth_3',
-            'world': 'empty',
-            'x': '5.731695266168151',
-            'y': '20.706341404541618',
-            'z': '1',
-            'Y': '-1.849939949867108',
-        }.items()
-    )
-
-    # controller = Node(
-    #     package='controllers',
-    #     executable='ftg_policy',
-    #     output='screen',
-    #     parameters=[
-    #         {'car_name': 'f1tenth', 'track_name': track},
-    #     ],
-    # )
-
-    controller_1 = Node(
-        package='controllers',
-        executable='ftg_policy',
-        output='screen',
-        parameters=[
-            {'car_name': 'f1tenth_2', 'track_name': track},
-        ],
-    )
-
-    controller_2 = Node(
-        package='controllers',
-        executable='ftg_policy',
-        output='screen',
-        parameters=[
-            {'car_name': 'f1tenth_3', 'track_name': track},
-        ],
-    )
-
-
-    return[gz_sim, controller_1, controller_2, f1tenth, f1tenth_2, f1tenth_3]
+    return[gz_sim, f1tenth]
 
 def generate_launch_description():
 
