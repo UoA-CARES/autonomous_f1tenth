@@ -1,0 +1,12 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="box1">
+    <include>
+      <uri>model://src/environments/sdf/aruco.sdf</uri>
+    </include>
+
+    <include>
+      <uri>model://src/environments/sdf/aruco_base.sdf</uri>
+    </include>
+  </model>
+</sdf>

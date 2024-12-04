@@ -1,0 +1,17 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="aruco1">
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="aruco1">
+        <visual name="aruco1_vis">
+          <geometry>
+            <mesh>
+              <uri>model://src/f1tenth/f1tenth_description/meshes/aruco.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+</sdf>

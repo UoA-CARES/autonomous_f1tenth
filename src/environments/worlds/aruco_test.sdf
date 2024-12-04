@@ -69,36 +69,9 @@
       </link>
     </model>
 
-    <model name="aruco1">
-      <pose>0 0 0 0 0 0</pose>
-      <static>true</static>
-      <link name="aruco1">
-        <visual name="aruco1_vis">
-          <geometry>
-            <mesh>
-              <uri>model://src/f1tenth/f1tenth_description/meshes/aruco.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-          <!-- <material>
-            <ambient>1 0.4 0 1</ambient>
-            <diffuse>1 0.4 0.01 1</diffuse>
-            <specular>0.2 0.2 0.2 0.1</specular>
-          </material> -->
-        </visual>
-        <!-- <collision name="track_col">
-          <geometry>
-            <mesh>
-              <uri>model://src/environments/meshes/track_01.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-        </collision> -->
-      </link>
-    </model>
-
     <include>
-      <uri>model://src/environments/sdf/aruco_base.sdf</uri>
+      <uri>model://src/environments/sdf/aruco_total.sdf</uri>
     </include>
+
   </world>
 </sdf>
