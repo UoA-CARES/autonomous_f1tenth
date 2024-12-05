@@ -2,7 +2,7 @@ sim:
   ros__parameters:
     algorithm: 'ftg'
     observation_mode: 'lidar_only'
-    environment: 'CarTrack'
+    environment: 'CarOvertake'
     track: 'track_06'
     start_stage: 'track' # init, plan, track
     number_eval_episodes: 100

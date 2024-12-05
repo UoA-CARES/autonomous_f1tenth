@@ -217,13 +217,16 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
-        
+            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[index+2 if index+2 < len(self.track_waypoints) else 0]
+            car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[index+4 if index+4 < len(self.track_waypoints) else 0]       
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
         self.goal_position = [x,y]
 
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
+        self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
+        self.call_reset_service(car_x=car_3_x, car_y=car_3_y, car_Y=car_3_yaw, goal_x=x, goal_y=y, car_name='f1tenth_3')
 
         # Get initial observation
         self.call_step(pause=False)
