@@ -20,8 +20,6 @@ def generate_launch_description():
         'plan.yaml'
     )
 
-    
-
     config = yaml.load(open(config_path), Loader=yaml.Loader)
     alg = config['plan']['ros__parameters']['algorithm']
     map = config['plan']['ros__parameters']['map']
@@ -31,9 +29,6 @@ def generate_launch_description():
         pkg_environments,
         yaml_path
     )
-    #data = yaml.load(open(config_path2), Loader=yaml.SafeLoader)
-    #origin = data['origin']
-    #resolution = data['resolution']
     
     alg = Node(
             package='controllers',
@@ -41,10 +36,6 @@ def generate_launch_description():
             output='screen',
             parameters=[{'alg': TextSubstitution(text=str(alg))}, {'map': TextSubstitution(text=str(map))}, {'yaml_path': TextSubstitution(text=str(yaml_path))}]
         )
-
-
-    
-
 
     return LaunchDescription([
         SetParameter(name='use_sim_time', value=True),

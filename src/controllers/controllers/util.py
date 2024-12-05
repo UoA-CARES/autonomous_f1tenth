@@ -4,21 +4,17 @@ import numpy as np
 def turn_to_goal(location, yaw, goal, goal_tolerance=0.5, angle_diff_tolerance=0.2, max_turn=1):
 
     distance = goal - location # x, y array
-
     if ((abs(distance[0]) < goal_tolerance) and (abs(distance[1] < goal_tolerance))): # Already at goal
         ang = 0
         return ang
      
     angle_to_goal = np.arctan2(distance[1], distance[0])
     if (((angle_to_goal - yaw) > angle_diff_tolerance) or ((angle_to_goal - yaw) < -angle_diff_tolerance)):
-            
-        # take the shortest turning angle
         ang = angle_to_goal - yaw
         if ang > np.pi:
             ang -= 2 * np.pi
         elif ang < -np.pi:
             ang += 2 * np.pi
-
 
         # make sure turning angle is not more than 90deg
         if ang > max_turn:
@@ -33,7 +29,6 @@ def absoluteDistance(point1, point2):
     distance = point2 - point1
     hyp = np.hypot(distance[0], distance[1])
     return hyp
-
 
 def closestPointInd(location, path):
     index = -1
@@ -55,7 +50,6 @@ def closestPointIndAhead(location, path, buffer=0.8): #buffer = 1 for turn and d
         else:
             closestPointIndex = 0
     closestPoint = path[closestPointIndex]
-
     try:    
         nextPoint = path[closestPointIndex+1]
     except:

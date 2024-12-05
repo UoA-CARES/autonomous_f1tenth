@@ -19,9 +19,7 @@ def main():
     )
 
     env_factory = EnvironmentFactory()
-
     env = env_factory.create(env_config['environment'], env_config)
-
     state, _ = env.reset()
     
 
