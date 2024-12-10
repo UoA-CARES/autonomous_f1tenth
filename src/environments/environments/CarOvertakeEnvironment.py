@@ -5,7 +5,7 @@ from rclpy import Future
 import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
-from .termination import has_collided, has_flipped_over
+from .util import has_collided, has_flipped_over
 from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent
 from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
@@ -214,11 +214,13 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         # start at beginning of track when evaluating
         if self.is_evaluating:
             car_x, car_y, car_yaw, index = self.track_waypoints[10]
+            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[18]
+            car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[26]
         # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
-            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[index+2 if index+2 < len(self.track_waypoints) else 0]
-            car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[index+4 if index+4 < len(self.track_waypoints) else 0]       
+            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[index+20 if index+20 < len(self.track_waypoints) else 0]
+            car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[index+40 if index+40 < len(self.track_waypoints) else 20]       
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
