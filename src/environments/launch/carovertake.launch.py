@@ -5,7 +5,6 @@ from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
-from environments.waypoints import waypoints  # Import the waypoints dictionary
 
 def launch(context, *args, **kwargs):
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
