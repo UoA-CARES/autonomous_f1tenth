@@ -17,10 +17,10 @@ from datetime import datetime
 class CarOvertakeEnvironment(F1tenthEnvironment):
 
     """
-    CarTrack Reinforcement Learning Environment:
+    CarOvertake Reinforcement Learning Environment:
 
         Task:
-            Agent learns to drive a track
+            Agent learns to drive a track with multiple cars on it. The agent must overtake the cars as it reaches them.
 
         Observation:
             full:
@@ -47,7 +47,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
             -25 if it collides with a wall
 
         Termination Conditions:
-            When the agent collides with a wall or the Follow The Gap car
+            When the agent collides with a wall or any Follow The Gap car
         
         Truncation Condition:
             Reaching max_steps
