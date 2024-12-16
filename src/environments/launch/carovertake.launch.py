@@ -15,12 +15,6 @@ def launch(context, *args, **kwargs):
     track = LaunchConfiguration('track').perform(context)
     car_name = LaunchConfiguration('car_name').perform(context)
     
-    # Get the waypoints for the track
-    track_waypoints = waypoints[track]
-    
-    car_2_pos = track_waypoints[1]
-    car_3_pos = track_waypoints[10]
-    
     gz_sim = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
@@ -44,10 +38,6 @@ def launch(context, *args, **kwargs):
         launch_arguments={
             'name': 'f1tenth_2',
             'world': 'empty',
-            'x': str(car_2_pos[0]),
-            'y': str(car_2_pos[1]),
-            'z': '1',
-            'Y': str(car_2_pos[2]),
         }.items()
     )
 
@@ -57,20 +47,25 @@ def launch(context, *args, **kwargs):
         launch_arguments={
             'name': 'f1tenth_3',
             'world': 'empty',
-            'x': str(car_3_pos[0]),
-            'y': str(car_3_pos[1]),
-            'z': '1',
-            'Y': str(car_3_pos[2]),
         }.items()
     )
 
-    controller = Node(
-        package='controllers',
-        executable='ftg_policy',
-        output='screen',
-        parameters=[
-            {'car_name': 'f1tenth', 'track_name': track},
-        ],
+    f1tenth_4 = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
+        launch_arguments={
+            'name': 'f1tenth_4',
+            'world': 'empty',
+        }.items()
+    )
+
+    f1_tenth_5 = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
+        launch_arguments={
+            'name': 'f1tenth_5',
+            'world': 'empty',
+        }.items()
     )
 
     controller_1 = Node(
@@ -91,8 +86,27 @@ def launch(context, *args, **kwargs):
         ],
     )
 
+    controller_3 = Node(
+        package='controllers',
+        executable='ftg_policy',
+        output='screen',
+        parameters=[
+            {'car_name': 'f1tenth_4', 'track_name': track},
+        ],
+    )
 
-    return [gz_sim, controller_1, controller_2, f1tenth, f1tenth_2, f1tenth_3]
+    controller_4 = Node(
+        package='controllers',
+        executable='ftg_policy',
+        output='screen',
+        parameters=[
+            {'car_name': 'f1tenth_5', 'track_name': track},
+        ],
+    )
+
+
+
+    return [gz_sim, controller_1, controller_2, controller_3, controller_4, f1tenth, f1tenth_2, f1tenth_3, f1tenth_4, f1_tenth_5]
 
 def generate_launch_description():
 
