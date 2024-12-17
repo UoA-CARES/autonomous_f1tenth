@@ -60,7 +60,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
         # handle if should evaluate at end of episode
         if (step_counter+1) % number_steps_per_evaluation == 0:
             evaluate = True
-            record.save_model(str(step_counter+1))
+            record.save_agent(str(step_counter+1), "agent")
         
         # handle end of episode
         if done or truncated:
