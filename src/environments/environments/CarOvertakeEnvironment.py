@@ -216,15 +216,11 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
             car_x, car_y, car_yaw, index = self.track_waypoints[10]
             car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[16]
             car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[21]
-            car_4_x, car_4_y, car_4_yaw, _ = self.track_waypoints[26]
-            car_5_x, car_5_y, car_5_yaw, _ = self.track_waypoints[30]
         # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
             car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[index+2 if index+20 < len(self.track_waypoints) else 0]
             car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[index+8 if index+40 < len(self.track_waypoints) else 20]
-            car_4_x, car_4_y, car_4_yaw, _ = self.track_waypoints[index+20 if index+60 < len(self.track_waypoints) else 40]
-            car_5_x, car_5_y, car_5_yaw, _ = self.track_waypoints[index+30 if index+80 < len(self.track_waypoints) else 60]
                    
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
@@ -234,8 +230,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
         self.call_reset_service(car_x=car_3_x, car_y=car_3_y, car_Y=car_3_yaw, goal_x=x, goal_y=y, car_name='f1tenth_3')
-        self.call_reset_service(car_x=car_4_x, car_y=car_4_y, car_Y=car_4_yaw, goal_x=x, goal_y=y, car_name='f1tenth_4')
-        self.call_reset_service(car_x=car_5_x, car_y=car_5_y, car_Y=car_5_yaw, goal_x=x, goal_y=y, car_name='f1tenth_5')
 
         # Get initial observation
         self.call_step(pause=False)
