@@ -62,6 +62,8 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
                  track='track_1',
                  observation_mode='lidar_only',
                  ):
+        
+        max_steps = 150
         super().__init__('car_overtake', car_name, max_steps, step_length)
 
         
@@ -187,6 +189,11 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
                 case _:
                     print("Unknown extra observation.")
         return total
+    
+    def randomize_yaw(self, yaw, percentage=0.5):
+        factor = 1 + random.uniform(-percentage, percentage)
+        return yaw + factor
+    
 
 
 
@@ -219,8 +226,13 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
+            car_yaw = self.randomize_yaw(car_yaw, 0.15)
+
             car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[index+2 if index+20 < len(self.track_waypoints) else 0]
+            car_2_yaw = self.randomize_yaw(car_2_yaw, 0.15)
+
             car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[index+8 if index+40 < len(self.track_waypoints) else 20]
+            car_3_yaw = self.randomize_yaw(car_3_yaw, 0.15)
                    
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
@@ -254,7 +266,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
     def start_eval(self):
         self.eval_track_idx = 0
         self.is_evaluating = True
-    
+
     def stop_eval(self):
         self.is_evaluating = False
 
