@@ -228,12 +228,16 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
             car_yaw = self.randomize_yaw(car_yaw, 0.15)
 
-            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[index+2 if index+20 < len(self.track_waypoints) else 0]
+            car_2_offset = random.randint(1, 5)  
+            car_2_index = (index + car_2_offset) % len(self.track_waypoints)
+            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
             car_2_yaw = self.randomize_yaw(car_2_yaw, 0.15)
 
-            car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[index+8 if index+40 < len(self.track_waypoints) else 20]
+            car_3_offset = random.randint(6, 10)  
+            car_3_index = (index + car_3_offset) % len(self.track_waypoints)
+            car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[car_3_index]
             car_3_yaw = self.randomize_yaw(car_3_yaw, 0.15)
-                   
+            
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
