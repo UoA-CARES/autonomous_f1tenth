@@ -219,24 +219,24 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
         # start at beginning of track when evaluating
-        if self.is_evaluating:
-            car_x, car_y, car_yaw, index = self.track_waypoints[10]
-            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[16]
-            car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[21]
-        # start the car randomly along the track
-        else:
-            car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
-            car_yaw = self.randomize_yaw(car_yaw, 0.25)
+        # if self.is_evaluating:
+        #     car_x, car_y, car_yaw, index = self.track_waypoints[10]
+        #     car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[16]
+        #     car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[21]
+        # # start the car randomly along the track
+        # else:
+        car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
+        car_yaw = self.randomize_yaw(car_yaw, 0.25)
 
-            car_2_offset = random.randint(3, 7)  
-            car_2_index = (index + car_2_offset) % len(self.track_waypoints)
-            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
-            car_2_yaw = self.randomize_yaw(car_2_yaw, 0.25)
+        car_2_offset = random.randint(3, 7)  
+        car_2_index = (index + car_2_offset) % len(self.track_waypoints)
+        car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
+        car_2_yaw = self.randomize_yaw(car_2_yaw, 0.25)
 
-            car_3_offset = random.randint(8, 12)  
-            car_3_index = (index + car_3_offset) % len(self.track_waypoints)
-            car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[car_3_index]
-            car_3_yaw = self.randomize_yaw(car_3_yaw, 0.25)
+        car_3_offset = random.randint(8, 12)  
+        car_3_index = (index + car_3_offset) % len(self.track_waypoints)
+        car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[car_3_index]
+        car_3_yaw = self.randomize_yaw(car_3_yaw, 0.25)
 
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
