@@ -31,8 +31,26 @@ def launch(context, *args, **kwargs):
         }.items()
     )
 
+    f1tenth_2 = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
+        launch_arguments={
+            'name': 'f1tenth_2',
+            'world': 'empty',
+        }.items()
+    )
 
-    return[gz_sim, f1tenth]
+    controller_1 = Node(
+        package='controllers',
+        executable='ftg_policy',
+        output='screen',
+        parameters=[
+            {'car_name': 'f1tenth_2', 'track_name': track},
+        ],
+    )
+
+
+    return[gz_sim, f1tenth, f1tenth_2, controller_1]
 
 def generate_launch_description():
 
