@@ -61,7 +61,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
                  track='track_1',
                  observation_mode='lidar_only',
                  ):
-        super().__init__('car_track', car_name, max_steps, step_length)
+        super().__init__('car_race', car_name, max_steps, step_length)
 
         
 
@@ -548,7 +548,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
     
     def parse_observation(self, observation):
         
-        string = f'CarTrack Observation\n'
+        string = f'CarRace Observation\n'
 
         match (self.odom_observation_mode):
             case 'no_position':

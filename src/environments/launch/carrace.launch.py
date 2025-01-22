@@ -71,7 +71,7 @@ def generate_launch_description():
 
     reset = Node(
             package='environments',
-            executable='CarTrackReset',
+            executable='CarRaceReset',
             output='screen',
             emulate_tty=True,
     )
