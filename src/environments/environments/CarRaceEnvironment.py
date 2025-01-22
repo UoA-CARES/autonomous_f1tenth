@@ -213,9 +213,11 @@ class CarRaceEnvironment(F1tenthEnvironment):
         # start at beginning of track when evaluating
         if self.is_evaluating:
             car_x, car_y, car_yaw, index = self.track_waypoints[10]
+            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[16]
         # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
+            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[index+2 if index+20 < len(self.track_waypoints) else 0]
         
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
@@ -223,6 +225,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
         self.goal_position = [x,y]
 
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
+        self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
 
         # Get initial observation
         self.call_step(pause=False)
