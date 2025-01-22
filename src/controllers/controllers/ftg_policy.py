@@ -66,7 +66,7 @@ class FollowTheGapPolicy():
     def select_action(self, state):
         # Current x: state[0], current y: state[1], orientation w: state[2], orientation x: state[3], orientation y: state[4], orientation z: state[5]
         # linear vel x: state[6], angular vel z: state[7], LIDAR points 1-10: state[8-17] where each entry is the 64th LIDAR point
-        lin = 2.5 #0.6
+        lin = 2 #0.6
         turn_angle = 0.4667
         min_turn_radius = 0.625
         lidar_angle=1.396
