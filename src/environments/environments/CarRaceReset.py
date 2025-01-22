@@ -14,7 +14,7 @@ from ament_index_python import get_package_share_directory
 
 from .util import get_quaternion_from_euler
 
-class CarTrackReset(Node):
+class CarRaceReset(Node):
     def __init__(self):
         super().__init__('car_track_reset')
 
@@ -76,7 +76,7 @@ def main():
     rclpy.init()
     pkg_environments = get_package_share_directory('environments')
 
-    reset_service = CarTrackReset()
+    reset_service = CarRaceReset()
     pkg_environments = get_package_share_directory('environments')
 
     services = SimulationServices('empty')
