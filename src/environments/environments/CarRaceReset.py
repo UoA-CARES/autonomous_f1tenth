@@ -81,8 +81,6 @@ def main():
 
     services = SimulationServices('empty')
 
-    services.spawn(sdf_filename=f"{pkg_environments}/sdf/goal.sdf", pose=[1, 1, 1], name='goal')
-
     reset_service.get_logger().info('Environment Spawning Complete')
 
     executor = MultiThreadedExecutor()
