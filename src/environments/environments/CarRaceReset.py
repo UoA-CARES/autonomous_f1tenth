@@ -16,10 +16,10 @@ from .util import get_quaternion_from_euler
 
 class CarRaceReset(Node):
     def __init__(self):
-        super().__init__('car_track_reset')
+        super().__init__('car_race_reset')
 
         srv_cb_group = MutuallyExclusiveCallbackGroup()
-        self.srv = self.create_service(Reset, 'car_track_reset', callback=self.service_callback, callback_group=srv_cb_group)
+        self.srv = self.create_service(Reset, 'car_race_reset', callback=self.service_callback, callback_group=srv_cb_group)
 
         set_pose_cb_group = MutuallyExclusiveCallbackGroup()
         self.set_pose_client = self.create_client(
