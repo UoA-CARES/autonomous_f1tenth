@@ -1,9 +1,9 @@
 sim:
   ros__parameters:
-    algorithm: 'ftg'
+    algorithm: 'rl'
     observation_mode: 'lidar_only'
-    environment: 'CarTrack'
-    track: 'track_06'
+    environment: 'CarRace'
+    track: 'track_04'
     start_stage: 'track' # init, plan, track
     number_eval_episodes: 100
     path_file_path: 'newpath.txt'
