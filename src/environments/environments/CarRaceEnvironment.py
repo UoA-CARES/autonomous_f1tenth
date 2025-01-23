@@ -59,18 +59,11 @@ class CarRaceEnvironment(F1tenthEnvironment):
         #####################################################################################################################
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
-        # Reward configuration
-        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
-        self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
-
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
         self.LIDAR_POINTS = 10 #682
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
-        # Evaluation settings
-        self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
@@ -80,9 +73,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
         self.MIN_ACTIONS = np.asarray([0, -0.434])
 
         #####################################################################################################################
-
-        # Environment Details ----------------------------------------
-        self.MAX_STEPS_PER_GOAL = max_steps
 
         # configure odom observation size:
         match observation_mode:
@@ -97,11 +87,9 @@ class CarRaceEnvironment(F1tenthEnvironment):
         self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
 
         self.COLLISION_RANGE = collision_range
-        self.REWARD_RANGE = reward_range
 
         self.odom_observation_mode = observation_mode
         self.track = track
-        self.is_multi_track = 'multi_track' in track
 
         # initialize track progress utilities
         self.prev_t = None
@@ -115,16 +103,10 @@ class CarRaceEnvironment(F1tenthEnvironment):
             self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
             self.ae_lidar_model.eval()
 
-        # reward function specific setup:
-        if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.progress_not_met_cnt = 0
-
-
         # Reset Client -----------------------------------------------
 
         self.goals_reached = 0
         self.start_waypoint_index = 0
-        self.steps_since_last_goal = 0
         self.full_current_state = None
 
 
@@ -171,20 +153,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
         self.set_velocity(0, 0)
         
-        if self.is_multi_track:
-            # Evaluating: loop through eval tracks sequentially
-            if self.is_evaluating:
-                eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
-                self.current_track_key = eval_track_key_list[self.eval_track_idx]
-                self.eval_track_idx += 1
-                self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
-
-            # Training: choose a random track that is not used for evaluation
-            else:
-                self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
-            
-            self.track_waypoints = self.all_track_waypoints[self.current_track_key]
-
         # start at beginning of track when evaluating
         if self.is_evaluating:
             car_x, car_y, car_yaw, index = self.track_waypoints[10]
@@ -212,13 +180,11 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
         # get track progress related info
         # set new track model if its multi track
-        if self.is_multi_track:
-            self.track_model = self.all_track_models[self.current_track_key]
+        
         self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         # reward function specific resets
-        if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.progress_not_met_cnt = 0
+        
 
         return state, info
     
