@@ -178,24 +178,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
         return state, info
 
-    def is_terminated(self, state, ranges):
-        return has_collided(ranges, self.COLLISION_RANGE) \
-            or has_flipped_over(state[2:6])
-
-    def is_truncated(self):
-
-        match self.BASE_REWARD_FUNCTION:
-
-            case 'goal_hitting':
-                return self.steps_since_last_goal >= 20 or \
-                self.step_counter >= self.MAX_STEPS
-            case 'progressive':
-                return self.progress_not_met_cnt >= 5 or \
-                self.step_counter >= self.MAX_STEPS
-            case _:
-                raise Exception("Unknown truncate condition for reward function.")
-
-
     def get_observation(self):
 
         # Get Position and Orientation of F1tenth
