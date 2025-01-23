@@ -33,18 +33,13 @@ class CarRaceReset(Node):
 
     def service_callback(self, request, response):
 
-        goal_req = self.create_request('goal', x=request.gx, y=request.gy, z=1)
         car_req = self.create_request(request.car_name, x=request.cx, y=request.cy, z=0, yaw=request.cyaw)
 
         while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('set_pose service not available, waiting again...')
 
         #TODO: Call async and wait for both to execute
-        if (request.flag == "goal_only"):
-            self.set_pose_client.call(goal_req)
-        else:
-            self.set_pose_client.call(goal_req)
-            self.set_pose_client.call(car_req)
+        self.set_pose_client.call(car_req)
 
         response.success = True
 
