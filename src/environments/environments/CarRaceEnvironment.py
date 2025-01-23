@@ -17,6 +17,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
     """
     CarRace Environment:
+        Currently a test environment only.
 
         Task:
             Agent races an opponent
@@ -126,35 +127,19 @@ class CarRaceEnvironment(F1tenthEnvironment):
         self.steps_since_last_goal = 0
         self.full_current_state = None
 
-        if not self.is_multi_track:
-            if "test_track" in track:
-                track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
-            else:
-                track_key = track
 
-            self.track_waypoints = waypoints[track_key]
-            self.track_model = TrackMathDef(np.array(self.track_waypoints)[:,:2])
-            
+        if "test_track" in track:
+            track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
         else:
-            _, self.all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
-            self.current_track_key = list(self.all_track_waypoints.keys())[0]
+            track_key = track
 
-            # set current track waypoints
-            self.track_waypoints = self.all_track_waypoints[self.current_track_key]
-
-            # set track models
-            self.all_track_models = get_track_math_defs(self.all_track_waypoints)
-            self.track_model = self.all_track_models[self.current_track_key]
+        self.track_waypoints = waypoints[track_key]
+        self.track_model = TrackMathDef(np.array(self.track_waypoints)[:,:2])
 
 
         # Evaluation related setup ---------------------------------------------------
         self.is_evaluating = False
 
-        if self.is_multi_track:
-            # define from which track in the track lists to be used for eval only
-            self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
-            # idx used to loop through eval tracks sequentially
-            self.eval_track_idx = 0
 
         self.get_logger().info('Environment Setup Complete')
 
