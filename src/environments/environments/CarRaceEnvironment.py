@@ -1,17 +1,14 @@
-import math
 import rclpy
 import numpy as np
 from rclpy import Future
 import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
-from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, has_collided, has_flipped_over
+from .util import process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, reconstruct_ae_latent
 from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
-from std_srvs.srv import SetBool
-from typing import Literal, List, Optional, Tuple
+from typing import Literal, List
 import torch
-from datetime import datetime
 
 class CarRaceEnvironment(F1tenthEnvironment):
 

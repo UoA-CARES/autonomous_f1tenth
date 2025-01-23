@@ -1,17 +1,11 @@
-import sys
 import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
-
 from environment_interfaces.srv import Reset
-from f1tenth_control.SimulationServices import SimulationServices
 from ros_gz_interfaces.srv import SetEntityPose
 from ros_gz_interfaces.msg import Entity
 from geometry_msgs.msg import Pose, Point
-
-from ament_index_python import get_package_share_directory
-
 from .util import get_quaternion_from_euler
 
 class CarRaceReset(Node):
@@ -69,12 +63,9 @@ class CarRaceReset(Node):
 
 def main():
     rclpy.init()
-    pkg_environments = get_package_share_directory('environments')
 
     reset_service = CarRaceReset()
-    pkg_environments = get_package_share_directory('environments')
 
-    services = SimulationServices('empty')
 
     reset_service.get_logger().info('Environment Spawning Complete')
 
