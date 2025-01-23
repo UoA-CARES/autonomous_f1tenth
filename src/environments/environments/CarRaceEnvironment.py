@@ -16,10 +16,10 @@ from datetime import datetime
 class CarRaceEnvironment(F1tenthEnvironment):
 
     """
-    CarTrack Reinforcement Learning Environment:
+    CarRace Environment:
 
         Task:
-            Agent learns to drive a track
+            Agent races an opponent
 
         Observation:
             full:
@@ -39,17 +39,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
                 Lidar Data
 
         Action:
-            It's linear and angular velocity (Twist)
-        
-        Reward:
-            +2 if it comes within REWARD_RANGE units of a goal
-            -25 if it collides with a wall
-
-        Termination Conditions:
-            When the agent collides with a wall or the Follow The Gap car
-        
-        Truncation Condition:
-            Reaching max_steps
+            Its linear and angular velocity (Twist)
     """
 
     def __init__(self, 
@@ -449,8 +439,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
             new_x, new_y, _, _ = self.track_waypoints[(self.start_waypoint_index + self.goals_reached) % len(self.track_waypoints)]
             self.goal_position = [new_x, new_y]
 
-            self.update_goal_service(new_x, new_y)
-
             self.steps_since_last_goal = 0
         
         if self.steps_since_last_goal >= 20:
@@ -491,8 +479,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
             new_x, new_y, _, _ = self.track_waypoints[(self.start_waypoint_index + self.goals_reached) % len(self.track_waypoints)]
             self.goal_position = [new_x, new_y]
 
-            self.update_goal_service(new_x, new_y)
-
             self.steps_since_last_goal = 0
 
         if self.progress_not_met_cnt >= 5:
@@ -522,21 +508,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
         request.cy = float(car_y)
         request.cyaw = float(car_Y)
         request.flag = "car_and_goal"
-
-        future = self.reset_client.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
-
-        return future.result()
-
-    def update_goal_service(self, x, y):
-        """
-        Reset the goal position
-        """
-
-        request = Reset.Request()
-        request.gx = x
-        request.gy = y
-        request.flag = "goal_only"
 
         future = self.reset_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
