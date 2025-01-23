@@ -178,13 +178,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
 
         return state, info
-    
-    def start_eval(self):
-        self.eval_track_idx = 0
-        self.is_evaluating = True
-    
-    def stop_eval(self):
-        self.is_evaluating = False
 
     def step(self, action):
         self.step_counter += 1
