@@ -10,7 +10,7 @@ def main():
     rclpy.init()
 
     env_config, _, network_config, rest = parse_args()
-    MAX_ACTIONS = np.asarray([1, 0.45])
+    MAX_ACTIONS = np.asarray([2, 0.45])
     MIN_ACTIONS = np.asarray([0, -0.45])
     OBSERVATION_SIZE=12
     ACTION_NUM=2

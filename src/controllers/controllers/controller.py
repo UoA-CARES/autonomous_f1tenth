@@ -234,7 +234,7 @@ class Controller(Node):
         return delta
 
     def vel_mod(self, linear):
-        max_vel = 0.5
+        max_vel = 5
         linear = min(max_vel, linear)
         return linear
 

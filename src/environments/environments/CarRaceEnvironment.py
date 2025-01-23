@@ -5,8 +5,7 @@ from rclpy import Future
 import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
-from .util import has_collided, has_flipped_over
-from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent
+from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, has_collided, has_flipped_over
 from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
@@ -14,13 +13,13 @@ from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
 
-class CarOvertakeEnvironment(F1tenthEnvironment):
+class CarRaceEnvironment(F1tenthEnvironment):
 
     """
-    CarOvertake Reinforcement Learning Environment:
+    CarTrack Reinforcement Learning Environment:
 
         Task:
-            Agent learns to drive a track with multiple cars on it. The agent must overtake the cars as it reaches them.
+            Agent learns to drive a track
 
         Observation:
             full:
@@ -47,7 +46,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
             -25 if it collides with a wall
 
         Termination Conditions:
-            When the agent collides with a wall or any Follow The Gap car
+            When the agent collides with a wall or the Follow The Gap car
         
         Truncation Condition:
             Reaching max_steps
@@ -62,7 +61,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
                  track='track_1',
                  observation_mode='lidar_only',
                  ):
-        super().__init__('car_overtake', car_name, max_steps, step_length)
+        super().__init__('car_race', car_name, max_steps, step_length)
 
         
 
@@ -86,7 +85,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
 
         # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([2, 0.434])
+        self.MAX_ACTIONS = np.asarray([3, 0.434])
         self.MIN_ACTIONS = np.asarray([0, -0.434])
 
         #####################################################################################################################
@@ -215,17 +214,11 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         if self.is_evaluating:
             car_x, car_y, car_yaw, index = self.track_waypoints[10]
             car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[16]
-            car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[21]
-            car_4_x, car_4_y, car_4_yaw, _ = self.track_waypoints[26]
-            car_5_x, car_5_y, car_5_yaw, _ = self.track_waypoints[30]
         # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
             car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[index+2 if index+20 < len(self.track_waypoints) else 0]
-            car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[index+8 if index+40 < len(self.track_waypoints) else 20]
-            car_4_x, car_4_y, car_4_yaw, _ = self.track_waypoints[index+20 if index+60 < len(self.track_waypoints) else 40]
-            car_5_x, car_5_y, car_5_yaw, _ = self.track_waypoints[index+30 if index+80 < len(self.track_waypoints) else 60]
-                   
+        
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
@@ -233,9 +226,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
 
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
-        self.call_reset_service(car_x=car_3_x, car_y=car_3_y, car_Y=car_3_yaw, goal_x=x, goal_y=y, car_name='f1tenth_3')
-        self.call_reset_service(car_x=car_4_x, car_y=car_4_y, car_Y=car_4_yaw, goal_x=x, goal_y=y, car_name='f1tenth_4')
-        self.call_reset_service(car_x=car_5_x, car_y=car_5_y, car_Y=car_5_yaw, goal_x=x, goal_y=y, car_name='f1tenth_5')
 
         # Get initial observation
         self.call_step(pause=False)
@@ -561,7 +551,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
     
     def parse_observation(self, observation):
         
-        string = f'CarTrack Observation\n'
+        string = f'CarRace Observation\n'
 
         match (self.odom_observation_mode):
             case 'no_position':

@@ -38,6 +38,11 @@ class CarTrackEnvironmentConfig(EnvironmentConfig):
     observation_mode: str
     max_goals: int
 
+class CarRaceEnvironmentConfig(EnvironmentConfig):
+    track: str
+    observation_mode: str
+    max_goals: int
+
 class CarOvertakeEnvironmentConfig(EnvironmentConfig):
     track: str
     observation_mode: str
