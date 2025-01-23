@@ -167,8 +167,8 @@ class CarRaceEnvironment(F1tenthEnvironment):
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
         self.goal_position = [x,y]
 
-        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
-        self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
+        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, car_name=self.NAME)
+        self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, car_name='f1tenth_2')
 
         # Get initial observation
         self.call_step(pause=False)
@@ -326,15 +326,13 @@ class CarRaceEnvironment(F1tenthEnvironment):
     ########################## Utility Functions #############################################
     ##########################################################################################
 
-    def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y, car_name):
+    def call_reset_service(self, car_x, car_y, car_Y, car_name):
         """
         Reset the car and goal position
         """
 
         request = Reset.Request()
         request.car_name = car_name
-        request.gx = float(goal_x)
-        request.gy = float(goal_y)
         request.cx = float(car_x)
         request.cy = float(car_y)
         request.cyaw = float(car_Y)
