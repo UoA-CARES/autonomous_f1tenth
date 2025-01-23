@@ -176,62 +176,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
         
         self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
-
         return state, info
-
-    def step(self, action):
-        self.step_counter += 1
-        
-        # get current state
-        full_state = self.full_current_state
-
-        # unpause simulation
-        self.call_step(pause=False)
-
-        # take action and wait
-        lin_vel, steering_angle = action
-        self.set_velocity(lin_vel, steering_angle)
-
-        self.sleep()
-        
-        # record new state
-        next_state, full_next_state, raw_lidar_range = self.get_observation()
-        self.call_step(pause=True)
-
-        # set new step as 'current state' for next step
-        self.full_current_state = full_next_state
-        
-        # calculate progress along track
-        if not self.prev_t:
-            self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
-
-        t2 = self.track_model.get_closest_point_on_spline(full_next_state[:2], t_only=True)
-        self.step_progress = self.track_model.get_distance_along_track_parametric(self.prev_t, t2, approximate=True)
-        self.center_line_offset = self.track_model.get_distance_to_spline_point(t2, full_next_state[:2])
-
-        self.prev_t = t2
-
-        # guard against random error from progress estimate. See get_closest_point_on_spline, suspect differential evo have something to do with this.
-        if abs(self.step_progress) > (full_next_state[6]/10*3): # traveled distance should not too different from lin vel * step time
-            self.step_progress = full_next_state[6]/10*0.8 # reasonable estimation fo traveleled distance based on current lin vel but only 80% of it just in case its exploited by agent
-
-        # calculate reward & end conditions
-        reward, reward_info = self.compute_reward(full_state, full_next_state, raw_lidar_range)
-        terminated = self.is_terminated(full_next_state, raw_lidar_range)
-        truncated = self.is_truncated()
-
-        # additional information that might be logged: based on RESULT observation
-        info = {
-            'linear_velocity':["avg", full_next_state[6]],
-            'angular_velocity_diff':["avg", abs(full_next_state[7] - full_state[7])],
-            'traveled distance': ['sum', self.step_progress]
-        }
-        info.update(reward_info)
-
-        if self.is_evaluating and (terminated or truncated):
-            self.eval_track_idx
-
-        return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
         return has_collided(ranges, self.COLLISION_RANGE) \
