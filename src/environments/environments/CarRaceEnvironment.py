@@ -148,8 +148,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
     def reset(self):
         self.step_counter = 0
-        self.steps_since_last_goal = 0
-        self.goals_reached = 0
 
         self.set_velocity(0, 0)
         
@@ -164,8 +162,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
         
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
-        x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
-        self.goal_position = [x,y]
 
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, car_name=self.NAME)
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, car_name='f1tenth_2')
@@ -177,14 +173,9 @@ class CarRaceEnvironment(F1tenthEnvironment):
         self.call_step(pause=True)
 
         info = {}
-
-        # get track progress related info
-        # set new track model if its multi track
         
         self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
-        # reward function specific resets
-        
 
         return state, info
     
