@@ -1,5 +1,5 @@
 car:
   ros__parameters:
-    tracking: True
-    algorithm: 'turn_and_drive'
+    tracking: False
+    algorithm: 'ftg'
     observation_mode: 'lidar_only'
