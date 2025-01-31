@@ -123,6 +123,42 @@ def avg_lidar(lidar: LaserScan, num_points: int):
         
         return new_range
 
+def avg_lidar_w_consensus(lidar:LaserScan, num_points:int):
+    '''For each 'sector', count non hitting rays, if non hitting rays >= 50% consider entire sector non-hitting. Otherwise use avg of hitting rays.'''
+    ranges = lidar.ranges
+    ranges = np.nan_to_num(ranges, nan=float(-5), posinf=float(-5), neginf=float(-5))
+    # ranges = ranges[1:]
+                                                
+    # Calculate sector size
+    sector_size = len(ranges) // num_points
+    processed_data = []
+    
+    for i in range(num_points):
+        # Get the corresponding sector
+        sector = ranges[i * sector_size: (i + 1) * sector_size]
+        
+        # Count non-hitting rays (-5 values)
+        non_hitting_count = np.sum(sector == -5) # sector == -5 returns a boolean array, true being any -5 occurance. sum just count trues. chatgpt black magic right here
+        
+        if non_hitting_count > sector_size / 2:
+            # If more non-hitting rays, return 10
+            processed_data.append(float(10))
+        else:
+            # Return average of hitting rays (values other than -5)
+            hitting_rays = sector[sector != -5]
+            if len(hitting_rays) > 0:
+                processed_data.append(float(np.mean(hitting_rays)))
+            else:
+                processed_data.append(float(10))  # All rays are non-hitting
+        
+    return processed_data
+
+def process_lidar_med_filt(lidar:LaserScan, window_size:int, nan_to = -5) -> npt.ArrayLike:
+    ranges = np.array(lidar.ranges.tolist())
+    ranges = np.nan_to_num(ranges, posinf=nan_to, nan=nan_to, neginf=nan_to).tolist()  
+    processed_ranges = scipy.ndimage.median_filter(ranges, window_size, mode='nearest').tolist()
+    return processed_ranges
+
 def process_ae_lidar(lidar:LaserScan, ae_model, is_latent_only=True):
     range_list = np.array(lidar.ranges)
     range_list = np.nan_to_num(range_list, posinf=-5)

@@ -15,14 +15,14 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import math
 import torch
 from torch import nn
-from typing import List
+from typing import List, Literal
 import scipy
 import numpy as np
 
 from environments.autoencoders.lidar_beta_vae import BetaVAE1D
 from environments.autoencoders.lidar_autoencoder import LidarConvAE
 
-from environments.util import process_odom, avg_lidar, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, process_ae_lidar, process_ae_lidar_beta_vae
+from environments.util import process_odom, avg_lidar, process_lidar_med_filt, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, avg_lidar_w_consensus, process_ae_lidar, process_ae_lidar_beta_vae
 
 
 class Controller(Node):
@@ -37,6 +37,7 @@ class Controller(Node):
         self.NAME = car_name
         self.STEP_LENGTH = step_length
         self.LIDAR_POINTS = lidar_points
+        self.LIDAR_PROCESSING:Literal["avg","avg_w_consensus","pretrained_ae", "raw"] = 'raw'
         
         # Pub/Sub ----------------------------------------------------
         # Ackermann pub only works for physical version
@@ -164,10 +165,26 @@ class Controller(Node):
         odom[5] = odom[5] - self.offset[5]
         num_points = self.LIDAR_POINTS
 
-        if policy == 'ftg':
-            lidar_range = forward_reduce_lidar(lidar)
-        else:
-            lidar_range = avg_lidar(lidar, num_points)
+        match self.LIDAR_PROCESSING:
+            case 'avg':
+                processed_lidar_range = avg_lidar(lidar, num_points)
+                visualized_range = processed_lidar_range
+                scan = create_lidar_msg(lidar, num_points, visualized_range)
+            case 'raw':
+                processed_lidar_range = process_lidar_med_filt(lidar, 15)
+                visualized_range = processed_lidar_range
+                scan = create_lidar_msg(lidar, num_points, visualized_range)
+            case 'avg_w_consensus':
+                processed_lidar_range = avg_lidar_w_consensus(lidar, num_points)
+                visualized_range = processed_lidar_range
+                scan = create_lidar_msg(lidar, num_points, visualized_range)
+            case 'forward_reduce':
+                processed_lidar_range = forward_reduce_lidar(lidar)
+
+        # if policy == 'ftg':
+        #     lidar_range = forward_reduce_lidar(lidar)
+        # else:
+        #     lidar_range = avg_lidar(lidar, num_points)
 
         # TODO: find out how to deal with this better. 
         # Testing code for pre trained AE
@@ -175,10 +192,9 @@ class Controller(Node):
         # ae_range = process_ae_lidar(lidar, self.ae_lidar_model,is_latent_only = False)
         # # scan = create_lidar_msg(lidar, num_points, lidar_range)
         # scan = create_lidar_msg(lidar, len(ae_range), ae_range)
-
-        scan = create_lidar_msg(lidar, len(lidar_range), lidar_range)
+        
         self.processed_publisher.publish(scan)
-        state = odom+lidar_range
+        state = odom+processed_lidar_range
         return state
         
 
