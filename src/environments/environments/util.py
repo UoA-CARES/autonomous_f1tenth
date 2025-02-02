@@ -153,7 +153,8 @@ def avg_lidar_w_consensus(lidar:LaserScan, num_points:int):
         
     return processed_data
 
-def process_lidar_med_filt(lidar:LaserScan, window_size:int, nan_to = -5) -> npt.ArrayLike:
+# This function is terrible at detecting obstacles....
+def process_lidar_med_filt(lidar:LaserScan, window_size:int, nan_to = -5): #-> np.ArrayLike:
     ranges = np.array(lidar.ranges.tolist())
     ranges = np.nan_to_num(ranges, posinf=nan_to, nan=nan_to, neginf=nan_to).tolist()  
     processed_ranges = scipy.ndimage.median_filter(ranges, window_size, mode='nearest').tolist()
