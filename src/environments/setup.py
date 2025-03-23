@@ -25,6 +25,7 @@ setup(
         (os.path.join('share', package_name, 'sdf'), glob('sdf/*')),
         (os.path.join('share', package_name, 'worlds'), glob('worlds/*')),
         (os.path.join('share', package_name, 'meshes'), glob('meshes/*')),
+        (os.path.join('share', 'f1tenth', 'f1tenth_description', 'meshes'), glob('meshes/*')),
         *map_infos,
     ],
     install_requires=['setuptools'],

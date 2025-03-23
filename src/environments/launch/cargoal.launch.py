@@ -55,7 +55,7 @@ def generate_launch_description():
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
         launch_arguments={
-            'gz_args': f'-s -r {pkg_environments}/worlds/empty.sdf',
+            'gz_args': f'-s -r {pkg_environments}/worlds/aruco_test.sdf',
         }.items()
     )
 
