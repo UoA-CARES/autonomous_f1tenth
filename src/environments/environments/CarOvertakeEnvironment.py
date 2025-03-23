@@ -62,6 +62,8 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
                  track='track_1',
                  observation_mode='lidar_only',
                  ):
+        
+        max_steps = 200
         super().__init__('car_overtake', car_name, max_steps, step_length)
 
         
@@ -187,6 +189,11 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
                 case _:
                     print("Unknown extra observation.")
         return total
+    
+    def randomize_yaw(self, yaw, percentage=0.5):
+        factor = 1 + random.uniform(-percentage, percentage)
+        return yaw + factor
+    
 
 
 
@@ -212,20 +219,25 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
         # start at beginning of track when evaluating
-        if self.is_evaluating:
-            car_x, car_y, car_yaw, index = self.track_waypoints[10]
-            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[16]
-            car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[21]
-            car_4_x, car_4_y, car_4_yaw, _ = self.track_waypoints[26]
-            car_5_x, car_5_y, car_5_yaw, _ = self.track_waypoints[30]
-        # start the car randomly along the track
-        else:
-            car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
-            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[index+2 if index+20 < len(self.track_waypoints) else 0]
-            car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[index+8 if index+40 < len(self.track_waypoints) else 20]
-            car_4_x, car_4_y, car_4_yaw, _ = self.track_waypoints[index+20 if index+60 < len(self.track_waypoints) else 40]
-            car_5_x, car_5_y, car_5_yaw, _ = self.track_waypoints[index+30 if index+80 < len(self.track_waypoints) else 60]
-                   
+        # if self.is_evaluating:
+        #     car_x, car_y, car_yaw, index = self.track_waypoints[10]
+        #     car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[16]
+        #     car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[21]
+        # # start the car randomly along the track
+        # else:
+        car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
+        car_yaw = self.randomize_yaw(car_yaw, 0.25)
+
+        car_2_offset = random.randint(8, 16)  
+        car_2_index = (index + car_2_offset) % len(self.track_waypoints)
+        car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
+        car_2_yaw = self.randomize_yaw(car_2_yaw, 0.25)
+
+        car_3_offset = random.randint(20, 40)  
+        car_3_index = (index + car_3_offset) % len(self.track_waypoints)
+        car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[car_3_index]
+        car_3_yaw = self.randomize_yaw(car_3_yaw, 0.25)
+
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
@@ -234,8 +246,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
         self.call_reset_service(car_x=car_3_x, car_y=car_3_y, car_Y=car_3_yaw, goal_x=x, goal_y=y, car_name='f1tenth_3')
-        self.call_reset_service(car_x=car_4_x, car_y=car_4_y, car_Y=car_4_yaw, goal_x=x, goal_y=y, car_name='f1tenth_4')
-        self.call_reset_service(car_x=car_5_x, car_y=car_5_y, car_Y=car_5_yaw, goal_x=x, goal_y=y, car_name='f1tenth_5')
 
         # Get initial observation
         self.call_step(pause=False)
@@ -260,7 +270,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
     def start_eval(self):
         self.eval_track_idx = 0
         self.is_evaluating = True
-    
+
     def stop_eval(self):
         self.is_evaluating = False
 

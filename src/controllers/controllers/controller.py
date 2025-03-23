@@ -112,7 +112,6 @@ class Controller(Node):
 
     def step(self, action, policy):
         lin_vel, steering_angle = action
-        lin_vel = self.vel_mod(lin_vel)
         self.set_velocity(lin_vel, steering_angle)
 
         self.sleep()
@@ -232,6 +231,7 @@ class Controller(Node):
         delta = math.atan((L * omega) / linear_v)
 
         return delta
+
 
     def vel_mod(self, linear):
         max_vel = 5
