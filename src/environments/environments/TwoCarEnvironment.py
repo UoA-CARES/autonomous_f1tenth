@@ -16,42 +16,6 @@ from datetime import datetime
 
 class TwoCarEnvironment(F1tenthEnvironment):
 
-    """
-    CarOvertake Reinforcement Learning Environment:
-
-        Task:
-            Agent learns to drive a track with multiple cars on it. The agent must overtake the cars as it reaches them.
-
-        Observation:
-            full:
-                Car Position (x, y)
-                Car Orientation (x, y, z, w)
-                Car Velocity
-                Car Angular Velocity
-                Lidar Data
-            no_position:
-                Car Orientation (x, y, z, w)
-                Car Velocity
-                Car Angular Velocity
-                Lidar Data
-            lidar_only:
-                Car Velocity
-                Car Angular Velocity
-                Lidar Data
-
-        Action:
-            It's linear and angular velocity (Twist)
-        
-        Reward:
-            +2 if it comes within REWARD_RANGE units of a goal
-            -25 if it collides with a wall
-
-        Termination Conditions:
-            When the agent collides with a wall or any Follow The Gap car
-        
-        Truncation Condition:
-            Reaching max_steps
-    """
 
     def __init__(self, 
                  car_name, 
