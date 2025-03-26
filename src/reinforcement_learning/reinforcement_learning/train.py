@@ -46,7 +46,7 @@ def main():
 
 
     record = Record(
-        base_directory=f"/home/anyone/training_logs/{network_config['algorithm']}-{env_config['environment']}-{datetime.now().strftime('%y_%m_%d_%H-%M-%S')}",
+        base_directory=f"/home/anyone/training_logs/{env_config['car_name']}-{network_config['algorithm']}-{env_config['environment']}-{datetime.now().strftime('%y_%m_%d_%H-%M-%S')}",
         algorithm=network_config['algorithm'],
         task=env_config['environment'],
         agent=None,
