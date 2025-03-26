@@ -44,6 +44,7 @@ setup(
             'CarBeatReset = environments.CarBeatReset:main',
             'CarRaceReset = environments.CarRaceReset:main',
             'CarOvertakeReset = environments.CarOvertakeReset:main',
+            'TwoCarReset = environments.TwoCarReset:main',
             'SteppingService = environments.SteppingService:main',
             'LidarLogger = environments.lidar_logger:main'
         ],

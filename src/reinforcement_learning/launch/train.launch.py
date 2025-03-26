@@ -13,7 +13,8 @@ env_launch = {
     'CarBlock': 'carblock',
     'CarTrack': 'cartrack',
     'CarBeat': 'carbeat',
-    'CarOvertake': 'carovertake'
+    'CarOvertake': 'carovertake',
+    'TwoCar':'twocar'
 }
 
 def generate_launch_description():
@@ -23,6 +24,10 @@ def generate_launch_description():
     config_path = os.path.join(
         get_package_share_directory('reinforcement_learning'),
         'train.yaml'
+    )
+    car2_config_path = os.path.join(
+        get_package_share_directory('reinforcement_learning'),
+        'train_car2.yaml'
     )
 
     config = yaml.load(open(config_path), Loader=yaml.Loader)
@@ -38,6 +43,38 @@ def generate_launch_description():
             'car_two': TextSubstitution(text=str(config['train']['ros__parameters']['ftg_car_name']) if 'ftg_car_name' in config['train']['ros__parameters'] else 'ftg_car'),
         }.items() #TODO: this doesn't do anything
     )
+
+    if env == 'TwoCar':
+        main1 = Node(
+            package='reinforcement_learning',
+            executable='train',
+            parameters=[
+                config_path
+            ],
+            name='train',
+            output='screen',
+            emulate_tty=True, # Allows python print to show
+        )
+
+        main2 = Node(
+            package='reinforcement_learning',
+            executable='train',
+            parameters=[
+                car2_config_path
+            ],
+            name='train',
+            output='screen',
+            emulate_tty=True, # Allows python print to show
+        )
+
+        return LaunchDescription([
+            #TODO: Find a way to remove this
+            SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
+            SetParameter(name='use_sim_time', value=True),
+            environment,
+            main1,
+            main2
+        ])
 
     # Launch the Environment
     main = Node(

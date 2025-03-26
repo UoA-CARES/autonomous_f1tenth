@@ -5,6 +5,7 @@ from environments.CarRaceEnvironment import CarRaceEnvironment
 from environments.CarWallEnvironment import CarWallEnvironment
 from environments.CarBeatEnvironment import CarBeatEnvironment
 from environments.CarOvertakeEnvironment import CarOvertakeEnvironment
+from environments.TwoCarEnvironment import TwoCarEnvironment
 
 class EnvironmentFactory:
     def __init__(self):
@@ -49,6 +50,16 @@ class EnvironmentFactory:
                 )
         elif name == 'CarOvertake':
             return CarOvertakeEnvironment(
+                config['car_name'], 
+                config['reward_range'], 
+                config['max_steps'], 
+                config['collision_range'], 
+                config['step_length'], 
+                config['track'], 
+                config['observation_mode'], 
+            )
+        elif name == 'TwoCar':
+            return TwoCarEnvironment(
                 config['car_name'], 
                 config['reward_range'], 
                 config['max_steps'], 
