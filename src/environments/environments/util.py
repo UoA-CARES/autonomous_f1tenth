@@ -420,4 +420,4 @@ def lateral_translation(spline_location, angle, shift):
     x, y = spline_location
     x1 = x + shift*math.cos(angle+(math.pi/2))
     y1 = y + shift*math.sin(angle+(math.pi/2))
-    return 0
+    return x1, y1
