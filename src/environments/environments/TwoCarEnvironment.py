@@ -182,13 +182,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
-        # start at beginning of track when evaluating
-        # if self.is_evaluating:
-        #     car_x, car_y, car_yaw, index = self.track_waypoints[10]
-        #     car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[16]
-        #     car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[21]
-        # # start the car randomly along the track
-        # else:
+        
         car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
         car_yaw = self.randomize_yaw(car_yaw, 0.25)
 
