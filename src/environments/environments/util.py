@@ -415,3 +415,9 @@ def has_flipped_over(quaternion):
 def reached_goal(car_pos, goal_pos, reward_range):
     distance = math.dist(car_pos, goal_pos)
     return distance < reward_range
+
+def lateral_translation(spline_location, angle, shift):
+    x, y = spline_location
+    x1 = x + shift*math.cos(angle+(math.pi/2))
+    y1 = y + shift*math.sin(angle+(math.pi/2))
+    return 0
