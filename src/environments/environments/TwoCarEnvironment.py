@@ -6,7 +6,7 @@ import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from .util import has_collided, has_flipped_over
-from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent
+from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, lateral_translation
 from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
@@ -184,13 +184,16 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         
         car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
-        car_yaw = self.randomize_yaw(car_yaw, 0.25)
+        #car_yaw = self.randomize_yaw(car_yaw, 0.25)
 
-        car_2_offset = random.randint(8, 16)  
-        car_2_index = (index + car_2_offset) % len(self.track_waypoints)
-        car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
-        car_2_yaw = self.randomize_yaw(car_2_yaw, 0.25)
+        #car_2_offset = random.randint(8, 16)  
+        #car_2_index = (index + car_2_offset) % len(self.track_waypoints)
+        #car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
+        #car_2_yaw = self.randomize_yaw(car_2_yaw, 0.25)
 
+        car_x, car_y = lateral_translation((car_x, car_y), car_yaw, -1.5)
+        car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, 0.5)
+        car_2_yaw = car_yaw
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
