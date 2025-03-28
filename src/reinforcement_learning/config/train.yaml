@@ -1,7 +1,7 @@
 train:
   ros__parameters:
     environment: 'TwoCar'  #'CarTrack' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat, CarTrackProgressiveGoal, CarTrack
-    track: 'multi_track_full' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
+    track: 'multi_track_01' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     car_name: 'f1tenth'
     algorithm: 'TD3'
     g: 1
