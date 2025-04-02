@@ -20,17 +20,17 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
 
     state, _ = env.reset()
     
-    obs = env.parse_observation(state)
-    env.get_logger().info('-----------------------------------')
-    env.get_logger().info('\n' + obs)
-    env.get_logger().info('-----------------------------------')
+    # obs = env.parse_observation(state)
+    # env.get_logger().info('-----------------------------------')
+    # env.get_logger().info('\n' + obs)
+    # env.get_logger().info('-----------------------------------')
 
     for step_counter in range(max_steps_training):
         episode_timesteps += 1
 
         # select and action
         if step_counter < max_steps_exploration:
-            env.get_logger().info(f'Exploration Step #{step_counter} out of {max_steps_exploration}')
+            # env.get_logger().info(f'Exploration Step #{step_counter} out of {max_steps_exploration}')
             action_env = np.random.uniform(env.MIN_ACTIONS, env.MAX_ACTIONS, env.ACTION_NUM)
             action = hlp.normalize(action_env, env.MAX_ACTIONS, env.MIN_ACTIONS)
         else:

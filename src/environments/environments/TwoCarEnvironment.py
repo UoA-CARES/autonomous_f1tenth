@@ -190,9 +190,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
         #car_2_index = (index + car_2_offset) % len(self.track_waypoints)
         #car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
         #car_2_yaw = self.randomize_yaw(car_2_yaw, 0.25)
-
-        car_x, car_y = lateral_translation((car_x, car_y), car_yaw, -1.5)
         car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, 0.5)
+        car_x, car_y = lateral_translation((car_x, car_y), car_yaw, -1.5)
+        
         car_2_yaw = car_yaw
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
@@ -201,7 +201,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
-
+        self.get_logger().info('Goal position:' + str(x) + ', ' + str(y))
         # Get initial observation
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
@@ -391,12 +391,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     close_to_wall_penalize_factor = 1 / (1 + np.exp(35 * (dist_to_wall - 0.5))) #y=\frac{1}{1+e^{35\left(x-0.5\right)}}
                     reward -= reward * close_to_wall_penalize_factor * weight
                     reward_info.update({"dist_to_wall":["avg",dist_to_wall]})
-                    print(f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}")   
+                    #print(f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}")   
                 case 'turn':
                     angular_vel_diff = abs(state[7] - next_state[7])
                     turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.3)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
                     reward -= reward * turning_penalty_factor * weight
-                    print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
+                    #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
 
         return reward, reward_info
     
@@ -453,12 +453,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         reward += self.step_progress
 
-        print(f"Step progress: {self.step_progress}")
+        #print(f"Step progress: {self.step_progress}")
        
         self.steps_since_last_goal += 1
 
         if current_distance < self.REWARD_RANGE:
-            print(f'Goal #{self.goals_reached} Reached')
+            #print(f'Goal #{self.goals_reached} Reached')
             # reward += 2
             self.goals_reached += 1
 
