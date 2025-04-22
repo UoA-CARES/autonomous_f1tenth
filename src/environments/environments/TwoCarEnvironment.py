@@ -199,7 +199,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
         self.goal_position = [x,y]
 
-        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
+        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name='f1tenth')
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
         self.get_logger().info('Goal position:' + str(x) + ', ' + str(y))
         # Get initial observation
