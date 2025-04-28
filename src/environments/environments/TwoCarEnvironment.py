@@ -148,6 +148,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
             0.1,
         )
 
+        self.message_filter.registerCallback(self.message_filter_callback)
+
+        self.observation_future = Future()
+
         if self.is_multi_track:
             # define from which track in the track lists to be used for eval only
             self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
