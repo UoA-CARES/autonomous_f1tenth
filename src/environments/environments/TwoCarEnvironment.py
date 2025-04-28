@@ -5,6 +5,8 @@ from rclpy import Future
 import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
+from message_filters import Subscriber
+from nav_msgs.msg import Odometry
 from .util import has_collided, has_flipped_over
 from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, lateral_translation
 from .util_track_progress import TrackMathDef
@@ -126,6 +128,19 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # Evaluation related setup ---------------------------------------------------
         self.is_evaluating = False
+
+        # Subscribe to both car's odometry --------------------------------------------
+        self.odom_sub_1 = Subscriber(
+            self,
+            Odometry,
+            f'/f1tenth/odometry',
+        )
+
+        self.odom_sub_2 = Subscriber(
+            self,
+            Odometry,
+            f'/f1tenth_2/odometry',
+        )
 
         if self.is_multi_track:
             # define from which track in the track lists to be used for eval only
