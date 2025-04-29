@@ -181,9 +181,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         factor = 1 + random.uniform(-percentage, percentage)
         return yaw + factor
     
-
-
-
     def reset(self):
         self.step_counter = 0
         self.steps_since_last_goal = 0
@@ -417,40 +414,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
     ##########################################################################################
     ########################## Reward Calculation ############################################
     ##########################################################################################
-    def calculate_goal_hitting_reward(self, state, next_state, raw_range):
-        reward = 0
-
-        goal_position = self.goal_position
-
-        current_distance = math.dist(goal_position, next_state[:2])
-        previous_distance = math.dist(goal_position, state[:2])
-
-        reward += previous_distance - current_distance
-
-        self.steps_since_last_goal += 1
-
-        if current_distance < self.REWARD_RANGE:
-            print(f'Goal #{self.goals_reached} Reached')
-            reward += 2
-            self.goals_reached += 1
-
-            # Updating Goal Position
-            new_x, new_y, _, _ = self.track_waypoints[(self.start_waypoint_index + self.goals_reached) % len(self.track_waypoints)]
-            self.goal_position = [new_x, new_y]
-
-            self.update_goal_service(new_x, new_y)
-
-            self.steps_since_last_goal = 0
-        
-        if self.steps_since_last_goal >= 20:
-            reward -= 10
-
-        if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
-            reward -= 25
-
-        info = {}
-
-        return reward, info
+    
     
     def calculate_progressive_reward(self, state, next_state, raw_range):
         reward = 0
