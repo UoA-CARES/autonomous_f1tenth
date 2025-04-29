@@ -38,7 +38,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
         # Reward configuration
-        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
@@ -92,10 +91,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.ae_lidar_model = LidarConvAE()
             self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
             self.ae_lidar_model.eval()
-
-        # reward function specific setup:
-        if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.progress_not_met_cnt = 0
 
 
         # Reset Client -----------------------------------------------
@@ -389,19 +384,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
         reward = 0
         reward_info = {}
 
-        # calculate base reward
-        match self.BASE_REWARD_FUNCTION:
-            case 'goal_hitting':
-                base_reward, base_reward_info = self.calculate_goal_hitting_reward(state, next_state, raw_lidar_range)
-                reward += base_reward
-                reward_info.update(base_reward_info)
-            case 'progressive':
-                base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
-                reward += base_reward
-                reward_info.update(base_reward_info)
-            
-            case _:
-                raise Exception("Unknown reward function. Check environment.")
+        # calculate base reward=
+        base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
+        reward += base_reward
+        reward_info.update(base_reward_info)
 
         # calulate extra reward terms
         for term in self.EXTRA_REWARD_TERMS:
