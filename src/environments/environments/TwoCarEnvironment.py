@@ -143,7 +143,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         )
 
         self.message_filter = ApproximateTimeSynchronizer(
-            [self.odom_sub_1, self.odom_sub_2_sub],
+            [self.odom_sub_1, self.odom_sub_2],
             10,
             0.1,
         )
@@ -168,7 +168,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
 #  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
 #   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
                                                                                       
-
+    def message_filter_callback(self, odom1: Odometry, odom2: Odometry):
+        self.observation_future.set_result({'odom1': odom1, 'odom2': odom2})
+    
+    
     def get_extra_observation_size(self):
         total = 0
         for obs in self.EXTRA_OBSERVATIONS:
@@ -571,3 +574,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 string += f'Lidar: {observation[8:]}\n'
 
         return string
+    
+    def get_odoms(self):
+        # Get Position and Orientation of F1tenth
+
+        rclpy.spin_until_future_complete(self, self.observation_future)
+        future = self.observation_future
+        self.observation_future = Future()
+        data = future.result()
+        odom1 = process_odom(data['odom1'])
+        odom2 = process_odom(data['odom2'])
+        return odom1, odom2
