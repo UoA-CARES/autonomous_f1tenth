@@ -5,6 +5,8 @@ from rclpy import Future
 import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
+from message_filters import Subscriber, ApproximateTimeSynchronizer
+from nav_msgs.msg import Odometry
 from .util import has_collided, has_flipped_over
 from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, lateral_translation
 from .util_track_progress import TrackMathDef
@@ -36,7 +38,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
         # Reward configuration
-        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
@@ -91,10 +92,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
             self.ae_lidar_model.eval()
 
-        # reward function specific setup:
-        if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.progress_not_met_cnt = 0
-
 
         # Reset Client -----------------------------------------------
 
@@ -127,6 +124,29 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Evaluation related setup ---------------------------------------------------
         self.is_evaluating = False
 
+        # Subscribe to both car's odometry --------------------------------------------
+        self.odom_sub_1 = Subscriber(
+            self,
+            Odometry,
+            f'/f1tenth/odometry',
+        )
+
+        self.odom_sub_2 = Subscriber(
+            self,
+            Odometry,
+            f'/f1tenth_2/odometry',
+        )
+
+        self.message_filter = ApproximateTimeSynchronizer(
+            [self.odom_sub_1, self.odom_sub_2],
+            10,
+            0.1,
+        )
+
+        self.message_filter.registerCallback(self.message_filter_callback)
+
+        self.observation_future = Future()
+
         if self.is_multi_track:
             # define from which track in the track lists to be used for eval only
             self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
@@ -143,7 +163,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
 #  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
 #   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
                                                                                       
-
+    def message_filter_callback(self, odom1: Odometry, odom2: Odometry):
+        self.observation_future.set_result({'odom1': odom1, 'odom2': odom2})
+    
+    
     def get_extra_observation_size(self):
         total = 0
         for obs in self.EXTRA_OBSERVATIONS:
@@ -158,9 +181,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         factor = 1 + random.uniform(-percentage, percentage)
         return yaw + factor
     
-
-
-
     def reset(self):
         self.step_counter = 0
         self.steps_since_last_goal = 0
@@ -361,19 +381,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
         reward = 0
         reward_info = {}
 
-        # calculate base reward
-        match self.BASE_REWARD_FUNCTION:
-            case 'goal_hitting':
-                base_reward, base_reward_info = self.calculate_goal_hitting_reward(state, next_state, raw_lidar_range)
-                reward += base_reward
-                reward_info.update(base_reward_info)
-            case 'progressive':
-                base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
-                reward += base_reward
-                reward_info.update(base_reward_info)
-            
-            case _:
-                raise Exception("Unknown reward function. Check environment.")
+        # calculate base reward=
+        base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
+        reward += base_reward
+        reward_info.update(base_reward_info)
 
         # calulate extra reward terms
         for term in self.EXTRA_REWARD_TERMS:
@@ -403,40 +414,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
     ##########################################################################################
     ########################## Reward Calculation ############################################
     ##########################################################################################
-    def calculate_goal_hitting_reward(self, state, next_state, raw_range):
-        reward = 0
-
-        goal_position = self.goal_position
-
-        current_distance = math.dist(goal_position, next_state[:2])
-        previous_distance = math.dist(goal_position, state[:2])
-
-        reward += previous_distance - current_distance
-
-        self.steps_since_last_goal += 1
-
-        if current_distance < self.REWARD_RANGE:
-            print(f'Goal #{self.goals_reached} Reached')
-            reward += 2
-            self.goals_reached += 1
-
-            # Updating Goal Position
-            new_x, new_y, _, _ = self.track_waypoints[(self.start_waypoint_index + self.goals_reached) % len(self.track_waypoints)]
-            self.goal_position = [new_x, new_y]
-
-            self.update_goal_service(new_x, new_y)
-
-            self.steps_since_last_goal = 0
-        
-        if self.steps_since_last_goal >= 20:
-            reward -= 10
-
-        if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
-            reward -= 25
-
-        info = {}
-
-        return reward, info
+    
     
     def calculate_progressive_reward(self, state, next_state, raw_range):
         reward = 0
@@ -546,3 +524,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 string += f'Lidar: {observation[8:]}\n'
 
         return string
+    
+    def get_odoms(self):
+        # Get odom of both cars
+
+        rclpy.spin_until_future_complete(self, self.observation_future)
+        future = self.observation_future
+        self.observation_future = Future()
+        data = future.result()
+        odom1 = process_odom(data['odom1'])
+        odom2 = process_odom(data['odom2'])
+        return odom1, odom2
