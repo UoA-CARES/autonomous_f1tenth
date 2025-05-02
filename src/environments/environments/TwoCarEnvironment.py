@@ -407,7 +407,16 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     angular_vel_diff = abs(state[7] - next_state[7])
                     turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.3)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
                     reward -= reward * turning_penalty_factor * weight
-                    #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
+                    #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")
+                case 'racing':
+                    odom1, odom2 = self.get_odoms()
+                    point1 = self.track_model.get_closest_point_on_spline(odom1, t_only=True)
+                    point2 = self.track_model.get_closest_point_on_spline(odom2, t_only=True)
+                    if self.NAME == 'f1tenth':
+                        modifier = (point1 > point2)
+                    else:
+                        modifier = (point2 > point1)
+                    reward += reward * modifier * weight  
 
         return reward, reward_info
     
