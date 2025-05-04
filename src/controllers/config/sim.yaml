@@ -1,9 +1,9 @@
 sim:
   ros__parameters:
-    algorithm: 'rl'
+    algorithm: 'ftg'
     observation_mode: 'lidar_only'
-    environment: 'CarGoal'
-    track: 'aruco_test'
+    environment: 'CarTrack'
+    track: 'track_01' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     start_stage: 'track' # init, plan, track
     number_eval_episodes: 100
     path_file_path: 'newpath.txt'

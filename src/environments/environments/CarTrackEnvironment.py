@@ -71,7 +71,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Reward configuration
         self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.5), ('wall_proximity', 0.5)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
@@ -264,7 +264,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
 
+        # Timeout to simulate action delay
+        rclpy.spin_once(self, timeout_sec=0.1)
+        
         self.sleep()
+        rclpy.spin_once(self, timeout_sec=0.1)
         
         # record new state
         next_state, full_next_state, raw_lidar_range = self.get_observation()
@@ -466,6 +470,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         goal_position = self.goal_position
 
         current_distance = math.dist(goal_position, next_state[:2])
+        print(f"Position {next_state[:2]} --> {goal_position}")
         
         # keep track of non moving steps
         if self.step_progress < 0.02:
