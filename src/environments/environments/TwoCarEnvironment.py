@@ -39,7 +39,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # Reward configuration
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
@@ -413,9 +413,15 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     point1 = self.track_model.get_closest_point_on_spline(odom1, t_only=True)
                     point2 = self.track_model.get_closest_point_on_spline(odom2, t_only=True)
                     if self.NAME == 'f1tenth':
-                        modifier = (point1 > point2)
+                        if point1 == point2:
+                            modifier=0
+                        else:
+                            modifier = (point1 > point2)
                     else:
-                        modifier = (point2 > point1)
+                        if point1 == point2:
+                            modifier=0
+                        else:
+                            modifier = (point2 > point1)
                     reward += reward * modifier * weight  
 
         return reward, reward_info
