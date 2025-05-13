@@ -13,6 +13,9 @@ from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
+from message_filters import Subscriber, ApproximateTimeSynchronizer
+from nav_msgs.msg import Odometry
+
 
 class TwoCarEnvironment(F1tenthEnvironment):
 
@@ -127,6 +130,29 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Evaluation related setup ---------------------------------------------------
         self.is_evaluating = False
 
+        # Subscribe to both car's odometry --------------------------------------------
+        self.odom_sub_1 = Subscriber(
+            self,
+            Odometry,
+            f'/f1tenth/odometry',
+        )
+
+        self.odom_sub_2 = Subscriber(
+            self,
+            Odometry,
+            f'/f1tenth_2/odometry',
+        )
+
+        self.odom_message_filter = ApproximateTimeSynchronizer(
+            [self.odom_sub_1, self.odom_sub_2],
+            10,
+            0.1,
+        )
+
+        self.odom_message_filter.registerCallback(self.odom_message_filter_callback)
+
+        self.odom_observation_future = Future()
+
         if self.is_multi_track:
             # define from which track in the track lists to be used for eval only
             self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
@@ -142,7 +168,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
 #  | |   | |     / _ \ \___ \___ \  | |_  | | | |  \| | |     | |  | | | | |  \| \___ \ 
 #  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
 #   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
-                                                                                      
+
+    def odom_message_filter_callback(self, odom1: Odometry, odom2: Odometry):
+        self.odom_observation_future.set_result({'odom1': odom1, 'odom2': odom2})                                                                             
 
     def get_extra_observation_size(self):
         total = 0
@@ -546,3 +574,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 string += f'Lidar: {observation[8:]}\n'
 
         return string
+    
+    def get_odoms(self):
+        # Get odom of both cars
+
+        rclpy.spin_until_future_complete(self, self.observation_future)
+        future = self.observation_future
+        self.observation_future = Future()
+        data = future.result()
+        odom1 = process_odom(data['odom1'])
+        odom2 = process_odom(data['odom2'])
+        return odom1, odom2
