@@ -13,6 +13,8 @@ from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
+from message_filters import Subscriber
+from nav_msgs.msg import Odometry
 
 class TwoCarEnvironment(F1tenthEnvironment):
 
@@ -126,6 +128,19 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # Evaluation related setup ---------------------------------------------------
         self.is_evaluating = False
+
+        # Subscribe to both car's odometry --------------------------------------------
+        self.odom_sub_1 = Subscriber(
+            self,
+            Odometry,
+            f'/f1tenth/odometry',
+        )
+
+        self.odom_sub_2 = Subscriber(
+            self,
+            Odometry,
+            f'/f1tenth_2/odometry',
+        )
 
         if self.is_multi_track:
             # define from which track in the track lists to be used for eval only
