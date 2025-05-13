@@ -143,11 +143,15 @@ class TwoCarEnvironment(F1tenthEnvironment):
             f'/f1tenth_2/odometry',
         )
 
-        self.message_filter = ApproximateTimeSynchronizer(
+        self.odom_message_filter = ApproximateTimeSynchronizer(
             [self.odom_sub_1, self.odom_sub_2],
             10,
             0.1,
         )
+
+        self.odom_message_filter.registerCallback(self.odom_message_filter_callback)
+
+        self.odom_observation_future = Future()
 
         if self.is_multi_track:
             # define from which track in the track lists to be used for eval only
@@ -164,7 +168,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
 #  | |   | |     / _ \ \___ \___ \  | |_  | | | |  \| | |     | |  | | | | |  \| \___ \ 
 #  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
 #   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
-                                                                                      
+
+    def odom_message_filter_callback(self, odom1: Odometry, odom2: Odometry):
+        self.odom_observation_future.set_result({'odom1': odom1, 'odom2': odom2})                                                                             
 
     def get_extra_observation_size(self):
         total = 0
