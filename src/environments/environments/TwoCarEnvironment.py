@@ -5,8 +5,6 @@ from rclpy import Future
 import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
-from message_filters import Subscriber, ApproximateTimeSynchronizer
-from nav_msgs.msg import Odometry
 from .util import has_collided, has_flipped_over
 from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, lateral_translation
 from .util_track_progress import TrackMathDef
@@ -15,6 +13,9 @@ from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
+from message_filters import Subscriber, ApproximateTimeSynchronizer
+from nav_msgs.msg import Odometry
+
 
 class TwoCarEnvironment(F1tenthEnvironment):
 
@@ -92,6 +93,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
             self.ae_lidar_model.eval()
 
+        # reward function specific setup:
+        self.progress_not_met_cnt = 0
+
 
         # Reset Client -----------------------------------------------
 
@@ -137,15 +141,15 @@ class TwoCarEnvironment(F1tenthEnvironment):
             f'/f1tenth_2/odometry',
         )
 
-        self.message_filter = ApproximateTimeSynchronizer(
+        self.odom_message_filter = ApproximateTimeSynchronizer(
             [self.odom_sub_1, self.odom_sub_2],
             10,
             0.1,
         )
 
-        self.message_filter.registerCallback(self.message_filter_callback)
+        self.odom_message_filter.registerCallback(self.odom_message_filter_callback)
 
-        self.observation_future = Future()
+        self.odom_observation_future = Future()
 
         if self.is_multi_track:
             # define from which track in the track lists to be used for eval only
@@ -162,11 +166,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
 #  | |   | |     / _ \ \___ \___ \  | |_  | | | |  \| | |     | |  | | | | |  \| \___ \ 
 #  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
 #   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
-                                                                                      
-    def message_filter_callback(self, odom1: Odometry, odom2: Odometry):
-        self.observation_future.set_result({'odom1': odom1, 'odom2': odom2})
-    
-    
+
+    def odom_message_filter_callback(self, odom1: Odometry, odom2: Odometry):
+        self.odom_observation_future.set_result({'odom1': odom1, 'odom2': odom2})                                                                             
+
     def get_extra_observation_size(self):
         total = 0
         for obs in self.EXTRA_OBSERVATIONS:
@@ -181,6 +184,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
         factor = 1 + random.uniform(-percentage, percentage)
         return yaw + factor
     
+
+
+
     def reset(self):
         self.step_counter = 0
         self.steps_since_last_goal = 0
@@ -237,8 +243,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         # reward function specific resets
-        if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.progress_not_met_cnt = 0
+        self.progress_not_met_cnt = 0
 
         return state, info
     
@@ -308,17 +313,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
             or has_flipped_over(state[2:6])
 
     def is_truncated(self):
-
-        match self.BASE_REWARD_FUNCTION:
-
-            case 'goal_hitting':
-                return self.steps_since_last_goal >= 20 or \
-                self.step_counter >= self.MAX_STEPS
-            case 'progressive':
-                return self.progress_not_met_cnt >= 5 or \
-                self.step_counter >= self.MAX_STEPS
-            case _:
-                raise Exception("Unknown truncate condition for reward function.")
+        return self.progress_not_met_cnt >= 5 or \
+        self.step_counter >= self.MAX_STEPS
 
 
     def get_observation(self):
@@ -381,7 +377,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         reward = 0
         reward_info = {}
 
-        # calculate base reward=
+        # calculate base reward
         base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
         reward += base_reward
         reward_info.update(base_reward_info)
@@ -429,7 +425,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
     ##########################################################################################
     ########################## Reward Calculation ############################################
     ##########################################################################################
-    
     
     def calculate_progressive_reward(self, state, next_state, raw_range):
         reward = 0
