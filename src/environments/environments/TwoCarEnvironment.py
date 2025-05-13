@@ -574,3 +574,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 string += f'Lidar: {observation[8:]}\n'
 
         return string
+    
+    def get_odoms(self):
+        # Get Position and Orientation of F1tenth
+
+        rclpy.spin_until_future_complete(self, self.observation_future)
+        future = self.observation_future
+        self.observation_future = Future()
+        data = future.result()
+        odom1 = process_odom(data['odom1'])
+        odom2 = process_odom(data['odom2'])
+        return odom1, odom2
