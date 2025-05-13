@@ -39,7 +39,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
         # Reward configuration
-        self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
@@ -95,8 +94,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.ae_lidar_model.eval()
 
         # reward function specific setup:
-        if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.progress_not_met_cnt = 0
+        self.progress_not_met_cnt = 0
 
 
         # Reset Client -----------------------------------------------
@@ -245,8 +243,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         # reward function specific resets
-        if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.progress_not_met_cnt = 0
+        self.progress_not_met_cnt = 0
 
         return state, info
     
@@ -316,17 +313,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
             or has_flipped_over(state[2:6])
 
     def is_truncated(self):
-
-        match self.BASE_REWARD_FUNCTION:
-
-            case 'goal_hitting':
-                return self.steps_since_last_goal >= 20 or \
-                self.step_counter >= self.MAX_STEPS
-            case 'progressive':
-                return self.progress_not_met_cnt >= 5 or \
-                self.step_counter >= self.MAX_STEPS
-            case _:
-                raise Exception("Unknown truncate condition for reward function.")
+        return self.progress_not_met_cnt >= 5 or \
+        self.step_counter >= self.MAX_STEPS
 
 
     def get_observation(self):
@@ -390,18 +378,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
         reward_info = {}
 
         # calculate base reward
-        match self.BASE_REWARD_FUNCTION:
-            case 'goal_hitting':
-                base_reward, base_reward_info = self.calculate_goal_hitting_reward(state, next_state, raw_lidar_range)
-                reward += base_reward
-                reward_info.update(base_reward_info)
-            case 'progressive':
-                base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
-                reward += base_reward
-                reward_info.update(base_reward_info)
-            
-            case _:
-                raise Exception("Unknown reward function. Check environment.")
+        base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
+        reward += base_reward
+        reward_info.update(base_reward_info)
 
         # calulate extra reward terms
         for term in self.EXTRA_REWARD_TERMS:
@@ -431,40 +410,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
     ##########################################################################################
     ########################## Reward Calculation ############################################
     ##########################################################################################
-    def calculate_goal_hitting_reward(self, state, next_state, raw_range):
-        reward = 0
-
-        goal_position = self.goal_position
-
-        current_distance = math.dist(goal_position, next_state[:2])
-        previous_distance = math.dist(goal_position, state[:2])
-
-        reward += previous_distance - current_distance
-
-        self.steps_since_last_goal += 1
-
-        if current_distance < self.REWARD_RANGE:
-            print(f'Goal #{self.goals_reached} Reached')
-            reward += 2
-            self.goals_reached += 1
-
-            # Updating Goal Position
-            new_x, new_y, _, _ = self.track_waypoints[(self.start_waypoint_index + self.goals_reached) % len(self.track_waypoints)]
-            self.goal_position = [new_x, new_y]
-
-            self.update_goal_service(new_x, new_y)
-
-            self.steps_since_last_goal = 0
-        
-        if self.steps_since_last_goal >= 20:
-            reward -= 10
-
-        if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
-            reward -= 25
-
-        info = {}
-
-        return reward, info
     
     def calculate_progressive_reward(self, state, next_state, raw_range):
         reward = 0
