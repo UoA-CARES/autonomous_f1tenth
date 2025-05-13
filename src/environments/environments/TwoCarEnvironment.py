@@ -13,8 +13,9 @@ from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
-from message_filters import Subscriber
+from message_filters import Subscriber, ApproximateTimeSynchronizer
 from nav_msgs.msg import Odometry
+
 
 class TwoCarEnvironment(F1tenthEnvironment):
 
@@ -140,6 +141,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self,
             Odometry,
             f'/f1tenth_2/odometry',
+        )
+
+        self.message_filter = ApproximateTimeSynchronizer(
+            [self.odom_sub_1, self.odom_sub_2],
+            10,
+            0.1,
         )
 
         if self.is_multi_track:
