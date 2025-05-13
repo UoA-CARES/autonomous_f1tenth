@@ -576,7 +576,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         return string
     
     def get_odoms(self):
-        # Get Position and Orientation of F1tenth
+        # Get odom of both cars
 
         rclpy.spin_until_future_complete(self, self.observation_future)
         future = self.observation_future
