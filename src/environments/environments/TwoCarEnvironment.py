@@ -406,8 +406,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")
                 case 'racing':
                     odom1, odom2 = self.get_odoms()
-                    point1 = self.track_model.get_closest_point_on_spline(odom1, t_only=True)
-                    point2 = self.track_model.get_closest_point_on_spline(odom2, t_only=True)
+                    point1 = self.track_model.get_closest_point_on_spline(odom1[:2], t_only=True)
+                    point2 = self.track_model.get_closest_point_on_spline(odom2[:2], t_only=True)
                     if self.NAME == 'f1tenth':
                         if point1 == point2:
                             modifier=0
@@ -538,9 +538,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def get_odoms(self):
         # Get odom of both cars
 
-        rclpy.spin_until_future_complete(self, self.observation_future)
-        future = self.observation_future
-        self.observation_future = Future()
+        rclpy.spin_until_future_complete(self, self.odom_observation_future)
+        future = self.odom_observation_future
+        self.odom_observation_future = Future()
         data = future.result()
         odom1 = process_odom(data['odom1'])
         odom2 = process_odom(data['odom2'])
