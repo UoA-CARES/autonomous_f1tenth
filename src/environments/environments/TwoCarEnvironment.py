@@ -40,7 +40,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # Reward configuration
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
@@ -403,7 +403,22 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     angular_vel_diff = abs(state[7] - next_state[7])
                     turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.3)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
                     reward -= reward * turning_penalty_factor * weight
-                    #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
+                    #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")
+                case 'racing':
+                    odom1, odom2 = self.get_odoms()
+                    point1 = self.track_model.get_closest_point_on_spline(odom1[:2], t_only=True)
+                    point2 = self.track_model.get_closest_point_on_spline(odom2[:2], t_only=True)
+                    if self.NAME == 'f1tenth':
+                        if point1 == point2:
+                            modifier=0
+                        else:
+                            modifier = (point1 > point2)
+                    else:
+                        if point1 == point2:
+                            modifier=0
+                        else:
+                            modifier = (point2 > point1)
+                    reward += reward * modifier * weight  
 
         return reward, reward_info
     
@@ -523,9 +538,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def get_odoms(self):
         # Get odom of both cars
 
-        rclpy.spin_until_future_complete(self, self.observation_future)
-        future = self.observation_future
-        self.observation_future = Future()
+        rclpy.spin_until_future_complete(self, self.odom_observation_future)
+        future = self.odom_observation_future
+        self.odom_observation_future = Future()
         data = future.result()
         odom1 = process_odom(data['odom1'])
         odom2 = process_odom(data['odom2'])
