@@ -55,7 +55,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # Speed and turn limit
         self.MAX_ACTIONS = np.asarray([2, 0.434])
-        self.MIN_ACTIONS = np.asarray([0, -0.434])
+        self.MIN_ACTIONS = np.asarray([0.3, -0.434])
 
         #####################################################################################################################
 
@@ -216,8 +216,13 @@ class TwoCarEnvironment(F1tenthEnvironment):
         #car_2_index = (index + car_2_offset) % len(self.track_waypoints)
         #car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
         #car_2_yaw = self.randomize_yaw(car_2_yaw, 0.25)
-        car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, 0.5)
-        car_x, car_y = lateral_translation((car_x, car_y), car_yaw, -1.5)
+        order = random.choice([1, 2])
+        if order == 1:
+            car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, 0.2) # translation 0.5 prev
+            car_x, car_y = lateral_translation((car_x, car_y), car_yaw, -0.4) # translation -1.5 prev
+        else:
+            car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, -0.4) # translation 0.5 prev
+            car_x, car_y = lateral_translation((car_x, car_y), car_yaw, 0.2) # translation -1.5 prev
         
         car_2_yaw = car_yaw
         # Update goal pointer to reflect starting position
