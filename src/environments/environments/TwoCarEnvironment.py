@@ -55,7 +55,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # Speed and turn limit
         self.MAX_ACTIONS = np.asarray([2, 0.434])
-        self.MIN_ACTIONS = np.asarray([0, -0.434])
+        self.MIN_ACTIONS = np.asarray([0.3, -0.434])
 
         #####################################################################################################################
 
@@ -207,7 +207,11 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
-
+        
+        if (self.current_track_key[-3:]).isdigit():
+            width = int(self.current_track_key[-3:])
+        else: 
+            width = 300
         
         car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
         #car_yaw = self.randomize_yaw(car_yaw, 0.25)
@@ -216,10 +220,30 @@ class TwoCarEnvironment(F1tenthEnvironment):
         #car_2_index = (index + car_2_offset) % len(self.track_waypoints)
         #car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
         #car_2_yaw = self.randomize_yaw(car_2_yaw, 0.25)
-        car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, 0.5)
-        car_x, car_y = lateral_translation((car_x, car_y), car_yaw, -1.5)
+        order = random.choice([1, 2])
+        translation2 = random.random()
+
+        translation1 = 0.15 + random.random()*0.3
+        translation2 = -0.2 - random.random()*0.3
+        if width > 200:
+            if order == 1:
+                car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, translation1) # translation 0.5 prev
+                car_x, car_y = lateral_translation((car_x, car_y), car_yaw, translation2) # translation -1.5 prev
+            else:
+                car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, translation2) # translation 0.5 prev
+                car_x, car_y = lateral_translation((car_x, car_y), car_yaw, translation1) # translation -1.5 prev
+            car_2_yaw = car_yaw
+        else:
+            if order == 1:
+                car_2_offset = random.randint(8, 16)
+                car_2_index = (index + car_2_offset) % len(self.track_waypoints)
+                car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
+            else:
+                car_2_offset = random.randint(8, 16)
+                car_2_index = (index - car_2_offset) % len(self.track_waypoints)
+                car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
         
-        car_2_yaw = car_yaw
+        
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
