@@ -221,13 +221,17 @@ class TwoCarEnvironment(F1tenthEnvironment):
         #car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
         #car_2_yaw = self.randomize_yaw(car_2_yaw, 0.25)
         order = random.choice([1, 2])
+        translation2 = random.random()
+
+        translation1 = 0.15 + random.random()*0.3
+        translation2 = -0.2 - random.random()*0.3
         if width > 200:
             if order == 1:
-                car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, 0.2) # translation 0.5 prev
-                car_x, car_y = lateral_translation((car_x, car_y), car_yaw, -0.4) # translation -1.5 prev
+                car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, translation1) # translation 0.5 prev
+                car_x, car_y = lateral_translation((car_x, car_y), car_yaw, translation2) # translation -1.5 prev
             else:
-                car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, -0.4) # translation 0.5 prev
-                car_x, car_y = lateral_translation((car_x, car_y), car_yaw, 0.2) # translation -1.5 prev
+                car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, translation2) # translation 0.5 prev
+                car_x, car_y = lateral_translation((car_x, car_y), car_yaw, translation1) # translation -1.5 prev
             car_2_yaw = car_yaw
         else:
             if order == 1:
