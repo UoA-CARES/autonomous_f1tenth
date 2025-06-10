@@ -259,6 +259,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # unpause simulation
         self.call_step(pause=False)
+        # TODO: put timeout here instead?
 
         # take action and wait
         lin_vel, steering_angle = action
