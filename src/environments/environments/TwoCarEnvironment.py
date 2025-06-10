@@ -5,8 +5,6 @@ from rclpy import Future
 import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
-from message_filters import Subscriber, ApproximateTimeSynchronizer
-from nav_msgs.msg import Odometry
 from .util import has_collided, has_flipped_over
 from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, lateral_translation
 from .util_track_progress import TrackMathDef
@@ -15,6 +13,9 @@ from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
+from message_filters import Subscriber, ApproximateTimeSynchronizer
+from nav_msgs.msg import Odometry
+
 
 class TwoCarEnvironment(F1tenthEnvironment):
 
@@ -39,7 +40,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # Reward configuration
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
@@ -54,7 +55,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # Speed and turn limit
         self.MAX_ACTIONS = np.asarray([2, 0.434])
-        self.MIN_ACTIONS = np.asarray([0, -0.434])
+        self.MIN_ACTIONS = np.asarray([0.3, -0.434])
 
         #####################################################################################################################
 
@@ -91,6 +92,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.ae_lidar_model = LidarConvAE()
             self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
             self.ae_lidar_model.eval()
+
+        # reward function specific setup:
+        self.progress_not_met_cnt = 0
 
 
         # Reset Client -----------------------------------------------
@@ -137,15 +141,15 @@ class TwoCarEnvironment(F1tenthEnvironment):
             f'/f1tenth_2/odometry',
         )
 
-        self.message_filter = ApproximateTimeSynchronizer(
+        self.odom_message_filter = ApproximateTimeSynchronizer(
             [self.odom_sub_1, self.odom_sub_2],
             10,
             0.1,
         )
 
-        self.message_filter.registerCallback(self.message_filter_callback)
+        self.odom_message_filter.registerCallback(self.odom_message_filter_callback)
 
-        self.observation_future = Future()
+        self.odom_observation_future = Future()
 
         if self.is_multi_track:
             # define from which track in the track lists to be used for eval only
@@ -162,11 +166,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
 #  | |   | |     / _ \ \___ \___ \  | |_  | | | |  \| | |     | |  | | | | |  \| \___ \ 
 #  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
 #   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
-                                                                                      
-    def message_filter_callback(self, odom1: Odometry, odom2: Odometry):
-        self.observation_future.set_result({'odom1': odom1, 'odom2': odom2})
-    
-    
+
+    def odom_message_filter_callback(self, odom1: Odometry, odom2: Odometry):
+        self.odom_observation_future.set_result({'odom1': odom1, 'odom2': odom2})                                                                             
+
     def get_extra_observation_size(self):
         total = 0
         for obs in self.EXTRA_OBSERVATIONS:
@@ -181,6 +184,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
         factor = 1 + random.uniform(-percentage, percentage)
         return yaw + factor
     
+
+
+
     def reset(self):
         self.step_counter = 0
         self.steps_since_last_goal = 0
@@ -201,7 +207,11 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
-
+        
+        if (self.current_track_key[-3:]).isdigit():
+            width = int(self.current_track_key[-3:])
+        else: 
+            width = 300
         
         car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
         #car_yaw = self.randomize_yaw(car_yaw, 0.25)
@@ -210,10 +220,30 @@ class TwoCarEnvironment(F1tenthEnvironment):
         #car_2_index = (index + car_2_offset) % len(self.track_waypoints)
         #car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
         #car_2_yaw = self.randomize_yaw(car_2_yaw, 0.25)
-        car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, 0.5)
-        car_x, car_y = lateral_translation((car_x, car_y), car_yaw, -1.5)
+        order = random.choice([1, 2])
+        translation2 = random.random()
+
+        translation1 = 0.15 + random.random()*0.3
+        translation2 = -0.2 - random.random()*0.3
+        if width > 200:
+            if order == 1:
+                car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, translation1) # translation 0.5 prev
+                car_x, car_y = lateral_translation((car_x, car_y), car_yaw, translation2) # translation -1.5 prev
+            else:
+                car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, translation2) # translation 0.5 prev
+                car_x, car_y = lateral_translation((car_x, car_y), car_yaw, translation1) # translation -1.5 prev
+            car_2_yaw = car_yaw
+        else:
+            if order == 1:
+                car_2_offset = random.randint(8, 16)
+                car_2_index = (index + car_2_offset) % len(self.track_waypoints)
+                car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
+            else:
+                car_2_offset = random.randint(8, 16)
+                car_2_index = (index - car_2_offset) % len(self.track_waypoints)
+                car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
         
-        car_2_yaw = car_yaw
+        
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
@@ -237,8 +267,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         # reward function specific resets
-        if self.BASE_REWARD_FUNCTION == 'progressive':
-            self.progress_not_met_cnt = 0
+        self.progress_not_met_cnt = 0
 
         return state, info
     
@@ -308,17 +337,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
             or has_flipped_over(state[2:6])
 
     def is_truncated(self):
-
-        match self.BASE_REWARD_FUNCTION:
-
-            case 'goal_hitting':
-                return self.steps_since_last_goal >= 20 or \
-                self.step_counter >= self.MAX_STEPS
-            case 'progressive':
-                return self.progress_not_met_cnt >= 5 or \
-                self.step_counter >= self.MAX_STEPS
-            case _:
-                raise Exception("Unknown truncate condition for reward function.")
+        return self.progress_not_met_cnt >= 5 or \
+        self.step_counter >= self.MAX_STEPS
 
 
     def get_observation(self):
@@ -381,7 +401,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         reward = 0
         reward_info = {}
 
-        # calculate base reward=
+        # calculate base reward
         base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
         reward += base_reward
         reward_info.update(base_reward_info)
@@ -407,14 +427,28 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     angular_vel_diff = abs(state[7] - next_state[7])
                     turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.3)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
                     reward -= reward * turning_penalty_factor * weight
-                    #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
+                    #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")
+                case 'racing':
+                    odom1, odom2 = self.get_odoms()
+                    point1 = self.track_model.get_closest_point_on_spline(odom1[:2], t_only=True)
+                    point2 = self.track_model.get_closest_point_on_spline(odom2[:2], t_only=True)
+                    if self.NAME == 'f1tenth':
+                        if point1 == point2:
+                            modifier=0
+                        else:
+                            modifier = (point1 > point2)
+                    else:
+                        if point1 == point2:
+                            modifier=0
+                        else:
+                            modifier = (point2 > point1)
+                    reward += reward * modifier * weight  
 
         return reward, reward_info
     
     ##########################################################################################
     ########################## Reward Calculation ############################################
     ##########################################################################################
-    
     
     def calculate_progressive_reward(self, state, next_state, raw_range):
         reward = 0
@@ -528,9 +562,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def get_odoms(self):
         # Get odom of both cars
 
-        rclpy.spin_until_future_complete(self, self.observation_future)
-        future = self.observation_future
-        self.observation_future = Future()
+        rclpy.spin_until_future_complete(self, self.odom_observation_future)
+        future = self.odom_observation_future
+        self.odom_observation_future = Future()
         data = future.result()
         odom1 = process_odom(data['odom1'])
         odom2 = process_odom(data['odom2'])
