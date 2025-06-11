@@ -39,8 +39,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_01_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_01_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -52,8 +52,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_01_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_01_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -66,8 +66,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_01_200.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_01_200.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -79,8 +79,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_01_200.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_01_200.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -93,8 +93,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_01_250.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_01_250.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -106,8 +106,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_01_250.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_01_250.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -120,8 +120,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_01_300.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_01_300.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -133,8 +133,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_01_300.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_01_300.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -147,8 +147,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_01_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_01_350.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -160,8 +160,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_01_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_01_350.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -174,8 +174,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_02_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_02_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -187,8 +187,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_02_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_02_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -201,8 +201,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_02_200.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_02_200.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -214,8 +214,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_02_200.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_02_200.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -228,8 +228,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_02_250.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_02_250.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -241,8 +241,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_02_250.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_02_250.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -255,8 +255,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_02_300.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_02_300.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -268,8 +268,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_02_300.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_02_300.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -282,8 +282,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_02_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_02_350.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -295,8 +295,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_02_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_02_350.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -309,8 +309,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_03_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_03_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -322,8 +322,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_03_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_03_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -336,8 +336,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_03_200.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_03_200.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -349,8 +349,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_03_200.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_03_200.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -363,8 +363,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_03_250.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_03_250.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -376,8 +376,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_03_250.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_03_250.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -390,8 +390,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_03_300.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_03_300.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -403,8 +403,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_03_300.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_03_300.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -417,8 +417,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_03_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_03_350.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -430,8 +430,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_03_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_03_350.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -444,8 +444,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_04_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_04_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -457,8 +457,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_04_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_04_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -471,8 +471,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_04_200.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_04_200.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -484,8 +484,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_04_200.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_04_200.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -498,8 +498,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_04_300.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_04_300.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -511,8 +511,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_04_300.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_04_300.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -525,8 +525,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_04_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_04_350.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -538,8 +538,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_04_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_04_350.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -553,8 +553,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_04_250.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_04_250.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -566,8 +566,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_04_250.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_04_250.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -580,8 +580,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_05_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_05_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -593,8 +593,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_05_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_05_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -607,8 +607,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_05_200.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_05_200.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -620,8 +620,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_05_200.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_05_200.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -634,8 +634,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_05_250.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_05_250.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -647,8 +647,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_05_250.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_05_250.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -661,8 +661,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_05_300.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_05_300.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -674,8 +674,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_05_300.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_05_300.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -688,8 +688,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_05_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_05_350.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -701,8 +701,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_05_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_05_350.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -715,8 +715,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -728,8 +728,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -742,8 +742,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06_200.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06_200.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -755,8 +755,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06_200.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06_200.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -769,8 +769,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06_250.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06_250.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -782,8 +782,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06_250.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06_250.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -796,8 +796,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06_300.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06_300.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -809,8 +809,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06_300.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06_300.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>
@@ -823,8 +823,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06_350.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -836,8 +836,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06_350.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>

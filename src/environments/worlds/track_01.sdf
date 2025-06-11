@@ -30,7 +30,7 @@
           <geometry>
             <plane>
               <normal>0 0 1</normal>
-              <size>50 50</size>
+              <size>100 100</size>
             </plane>
           </geometry>
         </collision>
@@ -58,7 +58,7 @@
           <geometry>
             <plane>
               <normal>0 0 1</normal>
-              <size>50 50</size>
+              <size>100 100</size>
             </plane>
           </geometry>
         </collision>
@@ -66,7 +66,7 @@
           <geometry>
             <plane>
               <normal>0 0 1</normal>
-              <size>50 50</size>
+              <size>100 100</size>
             </plane>
           </geometry>
           <material>

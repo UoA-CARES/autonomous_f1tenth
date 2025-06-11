@@ -86,8 +86,8 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001"/> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/saopaolo_track.stl</uri>
-                        <scale>0.001 0.001 0.001</scale>
+                        <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/saopaolo_track.stl</uri>
+                        <scale>0.0005 0.0005 0.0005</scale>
                     </mesh>
                 </geometry>
                 <material>
@@ -100,8 +100,8 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001" /> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/saopaolo_track.stl</uri>
-                        <scale>0.001 0.001 0.001</scale>
+                        <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/saopaolo_track.stl</uri>
+                        <scale>0.0005 0.0005 0.0005</scale>
                     </mesh>
                 </geometry>
             </collision>
