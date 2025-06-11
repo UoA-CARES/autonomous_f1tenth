@@ -187,8 +187,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     print("Unknown extra observation.")
         return total
 
-
-
     def reset(self):
         self.step_counter = 0
         self.steps_since_last_goal = 0
@@ -216,6 +214,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
+        
+        car_x = car_x/2
+        car_y = car_y/2
         
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
