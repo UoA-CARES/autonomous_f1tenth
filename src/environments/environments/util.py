@@ -308,6 +308,26 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
             'saopaolo_track': saopaolo_wp,
             'shanghai_track': shanghai_wp
         }
+    elif track_name == 'multi_track_wide':
+        # Goal position
+        all_car_goals = None
+
+        # Waypoints
+        track_01_wp = waypoints['track_01']
+        track_02_wp = [(x + 30, y, yaw, index) for x, y, yaw, index in waypoints['track_02']]
+        track_03_wp = [(x + 60, y, yaw, index) for x, y, yaw, index in waypoints['track_03']]
+        track_04_wp = [(x + 90, y, yaw, index) for x, y, yaw, index in waypoints['track_04']]
+        track_05_wp = [(x + 120, y, yaw, index) for x, y, yaw, index in waypoints['track_05']]
+        track_06_wp = [(x + 150, y, yaw, index) for x, y, yaw, index in waypoints['track_06']]
+
+        all_car_waypoints = {
+            'track_01': track_01_wp,
+            'track_02': track_02_wp,
+            'track_03': track_03_wp,
+            'track_04': track_04_wp,
+            'track_05': track_05_wp,
+            'track_06': track_06_wp
+        }
 
     elif track_name == 'multi_track_01':
 
