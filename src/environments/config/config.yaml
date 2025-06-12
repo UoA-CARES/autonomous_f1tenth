@@ -1,0 +1,38 @@
+# environment cofig
+
+track_actions:
+  max_speed: 3
+  max_turn: 0.434 # maximum anglular velocity
+  min_speed: 0
+  min_turn: -0.434
+
+race_actions:
+  max_speed: 3
+  max_turn: 0.434
+  min_speed: 0
+  min_turn: -0.434
+
+beat_actions:
+  max_speed: 0.5
+  max_turn: 0.85
+  min_speed: 0
+  min_turn: -0.85
+
+overtake_actions:
+  max_speed: 2
+  max_turn: 0.434
+  min_speed: 0
+  min_turn: -0.434
+
+f1tenth_actions:
+  max_speed: 0.5
+  max_turn: 0.85
+  min_speed: 0
+  min_turn: -0.85
+
+two_car_actions:
+  max_speed: 2
+  max_turn: 0.434
+  min_speed: 0.3
+  min_turn: -0.434
+

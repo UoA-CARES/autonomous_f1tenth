@@ -15,6 +15,7 @@ import torch
 from datetime import datetime
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from nav_msgs.msg import Odometry
+import yaml
 
 
 class TwoCarEnvironment(F1tenthEnvironment):
@@ -28,6 +29,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
+                 config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
         
         max_steps = 200
@@ -37,7 +39,11 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         #####################################################################################################################
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
-
+        
+        # Load configuration from YAML file
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
+            
         # Reward configuration
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
@@ -54,8 +60,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
 
         # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([2, 0.434])
-        self.MIN_ACTIONS = np.asarray([0.3, -0.434])
+        self.MAX_ACTIONS = np.asarray([config['two_car_actions']['max_speed'], config['two_car_actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['two_car_actions']['min_speed'], config['two_car_actions']['min_turn']])
 
         #####################################################################################################################
 

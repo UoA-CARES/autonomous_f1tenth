@@ -9,6 +9,7 @@ from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
 from typing import Literal, List
 import torch
+import yaml
 
 class CarRaceEnvironment(F1tenthEnvironment):
 
@@ -48,6 +49,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
+                 config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
         super().__init__('car_race', car_name, max_steps, step_length)
 
@@ -55,7 +57,11 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
         #####################################################################################################################
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
-
+        
+        # Load configuration from YAML file
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
+            
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
         self.LIDAR_POINTS = 10 #682
@@ -66,8 +72,8 @@ class CarRaceEnvironment(F1tenthEnvironment):
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
 
         # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([3, 0.434])
-        self.MIN_ACTIONS = np.asarray([0, -0.434])
+        self.MAX_ACTIONS = np.asarray([config['race_actions']['max_speed'], config['race_actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['race_actions']['min_speed'], config['race_actions']['min_turn']])
 
         #####################################################################################################################
 

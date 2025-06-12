@@ -17,6 +17,7 @@ from .util import process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_w
 
 from .goal_positions import goal_positions
 from .waypoints import waypoints
+import yaml
 
 class CarBeatEnvironment(Node):
 
@@ -70,17 +71,23 @@ class CarBeatEnvironment(Node):
                  track='multi_track',
                  observation_mode='lidar_only',
                  max_goals=500,
-                 num_lidar_points=10
+                 num_lidar_points=10,
+                 config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
         super().__init__('car_beat_environment')
 
         # Environment Details ----------------------------------------
+                
+        # Load configuration from YAML file
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
+            
         self.NAME = rl_car_name
         self.OTHER_CAR_NAME = ftg_car_name
         self.MAX_STEPS = max_steps
         self.STEP_LENGTH = step_length
-        self.MAX_ACTIONS = np.asarray([0.5, 0.85])
-        self.MIN_ACTIONS = np.asarray([0, -0.85])
+        self.MAX_ACTIONS = np.asarray([config['beat_actions']['max_speed'], config['beat_actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['beat_actions']['min_speed'], config['beat_actions']['min_turn']])
         self.MAX_STEPS_PER_GOAL = max_steps
         self.OBSERVATION_MODE = observation_mode
         self.num_spawns = 0
