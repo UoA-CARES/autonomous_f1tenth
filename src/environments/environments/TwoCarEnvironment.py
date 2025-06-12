@@ -225,6 +225,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         translation1 = 0.15 + random.random()*0.3
         translation2 = -0.2 - random.random()*1.5
+<<<<<<< HEAD
+=======
+
+>>>>>>> 6d4fed3920564bb367b7f762a0aa9a8ed866e05e
         if width > 200:
             if order == 1:
                 car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, translation1) # translation 0.5 prev
