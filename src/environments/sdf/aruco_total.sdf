@@ -2,11 +2,11 @@
 <sdf version="1.4">
   <model name="build">
     <include>
-      <uri>model://src/environments/sdf/aruco.sdf</uri>
+      <uri>/home/anyone/autonomous_f1tenth/src/environments/sdf/aruco.sdf</uri>
     </include>
 
     <include>
-      <uri>model://src/environments/sdf/aruco_base.sdf</uri>
+      <uri>/home/anyone/autonomous_f1tenth/src/environments/sdf/aruco_base.sdf</uri>
     </include>
 
     <joint name="joint_00" type="fixed">
