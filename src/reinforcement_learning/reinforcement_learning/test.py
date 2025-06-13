@@ -12,8 +12,12 @@ from .parse_args import parse_args
 from .EnvironmentFactory import EnvironmentFactory
 from .training_loops import off_policy_evaluate, ppo_evaluate
 
+import os
 
 def main():
+    with open("network_output.csv", 'w') as f:
+        f.write("episode_num,episode_timesteps,speed,steering\n")
+    
     rclpy.init()
 
     env_config, algorithm_config, network_config, rest = parse_args()
