@@ -14,7 +14,8 @@ class CmdVelRecorder(Node):
         self.onSim = self.get_parameter('onSim').value
         
         script_dir = os.path.dirname(__file__)
-        self.file_path = os.path.join(script_dir, f"record_{'sim' if self.onSim else 'drive'}_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.txt")
+        self.filename = f"record_{'sim' if self.onSim else 'drive'}_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.txt"
+        self.file_path = os.path.join(script_dir, self.filename)
         with open(self.file_path, 'w') as log_file:
             log_file.write("")
         
@@ -39,11 +40,12 @@ class CmdVelRecorder(Node):
     def recorder_callback(self, msg):
         timestamp = time.time()
         formatted_time = f"{timestamp:.3f}"
-        
-        print(f"Recording: time={formatted_time}, linear={msg.linear.x}, angular={msg.angular.z}")
 
-        with open(self.file_path, 'a') as log_file:
-            log_file.write(f"time={formatted_time},\tlinear={msg.linear.x},\tangular={msg.angular.z}\n")
+        with open(self.filename, 'a') as log_file:
+            if self.onSim:
+                log_file.write(f"time={formatted_time},\tlinear={msg.linear.x},\tangular={msg.angular.z}\n")
+            else:
+                log_file.write(f"time={formatted_time},\tlinear={msg.drive.speed},\tangular={msg.drive.steering_angle}\n")
         
 def main(args=None):
     rclpy.init(args=args)
