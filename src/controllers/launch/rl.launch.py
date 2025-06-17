@@ -19,5 +19,20 @@ def generate_launch_description():
             config_path
         ],
     )
+    
+    vel_recorder = Node(
+        package='recorders',
+        executable='vel_recorder',
+        name='vel_recorder',
+        output='screen',
+        parameters=[{'onSim': False}]
+    )
+    
+    lidar_recorder = Node(
+        package='recorders',
+        executable='lidar_recorder',
+        name='lidar_recorder',
+        output='screen'
+    )
 
-    return LaunchDescription([main])
+    return LaunchDescription([main, vel_recorder, lidar_recorder])

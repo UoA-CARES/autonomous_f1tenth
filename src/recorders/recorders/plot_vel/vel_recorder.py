@@ -3,13 +3,18 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from ackermann_msgs.msg import AckermannDriveStamped
 import time
+import os
 
 class CmdVelRecorder(Node):
     def __init__(self, onSim):
-        self.onSim = onSim
-        with open(f"record_{'sim' if self.onSim else 'drive'}.txt", 'w') as log_file:
-            log_file.write("")
         super().__init__('recorder')
+        
+        self.declare_parameter('onSim')
+        self.onSim = self.get_parameter('onSim').value
+        script_dir = os.path.dirname(__file__)
+        self.file_path = os.path.join(script_dir, f"record_{'sim' if self.onSim else 'drive'}.txt")
+        with open(self.file_path, 'w') as log_file:
+            log_file.write("")
         if onSim:
             self.topic_name = '/f1tenth/cmd_vel'
             self.subscription = self.create_subscription(
@@ -31,23 +36,19 @@ class CmdVelRecorder(Node):
     def recorder_callback(self, msg):
         timestamp = time.time()
         formatted_time = f"{timestamp:.3f}"
-        # Log the received message
-        self.get_logger().info(f"Received value: linear={msg.linear.x}, angular={msg.angular.z}")
+        
+        print(f"Recording: time={formatted_time}, linear={msg.linear.x}, angular={msg.angular.z}")
 
-        # Optionally, write to a file
-        with open(f"record_{'sim' if self.onSim else 'drive'}.txt", 'a') as log_file:
+        with open(self.file_path, 'a') as log_file:
             log_file.write(f"time={formatted_time},\tlinear={msg.linear.x},\tangular={msg.angular.z}\n")
         
 def main(args=None):
     rclpy.init(args=args)
-    recorder = CmdVelRecorder(True) # Change to False for real car
+    node = CmdVelRecorder(True) # Change to False for real car
     try:
-        rclpy.spin(recorder)
+        rclpy.spin(node)
     except KeyboardInterrupt:
-        recorder.get_logger().info("Shutting down recorder.")
+        node.get_logger().info("Shutting down vel recorder.")
     finally:
-        recorder.destroy_node()
+        node.destroy_node()
         rclpy.shutdown()
-
-if __name__ == '__main__':
-    main()
