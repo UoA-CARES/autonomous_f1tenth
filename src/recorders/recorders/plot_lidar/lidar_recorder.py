@@ -27,10 +27,6 @@ class LidarPlotter(Node):
         
         self.get_logger().info(f"Subscribed to '{self.lidar_topic_name}' and '{self.odom_topic_name}' topics.")
         
-        # Initialize car position and orientation
-        self.car_position = np.array([0.0, 0.0])  # Start at (0, 0)
-        self.car_orientation = 0.0  # Start facing along the x-axis
-        
         # Initialize plot
         self.fig, self.ax = plt.subplots()
         self.ax.set_title("Track Walls - Top-Down View")
