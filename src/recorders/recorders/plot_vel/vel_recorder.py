@@ -7,16 +7,18 @@ import os
 from datetime import datetime
 
 class CmdVelRecorder(Node):
-    def __init__(self, onSim):
+    def __init__(self):
         super().__init__('recorder')
         
         self.declare_parameter('onSim')
         self.onSim = self.get_parameter('onSim').value
+        
         script_dir = os.path.dirname(__file__)
         self.file_path = os.path.join(script_dir, f"record_{'sim' if self.onSim else 'drive'}_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.txt")
         with open(self.file_path, 'w') as log_file:
             log_file.write("")
-        if onSim:
+        
+        if self.onSim:
             self.topic_name = '/f1tenth/cmd_vel'
             self.subscription = self.create_subscription(
                 Twist,
@@ -45,7 +47,7 @@ class CmdVelRecorder(Node):
         
 def main(args=None):
     rclpy.init(args=args)
-    node = CmdVelRecorder(True) # Change to False for real car
+    node = CmdVelRecorder()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
