@@ -4,6 +4,7 @@ from geometry_msgs.msg import Twist
 from ackermann_msgs.msg import AckermannDriveStamped
 import time
 import os
+from datetime import datetime
 
 class CmdVelRecorder(Node):
     def __init__(self, onSim):
@@ -12,7 +13,7 @@ class CmdVelRecorder(Node):
         self.declare_parameter('onSim')
         self.onSim = self.get_parameter('onSim').value
         script_dir = os.path.dirname(__file__)
-        self.file_path = os.path.join(script_dir, f"record_{'sim' if self.onSim else 'drive'}.txt")
+        self.file_path = os.path.join(script_dir, f"record_{'sim' if self.onSim else 'drive'}_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.txt")
         with open(self.file_path, 'w') as log_file:
             log_file.write("")
         if onSim:

@@ -4,6 +4,9 @@ from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 import matplotlib.pyplot as plt
 import numpy as np
+import os
+from datetime import datetime
+
 
 class LidarPlotter(Node):
     def __init__(self):
@@ -25,7 +28,13 @@ class LidarPlotter(Node):
             10
         )
         
+        script_dir = os.path.dirname(__file__)
+        self.file_path = os.path.join(script_dir, f"record_lidar_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.txt")
+        
         self.get_logger().info(f"Subscribed to '{self.lidar_topic_name}' and '{self.odom_topic_name}' topics.")
+        with open(self.file_path, 'w') as log_file:
+            log_file.write("")
+            
         
         # Initialize plot
         self.fig, self.ax = plt.subplots()
@@ -58,6 +67,13 @@ class LidarPlotter(Node):
 
         # Store wall points
         self.wall_points.extend(zip(x_global, y_global))
+        
+        with open(self.file_path, 'a') as log_file:
+            log_file.write(f"Car Position: ({self.car_position[0]:.2f}, {self.car_position[1]:.2f})\n")
+            log_file.write("Wall Points:\n")
+            for x, y in zip(x_global, y_global):
+                log_file.write(f"\t({x:.2f}, {y:.2f})\n")
+            log_file.write("\n")
 
         # Update plot
         self.ax.clear()
