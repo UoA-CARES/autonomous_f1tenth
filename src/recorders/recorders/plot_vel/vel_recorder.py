@@ -10,7 +10,7 @@ class CmdVelRecorder(Node):
     def __init__(self):
         super().__init__('recorder')
         
-        self.declare_parameter('onSim', False)
+        self.declare_parameter('onSim')
         self.onSim = self.get_parameter('onSim').value
         
         script_dir = os.path.dirname(__file__)
@@ -31,7 +31,7 @@ class CmdVelRecorder(Node):
             self.subscription = self.create_subscription(
                 AckermannDriveStamped,
                 self.topic_name,
-                self.recorder_callback_callback,
+                self.recorder_callback,
                 10
             )
         self.get_logger().info(f"Subscribed to '{self.topic_name}' topic.")
