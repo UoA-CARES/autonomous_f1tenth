@@ -10,7 +10,7 @@ class CmdVelRecorder(Node):
     def __init__(self):
         super().__init__('recorder')
         
-        self.declare_parameter('onSim')
+        self.declare_parameter('onSim', False)
         self.onSim = self.get_parameter('onSim').value
         
         script_dir = os.path.dirname(__file__)
