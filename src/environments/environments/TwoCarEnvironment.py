@@ -207,7 +207,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
-        
+        else:
+            self.current_track_key = self.track
         if (self.current_track_key[-3:]).isdigit():
             width = int(self.current_track_key[-3:])
         else: 
