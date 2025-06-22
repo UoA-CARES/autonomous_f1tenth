@@ -54,15 +54,10 @@ def plot_data(times, linear_velocities, angular_velocities, file_name):
     plt.show()
 
 def main():
-    onSim = True  # Change to False for real car
-    
-    # Specify the file to read (change to 'record_drive.txt' for real car data)
-    file_name = f"record_{'sim' if onSim else 'drive'}.txt"
+    file_name = "/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_vel/Vel records/record_drive_2025-06-18 17_13_48.txt"
 
-    # Read the recorded data
     times, linear_velocities, angular_velocities = read_recorded_data(file_name)
 
-    # Plot the data
     plot_data(times, linear_velocities, angular_velocities, file_name)
 
 if __name__ == '__main__':
