@@ -7237,4 +7237,10 @@ waypoints = {
     'track_06': TRACK_06_WAYPOINTS,
     'test_track_01': TEST_TRACK_01_WAYPOINTS,
     'test_track_02': TEST_TRACK_02_WAYPOINTS,
+    'track_01_1m': TRACK_01_1M_WAYPOINTS,
+    'track_02_1m': TRACK_02_1M_WAYPOINTS,
+    'track_03_1m': TRACK_03_1M_WAYPOINTS,
+    'track_04_1m': TRACK_04_1M_WAYPOINTS,
+    'track_05_1m': TRACK_05_1M_WAYPOINTS,
+    'track_06_1m': TRACK_06_1M_WAYPOINTS
 }
