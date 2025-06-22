@@ -38,8 +38,8 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/test_track_02_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/test_track_02_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
           <material>
@@ -51,8 +51,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/test_track_02_150.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
+              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/test_track_02_150.stl</uri>
+              <scale>0.0005 0.0005 0.0005</scale>
             </mesh>
           </geometry>
         </collision>

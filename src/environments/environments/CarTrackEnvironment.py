@@ -71,7 +71,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Reward configuration
         self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.5), ('wall_proximity', 0.5)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
@@ -187,8 +187,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     print("Unknown extra observation.")
         return total
 
-
-
     def reset(self):
         self.step_counter = 0
         self.steps_since_last_goal = 0
@@ -216,7 +214,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
-        
+
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
@@ -263,7 +261,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # take action and wait
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
-
+        
         self.sleep()
         
         # record new state
@@ -466,6 +464,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         goal_position = self.goal_position
 
         current_distance = math.dist(goal_position, next_state[:2])
+        print(f"Position {next_state[:2]} --> {goal_position}")
         
         # keep track of non moving steps
         if self.step_progress < 0.02:
