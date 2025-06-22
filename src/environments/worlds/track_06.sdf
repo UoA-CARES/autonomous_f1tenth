@@ -23,7 +23,7 @@
     </scene>
 
     <model name="base_plate">
-      <pose>0 20 0 0 0 0</pose>
+      <pose>15 20 0 0 0 0</pose>
       <static>true</static>
       <link name="link">
         <collision name="collision">
@@ -100,7 +100,7 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06.stl</uri>
+              <uri>model://src/environments/meshes/track_06.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -113,7 +113,7 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06.stl</uri>
+              <uri>model://src/environments/meshes/track_06.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
