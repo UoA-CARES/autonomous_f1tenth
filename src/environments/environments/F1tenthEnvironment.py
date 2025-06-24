@@ -46,8 +46,8 @@ class F1tenthEnvironment(Node):
         self.STEP_LENGTH = step_length
         self.LIDAR_POINTS = lidar_points
 
-        self.MAX_ACTIONS = np.asarray([config['f1tenth_actions']['max_speed'], config['f1tenth_actions']['max_turn']])
-        self.MIN_ACTIONS = np.asarray([config['f1tenth_actions']['min_speed'], config['f1tenth_actions']['min_turn']])
+        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
  
         self.ACTION_NUM = 2
 

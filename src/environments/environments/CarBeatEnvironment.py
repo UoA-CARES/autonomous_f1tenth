@@ -86,8 +86,8 @@ class CarBeatEnvironment(Node):
         self.OTHER_CAR_NAME = ftg_car_name
         self.MAX_STEPS = max_steps
         self.STEP_LENGTH = step_length
-        self.MAX_ACTIONS = np.asarray([config['beat_actions']['max_speed'], config['beat_actions']['max_turn']])
-        self.MIN_ACTIONS = np.asarray([config['beat_actions']['min_speed'], config['beat_actions']['min_turn']])
+        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
         self.MAX_STEPS_PER_GOAL = max_steps
         self.OBSERVATION_MODE = observation_mode
         self.num_spawns = 0
