@@ -39,7 +39,7 @@
           <geometry>
             <mesh>
               <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/test_track_01_350.stl</uri>
-              <scale>0.0005 0.0005 0.0005</scale>
+              <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
           <material>
@@ -52,7 +52,7 @@
           <geometry>
             <mesh>
               <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/test_track_01_350.stl</uri>
-              <scale>0.0005 0.0005 0.0005</scale>
+              <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
         </collision>
