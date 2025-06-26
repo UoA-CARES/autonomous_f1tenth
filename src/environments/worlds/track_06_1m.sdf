@@ -100,7 +100,7 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06_1m.stl</uri>
+              <uri>../meshes/track_06_1m.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -113,7 +113,7 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/track_06_1m.stl</uri>
+              <uri>../meshes/track_06_1m.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>

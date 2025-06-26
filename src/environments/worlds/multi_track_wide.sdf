@@ -95,7 +95,7 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_01.stl</uri>
+              <uri>../meshes/track_01.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -108,7 +108,7 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_01.stl</uri>
+              <uri>../meshes/track_01.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -123,7 +123,7 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_02.stl</uri>
+              <uri>../meshes/track_02.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -136,7 +136,7 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_02.stl</uri>
+              <uri>../meshes/track_02.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -151,7 +151,7 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_03.stl</uri>
+              <uri>../meshes/track_03.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -164,7 +164,7 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_03.stl</uri>
+              <uri>../meshes/track_03.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -179,7 +179,7 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_04.stl</uri>
+              <uri>../meshes/track_04.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -192,7 +192,7 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_04.stl</uri>
+              <uri>../meshes/track_04.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -206,7 +206,7 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_05.stl</uri>
+              <uri>../meshes/track_05.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -219,7 +219,7 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_05.stl</uri>
+              <uri>../meshes/track_05.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -234,7 +234,7 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06.stl</uri>
+              <uri>../meshes/track_06.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -247,7 +247,7 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06.stl</uri>
+              <uri>../meshes/track_06.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>

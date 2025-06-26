@@ -87,7 +87,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001"/> -->
                     <mesh>
-                        <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/austin_track.stl</uri>
+                        <uri>../meshes/austin_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -101,7 +101,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001" /> -->
                     <mesh>
-                        <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/austin_track.stl</uri>
+                        <uri>../meshes/austin_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -157,7 +157,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001"/> -->
                     <mesh>
-                        <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/budapest_track.stl</uri>
+                        <uri>../meshes/budapest_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -171,7 +171,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001" /> -->
                     <mesh>
-                        <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/budapest_track.stl</uri>
+                        <uri>../meshes/budapest_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -227,7 +227,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001"/> -->
                     <mesh>
-                        <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/hockenheim_track.stl</uri>
+                        <uri>../meshes/hockenheim_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -241,7 +241,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001" /> -->
                     <mesh>
-                        <uri>/home/anyone/autonomous_f1tenth/src/environments/meshes/hockenheim_track.stl</uri>
+                        <uri>../meshes/hockenheim_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
