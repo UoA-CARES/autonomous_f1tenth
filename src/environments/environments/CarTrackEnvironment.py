@@ -78,8 +78,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.LIDAR_POINTS = 10 #682
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
-        # Evaluation settings
-        self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
+        # Evaluation settings - configure train/eval split based on track
+        if track == 'narrow_multi_track':
+            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 1.0  # Use all tracks for training in narrow_multi_track
+        else:
+            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5  # Use 50/50 split for other multi-track environments 
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
@@ -165,6 +168,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
             # idx used to loop through eval tracks sequentially
             self.eval_track_idx = 0
+            
+            # Debug logging
+            total_tracks = len(self.all_track_waypoints)
+            training_tracks = self.eval_track_begin_idx
+            eval_tracks = total_tracks - training_tracks
+            self.get_logger().info(f"Track '{track}' split: {total_tracks} total, {training_tracks} training, {eval_tracks} evaluation (split={self.MULTI_TRACK_TRAIN_EVAL_SPLIT})")
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -195,16 +204,29 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.set_velocity(0, 0)
         
         if self.is_multi_track:
-            # Evaluating: loop through eval tracks sequentially
-            if self.is_evaluating:
-                eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
-                self.current_track_key = eval_track_key_list[self.eval_track_idx]
-                self.eval_track_idx += 1
-                self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
-
-            # Training: choose a random track that is not used for evaluation
+            # Check if we have dedicated evaluation tracks
+            if self.eval_track_begin_idx >= len(self.all_track_waypoints):
+                # No dedicated eval tracks (split = 1.0), use all tracks for both training and evaluation
+                if self.is_evaluating:
+                    # For evaluation, cycle through all tracks sequentially
+                    all_track_keys = list(self.all_track_waypoints.keys())
+                    self.current_track_key = all_track_keys[self.eval_track_idx]
+                    self.eval_track_idx += 1
+                    self.eval_track_idx = self.eval_track_idx % len(all_track_keys)
+                else:
+                    # For training, choose random track from all tracks
+                    self.current_track_key = random.choice(list(self.all_track_waypoints.keys()))
             else:
-                self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
+                # We have dedicated evaluation tracks (split < 1.0)
+                if self.is_evaluating:
+                    # Evaluating: loop through eval tracks sequentially
+                    eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
+                    self.current_track_key = eval_track_key_list[self.eval_track_idx]
+                    self.eval_track_idx += 1
+                    self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
+                else:
+                    # Training: choose a random track that is not used for evaluation
+                    self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
