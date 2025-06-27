@@ -80,9 +80,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Evaluation settings - configure train/eval split based on track
         if track == 'narrow_multi_track':
-            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (4/7)  # Use 4/7 4 train, 3 eval)tracks for training (4 train, 3 eval)
+            # train: vary_track_new, track_01_1m, track_02_1m, track_03_1m
+            # eval: track_04_1m, track_05_1m, track_06_1m
+            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (4/7)
         else:
-            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5  # Use 50/50 split for other multi-track environments 
+            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"

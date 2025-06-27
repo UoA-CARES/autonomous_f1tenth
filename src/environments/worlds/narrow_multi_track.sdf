@@ -40,14 +40,14 @@
     </light>
 
     <model name="narrow_ground_plane">
-      <pose>27 0 0 0 0 0</pose>
+      <pose>33.5 0 0 0 0 0</pose>
       <static>true</static>
       <link name="link">
         <collision name="collision">
           <geometry>
             <plane>
               <normal>0 0 1</normal>
-              <size>120 100</size>
+              <size>140 100</size>
             </plane>
           </geometry>
           <surface>
@@ -66,7 +66,7 @@
           <geometry>
             <plane>
               <normal>0 0 1</normal>
-              <size>120 100</size>
+              <size>140 100</size>
             </plane>
           </geometry>
           <material>
@@ -109,7 +109,7 @@
 
     <!-- Track 01 -->
     <model name="track_01_1m">
-      <pose>9 0 0 0 0 0</pose>
+      <pose>22 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
@@ -138,7 +138,7 @@
 
     <!-- Track 02 -->
     <model name="track_02_1m">
-      <pose>18 0 0 0 0 0</pose>
+      <pose>31 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
@@ -167,7 +167,7 @@
 
     <!-- Track 03 -->
     <model name="track_03_1m">
-      <pose>27 0 0 0 0 0</pose>
+      <pose>40 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
@@ -196,7 +196,7 @@
 
     <!-- Track 04 -->
     <model name="track_04_1m">
-      <pose>36 0 0 0 0 0</pose>
+      <pose>49 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
@@ -225,7 +225,7 @@
 
     <!-- Track 05 -->
     <model name="track_05_1m">
-      <pose>45 0 0 0 0 0</pose>
+      <pose>58 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
@@ -254,7 +254,7 @@
 
     <!-- Track 06 -->
     <model name="track_06_1m">
-      <pose>54 0 0 0 0 0</pose>
+      <pose>67 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
