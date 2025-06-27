@@ -80,7 +80,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Evaluation settings - configure train/eval split based on track
         if track == 'narrow_multi_track':
-            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 1.0  # Use all tracks for training in narrow_multi_track
+            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (4/7)  # Use 4/7 4 train, 3 eval)tracks for training (4 train, 3 eval)
         else:
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5  # Use 50/50 split for other multi-track environments 
 
