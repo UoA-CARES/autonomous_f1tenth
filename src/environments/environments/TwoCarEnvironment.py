@@ -6,7 +6,7 @@ import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from .util import has_collided, has_flipped_over
-from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, lateral_translation
+from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, twist_to_ackermann, reconstruct_ae_latent, lateral_translation
 from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
@@ -213,7 +213,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
-        
+        else:
+            self.current_track_key = self.track
         if (self.current_track_key[-3:]).isdigit():
             width = int(self.current_track_key[-3:])
         else: 
@@ -230,7 +231,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
         translation2 = random.random()
 
         translation1 = 0.15 + random.random()*0.3
-        translation2 = -0.2 - random.random()*0.3
+        translation2 = -0.2 - random.random()*1.5
+
         if width > 200:
             if order == 1:
                 car_2_x, car_2_y = lateral_translation((car_x, car_y), car_yaw, translation1) # translation 0.5 prev
@@ -399,7 +401,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         
         full_state = odom + processed_lidar_range
-
+        
         return state, full_state, lidar.ranges
 
     def compute_reward(self, state, next_state, raw_lidar_range):
@@ -430,8 +432,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     reward_info.update({"dist_to_wall":["avg",dist_to_wall]})
                     #print(f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}")   
                 case 'turn':
-                    angular_vel_diff = abs(state[7] - next_state[7])
-                    turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.3)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
+                    steering_angle1 = twist_to_ackermann(state[7], state[6], L=0.325)
+                    steering_angle2 = twist_to_ackermann(next_state[7], next_state[6], L=0.325)
+                    angle_diff = abs(steering_angle1 - steering_angle2)
+                    if angle_diff > 3:
+                        turning_penalty_factor = 0
+                    else:
+                        turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angle_diff - 0.3)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
+                    
                     reward -= reward * turning_penalty_factor * weight
                     #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")
                 case 'racing':
