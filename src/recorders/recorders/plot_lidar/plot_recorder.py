@@ -1,40 +1,85 @@
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider
+from typing import List
 
-def plot_lidar_from_file(file_path):
-    wall_points = []
-    car_positions = []
 
-    # Read the file and extract data
+class RecordedData:
+    def __init__(self, car_position):
+        self.wall_points = []
+        self.car_position = car_position
+
+    def add_wall_point(self, point):
+        self.wall_points.append(point)
+
+    def get_wall_points(self):
+        return self.wall_points
+
+    def get_car_position(self):
+        return self.car_position
+
+
+def read_data(file_path):
+    data_list: List[RecordedData] = []
+    data = None
     with open(file_path, 'r') as file:
         lines = file.readlines()
         for i, line in enumerate(lines):
             line = line.strip()
-            if line.startswith("Car Position:"):
-                # Extract car position
+            if not line:
+                if data:
+                    data_list.append(data)
+                    data = None
+            elif line.startswith("Car Position:"):
                 position = line.split(":")[1].strip("() \n")
                 x_str, y_str = [p.strip() for p in position.split(",")]
-                car_positions.append((float(x_str), float(y_str)))
+                data = RecordedData((float(x_str), float(y_str)))
             elif line.startswith("("):
-                # Extract wall points
                 line = line.strip("(), \t\n")
                 x_str, y_str = [p.strip() for p in line.split(",")]
-                wall_points.append((float(x_str), float(y_str)))
+                if data:
+                    data.add_wall_point((float(x_str), float(y_str)))
+    return data_list
 
 
-    # Plot the data
-    plt.figure(figsize=(10, 6))
-    if wall_points:
-        plt.plot(*zip(*wall_points), 'o', markersize=1, label="Walls")
-    if car_positions:
-        plt.plot(*zip(*car_positions), 'ro', markersize=2, label="Car Position")
-    plt.title("Track Walls and Car Position - Top-Down View")
-    plt.xlabel("X (meters)")
-    plt.ylabel("Y (meters)")
-    plt.legend()
-    plt.grid()
-    plt.axis('equal')
+def plot(file_path):
+    data_list = read_data(file_path)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    plt.subplots_adjust(bottom=0.2)  # Adjust space for the slider
+
+    wall_plot, = ax.plot([], [], 'o', markersize=1, label="Walls")
+    car_plot, = ax.plot([], [], 'ro', markersize=2, label="Car Position")
+
+    ax.set_title("Track Walls and Car Position - Top-Down View")
+    ax.set_xlabel("X (meters)")
+    ax.set_ylabel("Y (meters)")
+    ax.legend()
+    ax.grid()
+    ax.axis('equal')
+
+    ax_slider = plt.axes([0.2, 0.05, 0.65, 0.03])  # Position of the slider
+    slider = Slider(ax_slider, 'Index', 0, len(
+        data_list) - 1, valinit=0, valstep=1)
+
+    def update(val):
+        index = int(slider.val)
+        data = data_list[index]
+        wall_points = data.get_wall_points()
+        car_position = data.get_car_position()
+        if wall_points:
+            wall_plot.set_data(*zip(*wall_points))
+        else:
+            raise Exception(
+                f'No wall points for index {index}, position {car_position}')
+        car_plot.set_data([car_position[0]], [car_position[1]])
+        fig.canvas.draw_idle()
+
+    slider.on_changed(update)
+
+    # Initialize the plot with the first point
+    update(0)
     plt.show()
+
 
 if __name__ == "__main__":
     file_path = '/home/anyone/new_repo/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_lidar_1970-01-01 13:34:49.txt'
-    plot_lidar_from_file(file_path)
+    plot(file_path)
