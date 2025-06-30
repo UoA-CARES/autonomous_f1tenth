@@ -104,10 +104,6 @@
                         <uri>../meshes/melbourne_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
-                </geometry>
-            </collision>
-        </link>
-    </model>
 
     <model name="saopaolo_track">
         <pose>100 0 0 0 0 0</pose>

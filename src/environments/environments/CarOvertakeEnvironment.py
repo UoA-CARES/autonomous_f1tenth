@@ -13,6 +13,7 @@ from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
+import yaml
 
 class CarOvertakeEnvironment(F1tenthEnvironment):
 
@@ -61,6 +62,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
+                 config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
         
         max_steps = 200
@@ -70,7 +72,11 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
 
         #####################################################################################################################
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
-
+        
+        # Load configuration from YAML file
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
+            
         # Reward configuration
         self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
@@ -88,8 +94,8 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
 
         # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([2, 0.434])
-        self.MIN_ACTIONS = np.asarray([0, -0.434])
+        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
 
         #####################################################################################################################
 
@@ -227,16 +233,25 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         # else:
         car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
         car_yaw = self.randomize_yaw(car_yaw, 0.25)
+        
+        car_x = car_x/2
+        car_y = car_y/2
 
         car_2_offset = random.randint(8, 16)  
         car_2_index = (index + car_2_offset) % len(self.track_waypoints)
         car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
         car_2_yaw = self.randomize_yaw(car_2_yaw, 0.25)
+        
+        car_2_x = car_2_x/2
+        car_2_y = car_2_y/2
 
         car_3_offset = random.randint(20, 40)  
         car_3_index = (index + car_3_offset) % len(self.track_waypoints)
         car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[car_3_index]
         car_3_yaw = self.randomize_yaw(car_3_yaw, 0.25)
+        
+        car_3_x = car_3_x/2
+        car_3_y = car_3_y/2
 
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index

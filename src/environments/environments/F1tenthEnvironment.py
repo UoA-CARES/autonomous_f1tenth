@@ -9,6 +9,7 @@ from nav_msgs.msg import Odometry
 from std_srvs.srv import SetBool
 from environment_interfaces.srv import Reset
 from .util import ackermann_to_twist
+import yaml
 
 
 class F1tenthEnvironment(Node):
@@ -20,7 +21,14 @@ class F1tenthEnvironment(Node):
             - fetching of car data (raw)
             - define the interface for environments to implement
     '''
-    def __init__(self, env_name, car_name, max_steps, step_length, lidar_points = 10):
+    def __init__(self,
+                 env_name,
+                 car_name,
+                 max_steps,
+                 step_length,
+                 lidar_points = 10,
+                 config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
+                 ):
         super().__init__(env_name + '_environment')
 
         if lidar_points < 1:
@@ -28,13 +36,18 @@ class F1tenthEnvironment(Node):
         
 
         # Environment Details ----------------------------------------
+                
+        # Load configuration from YAML file
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
+            
         self.NAME = car_name
         self.MAX_STEPS = max_steps
         self.STEP_LENGTH = step_length
         self.LIDAR_POINTS = lidar_points
 
-        self.MAX_ACTIONS = np.asarray([0.5, 0.85])
-        self.MIN_ACTIONS = np.asarray([0, -0.85])
+        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
  
         self.ACTION_NUM = 2
 
