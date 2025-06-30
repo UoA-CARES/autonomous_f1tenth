@@ -38,11 +38,23 @@ def read_data(file_path):
                 x_str, y_str = [p.strip() for p in line.split(",")]
                 if data:
                     data.add_wall_point((float(x_str), float(y_str)))
+        
+        # Add the last data point if it exists
+        if data:
+            data_list.append(data)
+    
     return data_list
 
 
 def plot(file_path):
     data_list = read_data(file_path)
+    
+    if not data_list:
+        print("No data found in the file!")
+        return
+    
+    print(f"Loaded {len(data_list)} data points")
+    
     fig, ax = plt.subplots(figsize=(10, 6))
     plt.subplots_adjust(bottom=0.2)  # Adjust space for the slider
 
@@ -62,16 +74,20 @@ def plot(file_path):
 
     def update(val):
         index = int(slider.val)
-        data = data_list[index]
-        wall_points = data.get_wall_points()
-        car_position = data.get_car_position()
-        if wall_points:
-            wall_plot.set_data(*zip(*wall_points))
-        else:
-            raise Exception(
-                f'No wall points for index {index}, position {car_position}')
-        car_plot.set_data([car_position[0]], [car_position[1]])
-        fig.canvas.draw_idle()
+        data_sublist = data_list[:index]
+
+        wall_points = [point for data in data_sublist for point in data.get_wall_points()]
+        wall_x, wall_y = zip(*wall_points)
+        
+        car_positions = [data.get_car_position() for data in data_sublist]
+        car_x, car_y = zip(*car_positions) if car_positions else ([], [])
+
+        wall_plot.set_data(wall_x, wall_y)
+        car_plot.set_data(car_x, car_y)
+
+        ax.relim()
+        ax.autoscale_view()
+        fig.canvas.draw()
 
     slider.on_changed(update)
 
@@ -81,5 +97,5 @@ def plot(file_path):
 
 
 if __name__ == "__main__":
-    file_path = '/home/anyone/new_repo/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_lidar_1970-01-01 13:34:49.txt'
+    file_path = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_lidar_2025-06-26 14_41_33.txt'
     plot(file_path)
