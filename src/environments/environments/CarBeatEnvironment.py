@@ -216,7 +216,7 @@ class CarBeatEnvironment(Node):
         # New random starting point for the cars
         car_x, car_y, car_yaw, index = random.choice(self.car_waypoints)
         ftg_x, ftg_y, ftg_yaw, ftg_index = self.car_waypoints[(index + self.ftg_offset) % len(self.car_waypoints)]
-
+        
         self.start_goal_index = index
         self.ftg_start_goal_index = ftg_index
 

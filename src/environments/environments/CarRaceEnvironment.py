@@ -156,7 +156,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
             car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[index+2 if index+20 < len(self.track_waypoints) else 0]
-        
+
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
 
