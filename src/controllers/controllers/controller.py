@@ -115,12 +115,13 @@ class Controller(Node):
         # log execution time of step
         import time
         start_time = time.time()
+        action_received_time = time.time()
         
         lin_vel, steering_angle = action
         
         # log complete neural network pipeline timing
         network_start_time = time.time()
-        self.get_logger().info(f"Controller action received: [lin_vel={lin_vel:.3f}, steering_angle={steering_angle:.3f}]")
+        self.get_logger().info(f"Controller action received at timestamp: {action_received_time:.6f}, [lin_vel={lin_vel:.3f}, steering_angle={steering_angle:.3f}]")
         
         self.set_velocity(lin_vel, steering_angle)
 
@@ -264,6 +265,10 @@ class Controller(Node):
         sim_velocity_msg.angular.z = float(ang_vel)
         sim_velocity_msg.linear.x = float(lin_vel)
 
+        # Set proper timestamp for delay measurement
+        car_velocity_msg.header.stamp = self.get_clock().now().to_msg()
+        car_velocity_msg.header.frame_id = "base_link"  # or appropriate frame
+        
         car_velocity_msg.drive.steering_angle = float(steering_angle) #-float(angle*0.5)
         car_velocity_msg.drive.speed = float(lin_vel)
 

@@ -43,6 +43,11 @@ def main():
         inference_delay = (inference_end - inference_start) * 1000
         print(f"Neural network inference delay: {inference_delay:.2f} ms")
         
-        action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
+        action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS)
+        
+        # Log when action is sent to controller
+        action_send_time = time.time()
+        print(f"Sending action to controller at timestamp: {action_send_time:.6f}")
+        
         state = controller.step(action, policy_id)
         state = state[6:]
