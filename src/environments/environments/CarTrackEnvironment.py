@@ -351,14 +351,23 @@ class CarTrackEnvironment(F1tenthEnvironment):
         
         # log sensor data timestamps if available
         if hasattr(odom, 'header') and hasattr(lidar, 'header'):
+            # Get current ROS time to compare with message timestamps
+            current_ros_time = self.get_clock().now()
+            current_ros_seconds = current_ros_time.nanoseconds / 1e9
+            
+            # Convert ROS2 message timestamps to seconds
             odom_timestamp = odom.header.stamp.sec + odom.header.stamp.nanosec * 1e-9
             lidar_timestamp = lidar.header.stamp.sec + lidar.header.stamp.nanosec * 1e-9
-            current_time = time.time()
             
-            odom_delay = (current_time - odom_timestamp) * 1000  # convert to ms
-            lidar_delay = (current_time - lidar_timestamp) * 1000  # convert to ms
+            # Calculate sensor data age using ROS time
+            odom_delay = (current_ros_seconds - odom_timestamp) * 1000  # convert to ms
+            lidar_delay = (current_ros_seconds - lidar_timestamp) * 1000  # convert to ms
             
-            self.get_logger().info(f"Sensor delays - Odom: {odom_delay:.2f} ms, Lidar: {lidar_delay:.2f} ms")
+            # Only log if delays seem reasonable (< 5 seconds) - negative delays indicate clock sync issues
+            if -100 < odom_delay < 5000 and -100 < lidar_delay < 5000:
+                self.get_logger().info(f"Sensor delays - Odom: {odom_delay:.2f} ms, Lidar: {lidar_delay:.2f} ms")
+            else:
+                self.get_logger().warn(f"Sensor timestamp anomaly - Odom: {odom_delay:.2f} ms, Lidar: {lidar_delay:.2f} ms (clock sync issue?)")
         
         odom = process_odom(odom)
         
