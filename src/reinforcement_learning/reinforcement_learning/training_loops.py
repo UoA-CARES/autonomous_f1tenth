@@ -39,7 +39,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
 
         
         # perform action, step environment, and setup for next step
-        next_state, reward, done, truncated, step_info = env.step(action_env)
+        next_state, reward, done, truncated, step_info = env.step(action_env, is_training=True)
         memory.add(state, action, reward, next_state, done)
         state = next_state
 
@@ -118,7 +118,7 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
             # select and perform action, setup for next step
             action = agent.select_action_from_policy(state, evaluation=True)
             action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
-            next_state, reward, done, truncated, step_info = env.step(action_env)
+            next_state, reward, done, truncated, step_info = env.step(action_env, is_training=False)
             state = next_state
 
             # record relevant log information
@@ -188,7 +188,7 @@ def ppo_train(env, agent, memory, record, algorithm_config):
         action, log_prob = agent.select_action_from_policy(state)
         action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
 
-        next_state, reward, done, truncated, info = env.step(action_env)
+        next_state, reward, done, truncated, info = env.step(action_env, is_training=True)
         memory.add(state, action, reward, next_state, done, log_prob)
 
         state = next_state
@@ -247,7 +247,7 @@ def ppo_evaluate(env, agent, eval_episodes, record=None, steps_counter=0):
             action, _ = agent.select_action_from_policy(state)
             action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
 
-            next_state, reward, done, truncated, _ = env.step(action_env)
+            next_state, reward, done, truncated, _ = env.step(action_env, is_training=False)
 
             state = next_state
             episode_reward += reward
