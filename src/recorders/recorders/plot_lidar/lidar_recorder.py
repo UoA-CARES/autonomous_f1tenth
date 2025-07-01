@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from datetime import datetime
+import time
 
 
 class LidarPlotter(Node):
@@ -68,7 +69,10 @@ class LidarPlotter(Node):
         # Store wall points
         self.wall_points.extend(zip(x_global, y_global))
         
+        timestamp = time.time()
+        formatted_time = f"{timestamp:.3f}"
         with open(self.file_path, 'a') as log_file:
+            log_file.write(f"Time: {formatted_time},\n")
             log_file.write(f"Car Position: ({self.car_position[0]:.2f}, {self.car_position[1]:.2f})\n")
             log_file.write("Wall Points:\n")
             for x, y in zip(x_global, y_global):

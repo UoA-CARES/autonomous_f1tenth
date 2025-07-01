@@ -24,12 +24,19 @@ ACTOR = os.path.join(MODEL_PATH, 'TD3_actor.pht')
 CRITIC = os.path.join(MODEL_PATH, 'TD3_critic.pht')
 NETWORK_CONFIG_PATH = os.path.join(MODEL_PATH, 'network_config.json')
 
+class RecordedData:
+    def __init__(self, timestamp):
+        self.timestamp = timestamp
 
-class LidarData:
-    def __init__(self, odom):
-        self.odom = odom    # Car position (x, y)
+class LidarData(RecordedData):
+    def __init__(self, timestamp):
+        super().__init__(timestamp)
+        self.odom = None    # Car position (x, y)
         self.scans = []     # List of Lidar distances
         self.wall_points = []  # List of wall points (x, y)
+
+    def set_odom(self, odom):
+        self.odom = odom
 
     def add_scan(self, scan):
         self.scans.append(scan)
@@ -38,8 +45,13 @@ class LidarData:
         self.wall_points.append(point)
 
 
-class VelData:
-    def __init__(self, linear, angular):
+class VelData(RecordedData):
+    def __init__(self, timestamp):
+        super().__init__(timestamp)
+        self.linear = None
+        self.angular = None
+
+    def set_velocities(self, linear, angular):
         self.linear = linear
         self.angular = angular
 
@@ -55,10 +67,13 @@ def read_lidar_data(lidar_file_path):
                 if data:
                     lidar_data_list.append(data)
                     data = None
+            elif line.startswith("Time:"):
+                timestamp = float(line.split(":")[1].strip())
+                data = LidarData(timestamp)
             elif line.startswith("Car Position:"):
                 position = line.split(":")[1].strip("() /n")
                 x_str, y_str = [p.strip() for p in position.split(",")]
-                data = LidarData((float(x_str), float(y_str)))
+                data.set_odom((float(x_str), float(y_str)))
             elif line.startswith("("):
                 line = line.strip("(), /t/n")
                 x_str, y_str = [p.strip() for p in line.split(",")]
@@ -85,11 +100,35 @@ def read_vel_data(vel_file_path):
                 continue
             parts = line.split(",")
             if len(parts) == 3:
-                _, linear, angular = (
+                time, linear, angular = (
                     float(part.split('=')[1]) for part in parts)
-                vel_data_list.append(VelData(linear, angular))
+                data = VelData(time)
+                data.set_velocities(linear, angular)
+                vel_data_list.append(data)
     return vel_data_list
 
+def format_data_lists(lidar_data_list, vel_data_list):
+    if len(lidar_data_list) < len(vel_data_list):
+        # Lidar list is shorter
+        new_vel_data_list = []
+        for lidar_data in lidar_data_list:
+            lidar_data_time = lidar_data.timestamp
+            closest_vel_data = min(
+                vel_data_list, key=lambda v: abs(v.timestamp - lidar_data_time))
+            new_vel_data_list.append(closest_vel_data)
+        return lidar_data_list, new_vel_data_list
+    elif len(vel_data_list) < len(lidar_data_list):
+        # Vel list is shorter
+        new_lidar_data_list = []
+        for vel_data in vel_data_list:
+            vel_data_time = vel_data.timestamp
+            closest_lidar_data = min(
+                lidar_data_list, key=lambda l: abs(l.timestamp - vel_data_time))
+            new_lidar_data_list.append(closest_lidar_data)
+        return new_lidar_data_list, vel_data_list
+    else:
+        # Both lists are the same length
+        return lidar_data_list, vel_data_list
 
 def plot():
     lidar_data_list = read_lidar_data(LIDAR_RECORD)
@@ -106,12 +145,7 @@ def plot():
     print(f"Loaded {len(lidar_data_list)} lidar data points")
     print(f"Loaded {len(vel_data_list)} vel data points")
 
-    if len(lidar_data_list) < len(vel_data_list):
-        print("Lidar data is shorter than vel data, truncating vel data to match lidar data length.")
-        vel_data_list = vel_data_list[:len(lidar_data_list)]
-    elif len(vel_data_list) < len(lidar_data_list):
-        print("Vel data is shorter than lidar data, truncating lidar data to match vel data length.")
-        lidar_data_list = lidar_data_list[:len(vel_data_list)]
+    lidar_data_list, vel_data_list = format_data_lists(lidar_data_list, vel_data_list)
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
