@@ -238,16 +238,16 @@ def get_network_output(state, agent):
     action = agent.select_action_from_policy(state)
     action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS)
     angular, linear = action
-    angular = ackermann_to_twist(angular, linear, 0.325)
+    # angular = ackermann_to_twist(angular, linear, 0.325)
     return angular, linear
 
-def ackermann_to_twist(delta, linear_v, L):
-    try: 
-        omega = math.tan(delta)*linear_v/L
-    except ZeroDivisionError:
-        print("Wheelbase must be greater than zero")
-        return 0
-    return omega
+# def ackermann_to_twist(delta, linear_v, L):
+#     try: 
+#         omega = math.tan(delta)*linear_v/L
+#     except ZeroDivisionError:
+#         print("Wheelbase must be greater than zero")
+#         return 0
+#     return omega
 
 if __name__ == "__main__":
     OBSERVATION_SIZE = 2 + 10   # 2 Odom, 10 Lidar
