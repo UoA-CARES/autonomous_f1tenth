@@ -151,12 +151,22 @@ class F1tenthEnvironment(Node):
         Publish Twist Message. In place since simulator takes angular velocity commands but policies should produce ackermann steering angle.
         Takes linear velocity and steering ANGLE, NOT angular velocity.
         """
+        import time
+        
+        # log action publishing timestamp
+        action_publish_time = time.time()
+        
         angular = ackermann_to_twist(steering_angle, lin_vel, L)
         velocity_msg = Twist()
         velocity_msg.angular.z = float(angular)
         velocity_msg.linear.x = float(lin_vel)
 
         self.cmd_vel_pub.publish(velocity_msg)
+        
+        # log action publishing delay
+        action_publish_end = time.time()
+        action_publish_delay = (action_publish_end - action_publish_time) * 1000
+        self.get_logger().info(f"Action publish delay: {action_publish_delay:.2f} ms, Action: [lin_vel={lin_vel:.3f}, steering_angle={steering_angle:.3f}]")
 
     def sleep(self):
         while not self.timer_future.done():

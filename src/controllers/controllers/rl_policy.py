@@ -34,7 +34,15 @@ def main():
     state = state[6:]
 
     while True:
+        # measure neural network inference time
+        import time
+        inference_start = time.time()
         action = agent.select_action_from_policy(state)
+        inference_end = time.time()
+        
+        inference_delay = (inference_end - inference_start) * 1000
+        print(f"Neural network inference delay: {inference_delay:.2f} ms")
+        
         action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
         state = controller.step(action, policy_id)
         state = state[6:]

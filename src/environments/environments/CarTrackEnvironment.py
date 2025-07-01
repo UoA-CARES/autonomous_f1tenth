@@ -12,6 +12,7 @@ from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
+import time
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -252,6 +253,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.is_evaluating = False
 
     def step(self, action):
+        # log execution time of step
+        start_time = time.time() 
+        
         self.step_counter += 1
         
         # get current state
@@ -262,9 +266,18 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # take action and wait
         lin_vel, steering_angle = action
+        
+        # log complete neural network pipeline timing
+        network_start_time = time.time()
+        self.get_logger().info(f"Neural network action received: [lin_vel={lin_vel:.3f}, steering_angle={steering_angle:.3f}]")
+        
         self.set_velocity(lin_vel, steering_angle)
 
         self.sleep()
+        network_end_time = time.time()
+        
+        network_pipeline_delay = (network_end_time - network_start_time) * 1000  # convert to milliseconds
+        self.get_logger().info(f"Neural network pipeline delay (action→execution): {network_pipeline_delay:.2f} ms")
         
         # record new state
         next_state, full_next_state, raw_lidar_range = self.get_observation()
@@ -302,6 +315,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         if self.is_evaluating and (terminated or truncated):
             self.eval_track_idx
+            
+        # end timing the step function
+        end_time = time.time()
+        step_delay = (end_time - start_time) * 1000  # convert to milliseconds
+        self.get_logger().info(f"Step function delay: {step_delay:.2f} ms")
 
         return next_state, reward, terminated, truncated, info
 
@@ -325,8 +343,23 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
     def get_observation(self):
 
+        # log start time for sensor data retrieval
+        sensor_start_time = time.time()
+
         # Get Position and Orientation of F1tenth
         odom, lidar = self.get_data()
+        
+        # log sensor data timestamps if available
+        if hasattr(odom, 'header') and hasattr(lidar, 'header'):
+            odom_timestamp = odom.header.stamp.sec + odom.header.stamp.nanosec * 1e-9
+            lidar_timestamp = lidar.header.stamp.sec + lidar.header.stamp.nanosec * 1e-9
+            current_time = time.time()
+            
+            odom_delay = (current_time - odom_timestamp) * 1000  # convert to ms
+            lidar_delay = (current_time - lidar_timestamp) * 1000  # convert to ms
+            
+            self.get_logger().info(f"Sensor delays - Odom: {odom_delay:.2f} ms, Lidar: {lidar_delay:.2f} ms")
+        
         odom = process_odom(odom)
         
         num_points = self.LIDAR_POINTS
@@ -375,6 +408,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         
         full_state = odom + processed_lidar_range
+
+        sensor_end_time = time.time()
+        sensor_processing_delay = (sensor_end_time - sensor_start_time) * 1000
+        self.get_logger().info(f"Sensor data processing delay: {sensor_processing_delay:.2f} ms")
 
         return state, full_state, lidar.ranges
 
