@@ -31,6 +31,8 @@ def main():
         raise Exception('Both actor and critic paths must be provided')
     
     state = controller.step([0, 0], policy_id)
+    # Full state is [coordinate_x, coordinate_y, orientation_x, orientation_y, orientation_z, orientation_w, linear_velocity, angular_velocity, 10 x lidar_data]
+    # 'lidar_only' only considers linear_velocity and angular_velocity, thus the first 6 elements are omitted
     state = state[6:]
 
     while True:
