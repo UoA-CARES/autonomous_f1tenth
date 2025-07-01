@@ -76,17 +76,26 @@ def plot(file_path):
         index = int(slider.val)
         data_sublist = data_list[:index]
 
+        # Flatten wall points into x and y coordinates
         wall_points = [point for data in data_sublist for point in data.get_wall_points()]
-        wall_x, wall_y = zip(*wall_points)
-        
+        if wall_points:
+            wall_x, wall_y = zip(*wall_points)
+        else:
+            wall_x, wall_y = [], []  # Handle empty wall points
+
+        # Extract car positions
         car_positions = [data.get_car_position() for data in data_sublist]
         car_x, car_y = zip(*car_positions) if car_positions else ([], [])
 
+        # Update the plots
         wall_plot.set_data(wall_x, wall_y)
         car_plot.set_data(car_x, car_y)
 
+        # Auto-scale the axes to fit the data
         ax.relim()
         ax.autoscale_view()
+
+        # Force a redraw
         fig.canvas.draw()
 
     slider.on_changed(update)
@@ -97,5 +106,5 @@ def plot(file_path):
 
 
 if __name__ == "__main__":
-    file_path = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_lidar_2025-06-26 14_41_33.txt'
+    file_path = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_lidar_2025-06-30 14_06_44.txt'
     plot(file_path)
