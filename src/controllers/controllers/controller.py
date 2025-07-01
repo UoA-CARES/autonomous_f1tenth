@@ -265,13 +265,13 @@ class Controller(Node):
         sim_velocity_msg.angular.z = float(ang_vel)
         sim_velocity_msg.linear.x = float(lin_vel)
 
-        # Set proper timestamp for delay measurement
-        car_velocity_msg.header.stamp = self.get_clock().now().to_msg()
-        car_velocity_msg.header.frame_id = "base_link"  # or appropriate frame
-        
         car_velocity_msg.drive.steering_angle = float(steering_angle) #-float(angle*0.5)
         car_velocity_msg.drive.speed = float(lin_vel)
 
+        # Set timestamp just before publishing for more accurate delay measurement
+        car_velocity_msg.header.stamp = self.get_clock().now().to_msg()
+        car_velocity_msg.header.frame_id = "base_link"  # or appropriate frame
+        
         self.ackerman_pub.publish(car_velocity_msg)
         self.cmd_vel_pub.publish(sim_velocity_msg)
 
