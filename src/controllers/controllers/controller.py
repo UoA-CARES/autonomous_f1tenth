@@ -112,14 +112,32 @@ class Controller(Node):
         # self.ae_lidar_model.eval()
 
     def step(self, action, policy):
+        # log execution time of step
+        import time
+        start_time = time.time()
+        
         lin_vel, steering_angle = action
+        
+        # log complete neural network pipeline timing
+        network_start_time = time.time()
+        self.get_logger().info(f"Controller action received: [lin_vel={lin_vel:.3f}, steering_angle={steering_angle:.3f}]")
+        
         self.set_velocity(lin_vel, steering_angle)
 
         self.sleep()
 
         self.timer_future = Future()
+        
+        network_end_time = time.time()
+        network_pipeline_delay = (network_end_time - network_start_time) * 1000  # convert to milliseconds
+        self.get_logger().info(f"Controller pipeline delay (action→execution): {network_pipeline_delay:.2f} ms")
 
         state = self.get_observation(policy)
+        
+        # end timing the step function
+        end_time = time.time()
+        step_delay = (end_time - start_time) * 1000  # convert to milliseconds
+        self.get_logger().info(f"Controller step function delay: {step_delay:.2f} ms")
 
         return state
 
@@ -128,6 +146,10 @@ class Controller(Node):
 
     def get_observation(self, policy):
         #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z]
+
+        # log start time for sensor data retrieval
+        import time
+        sensor_start_time = time.time()
 
         # TODO: turn on later  |
         #                      V
@@ -152,6 +174,27 @@ class Controller(Node):
 
 
         odom, lidar = self.get_data()
+        
+        # log sensor data timestamps if available
+        if hasattr(odom, 'header') and hasattr(lidar, 'header'):
+            # Get current ROS time to compare with message timestamps
+            current_ros_time = self.get_clock().now()
+            current_ros_seconds = current_ros_time.nanoseconds / 1e9
+            
+            # Convert ROS2 message timestamps to seconds
+            odom_timestamp = odom.header.stamp.sec + odom.header.stamp.nanosec * 1e-9
+            lidar_timestamp = lidar.header.stamp.sec + lidar.header.stamp.nanosec * 1e-9
+            
+            # Calculate sensor data age using ROS time
+            odom_delay = (current_ros_seconds - odom_timestamp) * 1000  # convert to ms
+            lidar_delay = (current_ros_seconds - lidar_timestamp) * 1000  # convert to ms
+            
+            # Only log if delays seem reasonable (< 5 seconds) - negative delays indicate clock sync issues
+            if -100 < odom_delay < 5000 and -100 < lidar_delay < 5000:
+                self.get_logger().info(f"Controller sensor delays - Odom: {odom_delay:.2f} ms, Lidar: {lidar_delay:.2f} ms")
+            else:
+                self.get_logger().warn(f"Controller sensor timestamp anomaly - Odom: {odom_delay:.2f} ms, Lidar: {lidar_delay:.2f} ms (clock sync issue?)")
+        
         odom = process_odom(odom)
         if self.firstOdom:
             self.offset = odom[0:6]
@@ -194,6 +237,11 @@ class Controller(Node):
         
         self.processed_publisher.publish(scan)
         state = odom+processed_lidar_range
+        
+        sensor_end_time = time.time()
+        sensor_processing_delay = (sensor_end_time - sensor_start_time) * 1000
+        self.get_logger().info(f"Controller sensor data processing delay: {sensor_processing_delay:.2f} ms")
+        
         return state
         
 
