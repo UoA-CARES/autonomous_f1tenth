@@ -7,7 +7,7 @@
         <visual name="aruco1_vis">
           <geometry>
             <mesh>
-              <uri>model://src/f1tenth/f1tenth_description/meshes/aruco.stl</uri>
+              <uri>/home/anyone/autonomous_f1tenth/src/f1tenth/f1tenth_description/meshes/aruco.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>

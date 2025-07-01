@@ -100,7 +100,7 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06.stl</uri>
+              <uri>../meshes/track_06.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -113,12 +113,8 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/track_06.stl</uri>
+              <uri>../meshes/track_06.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
-          </geometry>
-        </collision>
-      </link>
-    </model>
   </world>
 </sdf>

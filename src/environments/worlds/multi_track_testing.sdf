@@ -87,7 +87,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001"/> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/melbourne_track.stl</uri>
+                        <uri>../meshes/melbourne_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -101,13 +101,9 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001" /> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/melbourne_track.stl</uri>
+                        <uri>../meshes/melbourne_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
-                </geometry>
-            </collision>
-        </link>
-    </model>
 
     <model name="saopaolo_track">
         <pose>100 0 0 0 0 0</pose>
@@ -119,7 +115,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001"/> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/saopaolo_track.stl</uri>
+                        <uri>../meshes/saopaolo_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -133,7 +129,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001" /> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/saopaolo_track.stl</uri>
+                        <uri>../meshes/saopaolo_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -151,7 +147,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001"/> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/shanghai_track.stl</uri>
+                        <uri>../meshes/shanghai_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -165,7 +161,7 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001" /> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/shanghai_track.stl</uri>
+                        <uri>../meshes/shanghai_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>

@@ -5,13 +5,18 @@ import numpy as np
 from cares_reinforcement_learning.util.helpers import denormalize
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from reinforcement_learning.parse_args import parse_args
+import yaml
 
 def main():
     rclpy.init()
+    
+    # Load configuration from YAML file
+    with open('/home/anyone/autonomous_f1tenth/src/controllers/controllers/config/car.yaml', 'r') as file:
+        config = yaml.safe_load(file)
 
     env_config, _, network_config, rest = parse_args()
-    MAX_ACTIONS = np.asarray([2, 0.45])
-    MIN_ACTIONS = np.asarray([0, -0.45])
+    MAX_ACTIONS = np.asarray([config['car']['ros__parameters']['max_speed'], config['car']['ros__parameters']['max_turn']])
+    MIN_ACTIONS = np.asarray([config['car']['ros__parameters']['min_speed'], config['car']['ros__parameters']['min_turn']])
     OBSERVATION_SIZE=12
     ACTION_NUM=2
 
