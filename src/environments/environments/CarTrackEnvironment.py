@@ -271,6 +271,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
         network_start_time = time.time()
         self.get_logger().info(f"Neural network action received: [lin_vel={lin_vel:.3f}, steering_angle={steering_angle:.3f}]")
         
+        # Add realistic action execution delay to match real car behavior
+        # Real car action execution: ~4ms (RL agent → car actuators)
+        # Simulation action execution: ~1.3ms
+        # Gap to compensate: 4ms - 1.3ms = 2.7ms
+        if not self.is_evaluating:  # Only apply delay during training, not evaluation
+            action_delay = np.random.normal(0.0027, 0.0005)  # 2.7ms ± 0.5ms to match action execution gap
+            action_delay = max(0.002, min(0.004, action_delay))  # Clamp between 2-4ms
+            time.sleep(action_delay)
+            self.get_logger().info(f"Applied realistic action execution delay: {action_delay*1000:.1f} ms")
+        
         self.set_velocity(lin_vel, steering_angle)
 
         self.sleep()
@@ -348,6 +358,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Get Position and Orientation of F1tenth
         odom, lidar = self.get_data()
+        
+        # Add realistic sensor processing delay to match real car behavior
+        # Real car sensor processing: ~85ms (sensor data → RL agent)
+        # Simulation sensor processing: ~11ms 
+        # Gap to compensate: 85ms - 11ms = 74ms
+        if not self.is_evaluating:  # Only apply delay during training, not evaluation
+            sensor_delay = np.random.normal(0.074, 0.005)  # 74ms ± 5ms to match sensor processing gap
+            sensor_delay = max(0.065, min(0.085, sensor_delay))  # Clamp between 65-85ms
+            time.sleep(sensor_delay)
+            self.get_logger().info(f"Applied realistic sensor processing delay: {sensor_delay*1000:.1f} ms")
         
         # log sensor data timestamps if available
         if hasattr(odom, 'header') and hasattr(lidar, 'header'):
