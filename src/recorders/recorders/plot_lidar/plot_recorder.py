@@ -3,6 +3,18 @@ import json
 import torch
 import numpy as np
 from typing import List
+import matplotlib
+# Try different backends until one works
+backends_to_try = ['TkAgg', 'Qt5Agg', 'Agg']
+for backend in backends_to_try:
+    try:
+        matplotlib.use(backend)
+        break
+    except ImportError:
+        continue
+else:
+    print("Warning: Could not set a GUI backend, using default")
+
 from matplotlib.widgets import Slider
 import matplotlib.pyplot as plt
 import sys
@@ -17,9 +29,9 @@ from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from cares_reinforcement_learning.util.configurations import TD3Config
 from cares_reinforcement_learning.util.helpers import denormalize
 
-VEL_RECORD = 'record_drive_2025-07-02 12:42:45.txt'
-LIDAR_RECORD = 'record_lidar_2025-07-02 12:42:45.txt'
-MODEL_PATH = '/home/anyone/new_repo/autonomous_f1tenth/overtaking_models/narrow_multi_track/123/models/final/'
+VEL_RECORD = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_drive_2025-07-02 12_42_45.txt'
+LIDAR_RECORD = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_lidar_2025-07-02 12_42_45.txt'
+MODEL_PATH = '/home/anyone/training_logs/narrow_vary_width/123/models/final/'
 ACTOR = os.path.join(MODEL_PATH, 'TD3_actor.pht')
 CRITIC = os.path.join(MODEL_PATH, 'TD3_critic.pht')
 NETWORK_CONFIG_PATH = os.path.join(MODEL_PATH, '../../../', 'network_config.json')
@@ -149,6 +161,8 @@ def plot():
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
+    lidar_time_text = fig.text(0.75, 0.95, 'Lidar Time', fontsize=10, va='center')
+    vel_time_text = fig.text(0.75, 0.9, 'Vel Time', fontsize=10, va='center')
     fig.text(0.85, 0.85, 'Recorded Values', fontsize=10, va='center')
     linear_text = fig.text(0.85, 0.8, '', fontsize=10, va='center')
     angular_text = fig.text(0.85, 0.75, '', fontsize=10, va='center')
@@ -181,6 +195,8 @@ def plot():
         state = data_to_state(last_lidar_data, recorded_vel_data)
         steering_angle, speed = get_network_output(state, AGENT)
 
+        lidar_time_text.set_text(f"Lidar Time: {last_lidar_data.timestamp:.2f}")
+        vel_time_text.set_text(f"Vel Time: {recorded_vel_data.timestamp:.2f}")
         linear_text.set_text(f"Linear: {recorded_vel_data.linear:.2f}")
         angular_text.set_text(f"Angular: {recorded_vel_data.angular:.2f}")
         speed_text.set_text(f"Linear: {speed:.2f}")
