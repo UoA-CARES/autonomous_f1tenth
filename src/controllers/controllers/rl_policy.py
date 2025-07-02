@@ -11,7 +11,7 @@ def main():
     rclpy.init()
     
     # Load configuration from YAML file
-    with open('/home/anyone/autonomous_f1tenth/src/controllers/controllers/config/car.yaml', 'r') as file:
+    with open('/home/anyone/autonomous_f1tenth/src/controllers/config/car.yaml', 'r') as file:
         config = yaml.safe_load(file)
 
     env_config, _, network_config, rest = parse_args()
