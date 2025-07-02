@@ -17,12 +17,12 @@ from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from cares_reinforcement_learning.util.configurations import TD3Config
 from cares_reinforcement_learning.util.helpers import denormalize
 
-VEL_RECORD = 'C:/Users/eason/Desktop/Code/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_drive_2025-06-30 14_07_58.txt'
-LIDAR_RECORD = 'C:/Users/eason/Desktop/Code/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_lidar_2025-06-30 14_07_59.txt'
-MODEL_PATH = 'C:/Users/eason/Desktop/Code/autonomous_f1tenth/src/recorders/recorders/plot_lidar'
+VEL_RECORD = 'record_drive_2025-07-02 12:42:45.txt'
+LIDAR_RECORD = 'record_lidar_2025-07-02 12:42:45.txt'
+MODEL_PATH = '/home/anyone/new_repo/autonomous_f1tenth/overtaking_models/narrow_multi_track/123/models/final/'
 ACTOR = os.path.join(MODEL_PATH, 'TD3_actor.pht')
 CRITIC = os.path.join(MODEL_PATH, 'TD3_critic.pht')
-NETWORK_CONFIG_PATH = os.path.join(MODEL_PATH, 'network_config.json')
+NETWORK_CONFIG_PATH = os.path.join(MODEL_PATH, '../../../', 'network_config.json')
 
 class RecordedData:
     def __init__(self, timestamp):
@@ -68,7 +68,7 @@ def read_lidar_data(lidar_file_path):
                     lidar_data_list.append(data)
                     data = None
             elif line.startswith("Time:"):
-                timestamp = float(line.split(":")[1].strip())
+                timestamp = float(line.split(":")[1].strip()[:-1])
                 data = LidarData(timestamp)
             elif line.startswith("Car Position:"):
                 position = line.split(":")[1].strip("() /n")
