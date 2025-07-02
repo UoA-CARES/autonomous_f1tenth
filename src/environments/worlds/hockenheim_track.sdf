@@ -86,7 +86,8 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001"/> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/hockenheim_track.stl</uri>
+                        <!-- <uri>../meshes/hockenheim_track.stl</uri> -->
+                        <uri>../meshes/hockenheim_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>
@@ -100,7 +101,8 @@
                 <geometry>
                     <!-- <mesh filename="package://environments/meshes/track.dae" scale="0.001 0.001 0.001" /> -->
                     <mesh>
-                        <uri>model://src/environments/meshes/hockenheim_track.stl</uri>
+                        <!-- <uri>../meshes/hockenheim_track.stl</uri> -->
+                        <uri>../meshes/hockenheim_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
                 </geometry>

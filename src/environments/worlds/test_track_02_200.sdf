@@ -38,7 +38,7 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/test_track_02_200.stl</uri>
+              <uri>../meshes/test_track_02_200.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -51,7 +51,7 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>model://src/environments/meshes/test_track_02_200.stl</uri>
+              <uri>../meshes/test_track_02_200.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>

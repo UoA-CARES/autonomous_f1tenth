@@ -12,6 +12,7 @@ from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
+import yaml
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -60,6 +61,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
+                 config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
 
@@ -67,11 +69,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         #####################################################################################################################
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
-
+        
+        # Load configuration from YAML file
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
+            
         # Reward configuration
         self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.5), ('wall_proximity', 0.5)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
@@ -85,8 +91,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
 
         # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([3, 0.434])
-        self.MIN_ACTIONS = np.asarray([0, -0.434])
+        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
 
         #####################################################################################################################
 
@@ -187,8 +193,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     print("Unknown extra observation.")
         return total
 
-
-
     def reset(self):
         self.step_counter = 0
         self.steps_since_last_goal = 0
@@ -216,6 +220,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
+        
+        car_x = car_x/2
+        car_y = car_y/2
         
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
@@ -259,6 +266,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # unpause simulation
         self.call_step(pause=False)
+        # TODO: put timeout here instead?
 
         # take action and wait
         if is_training:
@@ -267,8 +275,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
             lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
 
-
+        # Timeout to simulate action delay
+        rclpy.spin_once(self, timeout_sec=0.1)
+        
         self.sleep()
+        rclpy.spin_once(self, timeout_sec=0.1)
         
         # record new state
         next_state, full_next_state, raw_lidar_range = self.get_observation()
@@ -470,6 +481,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         goal_position = self.goal_position
 
         current_distance = math.dist(goal_position, next_state[:2])
+        print(f"Position {next_state[:2]} --> {goal_position}")
         
         # keep track of non moving steps
         if self.step_progress < 0.02:
