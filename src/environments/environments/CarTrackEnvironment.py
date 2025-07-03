@@ -72,15 +72,20 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Reward configuration
         self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.5), ('wall_proximity', 0.5)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
         self.LIDAR_POINTS = 10 #682
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
-        # Evaluation settings
-        self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
+        # Evaluation settings - configure train/eval split based on track
+        if track == 'narrow_multi_track':
+            # train: vary_track_new, track_01_1m, track_02_1m, track_03_1m
+            # eval: track_04_1m, track_05_1m, track_06_1m
+            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (4/7)
+        else:
+            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
@@ -166,6 +171,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
             # idx used to loop through eval tracks sequentially
             self.eval_track_idx = 0
+            
+            # Debug logging
+            total_tracks = len(self.all_track_waypoints)
+            training_tracks = self.eval_track_begin_idx
+            eval_tracks = total_tracks - training_tracks
+            self.get_logger().info(f"Track '{track}' split: {total_tracks} total, {training_tracks} training, {eval_tracks} evaluation (split={self.MULTI_TRACK_TRAIN_EVAL_SPLIT})")
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -188,8 +199,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     print("Unknown extra observation.")
         return total
 
-
-
     def reset(self):
         self.step_counter = 0
         self.steps_since_last_goal = 0
@@ -198,16 +207,29 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.set_velocity(0, 0)
         
         if self.is_multi_track:
-            # Evaluating: loop through eval tracks sequentially
-            if self.is_evaluating:
-                eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
-                self.current_track_key = eval_track_key_list[self.eval_track_idx]
-                self.eval_track_idx += 1
-                self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
-
-            # Training: choose a random track that is not used for evaluation
+            # Check if we have dedicated evaluation tracks
+            if self.eval_track_begin_idx >= len(self.all_track_waypoints):
+                # No dedicated eval tracks (split = 1.0), use all tracks for both training and evaluation
+                if self.is_evaluating:
+                    # For evaluation, cycle through all tracks sequentially
+                    all_track_keys = list(self.all_track_waypoints.keys())
+                    self.current_track_key = all_track_keys[self.eval_track_idx]
+                    self.eval_track_idx += 1
+                    self.eval_track_idx = self.eval_track_idx % len(all_track_keys)
+                else:
+                    # For training, choose random track from all tracks
+                    self.current_track_key = random.choice(list(self.all_track_waypoints.keys()))
             else:
-                self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
+                # We have dedicated evaluation tracks (split < 1.0)
+                if self.is_evaluating:
+                    # Evaluating: loop through eval tracks sequentially
+                    eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
+                    self.current_track_key = eval_track_key_list[self.eval_track_idx]
+                    self.eval_track_idx += 1
+                    self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
+                else:
+                    # Training: choose a random track that is not used for evaluation
+                    self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
@@ -217,7 +239,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
-        
+
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
@@ -281,7 +303,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.get_logger().info(f"Applied realistic action execution delay: {action_delay*1000:.1f} ms")
         
         self.set_velocity(lin_vel, steering_angle)
-
+        
         self.sleep()
         network_end_time = time.time()
         
@@ -530,6 +552,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         goal_position = self.goal_position
 
         current_distance = math.dist(goal_position, next_state[:2])
+        print(f"Position {next_state[:2]} --> {goal_position}")
         
         # keep track of non moving steps
         if self.step_progress < 0.02:
