@@ -1,4 +1,5 @@
 import math
+import os
 import rclpy
 import numpy as np
 from rclpy import Future
@@ -13,6 +14,7 @@ from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
 import yaml
+from ament_index_python.packages import get_package_share_directory
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -61,9 +63,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
-                 config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
+                 config_path=None,
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
+
+        # Set default config path if not provided
+        if config_path is None:
+            # Use ROS2 package share directory to find the config file
+            package_share_directory = get_package_share_directory('environments')
+            config_path = os.path.join(package_share_directory, 'config', 'config.yaml')
 
         
 

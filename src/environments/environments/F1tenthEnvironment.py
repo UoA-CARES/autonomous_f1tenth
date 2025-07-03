@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import rclpy
 from geometry_msgs.msg import Twist
 from message_filters import Subscriber, ApproximateTimeSynchronizer
@@ -10,6 +11,7 @@ from std_srvs.srv import SetBool
 from environment_interfaces.srv import Reset
 from .util import ackermann_to_twist
 import yaml
+from ament_index_python.packages import get_package_share_directory
 
 
 class F1tenthEnvironment(Node):
@@ -27,13 +29,18 @@ class F1tenthEnvironment(Node):
                  max_steps,
                  step_length,
                  lidar_points = 10,
-                 config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
+                 config_path=None,
                  ):
         super().__init__(env_name + '_environment')
 
         if lidar_points < 1:
             raise Exception("Make sure number of lidar points is more than 0")
         
+        # Set default config path if not provided
+        if config_path is None:
+            # Use ROS2 package share directory to find the config file
+            package_share_directory = get_package_share_directory('environments')
+            config_path = os.path.join(package_share_directory, 'config', 'config.yaml')
 
         # Environment Details ----------------------------------------
                 
