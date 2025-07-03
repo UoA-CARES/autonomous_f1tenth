@@ -54,7 +54,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Evaluation settings
-        self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
+        self.MULTI_TRACK_TRAIN_EVAL_SPLIT=5/6 
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
