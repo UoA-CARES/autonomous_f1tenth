@@ -31,8 +31,171 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-
-    <model name="track_01_150">
+    <model name="track_01_350">
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="track">
+        <visual name="track_vis">
+          <geometry>
+            <mesh>
+              <uri>../meshes/track_01_350.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+        <collision name="track_col">
+          <geometry>
+            <mesh>
+              <uri>../meshes/track_01_350.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+    <model name="track_02_350">
+      <pose>30 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="track">
+        <visual name="track_vis">
+          <geometry>
+            <mesh>
+              <uri>../meshes/track_02_350.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+        <collision name="track_col">
+          <geometry>
+            <mesh>
+              <uri>../meshes/track_02_350.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+    <model name="track_03_350">
+      <pose>60 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="track">
+        <visual name="track_vis">
+          <geometry>
+            <mesh>
+              <uri>../meshes/track_03_350.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+        <collision name="track_col">
+          <geometry>
+            <mesh>
+              <uri>../meshes/track_03_350.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+    <model name="track_04_350">
+      <pose>90 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="track">
+        <visual name="track_vis">
+          <geometry>
+            <mesh>
+              <uri>../meshes/track_04_350.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+        <collision name="track_col">
+          <geometry>
+            <mesh>
+              <uri>../meshes/track_04_350.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+    <model name="track_05_350">
+      <pose>120 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="track">
+        <visual name="track_vis">
+          <geometry>
+            <mesh>
+              <uri>../meshes/track_05_350.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+        <collision name="track_col">
+          <geometry>
+            <mesh>
+              <uri>../meshes/track_05_350.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+    <model name="track_06_350">
+      <pose>150 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="track">
+        <visual name="track_vis">
+          <geometry>
+            <mesh>
+              <uri>../meshes/track_06_350.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+        <collision name="track_col">
+          <geometry>
+            <mesh>
+              <uri>../meshes/track_06_350.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+  </world>
+</sdf>
+    <!-- <model name="track_01_150">
       <pose>0 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
@@ -139,35 +302,9 @@
           </geometry>
         </collision>
       </link>
-    </model>
-    <model name="track_01_350">
-      <pose>120 0 0 0 0 0</pose>
-      <static>true</static>
-      <link name="track">
-        <visual name="track_vis">
-          <geometry>
-            <mesh>
-              <uri>../meshes/track_01_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-          <material>
-            <ambient>0.8 0.8 0.8 1</ambient>
-            <diffuse>0.8 0.8 0.8 1</diffuse>
-            <specular>0.8 0.8 0.8 1</specular>
-          </material>
-        </visual>
-        <collision name="track_col">
-          <geometry>
-            <mesh>
-              <uri>../meshes/track_01_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-        </collision>
-      </link>
-    </model>
-    <model name="track_02_150">
+    </model> -->
+    
+    <!-- <model name="track_02_150">
       <pose>150 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
@@ -274,35 +411,9 @@
           </geometry>
         </collision>
       </link>
-    </model>
-    <model name="track_02_350">
-      <pose>270 0 0 0 0 0</pose>
-      <static>true</static>
-      <link name="track">
-        <visual name="track_vis">
-          <geometry>
-            <mesh>
-              <uri>../meshes/track_02_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-          <material>
-            <ambient>0.8 0.8 0.8 1</ambient>
-            <diffuse>0.8 0.8 0.8 1</diffuse>
-            <specular>0.8 0.8 0.8 1</specular>
-          </material>
-        </visual>
-        <collision name="track_col">
-          <geometry>
-            <mesh>
-              <uri>../meshes/track_02_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-        </collision>
-      </link>
-    </model>
-    <model name="track_03_150">
+    </model> -->
+    
+    <!-- <model name="track_03_150">
       <pose>300 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
@@ -409,35 +520,9 @@
           </geometry>
         </collision>
       </link>
-    </model>
-    <model name="track_03_350">
-      <pose>420 0 0 0 0 0</pose>
-      <static>true</static>
-      <link name="track">
-        <visual name="track_vis">
-          <geometry>
-            <mesh>
-              <uri>../meshes/track_03_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-          <material>
-            <ambient>0.8 0.8 0.8 1</ambient>
-            <diffuse>0.8 0.8 0.8 1</diffuse>
-            <specular>0.8 0.8 0.8 1</specular>
-          </material>
-        </visual>
-        <collision name="track_col">
-          <geometry>
-            <mesh>
-              <uri>../meshes/track_03_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-        </collision>
-      </link>
-    </model>
-    <model name="track_04_150">
+    </model> -->
+    
+    <!-- <model name="track_04_150">
       <pose>450 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
@@ -517,36 +602,10 @@
           </geometry>
         </collision>
       </link>
-    </model>
-    <model name="track_04_350">
-      <pose>570 0 0 0 0 0</pose>
-      <static>true</static>
-      <link name="track">
-        <visual name="track_vis">
-          <geometry>
-            <mesh>
-              <uri>../meshes/track_04_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-          <material>
-            <ambient>0.8 0.8 0.8 1</ambient>
-            <diffuse>0.8 0.8 0.8 1</diffuse>
-            <specular>0.8 0.8 0.8 1</specular>
-          </material>
-        </visual>
-        <collision name="track_col">
-          <geometry>
-            <mesh>
-              <uri>../meshes/track_04_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-        </collision>
-      </link>
-    </model>
+    </model> -->
+    
   
-    <model name="track_04_250">
+    <!-- <model name="track_04_250">
       <pose>660 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
@@ -572,8 +631,8 @@
           </geometry>
         </collision>
       </link>
-    </model>
-    <model name="track_05_150">
+    </model> -->
+    <!-- <model name="track_05_150">
       <pose>750 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
@@ -680,35 +739,9 @@
           </geometry>
         </collision>
       </link>
-    </model>
-    <model name="track_05_350">
-      <pose>870 0 0 0 0 0</pose>
-      <static>true</static>
-      <link name="track">
-        <visual name="track_vis">
-          <geometry>
-            <mesh>
-              <uri>../meshes/track_05_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-          <material>
-            <ambient>0.8 0.8 0.8 1</ambient>
-            <diffuse>0.8 0.8 0.8 1</diffuse>
-            <specular>0.8 0.8 0.8 1</specular>
-          </material>
-        </visual>
-        <collision name="track_col">
-          <geometry>
-            <mesh>
-              <uri>../meshes/track_05_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-        </collision>
-      </link>
-    </model>
-    <model name="track_06_150">
+    </model> -->
+    
+    <!-- <model name="track_06_150">
       <pose>900 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
@@ -815,33 +848,5 @@
           </geometry>
         </collision>
       </link>
-    </model>
-    <model name="track_06_350">
-      <pose>1020 0 0 0 0 0</pose>
-      <static>true</static>
-      <link name="track">
-        <visual name="track_vis">
-          <geometry>
-            <mesh>
-              <uri>../meshes/track_06_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-          <material>
-            <ambient>0.8 0.8 0.8 1</ambient>
-            <diffuse>0.8 0.8 0.8 1</diffuse>
-            <specular>0.8 0.8 0.8 1</specular>
-          </material>
-        </visual>
-        <collision name="track_col">
-          <geometry>
-            <mesh>
-              <uri>../meshes/track_06_350.stl</uri>
-              <scale>0.001 0.001 0.001</scale>
-            </mesh>
-          </geometry>
-        </collision>
-      </link>
-    </model>
-  </world>
-</sdf>
+    </model> -->
+    
