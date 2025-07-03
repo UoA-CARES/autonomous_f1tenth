@@ -86,7 +86,7 @@
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>../meshes/vary_width_track_new.stl</uri>
+              <uri>../meshes/vary_track_width_new.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -99,7 +99,7 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>../meshes/vary_width_track_new.stl</uri>
+              <uri>../meshes/vary_track_width_new.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
