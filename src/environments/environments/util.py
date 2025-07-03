@@ -352,7 +352,7 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
                   i += 1
     elif track_name == 'multi_track_02':
 
-        WIDTHS = [150, 200, 250, 300, 350]
+        WIDTHS = [350] #[150, 200, 250, 300, 350]
         TRACKS = ['track_01', 'track_02', 'track_03', 'track_04', 'track_05', 'track_06']
         
         # Usage of goals deprecated
