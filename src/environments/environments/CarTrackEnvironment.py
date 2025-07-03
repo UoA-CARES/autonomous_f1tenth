@@ -298,7 +298,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Simulation action execution: ~1.3ms
         # Gap to compensate: 4ms - 1.3ms = 2.7ms
         if not self.is_evaluating:  # Only apply delay during training, not evaluation
-            action_delay = np.random.normal(0.0027, 0.001)  # 2.7ms ± 1ms to match action execution gap
+            action_delay = np.random.uniform(0.0017, 0.0037)  # 2.7ms ± 1ms to match action execution gap
             time.sleep(action_delay)
             self.get_logger().info(f"Applied realistic action execution delay: {action_delay*1000:.1f} ms")
         
@@ -385,7 +385,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Simulation sensor processing: ~11ms 
         # Gap to compensate: 85ms - 11ms = 74ms
         if not self.is_evaluating:  # Only apply delay during training, not evaluation
-            sensor_delay = np.random.normal(0.074, 0.01)  # 74ms ± 10ms to match sensor processing gap
+            sensor_delay = np.random.uniform(0.064, 0.084)  # 74ms ± 10ms to match sensor processing gap
             time.sleep(sensor_delay)
             self.get_logger().info(f"Applied realistic sensor processing delay: {sensor_delay*1000:.1f} ms")
         
