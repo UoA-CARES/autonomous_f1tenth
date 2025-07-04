@@ -211,6 +211,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
 
     def reset(self):
+        self.publish_status('')
         self.step_counter = 0
         self.steps_since_last_goal = 0
         self.goals_reached = 0
@@ -354,6 +355,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         if self.is_evaluating and (terminated or truncated):
             self.eval_track_idx
+
+        if (terminated or truncated):
+            self.publish_status('r')
 
         return next_state, reward, terminated, truncated, info
 
@@ -601,9 +605,11 @@ class TwoCarEnvironment(F1tenthEnvironment):
         odom2 = process_odom(data['odom2'])
         return odom1, odom2
     
-    def publish_status(self, msg):
-        msg = str(msg)
+    def publish_status(self, status):
+        msg = String()
+        msg.data = str(status)
         self.status_pub.publish(msg)
 
     def status_callback(self, msg):
-        self.status = msg
+        self.status = msg.data
+        self.get_logger().info(str(self.status))
