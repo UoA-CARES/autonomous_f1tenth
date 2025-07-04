@@ -367,7 +367,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     def is_truncated(self):
         return self.progress_not_met_cnt >= 5 or \
-        self.step_counter >= self.MAX_STEPS
+        self.step_counter >= self.MAX_STEPS or self.status == 'r'
 
 
     def get_observation(self):
