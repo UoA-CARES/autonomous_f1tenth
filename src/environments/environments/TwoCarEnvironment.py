@@ -172,11 +172,13 @@ class TwoCarEnvironment(F1tenthEnvironment):
             10
         )
 
-        self.status_sub = Subscriber(
-            self,
+        self.status_sub = self.create_subscription(
             String,
-            f'/status',
-        )
+            '/status',
+            self.status_callback,
+            10)
+        
+        self.status = ''
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -598,3 +600,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         odom1 = process_odom(data['odom1'])
         odom2 = process_odom(data['odom2'])
         return odom1, odom2
+    
+    def status_callback(self, msg):
+        self.status = msg
