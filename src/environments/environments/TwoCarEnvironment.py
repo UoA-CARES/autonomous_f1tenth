@@ -11,6 +11,7 @@ from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
+from std_msgs.msg import String
 import torch
 from datetime import datetime
 from message_filters import Subscriber, ApproximateTimeSynchronizer
@@ -162,6 +163,20 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
             # idx used to loop through eval tracks sequentially
             self.eval_track_idx = 0
+
+        # Publish and subscribe to status topic
+
+        self.status_pub = self.create_publisher(
+            String,
+            '/status',
+            10
+        )
+
+        self.status_sub = Subscriber(
+            self,
+            String,
+            f'/status',
+        )
 
         self.get_logger().info('Environment Setup Complete')
 
