@@ -601,5 +601,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
         odom2 = process_odom(data['odom2'])
         return odom1, odom2
     
+    def publish_status(self, msg):
+        msg = str(msg)
+        self.status_pub.publish(msg)
+
     def status_callback(self, msg):
         self.status = msg
