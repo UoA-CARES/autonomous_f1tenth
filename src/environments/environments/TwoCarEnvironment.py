@@ -279,6 +279,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         return state, info
     
+    def car_spawn(self):
+        self.get_logger().info("Car spawning")
+    
     def start_eval(self):
         self.eval_track_idx = 0
         self.is_evaluating = True
