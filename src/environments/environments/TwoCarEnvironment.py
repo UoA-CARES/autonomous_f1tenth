@@ -222,7 +222,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         return state, info
     
     def car_spawn(self):
-        self.get_logger().info("Car spawning")
+        #self.get_logger().info("Car spawning")
 
         if self.is_multi_track:
             # Evaluating: loop through eval tracks sequentially
