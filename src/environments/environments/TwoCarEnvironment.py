@@ -200,6 +200,30 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.set_velocity(0, 0)
         
+        self.car_spawn()
+
+        # Get initial observation
+        self.call_step(pause=False)
+        state, full_state , _ = self.get_observation()
+        self.full_current_state = full_state
+        self.call_step(pause=True)
+
+        info = {}
+
+        # get track progress related info
+        # set new track model if its multi track
+        if self.is_multi_track:
+            self.track_model = self.all_track_models[self.current_track_key]
+        self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
+
+        # reward function specific resets
+        self.progress_not_met_cnt = 0
+
+        return state, info
+    
+    def car_spawn(self):
+        self.get_logger().info("Car spawning")
+
         if self.is_multi_track:
             # Evaluating: loop through eval tracks sequentially
             if self.is_evaluating:
@@ -215,18 +239,15 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
         else:
             self.current_track_key = self.track
+
         if (self.current_track_key[-3:]).isdigit():
             width = int(self.current_track_key[-3:])
         else: 
             width = 300
-        
-        car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
-        #car_yaw = self.randomize_yaw(car_yaw, 0.25)
 
-        #car_2_offset = random.randint(8, 16)  
-        #car_2_index = (index + car_2_offset) % len(self.track_waypoints)
-        #car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
-        #car_2_yaw = self.randomize_yaw(car_2_yaw, 0.25)
+        car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
+
+        # Update goal pointer to reflect starting position
         order = random.choice([1, 2])
         translation2 = random.random()
 
@@ -250,37 +271,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 car_2_offset = random.randint(8, 16)
                 car_2_index = (index - car_2_offset) % len(self.track_waypoints)
                 car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
-        
-        
-        # Update goal pointer to reflect starting position
+
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
         self.goal_position = [x,y]
 
+        # Spawn car
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name='f1tenth')
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
-        self.get_logger().info('Goal position:' + str(x) + ', ' + str(y))
-        # Get initial observation
-        self.call_step(pause=False)
-        state, full_state , _ = self.get_observation()
-        self.full_current_state = full_state
-        self.call_step(pause=True)
-
-        info = {}
-
-        # get track progress related info
-        # set new track model if its multi track
-        if self.is_multi_track:
-            self.track_model = self.all_track_models[self.current_track_key]
-        self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
-
-        # reward function specific resets
-        self.progress_not_met_cnt = 0
-
-        return state, info
-    
-    def car_spawn(self):
-        self.get_logger().info("Car spawning")
     
     def start_eval(self):
         self.eval_track_idx = 0
