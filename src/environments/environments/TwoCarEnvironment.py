@@ -357,7 +357,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.eval_track_idx
 
         if (terminated or truncated):
-            self.publish_status('r')
+            string = 'r_' + str(self.NAME)
+            self.publish_status(string)
 
         return next_state, reward, terminated, truncated, info
 
@@ -367,7 +368,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     def is_truncated(self):
         return self.progress_not_met_cnt >= 5 or \
-        self.step_counter >= self.MAX_STEPS or self.status == 'r'
+        self.step_counter >= self.MAX_STEPS or 'r' in self.status
 
 
     def get_observation(self):
