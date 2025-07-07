@@ -98,7 +98,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.steps_since_last_goal = 0
         self.full_current_state = None
 
-        if not self.is_multi_track:
+        if not TwoCarEnvironment.is_multi_track:
             if "test_track" in track:
                 track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
             else:
@@ -145,7 +145,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.odom_observation_future = Future()
 
-        if self.is_multi_track:
+        if TwoCarEnvironment.is_multi_track:
             # define from which track in the track lists to be used for eval only
             self.eval_track_begin_idx = int(len(self.all_track_waypoints)*TwoCarEnvironment.MULTI_TRACK_TRAIN_EVAL_SPLIT)
             # idx used to loop through eval tracks sequentially
@@ -200,7 +200,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # get track progress related info
         # set new track model if its multi track
-        if self.is_multi_track:
+        if TwoCarEnvironment.is_multi_track:
             self.track_model = self.all_track_models[self.current_track_key]
         self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
@@ -212,7 +212,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def car_spawn(self):
         #self.get_logger().info("Car spawning")
 
-        if self.is_multi_track:
+        if TwoCarEnvironment.is_multi_track:
             # Evaluating: loop through eval tracks sequentially
             if self.is_evaluating:
                 eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
@@ -226,7 +226,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
         else:
-            self.current_track_key = self.track
+            self.current_track_key = TwoCarEnvironment.track
 
         if (self.current_track_key[-3:]).isdigit():
             width = int(self.current_track_key[-3:])
