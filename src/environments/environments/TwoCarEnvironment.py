@@ -58,7 +58,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         #####################################################################################################################
 
-        # configure odom observation size:
+        # Observation Size
         match observation_mode:
             case 'lidar_only':
                 odom_observation_size = 2
@@ -66,16 +66,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 odom_observation_size = 6
             case _:
                 odom_observation_size = 10
-
-        # configure overall observation size
-        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
+        TwoCarEnvironment.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
 
         self.odom_observation_mode = observation_mode
-        self.track = track
-        self.is_multi_track = 'multi_track' in track
+        TwoCarEnvironment.track = track
+        TwoCarEnvironment.is_multi_track = 'multi_track' in track
 
         # initialize track progress utilities
         self.prev_t = None
