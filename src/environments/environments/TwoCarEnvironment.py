@@ -20,6 +20,7 @@ import yaml
 
 class TwoCarEnvironment(F1tenthEnvironment):
 
+    MULTI_TRACK_TRAIN_EVAL_SPLIT = 5/6
 
     def __init__(self, 
                  car_name, 
@@ -46,10 +47,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
         self.LIDAR_POINTS = 10 #682
-        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
-
-        # Evaluation settings
-        self.MULTI_TRACK_TRAIN_EVAL_SPLIT=5/6 
+        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = [] #Currently not used
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
@@ -151,7 +149,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         if self.is_multi_track:
             # define from which track in the track lists to be used for eval only
-            self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
+            self.eval_track_begin_idx = int(len(self.all_track_waypoints)*TwoCarEnvironment.MULTI_TRACK_TRAIN_EVAL_SPLIT)
             # idx used to loop through eval tracks sequentially
             self.eval_track_idx = 0
 
