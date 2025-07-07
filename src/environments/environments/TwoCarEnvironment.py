@@ -24,15 +24,13 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def __init__(self, 
                  car_name, 
                  reward_range=0.5, 
-                 max_steps=3000, 
+                 max_steps=200, 
                  collision_range=0.2, 
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
-        
-        max_steps = 200
         super().__init__('two_car', car_name, max_steps, step_length)
 
         #####################################################################################################################
@@ -61,9 +59,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
 
         #####################################################################################################################
-
-        # Environment Details ----------------------------------------
-        self.MAX_STEPS_PER_GOAL = max_steps
 
         # configure odom observation size:
         match observation_mode:
