@@ -35,8 +35,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         max_steps = 200
         super().__init__('two_car', car_name, max_steps, step_length)
 
-        
-
         #####################################################################################################################
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
         
@@ -45,7 +43,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             config = yaml.safe_load(file)
             
         # Reward configuration
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)] 
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
