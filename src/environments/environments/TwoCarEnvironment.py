@@ -45,7 +45,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
             config = yaml.safe_load(file)
             
         # Reward configuration
-        self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
@@ -414,14 +413,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
         reward += base_reward
         reward_info.update(base_reward_info)
-
-        # calulate extra reward terms
-        for term in self.EXTRA_REWARD_TERMS:
-            match term:
-                case 'penalize_turn':
-                    turn_penalty = abs(state[7] - next_state[7])*0.12
-                    reward -= turn_penalty
-                    reward_info.update({"turn_penalty":("avg",turn_penalty)})
         
         # calculate reward modifiers:
         for modifier_type, weight in self.REWARD_MODIFIERS:
