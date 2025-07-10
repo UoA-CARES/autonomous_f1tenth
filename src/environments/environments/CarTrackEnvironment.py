@@ -303,10 +303,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.eval_track_idx
             
         if self.odom_observation_mode == 'lidar_only' and self.LIDAR_PROCESSING == 'avg':
-            # Each point has 1% chance of turning into NaN, which means these points are mapped to 10
+            # Each point has 10% chance of turning into NaN, which means these points are mapped to 10
             # Pass the lidar ranges through half of a sigmoid function so changes in smaller values will be more significant
             for i in range(2, len(next_state)):
-                if random.randint(0, 99) == 69:  # 1% chance
+                if random.randint(0, 9) == 0:  # 10% chance
                     next_state[i] = 10.0
                 next_state[i] = self.sigmoid_lidar(next_state[i])
 
