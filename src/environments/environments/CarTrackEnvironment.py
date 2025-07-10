@@ -12,6 +12,7 @@ from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
+from collections import deque
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -88,6 +89,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
+        
+        self.previous_state = None
 
         # Speed and turn limit
         self.MAX_ACTIONS = np.asarray([3, 0.434])
@@ -275,7 +278,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
     def step(self, action):
         self.step_counter += 1
-        
+
         # get current state
         full_state = self.full_current_state
 
@@ -285,16 +288,20 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # take action and wait
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
-        
+
         self.sleep()
-        
+
         # record new state
         next_state, full_next_state, raw_lidar_range = self.get_observation()
         self.call_step(pause=True)
 
         # set new step as 'current state' for next step
         self.full_current_state = full_next_state
-        
+
+        # Combine previous states with the current state for NN input
+        nn_state = self.previous_state + next_state
+        self.previous_state = next_state
+
         # calculate progress along track
         if not self.prev_t:
             self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
@@ -325,7 +332,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.is_evaluating and (terminated or truncated):
             self.eval_track_idx
 
-        return next_state, reward, terminated, truncated, info
+        return nn_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
         return has_collided(ranges, self.COLLISION_RANGE) \
