@@ -301,8 +301,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         if self.is_evaluating and (terminated or truncated):
             self.eval_track_idx
+            
+        if self.odom_observation_mode == 'lidar_only' and self.LIDAR_PROCESSING == 'avg':
+            # Each point has 1% chance of turning into NaN, which means these points are mapped to 10
+            # Pass the lidar ranges through half of a sigmoid function so changes in smaller values will be more significant
+            for i in range(2, len(next_state)):
+                if random.randint(0, 99) == 69:  # 1% chance
+                    next_state[i] = 10.0
+                next_state[i] = self.sigmoid_lidar(next_state[i])
 
         return next_state, reward, terminated, truncated, info
+    def sigmoid_lidar(self, x):
+        # y\ =\ 20\left(\frac{1}{1+e^{-0.8x}}-0.5\right)
+        return 20 * (1 / (1 + np.exp(-0.8 * x)) - 0.5)
 
     def is_terminated(self, state, ranges):
         return has_collided(ranges, self.COLLISION_RANGE) \
@@ -375,6 +386,13 @@ class CarTrackEnvironment(F1tenthEnvironment):
         
         full_state = odom + processed_lidar_range
 
+        # State contains (when 'lidar_only' and 'avg'):
+        #   - Linear and Angular Velocity
+        #   - 10 Lidar Ranges
+        # Full state contains:
+        #   - [x, y, w, x, y, z, linear, angular]
+        #   - Processed Lidar Ranges
+        
         return state, full_state, lidar.ranges
 
     def compute_reward(self, state, next_state, raw_lidar_range):
