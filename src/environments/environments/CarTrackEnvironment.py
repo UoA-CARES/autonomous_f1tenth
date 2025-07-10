@@ -258,28 +258,18 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def step(self, action):
         self.step_counter += 1
         
-        # get current state
         full_state = self.full_current_state
 
-        # unpause simulation
         self.call_step(pause=False)
-        # TODO: put timeout here instead?
-
-        # take action and wait
+        
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
-
-        # Timeout to simulate action delay
-        rclpy.spin_once(self, timeout_sec=0.1)
         
         self.sleep()
-        rclpy.spin_once(self, timeout_sec=0.1)
         
-        # record new state
         next_state, full_next_state, raw_lidar_range = self.get_observation()
         self.call_step(pause=True)
 
-        # set new step as 'current state' for next step
         self.full_current_state = full_next_state
         
         # calculate progress along track
