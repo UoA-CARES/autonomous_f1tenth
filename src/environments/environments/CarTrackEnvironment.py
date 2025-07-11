@@ -299,8 +299,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.full_current_state = full_next_state
 
         # Combine previous states with the current state for NN input
-        nn_state = self.previous_state + next_state
-        self.previous_state = next_state
+        if self.previous_state is not None:
+            nn_state = self.previous_state + next_state
+            self.previous_state = next_state
+        else:
+            nn_state = next_state # case for first step, no previous state available
 
         # calculate progress along track
         if not self.prev_t:
