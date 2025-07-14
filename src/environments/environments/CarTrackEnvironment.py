@@ -13,6 +13,7 @@ from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
 import yaml
+import scipy
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -81,7 +82,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw", "ae"] = 'ae'
-        self.LIDAR_POINTS = 10 #682
+        self.LIDAR_POINTS = 682 #682
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Evaluation settings
@@ -129,6 +130,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.ae_lidar_model = LidarConvAE()
             self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
             self.ae_lidar_model.eval()
+        
+        if self.LIDAR_PROCESSING == 'ae':
+            from .autoencoders.lidar_autoencoder import LidarConvAE
+            self.ae_lidar_model = LidarConvAE()
+            self.ae_loss_function = torch.nn.MSELoss()
+            self.ae_optimizer = torch.optim.Adam(self.ae_lidar_model.parameters(), lr=1e-3)
 
         # reward function specific setup:
         if self.BASE_REWARD_FUNCTION == 'progressive':
@@ -257,32 +264,17 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
     def step(self, action):
         self.step_counter += 1
-        
-        # get current state
         full_state = self.full_current_state
-
-        # unpause simulation
         self.call_step(pause=False)
-        # TODO: put timeout here instead?
-
-        # take action and wait
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
-
-        # Timeout to simulate action delay
-        rclpy.spin_once(self, timeout_sec=0.1)
-        
         self.sleep()
-        rclpy.spin_once(self, timeout_sec=0.1)
         
-        # record new state
         next_state, full_next_state, raw_lidar_range = self.get_observation()
         self.call_step(pause=True)
 
-        # set new step as 'current state' for next step
         self.full_current_state = full_next_state
         
-        # calculate progress along track
         if not self.prev_t:
             self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
@@ -351,14 +343,20 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 state += odom[-2:] 
             case _:
                 state += odom 
-        
-        # Add lidar data:
+                
         match self.LIDAR_PROCESSING:
             case 'pretrained_ae':
                 processed_lidar_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=True)
                 visualized_range = reconstruct_ae_latent(lidar, self.ae_lidar_model, processed_lidar_range)
                 #TODO: get rid of hard coded lidar points num
-                scan = create_lidar_msg(lidar, 682, visualized_range)
+                scan = create_lidar_msg(lidar, num_points, visualized_range)
+            case 'ae':
+                lidar_data = np.array(lidar.ranges)
+                lidar_data = np.nan_to_num(lidar_data, posinf=-5)
+                lidar_data = scipy.signal.resample(lidar_data, 512)
+                self.train_autoencoder(lidar_data)
+                processed_lidar_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=True)
+                scan = create_lidar_msg(lidar, num_points, processed_lidar_range)
             case 'avg':
                 processed_lidar_range = avg_lidar(lidar, num_points)
                 visualized_range = processed_lidar_range
@@ -384,7 +382,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         
         full_state = odom + processed_lidar_range
-
+        
         return state, full_state, lidar.ranges
 
     def compute_reward(self, state, next_state, raw_lidar_range):
@@ -578,3 +576,18 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 string += f'Lidar: {observation[8:]}\n'
 
         return string
+    
+    def train_autoencoder(self, lidar_data):
+        """
+        Train the autoencoder using the processed latent representation and reconstructed range.
+        """
+        self.ae_lidar_model.train()
+        
+        latent_tensor = torch.tensor(lidar_data, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+        reconstructed_range = self.ae_lidar_model(latent_tensor)
+        loss = self.ae_loss_function(reconstructed_range, latent_tensor)
+        
+        self.ae_optimizer.zero_grad()
+        loss.backward()
+        self.ae_optimizer.step()
+        print(f"Autoencoder Loss: {loss.item()}")
