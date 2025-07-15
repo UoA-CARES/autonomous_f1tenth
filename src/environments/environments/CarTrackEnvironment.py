@@ -90,7 +90,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
-
+        self.encoder = None
+        self.decoder = None
+        
         # Speed and turn limit
         self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
         self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
@@ -124,6 +126,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.all_track_models = None
         self.track_model = None
         self.step_progress = 0
+        
+        # Evaluation related setup ---------------------------------------------------
+        self.is_evaluating = False
 
         if self.LIDAR_PROCESSING == 'pretrained_ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
@@ -173,8 +178,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.track_model = self.all_track_models[self.current_track_key]
 
 
-        # Evaluation related setup ---------------------------------------------------
-        self.is_evaluating = False
 
         if self.is_multi_track:
             # define from which track in the track lists to be used for eval only
@@ -600,3 +603,4 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def set_ae(self, encoder, decoder):
         self.encoder = encoder
         self.decoder = decoder
+        print("Environment set with encoder and decoder.")
