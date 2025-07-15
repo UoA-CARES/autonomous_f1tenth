@@ -12,6 +12,7 @@ from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
+import yaml
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -60,6 +61,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
+                 config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
 
@@ -67,7 +69,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         #####################################################################################################################
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
-
+        
+        # Load configuration from YAML file
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
+            
         # Reward configuration
         self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
@@ -90,8 +96,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
 
         # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([3, 0.434])
-        self.MIN_ACTIONS = np.asarray([0, -0.434])
+        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
 
         #####################################################################################################################
 
