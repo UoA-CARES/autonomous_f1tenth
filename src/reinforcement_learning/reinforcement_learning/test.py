@@ -42,6 +42,8 @@ def main():
         print('Reading saved models into actor and critic')
         agent.actor_net.load_state_dict(torch.load(rest['actor_path']))
         agent.critic_net.load_state_dict(torch.load(rest['critic_path']))
+        if network_config['algorithm'] == 'SACAE1D':
+            agent.decoder_net.load_state_dict(torch.load(rest['decoder_path']))
         print('Successfully Loaded models')
     else:
         raise Exception('Both actor and critic paths must be provided')

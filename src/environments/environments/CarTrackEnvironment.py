@@ -133,9 +133,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         
         if self.LIDAR_PROCESSING == 'ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
-            self.ae_lidar_model = LidarConvAE()
-            self.ae_loss_function = torch.nn.MSELoss()
-            self.ae_optimizer = torch.optim.Adam(self.ae_lidar_model.parameters(), lr=1e-3)
+            self.ae_lidar_model = LidarConvAE(encoder=self.encoder, decoder=self.decoder)
+            if self.is_evaluating:
+                self.ae_lidar_model.eval()
+            else:
+                self.ae_loss_function = torch.nn.MSELoss()
+                self.ae_optimizer = torch.optim.Adam(self.ae_lidar_model.parameters(), lr=1e-3)
 
         # reward function specific setup:
         if self.BASE_REWARD_FUNCTION == 'progressive':
@@ -351,10 +354,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 #TODO: get rid of hard coded lidar points num
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'ae':
-                lidar_data = np.array(lidar.ranges)
-                lidar_data = np.nan_to_num(lidar_data, posinf=-5)
-                lidar_data = scipy.signal.resample(lidar_data, 512)
-                self.train_autoencoder(lidar_data)
+                if not self.is_evaluating:
+                    lidar_data = np.array(lidar.ranges)
+                    lidar_data = np.nan_to_num(lidar_data, posinf=-5)
+                    lidar_data = scipy.signal.resample(lidar_data, 512)
+                    self.train_autoencoder(lidar_data)
+                # Reduce 682 points to 10 for the message
                 processed_lidar_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=True)
                 scan = create_lidar_msg(lidar, num_points, processed_lidar_range)
             case 'avg':
@@ -591,3 +596,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         loss.backward()
         self.ae_optimizer.step()
         print(f"Autoencoder Loss: {loss.item()}")
+        
+    def set_ae(self, encoder, decoder):
+        self.encoder = encoder
+        self.decoder = decoder

@@ -102,6 +102,11 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
     episode_timesteps = 0
     episode_num = 0
     episode_info:Dict[str, list[Literal['avg','sum'],any]] = {}
+    
+    try:
+        env.set_ae(agent.actor_net.encoder, agent.actor_net.decoder)
+    except AttributeError:
+        print("Skipping setting encoder and decoder.")
 
     # put environment in evaluation mode
     env.start_eval()
