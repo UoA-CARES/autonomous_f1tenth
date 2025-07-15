@@ -61,7 +61,7 @@ def main():
 
     # TODO: Load Actor and Critic if passed. Only load if both are passed
 
-    match agent.type:
+    match agent.policy_type:
         case 'policy':
 
             if network_config['algorithm'] == 'PPO':
@@ -69,7 +69,7 @@ def main():
             else:
                 off_policy_train(env, agent, memory, record, algorithm_config)
         case _:
-            raise Exception(f'Agent type {agent.type} not supported')
+            raise Exception(f'Agent type {agent.policy_type} not supported')
     
     record.save()
 

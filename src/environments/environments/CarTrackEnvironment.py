@@ -90,7 +90,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
         
-        self.previous_state = None
 
         # Speed and turn limit
         self.MAX_ACTIONS = np.asarray([3, 0.434])
@@ -142,7 +141,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.goals_reached = 0
         self.start_waypoint_index = 0
         self.steps_since_last_goal = 0
-        self.full_current_state = None
+        self.current_state, self.full_current_state, _ = self.get_observation()
 
         if not self.is_multi_track:
             if "test_track" in track:
@@ -298,12 +297,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # set new step as 'current state' for next step
         self.full_current_state = full_next_state
 
-        # Combine previous states with the current state for NN input
-        if self.previous_state is not None:
-            nn_state = self.previous_state + next_state
-            self.previous_state = next_state
-        else:
-            nn_state = next_state # case for first step, no previous state available
+        nn_state = self.current_state + next_state
+        self.current_state = next_state
 
         # calculate progress along track
         if not self.prev_t:
