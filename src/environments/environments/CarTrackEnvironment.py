@@ -82,7 +82,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw", "ae"] = 'ae'
-        self.LIDAR_POINTS = 682 #682
+        self.LIDAR_POINTS = 683 #683
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Evaluation settings - configure train/eval split based on track
@@ -383,12 +383,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 #TODO: get rid of hard coded lidar points num
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'ae':
+                lidar_data = np.array(lidar.ranges)
+                lidar_data = np.nan_to_num(lidar_data, posinf=-5)
                 if not self.is_evaluating:
-                    lidar_data = np.array(lidar.ranges)
-                    lidar_data = np.nan_to_num(lidar_data, posinf=-5)
-                    lidar_data = scipy.signal.resample(lidar_data, 512)
-                    self.train_autoencoder(lidar_data)
-                # Reduce 682 points to 10 for the message
+                    sampled_data = scipy.signal.resample(lidar_data, 512)
+                    self.train_autoencoder(sampled_data)
+                # Reduce lidar points to 10 for the message
                 processed_lidar_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=True)
                 scan = create_lidar_msg(lidar, num_points, processed_lidar_range)
             case 'avg':
@@ -403,7 +403,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
         
         self.processed_publisher.publish(scan)
 
-        state += processed_lidar_range
+        if self.LIDAR_PROCESSING == 'ae':
+            state += lidar_data.tolist()
+        else:
+            state += processed_lidar_range
 
         # Add extra observation:
         for extra_observation in self.EXTRA_OBSERVATIONS:
@@ -414,8 +417,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     else:
                         state += [state[7]]
 
-        
-        full_state = odom + processed_lidar_range
+        if self.LIDAR_PROCESSING == 'ae':
+            full_state = odom + lidar_data.tolist()
+        else:
+            full_state = odom + processed_lidar_range
         
         return state, full_state, lidar.ranges
 
