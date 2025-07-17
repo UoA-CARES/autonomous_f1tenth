@@ -117,7 +117,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 odom_observation_size = 10
 
         # configure overall observation size
-        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
+        # self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
+        self.OBSERVATION_SIZE = {"lidar": self.LIDAR_POINTS, "vector": odom_observation_size}
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
@@ -365,16 +366,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
         num_points = self.LIDAR_POINTS
         
         # init state
-        state = []
+        state = {}
         
         # Add odom data
         match (self.odom_observation_mode):
             case 'no_position':
-                state += odom[2:]
+                state["vector"] = odom[2:]
             case 'lidar_only':
-                state += odom[-2:] 
+                state["vector"] = odom[-2:] 
             case _:
-                state += odom 
+                state["vector"] = odom 
                 
         match self.LIDAR_PROCESSING:
             case 'pretrained_ae':
@@ -404,23 +405,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.processed_publisher.publish(scan)
 
         if self.LIDAR_PROCESSING == 'ae':
-            state += lidar_data.tolist()
-        else:
-            state += processed_lidar_range
-
-        # Add extra observation:
-        for extra_observation in self.EXTRA_OBSERVATIONS:
-            match extra_observation:
-                case 'prev_ang_vel':
-                    if self.full_current_state:
-                        state += [self.full_current_state[7]]
-                    else:
-                        state += [state[7]]
-
-        if self.LIDAR_PROCESSING == 'ae':
+            state["lidar"] = lidar_data.tolist()
             full_state = odom + lidar_data.tolist()
         else:
-            full_state = odom + processed_lidar_range
+            raise Exception(f"Current state configuration can only work with 'ae'")
         
         return state, full_state, lidar.ranges
 
