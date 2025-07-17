@@ -46,8 +46,9 @@ def __declare_params():
             ('number_eval_episodes', 5),
 
             # Network Parameters -------------------------------
-            ('actor_path', 'Models/SAC_actor.pht'),
-            ('critic_path', 'Models/SAC_critic.pht'),
+            ('actor_path', 'Models/SACAE1D_actor.pht'),
+            ('critic_path', 'Models/SACAE1D_critic.pht'),
+            ('decoder_path', 'Models/SACAE1D_decoder.pht'),
             ('algorithm', 'SAC'),
             ('gamma', 0.95),
             ('tau', 0.005),
@@ -139,6 +140,7 @@ def __get_network_params(param_node: Node):
     params = param_node.get_parameters([
         'actor_path',
         'critic_path',
+        'decoder_path',
         'algorithm',
         'gamma',
         'tau',
