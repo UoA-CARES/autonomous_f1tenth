@@ -98,9 +98,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.is_staged_training:
             # Stage track indices
             self.training_stages = {
-                0: [(0, 2), (3, 3)],    # Training (start, end), Eval (start, end), both inclusive
-                1: [(4, 7), (8, 9)],
-                2: [(10, 13), (14, 15)],
+                0: [(0, 1), (0, 2)],    # Training (start, end), Eval (start, end), both inclusive
+                1: [(3, 6), (7, 8)],
+                2: [(9, 12), (13, 14)],
             }
             self.current_training_stage = 0
             self.training_idx = self.training_stages[self.current_training_stage][0]
@@ -187,7 +187,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         if self.is_multi_track:
             if self.is_staged_training:
-                eval_track_begin_idx = None
+                self.eval_track_begin_idx = None
                 self.get_logger().info(f"Track '{track}', {self.training_idx} training, {self.eval_idx} evaluation")
             else:
                 # define from which track in the track lists to be used for eval only

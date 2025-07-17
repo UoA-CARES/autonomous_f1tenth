@@ -29,7 +29,6 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
         episode_timesteps += 1
         
         if episode_num in [1000000, 5000000]:
-            memory.clear()
             env.increment_stage()
 
         # select and action
