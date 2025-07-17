@@ -92,12 +92,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
         else:
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5
             
+        # Toggles whether to use staged training on multi-tracks
         self.is_staged_training = True
         
         if self.is_staged_training:
-            self.training_idx = (0, 1)  # Start, end inclusive
-            self.eval_idx = 2
-            self.increment = self.training_idx[1]-self.training_idx[0] + 2
+            # Stage track indices
+            self.training_stages = {
+                0: [(0, 2), (3, 3)],    # Training (start, end), Eval (start, end), both inclusive
+                1: [(4, 7), (8, 9)],
+                2: [(10, 13), (14, 15)],
+            }
+            self.current_training_stage = 0
+            self.training_idx = self.training_stages[self.current_training_stage][0]
+            self.eval_idx = self.training_stages[self.current_training_stage][1]
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
@@ -180,7 +187,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         if self.is_multi_track:
             if self.is_staged_training:
-                self.eval_track_begin_idx = self.eval_idx
+                eval_track_begin_idx = None
+                self.get_logger().info(f"Track '{track}', {self.training_idx} training, {self.eval_idx} evaluation")
             else:
                 # define from which track in the track lists to be used for eval only
                 self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
@@ -242,9 +250,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         #     self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
-        if self.is_multi_track and not self.is_staged_training:
+        if self.is_multi_track:
             # Check if we have dedicated evaluation tracks
-            if self.eval_track_begin_idx >= len(self.all_track_waypoints):
+            if self.eval_track_begin_idx is not None and self.eval_track_begin_idx >= len(self.all_track_waypoints):
                 # No dedicated eval tracks (split = 1.0), use all tracks for both training and evaluation
                 if self.is_evaluating:
                     # For evaluation, cycle through all tracks sequentially
@@ -259,22 +267,20 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 # We have dedicated evaluation tracks (split < 1.0)
                 if self.is_evaluating:
                     # Evaluating: loop through eval tracks sequentially
-                    eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
+                    if self.is_staged_training:
+                        eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_idx[0]:self.eval_idx[1] + 1]
+                    else:
+                        eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
                     self.current_track_key = eval_track_key_list[self.eval_track_idx]
                     self.eval_track_idx += 1
                     self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
                 else:
                     # Training: choose a random track that is not used for evaluation
-                    self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
+                    if self.is_staged_training:
+                        self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[self.training_idx[0]:self.training_idx[1] + 1])
+                    else:
+                        self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
             
-            self.track_waypoints = self.all_track_waypoints[self.current_track_key]
-            
-        if self.is_staged_training:
-            if self.is_evaluating:
-                self.current_track_key = list(self.all_track_waypoints.keys())[self.eval_track_idx]
-            else:
-                self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[self.training_idx[0]:self.training_idx[1] + 1])
-                
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
         # start at beginning of track when evaluating
@@ -640,6 +646,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if not self.is_staged_training:
             return
         
-        last_eval_idx = self.eval_idx
-        self.eval_idx = min(self.eval_idx + self.increment, len(self.all_track_waypoints) - 1)
-        self.training_idx = (last_eval_idx+1, self.eval_idx - 1)
+        if self.current_training_stage < len(self.training_stages) - 1:
+            self.current_training_stage += 1
+            self.training_idx = self.training_stages[self.current_training_stage][0]
+            self.eval_idx = self.training_stages[self.current_training_stage][1]
+            self.get_logger().info(f"Incremented to training stage {self.current_training_stage}. Training indices: {self.training_idx}, Evaluation indices: {self.eval_idx}")
+        else:
+            self.get_logger().info("Already at the last training stage. No increment performed.")
