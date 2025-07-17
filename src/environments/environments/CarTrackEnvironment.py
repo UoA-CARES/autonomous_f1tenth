@@ -98,7 +98,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.is_staged_training:
             # Stage track indices
             self.training_stages = {
-                0: [(0, 1), (0, 2)],    # Training (start, end), Eval (start, end), both inclusive
+                0: [(0, 1), (2, 2)],    # Training (start, end), Eval (start, end), both inclusive
                 1: [(3, 6), (7, 8)],
                 2: [(9, 12), (13, 14)],
             }
