@@ -37,7 +37,9 @@ ARG PROJECT_WORKSPACE_DIR=/autonomous_F1tenth
 WORKDIR ${PROJECT_WORKSPACE_DIR}
 COPY . ${PROJECT_WORKSPACE_DIR}
 
-RUN cd cares_reinforcement_learning && \
+RUN rm -rf cares_reinforcement_learning || true && \
+    git clone https://github.com/UoA-CARES/cares_reinforcement_learning.git && \
+    cd cares_reinforcement_learning && \
     git checkout 2631a58 && \
     pip3 install --upgrade pip setuptools wheel && \
     pip3 install --ignore-installed sympy -r requirements.txt && \

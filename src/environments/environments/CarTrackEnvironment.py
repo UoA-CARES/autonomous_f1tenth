@@ -13,6 +13,7 @@ from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
 from collections import deque
+import time
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -110,7 +111,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 odom_observation_size = 10
 
         # configure overall observation size
-        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
+        self.OBSERVATION_SIZE = (odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size())*2
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
@@ -252,6 +253,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
         self.full_current_state = full_state
+        self.current_state = state  # Store initial state
         self.call_step(pause=True)
 
         info = {}
@@ -265,8 +267,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # reward function specific resets
         if self.BASE_REWARD_FUNCTION == 'progressive':
             self.progress_not_met_cnt = 0
+            
+        # For first observation, duplicate the state since we don't have a previous one
+        nn_state = state + state  # Initial state is duplicated for first observation
 
-        return state, info
+        return nn_state, info
     
     def start_eval(self):
         self.eval_track_idx = 0
@@ -275,7 +280,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def stop_eval(self):
         self.is_evaluating = False
 
-    def step(self, action):
+    def step(self, action): # action from previous state to be taken in this step
         self.step_counter += 1
 
         # get current state
@@ -283,6 +288,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # unpause simulation
         self.call_step(pause=False)
+        
+        time.sleep(0.074)  # 74ms delay to simulate delay between nn output from previous step and action now
 
         # take action and wait
         lin_vel, steering_angle = action
