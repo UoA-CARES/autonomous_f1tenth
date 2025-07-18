@@ -279,7 +279,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.step_counter += 1
 
         # get current state
-        full_state = self.full_current_state
+        full_state = self.full_current_state # state from previous step
 
         # unpause simulation
         self.call_step(pause=False)
@@ -297,7 +297,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # set new step as 'current state' for next step
         self.full_current_state = full_next_state
 
-        nn_state = self.current_state + next_state
+        nn_state = self.current_state + next_state # state from previous step
         self.current_state = next_state
 
         # calculate progress along track
