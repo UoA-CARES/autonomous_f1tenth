@@ -13,6 +13,7 @@ from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
 from collections import deque
+import time
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -275,7 +276,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def stop_eval(self):
         self.is_evaluating = False
 
-    def step(self, action):
+    def step(self, action): # action from previous state to be taken in this step
         self.step_counter += 1
 
         # get current state
@@ -283,6 +284,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # unpause simulation
         self.call_step(pause=False)
+        
+        time.sleep(0.074)  # 74ms delay to simulate delay between nn output from previous step and action now
 
         # take action and wait
         lin_vel, steering_angle = action
