@@ -85,7 +85,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Evaluation settings - configure train/eval split based on track
-        if track == 'narrow_multi_track':
+        if track == 'narrow_multi_track' or track == 'narrow_multi_bumpy_track':
             # train: vary_track_new, track_01_1m, track_02_1m, track_03_1m
             # eval: track_04_1m, track_05_1m, track_06_1m
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (4/7)
@@ -121,7 +121,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.odom_observation_mode = observation_mode
         self.track = track
-        self.is_multi_track = 'multi_track' in track
+        self.is_multi_track = 'multi_track' in track or 'narrow_multi_bumpy_track' in track
 
         # initialize track progress utilities
         self.prev_t = None
