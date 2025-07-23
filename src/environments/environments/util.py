@@ -115,8 +115,7 @@ def reduce_lidar(lidar: LaserScan, num_points: int):
 def avg_lidar(lidar: LaserScan, num_points: int):
 
     ranges = lidar.ranges
-    ranges = np.nan_to_num(ranges, nan=float(
-        10), posinf=float(10), neginf=float(10))
+    ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
     ranges = ranges[1:]
     new_range = []
     angle = 240/num_points
