@@ -13,6 +13,7 @@ from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
 import yaml
+import time
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -285,7 +286,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         full_state = self.full_current_state
 
         self.call_step(pause=False)
-
+        
+        # simulate delay between NN output from previous step and action now
+        # if not self.is_evaluating:
+        action_delay = np.random.uniform(0.064, 0.084)  # 74ms ± 10ms needs be remeasured
+        time.sleep(action_delay)
+        
         # take action and wait
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
@@ -293,6 +299,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.sleep()
         
         next_state, full_next_state, raw_lidar_range = self.get_observation()
+        
+        # simulate sensor-to-NN delay
+        # if not self.is_evaluating:
+        sensor_delay = np.random.uniform(0.0017, 0.0037) # 2.7ms ± 1ms needs be remeasured
+        time.sleep(sensor_delay)
+            
         self.call_step(pause=True)
 
         self.full_current_state = full_next_state
