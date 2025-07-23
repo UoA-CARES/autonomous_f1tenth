@@ -29,9 +29,9 @@ from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from cares_reinforcement_learning.util.configurations import TD3Config
 from cares_reinforcement_learning.util.helpers import denormalize
 
-VEL_RECORD = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_drive_2025-07-07 14_01_57.txt'
-LIDAR_RECORD = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_lidar_2025-07-07 14_01_58.txt'
-MODEL_PATH = '/home/anyone/training_logs/delay/123/models/final/'
+VEL_RECORD = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_sim_2025-07-23 15:52:16.txt'
+LIDAR_RECORD = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_lidar_2025-07-23 15:52:16.txt'
+MODEL_PATH = '/home/anyone/training_logs/narrow_vary_width/123/models/final/'
 ACTOR = os.path.join(MODEL_PATH, 'TD3_actor.pht')
 CRITIC = os.path.join(MODEL_PATH, 'TD3_critic.pht')
 NETWORK_CONFIG_PATH = os.path.join(MODEL_PATH, '../../../', 'network_config.json')
@@ -172,7 +172,7 @@ def plot():
 
     plt.subplots_adjust(bottom=0.2)  # Adjust space for the slider
 
-    wall_plot, = ax.plot([], [], 'o', markersize=1, label="Walls")
+    wall_plot, = ax.plot([], [], 'o', markersize=2, label="Walls")
     car_plot, = ax.plot([], [], 'ro', markersize=2, label="Car Position")
 
     ax.set_title("Track Walls and Car Position - Top-Down View")
@@ -250,13 +250,22 @@ def data_to_state(lidar_data: LidarData, vel_data: VelData):
 
 
 def get_network_output(state, agent):
-    MAX_ACTIONS = np.asarray([10, 0.65])
+    MAX_ACTIONS = np.asarray([3, 0.65])
     MIN_ACTIONS = np.asarray([0, -0.65])
 
     action = agent.select_action_from_policy(state)
     action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS)
     linear, angular = action
+    angular = ackermann_to_twist(angular, linear)
     return angular, linear
+
+def ackermann_to_twist(delta, linear_v, L=0.325):
+    try: 
+        omega = math.tan(delta)*linear_v/L
+    except ZeroDivisionError:
+        print("Wheelbase must be greater than zero")
+        return 0
+    return omega
 
 if __name__ == "__main__":
     OBSERVATION_SIZE = 2 + 10   # 2 Odom, 10 Lidar
