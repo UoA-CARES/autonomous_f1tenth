@@ -71,7 +71,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Reward configuration
         self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.5)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
@@ -79,7 +79,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Evaluation settings - configure train/eval split based on track
-        if track == 'narrow_multi_track':
+        if track == 'narrow_multi_track' or track == 'narrow_multi_track_staged_training':
             # train: vary_track_new, track_01_1m, track_02_1m, track_03_1m
             # eval: track_04_1m, track_05_1m, track_06_1m
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (4/7)
@@ -116,6 +116,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.odom_observation_mode = observation_mode
         self.track = track
         self.is_multi_track = 'multi_track' in track
+        self.is_staged_training = 'staged_training' in track
+
+        if self.is_staged_training:
+            self.current_stage = 0
 
         # initialize track progress utilities
         self.prev_t = None
@@ -216,8 +220,17 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     self.eval_track_idx += 1
                     self.eval_track_idx = self.eval_track_idx % len(all_track_keys)
                 else:
-                    # For training, choose random track from all tracks
-                    self.current_track_key = random.choice(list(self.all_track_waypoints.keys()))
+                    if self.is_staged_training:
+                        # Staged Training, Stage 1: first 2 tracks (new vary width track and track_01_1m) Stage 2: next 2 tracks (track_02_1m, track_03_1m) Evaluation: last 3 tracks (track_04_1m, track_05_1m, track_06_1m)
+                        if self.current_stage == 0:
+                            # Stage 1: first 2 tracks
+                            self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:2])
+                        elif self.current_stage == 1:
+                            # Stage 2: next 2 tracks
+                            self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[2:4])
+                    else:
+                        # For training, choose random track from all tracks
+                        self.current_track_key = random.choice(list(self.all_track_waypoints.keys()))
             else:
                 # We have dedicated evaluation tracks (split < 1.0)
                 if self.is_evaluating:
@@ -591,3 +604,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 string += f'Lidar: {observation[8:]}\n'
 
         return string
+    
+    def increment_stage(self):
+        """
+        Increment the training stage for staged training.
+        """
+        if not self.is_staged_training:
+            return
+        
+        if self.current_stage < 1:  # Currently using current_stage in your code, not current_training_stage
+            self.current_stage += 1
+            self.get_logger().info(f"Incremented to training stage {self.current_stage}")
+        else:
+            self.get_logger().info("Already at the last training stage. No increment performed.")

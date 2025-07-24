@@ -89,6 +89,10 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
                 env.get_logger().info(f'*************--End Evaluation Loop--*************')
 
             # Reset environment
+            # Increment stage after 500 episodes
+            if episode_num == 500:  # After completing 500 episodes
+                env.increment_stage()  # Call your implemented stage increment method
+
             state, _ = env.reset()
             episode_reward = 0
             episode_timesteps = 0
