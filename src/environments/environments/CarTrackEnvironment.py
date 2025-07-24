@@ -220,17 +220,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     self.eval_track_idx += 1
                     self.eval_track_idx = self.eval_track_idx % len(all_track_keys)
                 else:
-                    if self.is_staged_training:
-                        # Staged Training, Stage 1: first 2 tracks (new vary width track and track_01_1m) Stage 2: next 2 tracks (track_02_1m, track_03_1m) Evaluation: last 3 tracks (track_04_1m, track_05_1m, track_06_1m)
-                        if self.current_stage == 0:
-                            # Stage 1: first 2 tracks
-                            self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:2])
-                        elif self.current_stage == 1:
-                            # Stage 2: next 2 tracks
-                            self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[2:4])
-                    else:
-                        # For training, choose random track from all tracks
-                        self.current_track_key = random.choice(list(self.all_track_waypoints.keys()))
+                    # For training, choose random track from all tracks
+                    self.current_track_key = random.choice(list(self.all_track_waypoints.keys()))
             else:
                 # We have dedicated evaluation tracks (split < 1.0)
                 if self.is_evaluating:
@@ -240,8 +231,17 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     self.eval_track_idx += 1
                     self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
                 else:
-                    # Training: choose a random track that is not used for evaluation
-                    self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
+                    if self.is_staged_training:
+                        # Staged Training, Stage 1: first 2 tracks (new vary width track and track_01_1m) Stage 2: next 2 tracks (track_02_1m, track_03_1m) Evaluation: last 3 tracks (track_04_1m, track_05_1m, track_06_1m)
+                        if self.current_stage == 0:
+                            # Stage 1: first 2 tracks
+                            self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:2])
+                        elif self.current_stage == 1:
+                            # Stage 2: next 2 tracks
+                            self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[2:4])
+                    else:
+                        # Training: choose a random track that is not used for evaluation
+                        self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
