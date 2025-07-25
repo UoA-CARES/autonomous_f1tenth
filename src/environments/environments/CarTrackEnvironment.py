@@ -287,13 +287,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.call_step(pause=False)
         
+        # get action
+        lin_vel, steering_angle = action
+        
         # simulate delay between NN output from previous step and action now
         # if not self.is_evaluating:
         action_delay = np.random.uniform(0.064, 0.084)  # 74ms ± 10ms needs be remeasured
         time.sleep(action_delay)
         
         # take action and wait
-        lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
         
         self.sleep()
