@@ -86,9 +86,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Evaluation settings - configure train/eval split based on track
         if track == 'narrow_multi_track':
-            # train: vary_track_new, track_01_1m, track_02_1m, track_03_1m
-            # eval: track_04_1m, track_05_1m, track_06_1m
-            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (4/7)
+            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (12/15) # 12 train, 3 eval
         else:
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5
 
