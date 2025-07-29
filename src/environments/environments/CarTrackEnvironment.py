@@ -83,6 +83,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
             # train: vary_track_new, track_01_1m, track_02_1m, track_03_1m
             # eval: track_04_1m, track_05_1m, track_06_1m
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (4/7)
+        elif track == 'many_narrow_multi_track':
+            # train: vary_track_new, , narrow_track_01, narrow_track_02, narrow_track_03, narrow_track_04, narrow_track_05, narrow_track_06, track_01_1m, track_02_1m, track_03_1m
+            # eval: track_04_1m, track_05_1m, track_06_1m
+            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (10/13)
         else:
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5
 
@@ -117,6 +121,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.track = track
         self.is_multi_track = 'multi_track' in track
         self.is_staged_training = 'staged_training' in track
+        self.is_many_multi_track = 'many_narrow_multi_track' in track
 
         if self.is_staged_training:
             self.current_stage = 0
@@ -445,13 +450,13 @@ class CarTrackEnvironment(F1tenthEnvironment):
             match modifier_type:
                 case 'wall_proximity':
                     dist_to_wall = min(raw_lidar_range)
-                    close_to_wall_penalize_factor = 1 / (1 + np.exp(50 * (dist_to_wall - 0.35))) #y=\frac{1}{1+e^{35\left(x-0.5\right)}}
+                    close_to_wall_penalize_factor = 1 / (1 + np.exp(40 * (dist_to_wall - 0.375))) #y=\frac{1}{1+e^{35\left(x-0.5\right)}}
                     reward -= reward * close_to_wall_penalize_factor * weight
                     reward_info.update({"dist_to_wall":["avg",dist_to_wall]})
                     print(f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}")   
                 case 'turn':
                     angular_vel_diff = abs(state[7] - next_state[7])
-                    turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.3)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
+                    turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.45)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
                     reward -= reward * turning_penalty_factor * weight
                     print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
 
