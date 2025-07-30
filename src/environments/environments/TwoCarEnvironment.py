@@ -56,12 +56,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         #####################################################################################################################
 
-        #optional stuff
-        pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
         if TwoCarEnvironment.LIDAR_PROCESSING == 'pretrained_ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
             self.ae_lidar_model = LidarConvAE()
-            self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
+            self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))
             self.ae_lidar_model.eval()
         # Observation Size
         match self.OBSERVATION_MODE:
