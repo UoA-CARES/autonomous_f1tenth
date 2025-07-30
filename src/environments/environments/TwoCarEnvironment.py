@@ -59,7 +59,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # Track progress utilities
         self.PREV_CLOSEST_POINT = None
-        self.all_track_models = None
+        TwoCarEnvironment.ALL_TRACK_MODELS = None
         self.track_model = None
         self.step_progress = 0
         self.progress_not_met_cnt = 0
@@ -109,8 +109,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
             # set track models
-            self.all_track_models = get_track_math_defs(self.all_track_waypoints)
-            self.track_model = self.all_track_models[self.current_track_key]
+            TwoCarEnvironment.ALL_TRACK_MODELS = get_track_math_defs(self.all_track_waypoints)
+            self.track_model = TwoCarEnvironment.ALL_TRACK_MODELS[self.current_track_key]
 
         # Subscribe to both car's odometry --------------------------------------------
         self.odom_sub_1 = Subscriber(
@@ -181,7 +181,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # get track progress related info
         # set new track model if its multi track
         if TwoCarEnvironment.is_multi_track:
-            self.track_model = self.all_track_models[self.current_track_key]
+            self.track_model = TwoCarEnvironment.ALL_TRACK_MODELS[self.current_track_key]
         self.PREV_CLOSEST_POINT = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         # reward function specific resets
