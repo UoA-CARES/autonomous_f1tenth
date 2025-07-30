@@ -72,6 +72,6 @@ def generate_launch_description():
         SetParameter(name='use_sim_time', value=True),
         environment,
         main,
-        vel_recorder,
-        lidar_recorder
+        # vel_recorder,
+        # lidar_recorder
 ])
