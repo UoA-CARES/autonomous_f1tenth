@@ -43,7 +43,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Init params
         self.REWARD_RANGE = reward_range
         TwoCarEnvironment.COLLISION_RANGE = collision_range
-        TwoCarEnvironment.track = track
+        TwoCarEnvironment.TRACK = track
         self.OBSERVATION_MODE = observation_mode
 
         # Load configuration from YAML file
@@ -93,9 +93,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
         TwoCarEnvironment.OBSERVATION_SIZE = odom_size + TwoCarEnvironment.LIDAR_POINTS
         
         # Track info
-        TwoCarEnvironment.IS_MULTI_TRACK = 'multi_track' in TwoCarEnvironment.track
+        TwoCarEnvironment.IS_MULTI_TRACK = 'multi_track' in TwoCarEnvironment.TRACK
         if TwoCarEnvironment.IS_MULTI_TRACK:
-            _, TwoCarEnvironment.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(track)
+            _, TwoCarEnvironment.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(TwoCarEnvironment.TRACK)
             self.current_track_key = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[0]
 
             # set current track waypoints
@@ -208,7 +208,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             
             self.track_waypoints = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.current_track_key]
         else:
-            self.current_track_key = TwoCarEnvironment.track
+            self.current_track_key = TwoCarEnvironment.TRACK
 
         if (self.current_track_key[-3:]).isdigit():
             width = int(self.current_track_key[-3:])
