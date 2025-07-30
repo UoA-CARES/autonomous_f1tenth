@@ -91,9 +91,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 odom_size = 10
         TwoCarEnvironment.OBSERVATION_SIZE = odom_size + TwoCarEnvironment.LIDAR_POINTS
         
-        TwoCarEnvironment.is_multi_track = 'multi_track' in TwoCarEnvironment.track
-
-        if not TwoCarEnvironment.is_multi_track:
+        TwoCarEnvironment.IS_MULTI_TRACK = 'multi_track' in TwoCarEnvironment.track
+        if not TwoCarEnvironment.IS_MULTI_TRACK:
             if "test_track" in track:
                 track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
             else:
@@ -136,7 +135,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.odom_observation_future = Future()
 
-        if TwoCarEnvironment.is_multi_track:
+        if TwoCarEnvironment.IS_MULTI_TRACK:
             # define from which track in the track lists to be used for eval only
             self.eval_track_begin_idx = int(len(self.all_track_waypoints)*TwoCarEnvironment.MULTI_TRACK_TRAIN_EVAL_SPLIT)
             # idx used to loop through eval tracks sequentially
@@ -181,7 +180,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # get track progress related info
         # set new track model if its multi track
-        if TwoCarEnvironment.is_multi_track:
+        if TwoCarEnvironment.IS_MULTI_TRACK:
             self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.current_track_key]
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
@@ -193,7 +192,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def car_spawn(self):
         #self.get_logger().info("Car spawning")
 
-        if TwoCarEnvironment.is_multi_track:
+        if TwoCarEnvironment.IS_MULTI_TRACK:
             # Evaluating: loop through eval tracks sequentially
             if self.IS_EVAL:
                 eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
