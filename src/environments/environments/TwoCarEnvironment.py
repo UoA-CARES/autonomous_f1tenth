@@ -60,6 +60,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Track progress utilities
         self.PREV_CLOSEST_POINT = None
         TwoCarEnvironment.ALL_TRACK_MODELS = None
+        TwoCarEnvironment.ALL_TRACK_WAYPOINTS = None
         self.CURR_TRACK_MODEL = None
         self.STEP_PROGRESS = 0
         self.PROGRESS_NOT_MET_COUNTER = 0
@@ -94,14 +95,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Track info
         TwoCarEnvironment.IS_MULTI_TRACK = 'multi_track' in TwoCarEnvironment.track
         if TwoCarEnvironment.IS_MULTI_TRACK:
-            _, self.all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
-            self.current_track_key = list(self.all_track_waypoints.keys())[0]
+            _, TwoCarEnvironment.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(track)
+            self.current_track_key = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[0]
 
             # set current track waypoints
-            self.track_waypoints = self.all_track_waypoints[self.current_track_key]
+            self.track_waypoints = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.current_track_key]
 
             # set track models
-            TwoCarEnvironment.ALL_TRACK_MODELS = get_track_math_defs(self.all_track_waypoints)
+            TwoCarEnvironment.ALL_TRACK_MODELS = get_track_math_defs(TwoCarEnvironment.ALL_TRACK_WAYPOINTS)
             self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.current_track_key]     
         else:
             if "test_track" in track:
@@ -138,7 +139,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         if TwoCarEnvironment.IS_MULTI_TRACK:
             # define from which track in the track lists to be used for eval only
-            self.eval_track_begin_idx = int(len(self.all_track_waypoints)*TwoCarEnvironment.MULTI_TRACK_TRAIN_EVAL_SPLIT)
+            self.eval_track_begin_idx = int(len(TwoCarEnvironment.ALL_TRACK_WAYPOINTS)*TwoCarEnvironment.MULTI_TRACK_TRAIN_EVAL_SPLIT)
             # idx used to loop through eval tracks sequentially
             self.eval_track_idx = 0
 
@@ -196,16 +197,16 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if TwoCarEnvironment.IS_MULTI_TRACK:
             # Evaluating: loop through eval tracks sequentially
             if self.IS_EVAL:
-                eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
+                eval_track_key_list = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[self.eval_track_begin_idx:]
                 self.current_track_key = eval_track_key_list[self.eval_track_idx]
                 self.eval_track_idx += 1
                 self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
 
             # Training: choose a random track that is not used for evaluation
             else:
-                self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
+                self.current_track_key = random.choice(list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[:self.eval_track_begin_idx])
             
-            self.track_waypoints = self.all_track_waypoints[self.current_track_key]
+            self.track_waypoints = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.current_track_key]
         else:
             self.current_track_key = TwoCarEnvironment.track
 
