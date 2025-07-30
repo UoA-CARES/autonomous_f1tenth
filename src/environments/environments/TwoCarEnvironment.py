@@ -36,18 +36,27 @@ class TwoCarEnvironment(F1tenthEnvironment):
         super().__init__('two_car', car_name, max_steps, step_length)
 
         #####################################################################################################################
-        # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
+        # Read in params from init and config
         
+        # Init params
+        self.REWARD_RANGE = reward_range
+        TwoCarEnvironment.COLLISION_RANGE = collision_range
+        TwoCarEnvironment.track = track
+        self.OBSERVATION_MODE = observation_mode
+
         # Load configuration from YAML file
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
             
+        # Config params
+        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
+
+        #####################################################################################################################
         # Reward configuration
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)] 
-
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
-
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
         if self.LIDAR_PROCESSING == 'pretrained_ae':
@@ -55,15 +64,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.ae_lidar_model = LidarConvAE()
             self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
             self.ae_lidar_model.eval()
-
-        # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
-        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
-
-        #####################################################################################################################
-
         # Observation Size
-        match observation_mode:
+        match self.OBSERVATION_MODE:
             case 'lidar_only':
                 odom_observation_size = 2
             case 'no_position':
@@ -72,11 +74,11 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 odom_observation_size = 10
         TwoCarEnvironment.OBSERVATION_SIZE = odom_observation_size + TwoCarEnvironment.LIDAR_POINTS
 
-        TwoCarEnvironment.COLLISION_RANGE = collision_range
-        self.REWARD_RANGE = reward_range
+        
+        
 
-        self.odom_observation_mode = observation_mode
-        TwoCarEnvironment.track = track
+        self.odom_observation_mode = observation_mode #Address
+        
         TwoCarEnvironment.is_multi_track = 'multi_track' in track
 
         # initialize track progress utilities
