@@ -58,7 +58,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Initialise other vars
 
         # Track progress utilities
-        self.prev_t = None
+        self.PREV_CLOSEST_POINT = None
         self.all_track_models = None
         self.track_model = None
         self.step_progress = 0
@@ -111,10 +111,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
             # set track models
             self.all_track_models = get_track_math_defs(self.all_track_waypoints)
             self.track_model = self.all_track_models[self.current_track_key]
-
-
-        # Evaluation related setup ---------------------------------------------------
-        
 
         # Subscribe to both car's odometry --------------------------------------------
         self.odom_sub_1 = Subscriber(
@@ -186,7 +182,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # set new track model if its multi track
         if TwoCarEnvironment.is_multi_track:
             self.track_model = self.all_track_models[self.current_track_key]
-        self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
+        self.PREV_CLOSEST_POINT = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         # reward function specific resets
         self.progress_not_met_cnt = 0
@@ -282,14 +278,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.full_current_state = full_next_state
         
         # calculate progress along track
-        if not self.prev_t:
-            self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
+        if not self.PREV_CLOSEST_POINT:
+            self.PREV_CLOSEST_POINT = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         t2 = self.track_model.get_closest_point_on_spline(full_next_state[:2], t_only=True)
-        self.step_progress = self.track_model.get_distance_along_track_parametric(self.prev_t, t2, approximate=True)
+        self.step_progress = self.track_model.get_distance_along_track_parametric(self.PREV_CLOSEST_POINT, t2, approximate=True)
         self.center_line_offset = self.track_model.get_distance_to_spline_point(t2, full_next_state[:2])
 
-        self.prev_t = t2
+        self.PREV_CLOSEST_POINT = t2
 
         # guard against random error from progress estimate. See get_closest_point_on_spline, suspect differential evo have something to do with this.
         if abs(self.step_progress) > (full_next_state[6]/10*3): # traveled distance should not too different from lin vel * step time
