@@ -67,7 +67,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 odom_observation_size = 10
         TwoCarEnvironment.OBSERVATION_SIZE = odom_observation_size + TwoCarEnvironment.LIDAR_POINTS
 
-        self.COLLISION_RANGE = collision_range
+        TwoCarEnvironment.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
 
         self.odom_observation_mode = observation_mode
@@ -319,7 +319,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
-        return has_collided(ranges, self.COLLISION_RANGE) \
+        return has_collided(ranges, TwoCarEnvironment.COLLISION_RANGE) \
             or has_flipped_over(state[2:6])
 
     def is_truncated(self):
@@ -460,7 +460,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if self.progress_not_met_cnt >= 5:
             reward -= 2
 
-        if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+        if has_collided(raw_range, TwoCarEnvironment.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 2.5
 
         info = {}
