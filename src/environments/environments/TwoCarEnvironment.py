@@ -47,7 +47,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
-        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = [] #Currently not used
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
@@ -66,7 +65,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 odom_observation_size = 6
             case _:
                 odom_observation_size = 10
-        TwoCarEnvironment.OBSERVATION_SIZE = odom_observation_size + TwoCarEnvironment.LIDAR_POINTS+ self.get_extra_observation_size()
+        TwoCarEnvironment.OBSERVATION_SIZE = odom_observation_size + TwoCarEnvironment.LIDAR_POINTS
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
@@ -163,16 +162,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     def odom_message_filter_callback(self, odom1: Odometry, odom2: Odometry):
         self.odom_observation_future.set_result({'odom1': odom1, 'odom2': odom2})                                                                             
-
-    def get_extra_observation_size(self):
-        total = 0
-        for obs in self.EXTRA_OBSERVATIONS:
-            match obs:
-                case 'prev_ang_vel':
-                    total += 1
-                case _:
-                    print("Unknown extra observation.")
-        return total
     
     def randomize_yaw(self, yaw, percentage=0.5):
         factor = 1 + random.uniform(-percentage, percentage)
@@ -378,15 +367,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.processed_publisher.publish(scan)
 
         state += processed_lidar_range
-
-        # Add extra observation:
-        for extra_observation in self.EXTRA_OBSERVATIONS:
-            match extra_observation:
-                case 'prev_ang_vel':
-                    if self.full_current_state:
-                        state += [self.full_current_state[7]]
-                    else:
-                        state += [state[7]]
 
         
         full_state = odom + processed_lidar_range
