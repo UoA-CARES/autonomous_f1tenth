@@ -105,10 +105,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
             TwoCarEnvironment.ALL_TRACK_MODELS = get_track_math_defs(TwoCarEnvironment.ALL_TRACK_WAYPOINTS)
             self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.current_track_key]     
         else:
-            if "test_track" in track:
-                track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
+            if "test_track" in TwoCarEnvironment.TRACK:
+                track_key = TwoCarEnvironment.TRACK[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
             else:
-                track_key = track
+                track_key = TwoCarEnvironment.TRACK
 
             self.track_waypoints = waypoints[track_key]
             self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.track_waypoints)[:,:2])
