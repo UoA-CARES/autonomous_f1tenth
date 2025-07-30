@@ -50,6 +50,11 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
+        if self.LIDAR_PROCESSING == 'pretrained_ae':
+            from .autoencoders.lidar_autoencoder import LidarConvAE
+            self.ae_lidar_model = LidarConvAE()
+            self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
+            self.ae_lidar_model.eval()
 
         # Speed and turn limit
         self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
@@ -80,11 +85,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.track_model = None
         self.step_progress = 0
 
-        if self.LIDAR_PROCESSING == 'pretrained_ae':
-            from .autoencoders.lidar_autoencoder import LidarConvAE
-            self.ae_lidar_model = LidarConvAE()
-            self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
-            self.ae_lidar_model.eval()
+        
 
         # reward function specific setup:
         self.progress_not_met_cnt = 0
