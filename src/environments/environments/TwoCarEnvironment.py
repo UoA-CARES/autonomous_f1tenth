@@ -76,9 +76,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         if TwoCarEnvironment.LIDAR_PROCESSING == 'pretrained_ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
-            self.ae_lidar_model = LidarConvAE()
-            self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))
-            self.ae_lidar_model.eval()
+            self.AE_LIDAR = LidarConvAE()
+            self.AE_LIDAR.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))
+            self.AE_LIDAR.eval()
 
         # Observation Size
         match self.OBSERVATION_MODE:
@@ -341,8 +341,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Add lidar data:
         match TwoCarEnvironment.LIDAR_PROCESSING:
             case 'pretrained_ae':
-                processed_lidar_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=True)
-                visualized_range = reconstruct_ae_latent(lidar, self.ae_lidar_model, processed_lidar_range)
+                processed_lidar_range = process_ae_lidar(lidar, self.AE_LIDAR, is_latent_only=True)
+                visualized_range = reconstruct_ae_latent(lidar, self.AE_LIDAR, processed_lidar_range)
                 #TODO: get rid of hard coded lidar points num
                 scan = create_lidar_msg(lidar, 682, visualized_range)
             case 'avg':
