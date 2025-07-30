@@ -22,6 +22,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     MULTI_TRACK_TRAIN_EVAL_SPLIT = 5/6
     LIDAR_POINTS = 10
+    REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)]
+    LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg' 
 
     def __init__(self, 
                  car_name, 
@@ -53,13 +55,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
 
         #####################################################################################################################
-        # Reward configuration
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)] 
-        # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
+
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
-        if self.LIDAR_PROCESSING == 'pretrained_ae':
+        if TwoCarEnvironment.LIDAR_PROCESSING == 'pretrained_ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
             self.ae_lidar_model = LidarConvAE()
             self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
@@ -346,7 +345,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 state += odom 
         
         # Add lidar data:
-        match self.LIDAR_PROCESSING:
+        match TwoCarEnvironment.LIDAR_PROCESSING:
             case 'pretrained_ae':
                 processed_lidar_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=True)
                 visualized_range = reconstruct_ae_latent(lidar, self.ae_lidar_model, processed_lidar_range)
@@ -382,7 +381,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         reward_info.update(base_reward_info)
         
         # calculate reward modifiers:
-        for modifier_type, weight in self.REWARD_MODIFIERS:
+        for modifier_type, weight in TwoCarEnvironment.REWARD_MODIFIERS:
             match modifier_type:
                 case 'wall_proximity':
                     dist_to_wall = min(raw_lidar_range)
