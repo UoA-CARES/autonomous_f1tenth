@@ -73,11 +73,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
             case _:
                 odom_observation_size = 10
         TwoCarEnvironment.OBSERVATION_SIZE = odom_observation_size + TwoCarEnvironment.LIDAR_POINTS
-
-        
-        
-
-        self.odom_observation_mode = observation_mode #Address
         
         TwoCarEnvironment.is_multi_track = 'multi_track' in track
 
@@ -342,7 +337,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         state = []
         
         # Add odom data
-        match (self.odom_observation_mode):
+        match (self.OBSERVATION_MODE):
             case 'no_position':
                 state += odom[2:]
             case 'lidar_only':
@@ -518,7 +513,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         
         string = f'CarTrack Observation\n'
 
-        match (self.odom_observation_mode):
+        match (self.OBSERVATION_MODE):
             case 'no_position':
                 string += f'Orientation: {observation[:4]}\n'
                 string += f'Car Velocity: {observation[4]}\n'
