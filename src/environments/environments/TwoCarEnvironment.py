@@ -74,6 +74,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         #####################################################################################################################
 
+        # AE
         if TwoCarEnvironment.LIDAR_PROCESSING == 'pretrained_ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
             self.AE_LIDAR = LidarConvAE()
@@ -83,12 +84,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Observation Size
         match self.OBSERVATION_MODE:
             case 'lidar_only':
-                odom_observation_size = 2
+                odom_size = 2
             case 'no_position':
-                odom_observation_size = 6
+                odom_size = 6
             case _:
-                odom_observation_size = 10
-        TwoCarEnvironment.OBSERVATION_SIZE = odom_observation_size + TwoCarEnvironment.LIDAR_POINTS
+                odom_size = 10
+        TwoCarEnvironment.OBSERVATION_SIZE = odom_size + TwoCarEnvironment.LIDAR_POINTS
         
         TwoCarEnvironment.is_multi_track = 'multi_track' in TwoCarEnvironment.track
 
