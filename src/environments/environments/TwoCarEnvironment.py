@@ -61,8 +61,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.PREV_CLOSEST_POINT = None
         TwoCarEnvironment.ALL_TRACK_MODELS = None
         self.CURR_TRACK_MODEL = None
-        self.step_progress = 0
-        self.progress_not_met_cnt = 0
+        self.STEP_PROGRESS = 0
+        self.PROGRESS_NOT_MET_COUNTER = 0
 
         #Reset client
         self.goals_reached = 0
@@ -185,7 +185,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         # reward function specific resets
-        self.progress_not_met_cnt = 0
+        self.PROGRESS_NOT_MET_COUNTER = 0
 
         return state, info
     
@@ -282,14 +282,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         t2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_next_state[:2], t_only=True)
-        self.step_progress = self.CURR_TRACK_MODEL.get_distance_along_track_parametric(self.PREV_CLOSEST_POINT, t2, approximate=True)
+        self.STEP_PROGRESS = self.CURR_TRACK_MODEL.get_distance_along_track_parametric(self.PREV_CLOSEST_POINT, t2, approximate=True)
         self.center_line_offset = self.CURR_TRACK_MODEL.get_distance_to_spline_point(t2, full_next_state[:2])
 
         self.PREV_CLOSEST_POINT = t2
 
         # guard against random error from progress estimate. See get_closest_point_on_spline, suspect differential evo have something to do with this.
-        if abs(self.step_progress) > (full_next_state[6]/10*3): # traveled distance should not too different from lin vel * step time
-            self.step_progress = full_next_state[6]/10*0.8 # reasonable estimation fo traveleled distance based on current lin vel but only 80% of it just in case its exploited by agent
+        if abs(self.STEP_PROGRESS) > (full_next_state[6]/10*3): # traveled distance should not too different from lin vel * step time
+            self.STEP_PROGRESS = full_next_state[6]/10*0.8 # reasonable estimation fo traveleled distance based on current lin vel but only 80% of it just in case its exploited by agent
 
         # calculate reward & end conditions
         reward, reward_info = self.compute_reward(full_state, full_next_state, raw_lidar_range)
@@ -300,7 +300,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         info = {
             'linear_velocity':["avg", full_next_state[6]],
             'angular_velocity_diff':["avg", abs(full_next_state[7] - full_state[7])],
-            'traveled distance': ['sum', self.step_progress]
+            'traveled distance': ['sum', self.STEP_PROGRESS]
         }
         info.update(reward_info)
 
@@ -314,7 +314,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             or has_flipped_over(state[2:6])
 
     def is_truncated(self):
-        return self.progress_not_met_cnt >= 5 or \
+        return self.PROGRESS_NOT_MET_COUNTER >= 5 or \
         self.step_counter >= self.MAX_STEPS
 
 
@@ -424,12 +424,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
         current_distance = math.dist(goal_position, next_state[:2])
         
         # keep track of non moving steps
-        if self.step_progress < 0.02:
-            self.progress_not_met_cnt += 1
+        if self.STEP_PROGRESS < 0.02:
+            self.PROGRESS_NOT_MET_COUNTER += 1
         else:
-            self.progress_not_met_cnt = 0
+            self.PROGRESS_NOT_MET_COUNTER = 0
 
-        reward += self.step_progress
+        reward += self.STEP_PROGRESS
 
         #print(f"Step progress: {self.step_progress}")
        
@@ -448,7 +448,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
             self.steps_since_last_goal = 0
 
-        if self.progress_not_met_cnt >= 5:
+        if self.PROGRESS_NOT_MET_COUNTER >= 5:
             reward -= 2
 
         if has_collided(raw_range, TwoCarEnvironment.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
