@@ -21,6 +21,7 @@ import yaml
 class TwoCarEnvironment(F1tenthEnvironment):
 
     MULTI_TRACK_TRAIN_EVAL_SPLIT = 5/6
+    LIDAR_POINTS = 10
 
     def __init__(self, 
                  car_name, 
@@ -46,7 +47,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
-        self.LIDAR_POINTS = 10 #682
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = [] #Currently not used
 
         #optional stuff
@@ -66,7 +66,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 odom_observation_size = 6
             case _:
                 odom_observation_size = 10
-        TwoCarEnvironment.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
+        TwoCarEnvironment.OBSERVATION_SIZE = odom_observation_size + TwoCarEnvironment.LIDAR_POINTS+ self.get_extra_observation_size()
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
@@ -344,7 +344,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         odom, lidar = self.get_data()
         odom = process_odom(odom)
         
-        num_points = self.LIDAR_POINTS
+        num_points = TwoCarEnvironment.LIDAR_POINTS
         
         # init state
         state = []
