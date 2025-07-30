@@ -91,17 +91,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 odom_size = 10
         TwoCarEnvironment.OBSERVATION_SIZE = odom_size + TwoCarEnvironment.LIDAR_POINTS
         
+        # Track info
         TwoCarEnvironment.IS_MULTI_TRACK = 'multi_track' in TwoCarEnvironment.track
-        if not TwoCarEnvironment.IS_MULTI_TRACK:
-            if "test_track" in track:
-                track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
-            else:
-                track_key = track
-
-            self.track_waypoints = waypoints[track_key]
-            self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.track_waypoints)[:,:2])
-            
-        else:
+        if TwoCarEnvironment.IS_MULTI_TRACK:
             _, self.all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
             self.current_track_key = list(self.all_track_waypoints.keys())[0]
 
@@ -110,7 +102,16 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
             # set track models
             TwoCarEnvironment.ALL_TRACK_MODELS = get_track_math_defs(self.all_track_waypoints)
-            self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.current_track_key]
+            self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.current_track_key]     
+        else:
+            if "test_track" in track:
+                track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
+            else:
+                track_key = track
+
+            self.track_waypoints = waypoints[track_key]
+            self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.track_waypoints)[:,:2])
+            
 
         # Subscribe to both car's odometry --------------------------------------------
         self.odom_sub_1 = Subscriber(
