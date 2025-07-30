@@ -65,12 +65,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.PROGRESS_NOT_MET_COUNTER = 0
 
         #Reset client
-        self.goals_reached = 0
-        self.start_waypoint_index = 0
-        self.steps_since_last_goal = 0
-        self.full_current_state = None
+        self.GOALS_REACHED = 0
+        self.SPAWN_INDEX = 0
+        self.STEPS_WITHOUT_GOAL = 0
+        self.CURR_STATE = None #Can reformat this var
 
-        self.is_evaluating = False
+        self.IS_EVAL = False
 
         #####################################################################################################################
 
@@ -163,8 +163,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     def reset(self):
         self.step_counter = 0
-        self.steps_since_last_goal = 0
-        self.goals_reached = 0
+        self.STEPS_WITHOUT_GOAL = 0
+        self.GOALS_REACHED = 0
 
         self.set_velocity(0, 0)
         
@@ -173,7 +173,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Get initial observation
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
-        self.full_current_state = full_state
+        self.CURR_STATE = full_state
         self.call_step(pause=True)
 
         info = {}
@@ -194,7 +194,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         if TwoCarEnvironment.is_multi_track:
             # Evaluating: loop through eval tracks sequentially
-            if self.is_evaluating:
+            if self.IS_EVAL:
                 eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
                 self.current_track_key = eval_track_key_list[self.eval_track_idx]
                 self.eval_track_idx += 1
@@ -240,8 +240,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 car_2_index = (index - car_2_offset) % len(self.track_waypoints)
                 car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
 
-        self.start_waypoint_index = index
-        x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
+        self.SPAWN_INDEX = index
+        x,y,_,_ = self.track_waypoints[self.SPAWN_INDEX+1 if self.SPAWN_INDEX+1 < len(self.track_waypoints) else 0]# point toward next goal
         self.goal_position = [x,y]
 
         # Spawn car
@@ -250,16 +250,16 @@ class TwoCarEnvironment(F1tenthEnvironment):
     
     def start_eval(self):
         self.eval_track_idx = 0
-        self.is_evaluating = True
+        self.IS_EVAL = True
 
     def stop_eval(self):
-        self.is_evaluating = False
+        self.IS_EVAL = False
 
     def step(self, action):
         self.step_counter += 1
         
         # get current state
-        full_state = self.full_current_state
+        full_state = self.CURR_STATE
 
         # unpause simulation
         self.call_step(pause=False)
@@ -275,7 +275,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.call_step(pause=True)
 
         # set new step as 'current state' for next step
-        self.full_current_state = full_next_state
+        self.CURR_STATE = full_next_state
         
         # calculate progress along track
         if not self.PREV_CLOSEST_POINT:
@@ -304,7 +304,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         }
         info.update(reward_info)
 
-        if self.is_evaluating and (terminated or truncated):
+        if self.IS_EVAL and (terminated or truncated):
             self.eval_track_idx
 
         return next_state, reward, terminated, truncated, info
@@ -433,20 +433,20 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         #print(f"Step progress: {self.step_progress}")
        
-        self.steps_since_last_goal += 1
+        self.STEPS_WITHOUT_GOAL += 1
 
         if current_distance < self.REWARD_RANGE:
             #print(f'Goal #{self.goals_reached} Reached')
             # reward += 2
-            self.goals_reached += 1
+            self.GOALS_REACHED += 1
 
             # Updating Goal Position
-            new_x, new_y, _, _ = self.track_waypoints[(self.start_waypoint_index + self.goals_reached) % len(self.track_waypoints)]
+            new_x, new_y, _, _ = self.track_waypoints[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.track_waypoints)]
             self.goal_position = [new_x, new_y]
 
             self.update_goal_service(new_x, new_y)
 
-            self.steps_since_last_goal = 0
+            self.STEPS_WITHOUT_GOAL = 0
 
         if self.PROGRESS_NOT_MET_COUNTER >= 5:
             reward -= 2
