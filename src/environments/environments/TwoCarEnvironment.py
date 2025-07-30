@@ -55,12 +55,31 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
 
         #####################################################################################################################
+        # Initialise other vars
+
+        # Track progress utilities
+        self.prev_t = None
+        self.all_track_models = None
+        self.track_model = None
+        self.step_progress = 0
+        self.progress_not_met_cnt = 0
+
+        #Reset client
+        self.goals_reached = 0
+        self.start_waypoint_index = 0
+        self.steps_since_last_goal = 0
+        self.full_current_state = None
+
+        self.is_evaluating = False
+
+        #####################################################################################################################
 
         if TwoCarEnvironment.LIDAR_PROCESSING == 'pretrained_ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
             self.ae_lidar_model = LidarConvAE()
             self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))
             self.ae_lidar_model.eval()
+
         # Observation Size
         match self.OBSERVATION_MODE:
             case 'lidar_only':
@@ -71,26 +90,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 odom_observation_size = 10
         TwoCarEnvironment.OBSERVATION_SIZE = odom_observation_size + TwoCarEnvironment.LIDAR_POINTS
         
-        TwoCarEnvironment.is_multi_track = 'multi_track' in track
-
-        # initialize track progress utilities
-        self.prev_t = None
-        self.all_track_models = None
-        self.track_model = None
-        self.step_progress = 0
-
-        
-
-        # reward function specific setup:
-        self.progress_not_met_cnt = 0
-
-
-        # Reset Client -----------------------------------------------
-
-        self.goals_reached = 0
-        self.start_waypoint_index = 0
-        self.steps_since_last_goal = 0
-        self.full_current_state = None
+        TwoCarEnvironment.is_multi_track = 'multi_track' in TwoCarEnvironment.track
 
         if not TwoCarEnvironment.is_multi_track:
             if "test_track" in track:
@@ -114,7 +114,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
 
         # Evaluation related setup ---------------------------------------------------
-        self.is_evaluating = False
+        
 
         # Subscribe to both car's odometry --------------------------------------------
         self.odom_sub_1 = Subscriber(
