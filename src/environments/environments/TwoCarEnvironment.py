@@ -67,13 +67,16 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.STEP_PROGRESS = 0
         self.PROGRESS_NOT_MET_COUNTER = 0
 
-        #Reset client
+        # Reset client
         self.GOALS_REACHED = 0
         self.SPAWN_INDEX = 0
         self.STEPS_WITHOUT_GOAL = 0
         self.CURR_STATE = None #Can reformat this var
 
+        # Eval utilities
         self.IS_EVAL = False
+        self.EVAL_TRACKS_IDX = 0
+        self.CURR_EVAL_IDX = 0
 
         #####################################################################################################################
 
@@ -104,7 +107,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
             # Get current track infos (should start empty?)
             self.CURR_TRACK = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[0] # Should it always be the first one? Should it be initialized empty?
             self.CURR_WAYPOINTS = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
-            self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]     
+            self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]
+
+            # Set eval track indexes
+            self.EVAL_TRACKS_IDX = int(len(TwoCarEnvironment.ALL_TRACK_WAYPOINTS)*TwoCarEnvironment.MULTI_TRACK_TRAIN_EVAL_SPLIT)   
         else:
             if "test_track" in TwoCarEnvironment.TRACK:
                 track_key = TwoCarEnvironment.TRACK[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
@@ -137,13 +143,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.odom_message_filter.registerCallback(self.odom_message_filter_callback)
 
         self.odom_observation_future = Future()
-
-        if TwoCarEnvironment.IS_MULTI_TRACK:
-            # define from which track in the track lists to be used for eval only
-            self.eval_track_begin_idx = int(len(TwoCarEnvironment.ALL_TRACK_WAYPOINTS)*TwoCarEnvironment.MULTI_TRACK_TRAIN_EVAL_SPLIT)
-            # idx used to loop through eval tracks sequentially
-            self.eval_track_idx = 0
-
         self.get_logger().info('Environment Setup Complete')
 
 
@@ -198,14 +197,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if TwoCarEnvironment.IS_MULTI_TRACK:
             # Evaluating: loop through eval tracks sequentially
             if self.IS_EVAL:
-                eval_track_key_list = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[self.eval_track_begin_idx:]
-                self.CURR_TRACK = eval_track_key_list[self.eval_track_idx]
-                self.eval_track_idx += 1
-                self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
+                eval_track_key_list = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACKS_IDX:]
+                self.CURR_TRACK = eval_track_key_list[self.CURR_EVAL_IDX]
+                self.CURR_EVAL_IDX += 1
+                self.CURR_EVAL_IDX = self.CURR_EVAL_IDX % len(eval_track_key_list)
 
             # Training: choose a random track that is not used for evaluation
             else:
-                self.CURR_TRACK = random.choice(list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[:self.eval_track_begin_idx])
+                self.CURR_TRACK = random.choice(list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[:self.EVAL_TRACKS_IDX])
             
             self.CURR_WAYPOINTS = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
         else:
@@ -252,7 +251,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
     
     def start_eval(self):
-        self.eval_track_idx = 0
+        self.CURR_EVAL_IDX = 0
         self.IS_EVAL = True
 
     def stop_eval(self):
@@ -308,7 +307,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         info.update(reward_info)
 
         if self.IS_EVAL and (terminated or truncated):
-            self.eval_track_idx
+            self.CURR_EVAL_IDX
 
         return next_state, reward, terminated, truncated, info
 
