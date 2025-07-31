@@ -67,6 +67,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.CURR_WAYPOINTS = None
         self.STEP_PROGRESS = 0
         self.PROGRESS_NOT_MET_COUNTER = 0
+        self.STEP_COUNTER = 0
 
         # Reset client
         self.GOALS_REACHED = 0
@@ -180,7 +181,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
     
     def reset(self):
         self.publish_status('')
-        self.step_counter = 0
+        self.STEP_COUNTER = 0
         self.STEPS_WITHOUT_GOAL = 0
         self.GOALS_REACHED = 0
 
@@ -279,7 +280,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.IS_EVAL = False
 
     def step(self, action):
-        self.step_counter += 1
+        self.STEP_COUNTER += 1
         
         # get current state
         full_state = self.CURR_STATE
@@ -344,7 +345,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     def is_truncated(self):
         return self.PROGRESS_NOT_MET_COUNTER >= 5 or \
-        self.step_counter >= self.MAX_STEPS
+        self.STEP_COUNTER >= self.MAX_STEPS
 
 
     def get_observation(self):
