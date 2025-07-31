@@ -145,7 +145,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.odom_observation_future = Future()
 
         #####################################################################################################################
-
         # Publish and subscribe to status topic
 
         self.status_pub = self.create_publisher(
@@ -160,11 +159,11 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.status_callback,
             10)
         
-        self.status = ''
+        self.STATUS = ''
 
         self.get_logger().info('Environment Setup Complete')
 
-
+        #####################################################################################################################
 
 #    ____ _        _    ____ ____    _____ _   _ _   _  ____ _____ ___ ___  _   _ ____  
 #   / ___| |      / \  / ___/ ___|  |  ___| | | | \ | |/ ___|_   _|_ _/ _ \| \ | / ___| 
@@ -179,9 +178,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         factor = 1 + random.uniform(-percentage, percentage)
         return yaw + factor
     
-
-
-
     def reset(self):
         self.publish_status('')
         self.step_counter = 0
@@ -338,7 +334,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             string = 'r_' + str(self.NAME)
             self.publish_status(string)
 
-        if ((not truncated) and ('r' in self.status)):
+        if ((not truncated) and ('r' in self.STATUS)):
             truncated = True
         return next_state, reward, terminated, truncated, info
 
@@ -575,5 +571,5 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.status_pub.publish(msg)
 
     def status_callback(self, msg):
-        self.status = msg.data
-        self.get_logger().info(str(self.status))
+        self.STATUS = msg.data
+        self.get_logger().info(str(self.STATUS))
