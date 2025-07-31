@@ -180,14 +180,19 @@ class TwoCarEnvironment(F1tenthEnvironment):
         return yaw + factor
     
     def reset(self):
-        self.publish_status('')
+        
         self.STEP_COUNTER = 0
         self.STEPS_WITHOUT_GOAL = 0
         self.GOALS_REACHED = 0
 
         self.set_velocity(0, 0)
+        if self.NAME in self.STATUS:
+            while(self.STATUS != 'respawned'):
+                rclpy.spin_once(self, timeout_sec=1)
+        else:
+            self.car_spawn()
+            self.publish_status('respawned')
         
-        self.car_spawn()
 
         # Get initial observation
         self.call_step(pause=False)
@@ -209,7 +214,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # reward function specific resets
         self.PROGRESS_NOT_MET_COUNTER = 0
 
-
+        self.publish_status('')
         return state, info
     
     def car_spawn(self):
