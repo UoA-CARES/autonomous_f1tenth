@@ -187,11 +187,11 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.set_velocity(0, 0)
         if self.NAME in self.STATUS:
-            while(self.STATUS != 'respawned'):
+            while('respawn' not in self.STATUS):
                 rclpy.spin_once(self, timeout_sec=1)
+            self.parse_status(self.STATUS)
         else:
             self.car_spawn()
-            self.publish_status('respawned')
         
 
         # Get initial observation
@@ -271,11 +271,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.SPAWN_INDEX = index
         x,y,_,_ = self.CURR_WAYPOINTS[self.SPAWN_INDEX+1 if self.SPAWN_INDEX+1 < len(self.CURR_WAYPOINTS) else 0]# point toward next goal
-        self.goal_position = [x,y]
+        self.GOAL_POS = [x,y]
 
         # Spawn car
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name='f1tenth')
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
+
+        string = 'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)
+        self.publish_status(string)
     
     def start_eval(self):
         self.CURR_EVAL_IDX = 0
@@ -454,7 +457,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def calculate_progressive_reward(self, state, next_state, raw_range):
         reward = 0
 
-        goal_position = self.goal_position
+        goal_position = self.GOAL_POS
 
         current_distance = math.dist(goal_position, next_state[:2])
         
@@ -477,7 +480,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
             # Updating Goal Position
             new_x, new_y, _, _ = self.CURR_WAYPOINTS[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.CURR_WAYPOINTS)]
-            self.goal_position = [new_x, new_y]
+            self.GOAL_POS = [new_x, new_y]
 
             self.update_goal_service(new_x, new_y)
 
@@ -579,3 +582,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def status_callback(self, msg):
         self.STATUS = msg.data
         self.get_logger().info(str(self.STATUS))
+
+    def parse_status(self, msg):
+        self.get_logger().info("Parsing status")
