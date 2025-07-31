@@ -11,6 +11,7 @@ from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
+from std_msgs.msg import String
 import torch
 from datetime import datetime
 from message_filters import Subscriber, ApproximateTimeSynchronizer
@@ -145,6 +146,22 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         #####################################################################################################################
 
+        # Publish and subscribe to status topic
+
+        self.status_pub = self.create_publisher(
+            String,
+            '/status',
+            10
+        )
+
+        self.status_sub = self.create_subscription(
+            String,
+            '/status',
+            self.status_callback,
+            10)
+        
+        self.status = ''
+
         self.get_logger().info('Environment Setup Complete')
 
 
@@ -166,6 +183,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
 
     def reset(self):
+        self.publish_status('')
         self.step_counter = 0
         self.STEPS_WITHOUT_GOAL = 0
         self.GOALS_REACHED = 0
@@ -177,13 +195,16 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Get initial observation
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
+
         self.CURR_STATE = full_state
+
         self.call_step(pause=True)
 
         info = {}
 
         # get track progress related info
         # set new track model if its multi track
+
         if TwoCarEnvironment.IS_MULTI_TRACK:
             self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
@@ -191,10 +212,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # reward function specific resets
         self.PROGRESS_NOT_MET_COUNTER = 0
 
+
         return state, info
     
     def car_spawn(self):
         #self.get_logger().info("Car spawning")
+
 
         if TwoCarEnvironment.IS_MULTI_TRACK:
             # Evaluating: loop through eval tracks sequentially
@@ -311,6 +334,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if self.IS_EVAL and (terminated or truncated):
             self.CURR_EVAL_IDX
 
+        if (terminated or truncated):
+            string = 'r_' + str(self.NAME)
+            self.publish_status(string)
+
+        if ((not truncated) and ('r' in self.status)):
+            truncated = True
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
@@ -539,3 +568,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
         odom1 = process_odom(data['odom1'])
         odom2 = process_odom(data['odom2'])
         return odom1, odom2
+    
+    def publish_status(self, status):
+        msg = String()
+        msg.data = str(status)
+        self.status_pub.publish(msg)
+
+    def status_callback(self, msg):
+        self.status = msg.data
+        self.get_logger().info(str(self.status))
