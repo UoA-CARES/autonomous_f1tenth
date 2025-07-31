@@ -62,6 +62,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
         TwoCarEnvironment.ALL_TRACK_MODELS = None
         TwoCarEnvironment.ALL_TRACK_WAYPOINTS = None
         self.CURR_TRACK_MODEL = None
+        self.CURR_TRACK = None
+        self.CURR_WAYPOINTS = None
         self.STEP_PROGRESS = 0
         self.PROGRESS_NOT_MET_COUNTER = 0
 
@@ -95,23 +97,22 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Track info
         TwoCarEnvironment.IS_MULTI_TRACK = 'multi_track' in TwoCarEnvironment.TRACK
         if TwoCarEnvironment.IS_MULTI_TRACK:
+            # Get all track infos
             _, TwoCarEnvironment.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(TwoCarEnvironment.TRACK)
-            self.current_track_key = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[0]
-
-            # set current track waypoints
-            self.track_waypoints = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.current_track_key]
-
-            # set track models
             TwoCarEnvironment.ALL_TRACK_MODELS = get_track_math_defs(TwoCarEnvironment.ALL_TRACK_WAYPOINTS)
-            self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.current_track_key]     
+            
+            # Get current track infos (should start empty?)
+            self.CURR_TRACK = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[0] # Should it always be the first one? Should it be initialized empty?
+            self.CURR_WAYPOINTS = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]     
         else:
             if "test_track" in TwoCarEnvironment.TRACK:
                 track_key = TwoCarEnvironment.TRACK[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
             else:
                 track_key = TwoCarEnvironment.TRACK
 
-            self.track_waypoints = waypoints[track_key]
-            self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.track_waypoints)[:,:2])
+            self.CURR_WAYPOINTS = waypoints[track_key] #from waypoints.py
+            self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.CURR_WAYPOINTS)[:,:2])
             
 
         # Subscribe to both car's odometry --------------------------------------------
@@ -183,7 +184,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # get track progress related info
         # set new track model if its multi track
         if TwoCarEnvironment.IS_MULTI_TRACK:
-            self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.current_track_key]
+            self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         # reward function specific resets
@@ -198,24 +199,24 @@ class TwoCarEnvironment(F1tenthEnvironment):
             # Evaluating: loop through eval tracks sequentially
             if self.IS_EVAL:
                 eval_track_key_list = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[self.eval_track_begin_idx:]
-                self.current_track_key = eval_track_key_list[self.eval_track_idx]
+                self.CURR_TRACK = eval_track_key_list[self.eval_track_idx]
                 self.eval_track_idx += 1
                 self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
 
             # Training: choose a random track that is not used for evaluation
             else:
-                self.current_track_key = random.choice(list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[:self.eval_track_begin_idx])
+                self.CURR_TRACK = random.choice(list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[:self.eval_track_begin_idx])
             
-            self.track_waypoints = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.current_track_key]
+            self.CURR_WAYPOINTS = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
         else:
-            self.current_track_key = TwoCarEnvironment.TRACK
+            self.CURR_TRACK = TwoCarEnvironment.TRACK
 
-        if (self.current_track_key[-3:]).isdigit():
-            width = int(self.current_track_key[-3:])
+        if (self.CURR_TRACK[-3:]).isdigit():
+            width = int(self.CURR_TRACK[-3:])
         else: 
             width = 300
 
-        car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
+        car_x, car_y, car_yaw, index = random.choice(self.CURR_WAYPOINTS)
 
         # Update goal pointer to reflect starting position
         order = random.choice([1, 2])
@@ -235,15 +236,15 @@ class TwoCarEnvironment(F1tenthEnvironment):
         else:
             if order == 1:
                 car_2_offset = random.randint(8, 16)
-                car_2_index = (index + car_2_offset) % len(self.track_waypoints)
-                car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
+                car_2_index = (index + car_2_offset) % len(self.CURR_WAYPOINTS)
+                car_2_x, car_2_y, car_2_yaw, _ = self.CURR_WAYPOINTS[car_2_index]
             else:
                 car_2_offset = random.randint(8, 16)
-                car_2_index = (index - car_2_offset) % len(self.track_waypoints)
-                car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[car_2_index]
+                car_2_index = (index - car_2_offset) % len(self.CURR_WAYPOINTS)
+                car_2_x, car_2_y, car_2_yaw, _ = self.CURR_WAYPOINTS[car_2_index]
 
         self.SPAWN_INDEX = index
-        x,y,_,_ = self.track_waypoints[self.SPAWN_INDEX+1 if self.SPAWN_INDEX+1 < len(self.track_waypoints) else 0]# point toward next goal
+        x,y,_,_ = self.CURR_WAYPOINTS[self.SPAWN_INDEX+1 if self.SPAWN_INDEX+1 < len(self.CURR_WAYPOINTS) else 0]# point toward next goal
         self.goal_position = [x,y]
 
         # Spawn car
@@ -443,7 +444,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.GOALS_REACHED += 1
 
             # Updating Goal Position
-            new_x, new_y, _, _ = self.track_waypoints[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.track_waypoints)]
+            new_x, new_y, _, _ = self.CURR_WAYPOINTS[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.CURR_WAYPOINTS)]
             self.goal_position = [new_x, new_y]
 
             self.update_goal_service(new_x, new_y)
