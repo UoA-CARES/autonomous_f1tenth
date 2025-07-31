@@ -120,8 +120,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.CURR_WAYPOINTS = waypoints[track_key] #from waypoints.py
             self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.CURR_WAYPOINTS)[:,:2])
             
-
-        # Subscribe to both car's odometry --------------------------------------------
+        #####################################################################################################################
+        # Odom subscribers
         self.odom_sub_1 = Subscriber(
             self,
             Odometry,
@@ -141,8 +141,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
         )
 
         self.odom_message_filter.registerCallback(self.odom_message_filter_callback)
-
         self.odom_observation_future = Future()
+
+        #####################################################################################################################
+
         self.get_logger().info('Environment Setup Complete')
 
 
