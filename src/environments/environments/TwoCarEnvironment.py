@@ -5,7 +5,7 @@ from rclpy import Future
 import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
-from .util import has_collided, has_flipped_over
+from .util import has_collided, has_flipped_over, findOccurrences
 from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, twist_to_ackermann, reconstruct_ae_latent, lateral_translation
 from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
@@ -160,7 +160,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.status_callback,
             10)
         
-        self.STATUS = ''
+        self.STATUS = 'r_f1tenth'
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -180,18 +180,37 @@ class TwoCarEnvironment(F1tenthEnvironment):
         return yaw + factor
     
     def reset(self):
-        
+        self.get_logger().info("Resetting")
         self.STEP_COUNTER = 0
         self.STEPS_WITHOUT_GOAL = 0
         self.GOALS_REACHED = 0
 
         self.set_velocity(0, 0)
         if self.NAME in self.STATUS:
+            self.get_logger().info("Waiting for other car to respawn")
             while('respawn' not in self.STATUS):
-                rclpy.spin_once(self, timeout_sec=1)
-            self.parse_status(self.STATUS)
+                rclpy.spin_once(self, timeout_sec=0.1)
+            track, goal, spawn = self.parse_status(self.STATUS)
+            self.CURR_TRACK = track
+            self.GOAL_POS = [goal[0], goal[1]]
+            self.SPAWN_INDEX = spawn
+            self.CURR_WAYPOINTS = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            if self.IS_EVAL:
+                eval_track_key_list = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACKS_IDX:]
+                self.CURR_EVAL_IDX += 1
+                self.CURR_EVAL_IDX = self.CURR_EVAL_IDX % len(eval_track_key_list)
+            self.publish_status('ready')
         else:
+            self.get_logger().info("Respawning")
             self.car_spawn()
+            self.get_logger().info("Waiting for other car to be ready")
+            i = 0
+            while(self.STATUS != 'ready'):
+                rclpy.spin_once(self, timeout_sec=0.1)
+                i+=1
+                if i>10:
+                    self.publish_status(self.STATUS)
+                    i = 0
         
 
         # Get initial observation
@@ -581,9 +600,16 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     def status_callback(self, msg):
         self.STATUS = msg.data
-        self.get_logger().info(str(self.STATUS))
+        #self.get_logger().info(str(self.STATUS))
 
     def parse_status(self, msg):
         self.get_logger().info("Parsing status")
         #string = 'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)+ '_' + str(self.SPAWN_INDEX)
-        
+        indexes = findOccurrences(msg, '_')
+        comma = findOccurrences(msg, ',')
+        track = msg[(indexes[0]+1):indexes[2]]
+        goalx = float(msg[(indexes[2]+2):(comma[0])])
+        goaly = float(msg[(comma[0]+2):(indexes[3]-1)])
+        goal = goalx, goaly
+        spawn_index = int(msg[(indexes[3]+1):])
+        return track, goal, spawn_index
