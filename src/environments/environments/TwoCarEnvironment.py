@@ -277,7 +277,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name='f1tenth')
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
 
-        string = 'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)
+        string = 'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)+ '_' + str(self.SPAWN_INDEX)
         self.publish_status(string)
     
     def start_eval(self):
@@ -585,3 +585,5 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     def parse_status(self, msg):
         self.get_logger().info("Parsing status")
+        #string = 'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)+ '_' + str(self.SPAWN_INDEX)
+        
