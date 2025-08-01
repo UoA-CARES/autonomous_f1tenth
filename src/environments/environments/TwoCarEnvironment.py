@@ -186,6 +186,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.GOALS_REACHED = 0
 
         self.set_velocity(0, 0)
+        self.get_logger().info("Status is:" + str(self.STATUS))
         if self.NAME in self.STATUS:
             self.get_logger().info("Waiting for other car to respawn")
             while('respawn' not in self.STATUS):
@@ -209,7 +210,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 rclpy.spin_once(self, timeout_sec=0.1)
                 i+=1
                 if i>10:
-                    self.publish_status(self.STATUS)
+                    #self.publish_status(self.STATUS)
                     i = 0
         
 
@@ -296,7 +297,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name='f1tenth')
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
 
-        string = 'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)+ '_' + str(self.SPAWN_INDEX)
+        if self.NAME == 'f1tenth':
+            string =  'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)+ '_' + str(self.SPAWN_INDEX) + ', car1'
+        else:
+            string =  'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)+ '_' + str(self.SPAWN_INDEX) + ', car2'
         self.publish_status(string)
     
     def start_eval(self):
@@ -361,6 +365,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if (terminated or truncated):
             string = 'r_' + str(self.NAME)
             self.publish_status(string)
+            self.STATUS=string
+            self.get_logger().info("Calling reset")
 
         if ((not truncated) and ('r' in self.STATUS)):
             truncated = True
@@ -600,7 +606,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     def status_callback(self, msg):
         self.STATUS = msg.data
-        #self.get_logger().info(str(self.STATUS))
+        self.get_logger().info(str(self.NAME) + "reads " + str(self.STATUS))
 
     def parse_status(self, msg):
         self.get_logger().info("Parsing status")
@@ -611,5 +617,5 @@ class TwoCarEnvironment(F1tenthEnvironment):
         goalx = float(msg[(indexes[2]+2):(comma[0])])
         goaly = float(msg[(comma[0]+2):(indexes[3]-1)])
         goal = goalx, goaly
-        spawn_index = int(msg[(indexes[3]+1):])
+        spawn_index = int(msg[(indexes[3]+1):comma[1]])
         return track, goal, spawn_index
