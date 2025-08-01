@@ -133,7 +133,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.odom_sub_2 = Subscriber(
             self,
             Odometry,
-            f'/f1tenth_2/odometry',
+            f'/f2tenth/odometry',
         )
 
         self.odom_message_filter = ApproximateTimeSynchronizer(
@@ -160,7 +160,20 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.status_callback,
             10)
         
+        self.status_lock_pub = self.create_publisher(
+            String,
+            '/status_lock',
+            10
+        )
+
+        self.status_lock_sub = self.create_subscription(
+            String,
+            '/status_lock',
+            self.status_lock_callback,
+            10)
+        
         self.STATUS = 'r_f1tenth'
+        self.status_lock = 'off'
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -295,7 +308,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # Spawn car
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name='f1tenth')
-        self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
+        self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f2tenth')
 
         if self.NAME == 'f1tenth':
             string =  'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)+ '_' + str(self.SPAWN_INDEX) + ', car1'
@@ -602,11 +615,21 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def publish_status(self, status):
         msg = String()
         msg.data = str(status)
-        self.status_pub.publish(msg)
+        if self.status_lock == 'off':
+            self.status_pub.publish(msg)
 
     def status_callback(self, msg):
         self.STATUS = msg.data
         self.get_logger().info(str(self.NAME) + "reads " + str(self.STATUS))
+
+    def change_status_lock(self, change):
+        msg = String()
+        msg.data = str(change)
+        self.status_lock_pub.publish(msg)
+
+    def status_lock_callback(self, msg):
+        self.status_lock = msg.data
+        #self.get_logger().info(str(self.NAME) + "reads " + str(self.STATUS))
 
     def parse_status(self, msg):
         self.get_logger().info("Parsing status")
