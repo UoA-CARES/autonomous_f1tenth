@@ -249,6 +249,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.publish_status('')
         self.change_status_lock('off')
+        self.get_logger().info("Reset complete, status: " + str(self.STATUS) + " , status lock: " + str(self.status_lock))
         return state, info
     
     def car_spawn(self):
