@@ -114,13 +114,17 @@ class F1tenthEnvironment(Node):
     def reset(self):
         raise NotImplementedError('reset() not implemented')
 
-    def step(self, action):
+    def step(self, action, is_training):
         self.step_counter += 1
         self.call_step(pause=False)
 
         state = self.get_observation()
         
-        lin_vel, steering_angle = action
+        if is_training:
+            lin_vel, steering_angle = self.randomise_action(action)
+        else:
+            lin_vel, steering_angle = action
+            
         self.set_velocity(lin_vel, steering_angle)
 
         while not self.timer_future.done():
@@ -186,3 +190,13 @@ class F1tenthEnvironment(Node):
 
     def timer_cb(self):
         self.timer_future.set_result(True)
+
+    
+    def randomise_action(self, action):
+        lin_vel, steering_angle = action
+        steering_noise = np.random.uniform(-0.0217, 0.0217) #   +- 5% noise
+        randomized_steering = steering_angle + steering_noise
+        lin_vel_noise = np.random.uniform(-0.25, 0.25)
+        randomized_lin_vel = lin_vel + lin_vel_noise
+
+        return randomized_lin_vel, randomized_steering
