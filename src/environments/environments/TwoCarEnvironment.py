@@ -200,7 +200,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.set_velocity(0, 0)
         self.get_logger().info("Status is:" + str(self.STATUS))
-        if self.NAME in self.STATUS:
+        if self.NAME == 'f2tenth':
             self.get_logger().info("Waiting for other car to respawn")
             while('respawn' not in self.STATUS):
                 rclpy.spin_once(self, timeout_sec=0.1)
@@ -248,6 +248,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.PROGRESS_NOT_MET_COUNTER = 0
 
         self.publish_status('')
+        self.change_status_lock('off')
         return state, info
     
     def car_spawn(self):
@@ -375,11 +376,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if self.IS_EVAL and (terminated or truncated):
             self.CURR_EVAL_IDX
 
-        if (terminated or truncated):
-            string = 'r_' + str(self.NAME)
-            self.publish_status(string)
-            self.STATUS=string
-            self.get_logger().info("Calling reset")
+        if ((terminated or truncated) and self.status_lock == 'off'):
+                self.change_status_lock('on')
+                string = 'r_' + str(self.NAME)
+                self.publish_status(string)
+                self.STATUS=string 
+                self.get_logger().info("Calling reset")
 
         if ((not truncated) and ('r' in self.STATUS)):
             truncated = True
@@ -615,8 +617,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def publish_status(self, status):
         msg = String()
         msg.data = str(status)
-        if self.status_lock == 'off':
-            self.status_pub.publish(msg)
+        self.status_pub.publish(msg)
 
     def status_callback(self, msg):
         self.STATUS = msg.data
@@ -626,6 +627,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         msg = String()
         msg.data = str(change)
         self.status_lock_pub.publish(msg)
+        self.status_lock = change
 
     def status_lock_callback(self, msg):
         self.status_lock = msg.data
