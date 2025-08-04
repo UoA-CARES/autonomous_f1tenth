@@ -118,8 +118,8 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
             # select and perform action, setup for next step
             action = agent.select_action_from_policy(state, evaluation=True)
             action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
-            with open("network_output.csv", 'a') as f:
-                f.write(f"{episode_num},{episode_timesteps},{action[0]:.4f},{action[1]:.4f}\n")
+            # with open("network_output.csv", 'a') as f:
+            #     f.write(f"{episode_num},{episode_timesteps},{action[0]:.4f},{action[1]:.4f}\n")
             next_state, reward, done, truncated, step_info = env.step(action_env)
             state = next_state
 

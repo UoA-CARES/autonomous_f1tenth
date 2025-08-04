@@ -15,8 +15,8 @@ from .training_loops import off_policy_evaluate, ppo_evaluate
 import os
 
 def main():
-    with open("network_output.csv", 'w') as f:
-        f.write("episode_num,episode_timesteps,speed,steering\n")
+    # with open("network_output.csv", 'w') as f:
+    #     f.write("episode_num,episode_timesteps,speed,steering\n")
     
     rclpy.init()
 
