@@ -5,6 +5,7 @@ from ackermann_msgs.msg import AckermannDriveStamped
 import time
 import os
 from datetime import datetime
+from pathlib import Path
 
 class CmdVelRecorder(Node):
     def __init__(self):
@@ -13,9 +14,10 @@ class CmdVelRecorder(Node):
         self.declare_parameter('onSim')
         self.onSim = self.get_parameter('onSim').value
         
-        script_dir = os.path.dirname(__file__)
-        self.filename = f"record_{'sim' if self.onSim else 'drive'}_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.txt"
-        self.file_path = os.path.join(script_dir, self.filename)
+        # script_dir = os.path.dirname(__file__)
+        self.filename = f"record_{'sim' if self.onSim else 'drive'}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.txt"
+        # self.file_path = os.path.join(script_dir, self.filename)
+        self.file_path = os.path.join(Path(__file__).parent.parent.parent.parent, self.filename)
         with open(self.file_path, 'w') as log_file:
             log_file.write("")
         

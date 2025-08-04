@@ -7,6 +7,7 @@ import numpy as np
 import os
 from datetime import datetime
 import time
+from pathlib import Path
 
 
 class LidarPlotter(Node):
@@ -29,8 +30,9 @@ class LidarPlotter(Node):
             10
         )
         
-        script_dir = os.path.dirname(__file__)
-        self.file_path = os.path.join(script_dir, f"record_lidar_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.txt")
+        # script_dir = os.path.dirname(__file__)
+        # self.file_path = os.path.join(script_dir, f"record_lidar_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.txt")
+        self.file_path = os.path.join(Path(__file__).parent.parent.parent.parent, f"record_lidar_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.txt")
         
         self.get_logger().info(f"Subscribed to '{self.lidar_topic_name}' and '{self.odom_topic_name}' topics.")
         with open(self.file_path, 'w') as log_file:
