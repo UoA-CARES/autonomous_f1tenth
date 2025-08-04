@@ -69,7 +69,7 @@ def main():
     else:
         off_policy_train(env, agent, memory, record, algorithm_config)
         # case _:
-        #     raise Exception(f'Agent type {agent.type} not supported')
+            # raise Exception(f'Agent type {agent.type} not supported')
     
     record.save()
 

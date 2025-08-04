@@ -27,7 +27,7 @@ class F1tenthEnvironment(Node):
                  max_steps,
                  step_length,
                  lidar_points = 10,
-                 config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
+                 config_path='/autonomous_F1tenth/src/environments/config/config.yaml',
                  ):
         super().__init__(env_name + '_environment')
 

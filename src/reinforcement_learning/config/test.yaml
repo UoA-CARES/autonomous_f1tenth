@@ -1,11 +1,11 @@
 test:
   ros__parameters:
     environment: 'CarTrack'
-    track: 'narrow_multi_track' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
+    track: 'vary_track_width_new' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     number_eval_episodes: 1000
     max_steps: 3000
-    actor_path: /home/anyone/training_logs/baseline/123/models/final/TD3_actor.pht
-    critic_path: /home/anyone/training_logs/baseline/123/models/final/TD3_critic.pht
+    actor_path: /home/anyone/training_logs/latency_delay/123/models/final/TD3_actor.pht
+    critic_path: /home/anyone/training_logs/latency_delay/123/models/final/TD3_critic.pht
     algorithm: 'TD3'
     step_length: 0.1
     reward_range: 3
