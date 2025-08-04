@@ -153,7 +153,7 @@ class F1tenthEnvironment(Node):
         self.observation_future.set_result({'odom': odom, 'lidar': lidar})
 
     def get_data(self) -> tuple[Odometry,LaserScan]:
-        rclpy.spin_until_future_complete(self, self.observation_future)
+        rclpy.spin_until_future_complete(self, self.observation_future, timeout_sec=0.5)
         future = self.observation_future
         self.observation_future = Future()
         data = future.result()
