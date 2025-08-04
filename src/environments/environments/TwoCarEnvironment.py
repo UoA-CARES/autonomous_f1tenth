@@ -17,6 +17,7 @@ from datetime import datetime
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from nav_msgs.msg import Odometry
 import yaml
+import time
 
 
 class TwoCarEnvironment(F1tenthEnvironment):
@@ -200,10 +201,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.set_velocity(0, 0)
         self.get_logger().info("Status is:" + str(self.STATUS))
+        start = time.time()
         if self.NAME == 'f2tenth':
             self.get_logger().info("Waiting for other car to respawn")
             while('respawn' not in self.STATUS):
                 rclpy.spin_once(self, timeout_sec=0.1)
+                currTime = time.time()
+                if ((currTime - start) > 5):
+                    break
             track, goal, spawn = self.parse_status(self.STATUS)
             self.CURR_TRACK = track
             self.GOAL_POS = [goal[0], goal[1]]
@@ -221,10 +226,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
             i = 0
             while(self.STATUS != 'ready'):
                 rclpy.spin_once(self, timeout_sec=0.1)
-                i+=1
-                if i>10:
-                    #self.publish_status(self.STATUS)
-                    i = 0
+                currTime = time.time()
+                if ((currTime - start) > 5):
+                    break
         
 
         # Get initial observation
