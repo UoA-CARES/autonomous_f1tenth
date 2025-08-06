@@ -33,7 +33,7 @@ RUN colcon build --merge-install --cmake-args -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
 RUN echo ". /gz/install/setup.bash" >> /etc/bash.bashrc
 
-ARG PROJECT_WORKSPACE_DIR=/autonomous_F1tenth
+ARG PROJECT_WORKSPACE_DIR=/autonomous_f1tenth
 WORKDIR ${PROJECT_WORKSPACE_DIR}
 COPY . ${PROJECT_WORKSPACE_DIR}
 
