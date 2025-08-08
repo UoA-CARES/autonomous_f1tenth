@@ -207,7 +207,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             while('respawn' not in self.STATUS):
                 rclpy.spin_once(self, timeout_sec=0.1)
                 currTime = time.time()
-                if ((currTime - start) > 5):
+                if ((currTime - start) > 10):
                     break
             track, goal, spawn = self.parse_status(self.STATUS)
             self.CURR_TRACK = track
@@ -382,14 +382,17 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.CURR_EVAL_IDX
 
         if ((terminated or truncated) and self.status_lock == 'off'):
-                self.change_status_lock('on')
-                string = 'r_' + str(self.NAME)
-                self.publish_status(string)
-                self.STATUS=string 
-                self.get_logger().info("Calling reset")
+            self.change_status_lock('on')
+            string = 'r_' + str(self.NAME)
+            self.publish_status(string)
+            self.STATUS=string 
+            self.get_logger().info("Calling reset")
+        elif (terminated or truncated):
+            self.get_logger().info('Status locked, still need to reset.')
 
         if ((not truncated) and ('r' in self.STATUS)):
             truncated = True
+            self.get_logger().info("Detected r in status, truncating.")
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
