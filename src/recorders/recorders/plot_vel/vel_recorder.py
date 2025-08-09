@@ -16,12 +16,10 @@ class CmdVelRecorder(Node):
         
         self.filename = f"record_{'sim' if self.onSim else 'drive'}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.txt"
         
-        path = os.path.join(Path(__file__).parent.parent.parent.parent.parent, "vel_records")
+        path = os.path.join(Path(__file__).parent.parent.parent.parent.parent,"recordings", "vel_records")
         if not os.path.exists(path):
             os.mkdir(path)
         self.file_path = os.path.join(path, self.filename)
-        with open(self.file_path, 'w') as log_file:
-            log_file.write("")
         
         if self.onSim:
             self.topic_name = '/f1tenth/cmd_vel'

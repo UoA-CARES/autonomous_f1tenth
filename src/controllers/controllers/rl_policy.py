@@ -39,7 +39,7 @@ def main():
     else:
         raise Exception('Both actor and critic paths must be provided')
     
-    path = os.path.join(Path(__file__).parent.parent.parent.parent, "network_outputs")
+    path = os.path.join(Path(__file__).parent.parent.parent.parent, "recordings", "network_outputs")
     if not os.path.exists(path):
          os.mkdir(path)
     filepath = os.path.join(path, f"network_output_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.txt")

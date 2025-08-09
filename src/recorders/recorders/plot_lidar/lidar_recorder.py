@@ -30,16 +30,13 @@ class LidarPlotter(Node):
             10
         )
         
-        path = os.path.join(Path(__file__).parent.parent.parent.parent.parent, "lidar_records")
+        path = os.path.join(Path(__file__).parent.parent.parent.parent.parent, "recordings", "lidar_records")
         if not os.path.exists(path):
             os.mkdir(path)
         self.file_path = os.path.join(path, f"record_lidar_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.txt")
         
         self.get_logger().info(f"Subscribed to '{self.lidar_topic_name}' and '{self.odom_topic_name}' topics.")
-        with open(self.file_path, 'w') as log_file:
-            log_file.write("")
             
-        
         # Initialize plot
         self.fig, self.ax = plt.subplots()
         self.ax.set_title("Track Walls - Top-Down View")
