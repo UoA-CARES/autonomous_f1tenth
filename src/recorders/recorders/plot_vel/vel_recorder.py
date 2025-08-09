@@ -43,7 +43,7 @@ class CmdVelRecorder(Node):
         timestamp = time.time()
         formatted_time = f"{timestamp:.3f}"
 
-        with open(self.filename, 'a') as log_file:
+        with open(self.file_path, 'a') as log_file:
             if self.onSim:
                 log_file.write(f"time={formatted_time},\tlinear={msg.linear.x},\tangular={msg.angular.z}\n")
             else:
