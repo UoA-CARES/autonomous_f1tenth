@@ -40,6 +40,8 @@ def main():
         raise Exception('Both actor and critic paths must be provided')
     
     path = os.path.join(Path(__file__).parent.parent.parent.parent, "network_outputs")
+    if not os.path.exists(path):
+         os.mkdir(path)
     filepath = os.path.join(path, f"network_output_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.txt")
     with open(filepath, 'w') as f:
         f.write("time,speed,steering\n")
