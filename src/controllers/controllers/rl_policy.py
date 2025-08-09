@@ -6,6 +6,10 @@ from cares_reinforcement_learning.util.helpers import denormalize
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from reinforcement_learning.parse_args import parse_args
 import yaml
+from pathlib import Path
+import os
+from datetime import datetime
+import time
 
 def main():
     rclpy.init()
@@ -35,6 +39,11 @@ def main():
     else:
         raise Exception('Both actor and critic paths must be provided')
     
+    path = os.path.join(Path(__file__).parent.parent.parent.parent, "network_outputs")
+    filepath = os.path.join(path, f"network_output_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.txt")
+    with open(filepath, 'w') as f:
+        f.write("time,speed,steering\n")
+        
     state = controller.step([0, 0], policy_id)
     # Full state is [coordinate_x, coordinate_y, orientation_x, orientation_y, orientation_z, orientation_w, linear_velocity, angular_velocity, 10 x lidar_data]
     # 'lidar_only' only considers linear_velocity and angular_velocity, thus the first 6 elements are omitted
@@ -43,5 +52,8 @@ def main():
     while True:
         action = agent.select_action_from_policy(state)
         action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
+        timestamp = time.time()
+        with open(filepath, 'a') as f:
+                f.write(f"{timestamp},{action[0]:.4f},{action[1]:.4f}\n")
         state = controller.step(action, policy_id)
         state = state[6:]
