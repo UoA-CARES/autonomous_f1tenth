@@ -77,7 +77,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Reward configuration
         self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.5), ('wall_proximity', 0.5)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
@@ -97,11 +97,22 @@ class CarTrackEnvironment(F1tenthEnvironment):
         
         if self.is_staged_training:
             # Stage track indices
-            self.training_stages = {
-                0: [(0, 1), (2, 2)],    # Training (start, end), Eval (start, end), both inclusive
-                1: [(3, 6), (7, 8)],
-                2: [(9, 12), (13, 14)],
-            }
+            if track == 'narrow_multi_track':
+                self.training_stages = {
+                    0: [(0, 1), (2, 2)],    # Training (start, end), Eval (start, end), both inclusive
+                    1: [(3, 6), (7, 8)],
+                    2: [(9, 12), (13, 14)],
+                }
+            elif track == 'staged_tracks':
+                self.training_stages = {
+                    0: [(0, 3), (4, 5)],
+                    1: [(6, 9), (10, 11)],
+                    2: [(12, 15), (16, 17)],
+                    3: [(18, 21), (22, 23)],
+                    4: [(24, 27), (28, 29)],
+                }
+            else:
+                raise Exception(f"Track {track} not designed for staged training.")
             self.current_training_stage = 0
             self.training_idx = self.training_stages[self.current_training_stage][0]
             self.eval_idx = self.training_stages[self.current_training_stage][1]
@@ -135,7 +146,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.odom_observation_mode = observation_mode
         self.track = track
-        self.is_multi_track = 'multi_track' in track
+        self.is_multi_track = 'multi_track' in track or track == 'staged_tracks'
 
 
         # initialize track progress utilities
