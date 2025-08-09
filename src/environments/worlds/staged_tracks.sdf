@@ -39,15 +39,15 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-    <!-- <model name="narrow_ground_plane">
-      <pose>130 0 0 0 0 0</pose>
+    <model name="narrow_ground_plane">
+      <pose>600 0 0 0 0 0</pose>
       <static>true</static>
       <link name="link">
         <collision name="collision">
           <geometry>
             <plane>
               <normal>0 0 1</normal>
-              <size>140 100</size>
+              <size>1200 100</size>
             </plane>
           </geometry>
           <surface>
@@ -66,7 +66,7 @@
           <geometry>
             <plane>
               <normal>0 0 1</normal>
-              <size>300 100</size>
+              <size>1200 100</size>
             </plane>
           </geometry>
           <material>
@@ -76,7 +76,7 @@
           </material>
         </visual>
       </link>
-    </model> -->
+    </model>
 
     <model name="track_01_350">
       <pose>0 0 0 0 0 0</pose>

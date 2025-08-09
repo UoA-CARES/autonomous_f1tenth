@@ -402,7 +402,7 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         for width in WIDTHS:
             for track in TRACKS:
                   track_name = f"{track}_{str(width)}"
-                  global_wp = [(x + i*15, y, yaw, index) for x, y, yaw, index in waypoints[track_name]]
+                  global_wp = [(x + i*30, y, yaw, index) for x, y, yaw, index in waypoints[track_name]]
                   all_car_waypoints.update({track_name : global_wp})
                   i += 1
 
