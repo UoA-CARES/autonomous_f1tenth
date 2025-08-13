@@ -208,7 +208,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 rclpy.spin_once(self, timeout_sec=0.1)
                 currTime = time.time()
                 if ((currTime - start) > 10):
-                    break
+                    self.get_logger().info("Timed out waiting for other car.")
+                    state, full_state , _ = self.get_observation()
+
+                    self.CURR_STATE = full_state
+                    info = {}
+                    return state, info
             track, goal, spawn = self.parse_status(self.STATUS)
             self.CURR_TRACK = track
             self.GOAL_POS = [goal[0], goal[1]]
