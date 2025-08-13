@@ -71,6 +71,11 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.STEP_COUNTER = 0
 
+        # Distance covered
+        self.EP_PROGRESS1 = 0
+        self.EP_PROGRESS2 = 0
+        self.LAST_POS1 = [0, 0]
+        self.LAST_POS2 = [0, 0]
 
         # Reset client
         self.GOALS_REACHED = 0
@@ -506,7 +511,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
                             modifier=0
                         else:
                             modifier = (point2 > point1)
-                    reward += reward * modifier * weight  
+                    reward += reward * modifier * weight
+                    self.LAST_POS1 = odom1[:1]
+                    self.LAST_POS2 = odom2[:1]  
 
         return reward, reward_info
     
