@@ -512,8 +512,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
                         else:
                             modifier = (point2 > point1)
                     reward += reward * modifier * weight
-                    self.LAST_POS1 = odom1[:1]
-                    self.LAST_POS2 = odom2[:1]  
+                    self.LAST_POS1 = odom1[:2]
+                    self.LAST_POS2 = odom2[:2]  
 
         return reward, reward_info
     
@@ -649,7 +649,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     def status_callback(self, msg):
         self.STATUS = msg.data
-        self.get_logger().info(str(self.NAME) + "reads " + str(self.STATUS))
+        #self.get_logger().info(str(self.NAME) + "reads " + str(self.STATUS))
 
     def change_status_lock(self, change):
         msg = String()
