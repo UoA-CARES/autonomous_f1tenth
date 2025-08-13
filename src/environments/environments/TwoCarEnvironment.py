@@ -68,7 +68,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.CURR_WAYPOINTS = None
         self.STEP_PROGRESS = 0
         self.PROGRESS_NOT_MET_COUNTER = 0
+
         self.STEP_COUNTER = 0
+
 
         # Reset client
         self.GOALS_REACHED = 0
@@ -147,6 +149,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.odom_observation_future = Future()
 
         #####################################################################################################################
+
         # Publish and subscribe to status topic
 
         self.status_pub = self.create_publisher(
@@ -196,6 +199,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def reset(self):
         self.get_logger().info("Resetting")
         self.STEP_COUNTER = 0
+
         self.STEPS_WITHOUT_GOAL = 0
         self.GOALS_REACHED = 0
 
@@ -255,6 +259,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # reward function specific resets
         self.PROGRESS_NOT_MET_COUNTER = 0
+
 
         self.publish_status('')
         self.change_status_lock('off')
@@ -316,6 +321,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.SPAWN_INDEX = index
         x,y,_,_ = self.CURR_WAYPOINTS[self.SPAWN_INDEX+1 if self.SPAWN_INDEX+1 < len(self.CURR_WAYPOINTS) else 0]# point toward next goal
         self.GOAL_POS = [x,y]
+
 
         # Spawn car
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name='f1tenth')
@@ -407,6 +413,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def is_truncated(self):
         return self.PROGRESS_NOT_MET_COUNTER >= 5 or \
         self.STEP_COUNTER >= self.MAX_STEPS
+
 
 
     def get_observation(self):
@@ -534,6 +541,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             # Updating Goal Position
             new_x, new_y, _, _ = self.CURR_WAYPOINTS[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.CURR_WAYPOINTS)]
             self.GOAL_POS = [new_x, new_y]
+
 
             self.update_goal_service(new_x, new_y)
 
