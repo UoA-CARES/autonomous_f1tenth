@@ -346,7 +346,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
             case _:
                 raise Exception("Unknown truncate condition for reward function.")
 
-
     def get_observation(self):
 
         # Get Position and Orientation of F1tenth
@@ -375,7 +374,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 #TODO: get rid of hard coded lidar points num
                 scan = create_lidar_msg(lidar, 682, visualized_range)
             case 'avg':
-                processed_lidar_range = avg_lidar(lidar, num_points)
+                # processed_lidar_range = avg_lidar(lidar, num_points)
+                processed_lidar_range = self.drop_random_lidar_points(avg_lidar(lidar, num_points), 0.05)
+                print (f"Processed lidar range: {processed_lidar_range}")
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'raw':
@@ -401,7 +402,17 @@ class CarTrackEnvironment(F1tenthEnvironment):
         full_state = odom + processed_lidar_range
 
         return state, full_state, lidar.ranges
+    
+    def drop_random_lidar_points(self, lidar_ranges, drop_ratio):
 
+        # if not self.is_evaluating:
+        for i in range(len(lidar_ranges)):
+            # random value between 0 and 1
+            if random.random() < drop_ratio:
+                lidar_ranges[i] = 10.0 # simulate a NaN value
+        
+        return lidar_ranges
+    
     def compute_reward(self, state, next_state, raw_lidar_range):
         '''Compute reward based on FULL states: odom + lidar + extra'''
         reward = 0
