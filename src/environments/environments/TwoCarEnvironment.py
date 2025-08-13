@@ -506,8 +506,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
                         self.LAST_POS1 = odom1[:2]
                     if self.LAST_POS2[0] == None:
                         self.LAST_POS2 = odom2[:2]
-                    self.distance_progression(odom1[:2], self.LAST_POS1)
-                    self.distance_progression(odom2[:2], self.LAST_POS2)
+                    progression1 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS1, odom1[:2])
+                    progression2 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS2, odom2[:2])
                     point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
                     point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
                     if self.NAME == 'f1tenth':
@@ -681,6 +681,3 @@ class TwoCarEnvironment(F1tenthEnvironment):
         goal = goalx, goaly
         spawn_index = int(msg[(indexes[3]+1):comma[1]])
         return track, goal, spawn_index
-
-    def distance_progression(self, pos, lastPos):
-        progression = self.CURR_TRACK_MODEL.get_distance_along_track(lastPos, pos)
