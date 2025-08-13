@@ -261,7 +261,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if TwoCarEnvironment.IS_MULTI_TRACK:
             self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
-
+        self.EP_PROGRESS1 = 0
+        self.EP_PROGRESS2 = 0
+        self.LAST_POS1 = [None, None]
+        self.LAST_POS2 = [None, None]
         # reward function specific resets
         self.PROGRESS_NOT_MET_COUNTER = 0
 
@@ -499,6 +502,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")
                 case 'racing':
                     odom1, odom2 = self.get_odoms()
+                    if self.LAST_POS1[0] == None:
+                        self.LAST_POS1 = odom1[:2]
+                    if self.LAST_POS2[0] == None:
+                        self.LAST_POS2 = odom2[:2]
+                    self.distance_progression(odom1[:2], self.LAST_POS1)
+                    self.distance_progression(odom2[:2], self.LAST_POS2)
                     point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
                     point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
                     if self.NAME == 'f1tenth':
@@ -672,3 +681,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         goal = goalx, goaly
         spawn_index = int(msg[(indexes[3]+1):comma[1]])
         return track, goal, spawn_index
+
+    def distance_progression(self, pos, lastPos):
+        progression = self.CURR_TRACK_MODEL.get_distance_along_track(lastPos, pos)
