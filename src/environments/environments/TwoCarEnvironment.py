@@ -197,22 +197,18 @@ class TwoCarEnvironment(F1tenthEnvironment):
         return yaw + factor
     
     def reset(self):
-        self.get_logger().info("Resetting")
         self.STEP_COUNTER = 0
 
         self.STEPS_WITHOUT_GOAL = 0
         self.GOALS_REACHED = 0
 
         self.set_velocity(0, 0)
-        self.get_logger().info("Status is:" + str(self.STATUS))
         start = time.time()
         if self.NAME == 'f2tenth':
-            self.get_logger().info("Waiting for other car to respawn")
             while('respawn' not in self.STATUS):
                 rclpy.spin_once(self, timeout_sec=0.1)
                 currTime = time.time()
                 if ((currTime - start) > 10):
-                    self.get_logger().info("Timed out waiting for other car.")
                     state, full_state , _ = self.get_observation()
 
                     self.CURR_STATE = full_state
@@ -229,9 +225,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 self.CURR_EVAL_IDX = self.CURR_EVAL_IDX % len(eval_track_key_list)
             self.publish_status('ready')
         else:
-            self.get_logger().info("Respawning")
             self.car_spawn()
-            self.get_logger().info("Waiting for other car to be ready")
             i = 0
             while(self.STATUS != 'ready'):
                 rclpy.spin_once(self, timeout_sec=0.1)
@@ -267,7 +261,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         return state, info
     
     def car_spawn(self):
-        #self.get_logger().info("Car spawning")
 
 
         if TwoCarEnvironment.IS_MULTI_TRACK:
@@ -396,14 +389,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.change_status_lock('on')
             string = 'r_' + str(self.NAME)
             self.publish_status(string)
-            self.STATUS=string 
-            self.get_logger().info("Calling reset")
-        elif (terminated or truncated):
-            self.get_logger().info('Status locked, still need to reset.')
-
+            self.STATUS=string
         if ((not truncated) and ('r' in self.STATUS)):
             truncated = True
-            self.get_logger().info("Detected r in status, truncating.")
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
@@ -652,11 +640,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     def status_lock_callback(self, msg):
         self.status_lock = msg.data
-        #self.get_logger().info(str(self.NAME) + "reads " + str(self.STATUS))
 
     def parse_status(self, msg):
-        self.get_logger().info("Parsing status")
-        #string = 'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)+ '_' + str(self.SPAWN_INDEX)
         indexes = findOccurrences(msg, '_')
         comma = findOccurrences(msg, ',')
         track = msg[(indexes[0]+1):indexes[2]]
