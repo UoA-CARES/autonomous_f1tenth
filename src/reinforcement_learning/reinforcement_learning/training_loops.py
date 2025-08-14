@@ -55,7 +55,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
         # train agent
         if step_counter >= max_steps_exploration:
             for i in range(G):
-                info = agent.train_policy(memory,batch_size)
+                info = agent.train_policy(memory,batch_size,i)
         
         # handle if should evaluate at end of episode
         if (step_counter+1) % number_steps_per_evaluation == 0:

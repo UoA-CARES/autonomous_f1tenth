@@ -375,7 +375,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 scan = create_lidar_msg(lidar, 682, visualized_range)
             case 'avg':
                 # processed_lidar_range = avg_lidar(lidar, num_points)
-                processed_lidar_range = self.drop_random_lidar_points(avg_lidar(lidar, num_points), 0.05)
+                processed_lidar_range = self.drop_random_lidar_points(avg_lidar(lidar, num_points), 0.03)
                 print (f"Processed lidar range: {processed_lidar_range}")
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
