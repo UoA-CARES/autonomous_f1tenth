@@ -43,7 +43,7 @@ class LidarPlotter(Node):
         file_creation_time = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
         self.raw_file_path = os.path.join(path, f"lidar_{file_creation_time}.csv")
         with open(self.raw_file_path, 'w') as f:
-            columns = ['time', f'scan_{i}' for i in range(683)]
+            columns = ['time'] + [f'scan_{i}' for i in range(683)]
             f.write(','.join(columns) + '\n')
         self.processed_file_path = os.path.join(path, f"record_lidar_{file_creation_time}.txt")
         
