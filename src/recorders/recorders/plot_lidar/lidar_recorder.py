@@ -13,7 +13,8 @@ from pathlib import Path
 class LidarPlotter(Node):
     def __init__(self):
         super().__init__('lidar_plotter')
-        self.lidar_topic_name = '/f1tenth/processed_scan'
+        self.lidar_topic_name = '/f1tenth/scan'
+        self.processed_lidar_topic_name = '/f1tenth/processed_scan'
         self.odom_topic_name = '/f1tenth/odometry'
         
         # Subscriptions
@@ -21,6 +22,12 @@ class LidarPlotter(Node):
             LaserScan,
             self.lidar_topic_name,
             self.lidar_callback,
+            10
+        )
+        self.processed_lidar_subscription = self.create_subscription(
+            LaserScan,
+            self.processed_lidar_topic_name,
+            self.processed_lidar_callback,
             10
         )
         self.odom_subscription = self.create_subscription(
@@ -33,9 +40,14 @@ class LidarPlotter(Node):
         path = os.path.join(Path(__file__).parent.parent.parent.parent.parent, "recordings", "lidar_records")
         if not os.path.exists(path):
             os.mkdir(path)
-        self.file_path = os.path.join(path, f"record_lidar_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.txt")
+        file_creation_time = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+        self.raw_file_path = os.path.join(path, f"lidar_{file_creation_time}.csv")
+        with open(self.raw_file_path, 'w') as f:
+            columns = ['time', f'scan_{i}' for i in range(683)]
+            f.write(','.join(columns) + '\n')
+        self.processed_file_path = os.path.join(path, f"record_lidar_{file_creation_time}.txt")
         
-        self.get_logger().info(f"Subscribed to '{self.lidar_topic_name}' and '{self.odom_topic_name}' topics.")
+        self.get_logger().info(f"Subscribed to '{self.lidar_topic_name}', '{self.processed_lidar_topic_name}' and '{self.odom_topic_name}' topics.")
             
         # Initialize plot
         self.fig, self.ax = plt.subplots()
@@ -54,6 +66,11 @@ class LidarPlotter(Node):
         self.car_positions.append(self.car_position)  # Store car position for plotting
 
     def lidar_callback(self, msg):
+        with open(self.raw_file_path, 'a') as f:
+            timestamp = time.time()
+            f.write(f"{timestamp}," + ','.join(map(str, msg.ranges)) + '\n')
+
+    def processed_lidar_callback(self, msg):
         ranges = np.array(msg.ranges)
         angle_min = msg.angle_min
         angle_increment = msg.angle_increment
@@ -71,7 +88,7 @@ class LidarPlotter(Node):
         
         timestamp = time.time()
         formatted_time = f"{timestamp:.3f}"
-        with open(self.file_path, 'a') as log_file:
+        with open(self.processed_file_path, 'a') as log_file:
             log_file.write(f"Time: {formatted_time},\n")
             log_file.write(f"Car Position: ({self.car_position[0]:.2f}, {self.car_position[1]:.2f})\n")
             log_file.write("Wall Points:\n")

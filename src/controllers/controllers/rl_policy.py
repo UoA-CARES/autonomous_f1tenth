@@ -42,7 +42,7 @@ def main():
     path = os.path.join(Path(__file__).parent.parent.parent.parent, "recordings", "network_outputs")
     if not os.path.exists(path):
          os.mkdir(path)
-    filepath = os.path.join(path, f"network_output_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.txt")
+    filepath = os.path.join(path, f"network_output_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.csv")
     with open(filepath, 'w') as f:
         f.write("time,speed,steering\n")
         
