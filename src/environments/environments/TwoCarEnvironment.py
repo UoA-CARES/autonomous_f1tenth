@@ -71,6 +71,11 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.STEP_COUNTER = 0
 
+        # Distance covered
+        self.EP_PROGRESS1 = 0
+        self.EP_PROGRESS2 = 0
+        self.LAST_POS1 = [0, 0]
+        self.LAST_POS2 = [0, 0]
 
         # Reset client
         self.GOALS_REACHED = 0
@@ -250,10 +255,13 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if TwoCarEnvironment.IS_MULTI_TRACK:
             self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
-
+        self.EP_PROGRESS1 = 0
+        self.EP_PROGRESS2 = 0
+        self.LAST_POS1 = [None, None]
+        self.LAST_POS2 = [None, None]
         # reward function specific resets
         self.PROGRESS_NOT_MET_COUNTER = 0
-
+        self.get_logger().info("Reset progression: " + str(self.EP_PROGRESS1))
 
         self.publish_status('')
         self.change_status_lock('off')
@@ -482,19 +490,31 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")
                 case 'racing':
                     odom1, odom2 = self.get_odoms()
-                    point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
-                    point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
+                    if self.LAST_POS1[0] == None:
+                        self.LAST_POS1 = odom1[:2]
+                    if self.LAST_POS2[0] == None:
+                        self.LAST_POS2 = odom2[:2]
+                    progression1 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS1, odom1[:2])
+                    progression2 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS2, odom2[:2])
+                    if abs(progression1) < 1:
+                        self.EP_PROGRESS1 += progression1
+                    if abs(progression2) < 1:
+                        self.EP_PROGRESS2 += progression2
+                    # point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
+                    # point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
                     if self.NAME == 'f1tenth':
-                        if point1 == point2:
+                        if self.EP_PROGRESS1 == self.EP_PROGRESS2:
                             modifier=0
                         else:
-                            modifier = (point1 > point2)
+                            modifier = (self.EP_PROGRESS1 > self.EP_PROGRESS2)
                     else:
-                        if point1 == point2:
+                        if self.EP_PROGRESS1 == self.EP_PROGRESS2:
                             modifier=0
                         else:
-                            modifier = (point2 > point1)
-                    reward += reward * modifier * weight  
+                            modifier = (self.EP_PROGRESS2 > self.EP_PROGRESS1)
+                    reward += reward * modifier * weight
+                    self.LAST_POS1 = odom1[:2]
+                    self.LAST_POS2 = odom2[:2]  
 
         return reward, reward_info
     
@@ -630,7 +650,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     def status_callback(self, msg):
         self.STATUS = msg.data
-        self.get_logger().info(str(self.NAME) + "reads " + str(self.STATUS))
+        #self.get_logger().info(str(self.NAME) + "reads " + str(self.STATUS))
 
     def change_status_lock(self, change):
         msg = String()
