@@ -261,16 +261,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.LAST_POS2 = [None, None]
         # reward function specific resets
         self.PROGRESS_NOT_MET_COUNTER = 0
-        self.get_logger().info("Reset progression: " + str(self.EP_PROGRESS1))
 
         self.publish_status('')
         self.change_status_lock('off')
-        self.get_logger().info("Reset complete, status: " + str(self.STATUS) + " , status lock: " + str(self.status_lock))
         return state, info
     
     def car_spawn(self):
-
-
         if TwoCarEnvironment.IS_MULTI_TRACK:
             # Evaluating: loop through eval tracks sequentially
             if self.IS_EVAL:
