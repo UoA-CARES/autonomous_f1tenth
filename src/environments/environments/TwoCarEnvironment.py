@@ -267,7 +267,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.LAST_POS2 = [None, None]
         # reward function specific resets
         self.PROGRESS_NOT_MET_COUNTER = 0
-
+        self.get_logger().info("Reset progression: " + str(self.EP_PROGRESS1))
 
         self.publish_status('')
         self.change_status_lock('off')
@@ -508,18 +508,22 @@ class TwoCarEnvironment(F1tenthEnvironment):
                         self.LAST_POS2 = odom2[:2]
                     progression1 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS1, odom1[:2])
                     progression2 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS2, odom2[:2])
-                    point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
-                    point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
+                    if abs(progression1) < 1:
+                        self.EP_PROGRESS1 += progression1
+                    if abs(progression2) < 1:
+                        self.EP_PROGRESS2 += progression2
+                    # point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
+                    # point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
                     if self.NAME == 'f1tenth':
-                        if point1 == point2:
+                        if self.EP_PROGRESS1 == self.EP_PROGRESS2:
                             modifier=0
                         else:
-                            modifier = (point1 > point2)
+                            modifier = (self.EP_PROGRESS1 > self.EP_PROGRESS2)
                     else:
-                        if point1 == point2:
+                        if self.EP_PROGRESS1 == self.EP_PROGRESS2:
                             modifier=0
                         else:
-                            modifier = (point2 > point1)
+                            modifier = (self.EP_PROGRESS2 > self.EP_PROGRESS1)
                     reward += reward * modifier * weight
                     self.LAST_POS1 = odom1[:2]
                     self.LAST_POS2 = odom2[:2]  
