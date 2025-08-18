@@ -5,7 +5,7 @@ from rclpy import Future
 import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
-from .util import has_collided, has_flipped_over
+from .util import has_collided, has_flipped_over, findOccurrences
 from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, twist_to_ackermann, reconstruct_ae_latent, lateral_translation
 from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
@@ -17,6 +17,7 @@ from datetime import datetime
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from nav_msgs.msg import Odometry
 import yaml
+import time
 
 
 class TwoCarEnvironment(F1tenthEnvironment):
@@ -67,6 +68,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.CURR_WAYPOINTS = None
         self.STEP_PROGRESS = 0
         self.PROGRESS_NOT_MET_COUNTER = 0
+
+        self.STEP_COUNTER = 0
+
+        # Distance covered
+        self.EP_PROGRESS1 = 0
+        self.EP_PROGRESS2 = 0
+        self.LAST_POS1 = [0, 0]
+        self.LAST_POS2 = [0, 0]
 
         # Reset client
         self.GOALS_REACHED = 0
@@ -132,7 +141,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.odom_sub_2 = Subscriber(
             self,
             Odometry,
-            f'/f1tenth_2/odometry',
+            f'/f2tenth/odometry',
         )
 
         self.odom_message_filter = ApproximateTimeSynchronizer(
@@ -160,11 +169,24 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.status_callback,
             10)
         
-        self.status = ''
+        self.status_lock_pub = self.create_publisher(
+            String,
+            '/status_lock',
+            10
+        )
+
+        self.status_lock_sub = self.create_subscription(
+            String,
+            '/status_lock',
+            self.status_lock_callback,
+            10)
+        
+        self.STATUS = 'r_f1tenth'
+        self.status_lock = 'off'
 
         self.get_logger().info('Environment Setup Complete')
 
-
+        #####################################################################################################################
 
 #    ____ _        _    ____ ____    _____ _   _ _   _  ____ _____ ___ ___  _   _ ____  
 #   / ___| |      / \  / ___/ ___|  |  ___| | | | \ | |/ ___|_   _|_ _/ _ \| \ | / ___| 
@@ -179,18 +201,49 @@ class TwoCarEnvironment(F1tenthEnvironment):
         factor = 1 + random.uniform(-percentage, percentage)
         return yaw + factor
     
-
-
-
     def reset(self):
-        self.publish_status('')
-        self.step_counter = 0
+        self.get_logger().info("Resetting")
+        self.STEP_COUNTER = 0
+
         self.STEPS_WITHOUT_GOAL = 0
         self.GOALS_REACHED = 0
 
         self.set_velocity(0, 0)
+        self.get_logger().info("Status is:" + str(self.STATUS))
+        start = time.time()
+        if self.NAME == 'f2tenth':
+            self.get_logger().info("Waiting for other car to respawn")
+            while('respawn' not in self.STATUS):
+                rclpy.spin_once(self, timeout_sec=0.1)
+                currTime = time.time()
+                if ((currTime - start) > 10):
+                    self.get_logger().info("Timed out waiting for other car.")
+                    state, full_state , _ = self.get_observation()
+
+                    self.CURR_STATE = full_state
+                    info = {}
+                    return state, info
+            track, goal, spawn = self.parse_status(self.STATUS)
+            self.CURR_TRACK = track
+            self.GOAL_POS = [goal[0], goal[1]]
+            self.SPAWN_INDEX = spawn
+            self.CURR_WAYPOINTS = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            if self.IS_EVAL:
+                eval_track_key_list = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACKS_IDX:]
+                self.CURR_EVAL_IDX += 1
+                self.CURR_EVAL_IDX = self.CURR_EVAL_IDX % len(eval_track_key_list)
+            self.publish_status('ready')
+        else:
+            self.get_logger().info("Respawning")
+            self.car_spawn()
+            self.get_logger().info("Waiting for other car to be ready")
+            i = 0
+            while(self.STATUS != 'ready'):
+                rclpy.spin_once(self, timeout_sec=0.1)
+                currTime = time.time()
+                if ((currTime - start) > 5):
+                    break
         
-        self.car_spawn()
 
         # Get initial observation
         self.call_step(pause=False)
@@ -208,11 +261,17 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if TwoCarEnvironment.IS_MULTI_TRACK:
             self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
-
+        self.EP_PROGRESS1 = 0
+        self.EP_PROGRESS2 = 0
+        self.LAST_POS1 = [None, None]
+        self.LAST_POS2 = [None, None]
         # reward function specific resets
         self.PROGRESS_NOT_MET_COUNTER = 0
+        self.get_logger().info("Reset progression: " + str(self.EP_PROGRESS1))
 
-
+        self.publish_status('')
+        self.change_status_lock('off')
+        self.get_logger().info("Reset complete, status: " + str(self.STATUS) + " , status lock: " + str(self.status_lock))
         return state, info
     
     def car_spawn(self):
@@ -269,11 +328,18 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.SPAWN_INDEX = index
         x,y,_,_ = self.CURR_WAYPOINTS[self.SPAWN_INDEX+1 if self.SPAWN_INDEX+1 < len(self.CURR_WAYPOINTS) else 0]# point toward next goal
-        self.goal_position = [x,y]
+        self.GOAL_POS = [x,y]
+
 
         # Spawn car
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name='f1tenth')
-        self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f1tenth_2')
+        self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f2tenth')
+
+        if self.NAME == 'f1tenth':
+            string =  'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)+ '_' + str(self.SPAWN_INDEX) + ', car1'
+        else:
+            string =  'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)+ '_' + str(self.SPAWN_INDEX) + ', car2'
+        self.publish_status(string)
     
     def start_eval(self):
         self.CURR_EVAL_IDX = 0
@@ -283,7 +349,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.IS_EVAL = False
 
     def step(self, action):
-        self.step_counter += 1
+        self.STEP_COUNTER += 1
         
         # get current state
         full_state = self.CURR_STATE
@@ -334,12 +400,18 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if self.IS_EVAL and (terminated or truncated):
             self.CURR_EVAL_IDX
 
-        if (terminated or truncated):
+        if ((terminated or truncated) and self.status_lock == 'off'):
+            self.change_status_lock('on')
             string = 'r_' + str(self.NAME)
             self.publish_status(string)
+            self.STATUS=string 
+            self.get_logger().info("Calling reset")
+        elif (terminated or truncated):
+            self.get_logger().info('Status locked, still need to reset.')
 
-        if ((not truncated) and ('r' in self.status)):
+        if ((not truncated) and ('r' in self.STATUS)):
             truncated = True
+            self.get_logger().info("Detected r in status, truncating.")
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
@@ -348,7 +420,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     def is_truncated(self):
         return self.PROGRESS_NOT_MET_COUNTER >= 5 or \
-        self.step_counter >= self.MAX_STEPS
+        self.STEP_COUNTER >= self.MAX_STEPS
+
 
 
     def get_observation(self):
@@ -429,19 +502,31 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")
                 case 'racing':
                     odom1, odom2 = self.get_odoms()
-                    point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
-                    point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
+                    if self.LAST_POS1[0] == None:
+                        self.LAST_POS1 = odom1[:2]
+                    if self.LAST_POS2[0] == None:
+                        self.LAST_POS2 = odom2[:2]
+                    progression1 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS1, odom1[:2])
+                    progression2 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS2, odom2[:2])
+                    if abs(progression1) < 1:
+                        self.EP_PROGRESS1 += progression1
+                    if abs(progression2) < 1:
+                        self.EP_PROGRESS2 += progression2
+                    # point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
+                    # point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
                     if self.NAME == 'f1tenth':
-                        if point1 == point2:
+                        if self.EP_PROGRESS1 == self.EP_PROGRESS2:
                             modifier=0
                         else:
-                            modifier = (point1 > point2)
+                            modifier = (self.EP_PROGRESS1 > self.EP_PROGRESS2)
                     else:
-                        if point1 == point2:
+                        if self.EP_PROGRESS1 == self.EP_PROGRESS2:
                             modifier=0
                         else:
-                            modifier = (point2 > point1)
-                    reward += reward * modifier * weight  
+                            modifier = (self.EP_PROGRESS2 > self.EP_PROGRESS1)
+                    reward += reward * modifier * weight
+                    self.LAST_POS1 = odom1[:2]
+                    self.LAST_POS2 = odom2[:2]  
 
         return reward, reward_info
     
@@ -452,7 +537,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def calculate_progressive_reward(self, state, next_state, raw_range):
         reward = 0
 
-        goal_position = self.goal_position
+        goal_position = self.GOAL_POS
 
         current_distance = math.dist(goal_position, next_state[:2])
         
@@ -475,7 +560,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
             # Updating Goal Position
             new_x, new_y, _, _ = self.CURR_WAYPOINTS[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.CURR_WAYPOINTS)]
-            self.goal_position = [new_x, new_y]
+            self.GOAL_POS = [new_x, new_y]
+
 
             self.update_goal_service(new_x, new_y)
 
@@ -575,5 +661,27 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.status_pub.publish(msg)
 
     def status_callback(self, msg):
-        self.status = msg.data
-        self.get_logger().info(str(self.status))
+        self.STATUS = msg.data
+        #self.get_logger().info(str(self.NAME) + "reads " + str(self.STATUS))
+
+    def change_status_lock(self, change):
+        msg = String()
+        msg.data = str(change)
+        self.status_lock_pub.publish(msg)
+        self.status_lock = change
+
+    def status_lock_callback(self, msg):
+        self.status_lock = msg.data
+        #self.get_logger().info(str(self.NAME) + "reads " + str(self.STATUS))
+
+    def parse_status(self, msg):
+        self.get_logger().info("Parsing status")
+        #string = 'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)+ '_' + str(self.SPAWN_INDEX)
+        indexes = findOccurrences(msg, '_')
+        comma = findOccurrences(msg, ',')
+        track = msg[(indexes[0]+1):indexes[2]]
+        goalx = float(msg[(indexes[2]+2):(comma[0])])
+        goaly = float(msg[(comma[0]+2):(indexes[3]-1)])
+        goal = goalx, goaly
+        spawn_index = int(msg[(indexes[3]+1):comma[1]])
+        return track, goal, spawn_index
