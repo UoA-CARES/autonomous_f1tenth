@@ -7,7 +7,6 @@ import numpy as np
 import os
 from datetime import datetime
 import time
-from pathlib import Path
 
 
 class LidarPlotter(Node):
@@ -37,7 +36,9 @@ class LidarPlotter(Node):
             10
         )
         
-        path = os.path.join(Path(__file__).parent.parent.parent.parent.parent, "recordings", "lidar_records")
+        ament_path = os.environ["AMENT_PREFIX_PATH"].split(":")[0]
+        workspace_dir = os.path.dirname(ament_path)
+        path = os.path.join(workspace_dir, "..", "recordings", "lidar_records")
         if not os.path.exists(path):
             os.mkdir(path)
         file_creation_time = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
