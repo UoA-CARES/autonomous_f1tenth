@@ -89,6 +89,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
                 env.get_logger().info(f'*************--End Evaluation Loop--*************')
 
             # Reset environment
+            env.get_logger().info("Training reset")
             state, _ = env.reset()
             episode_reward = 0
             episode_timesteps = 0
@@ -152,6 +153,7 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
                     )
 
                 # Reset environment
+                env.get_logger().info("Eval reset")
                 state, _ = env.reset()
                 episode_reward = 0
                 episode_timesteps = 0

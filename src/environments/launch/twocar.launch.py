@@ -31,17 +31,17 @@ def launch(context, *args, **kwargs):
         }.items()
     )
 
-    f1tenth_2 = IncludeLaunchDescription(
+    f2tenth = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
         launch_arguments={
-            'name': 'f1tenth_2',
+            'name': 'f2tenth',
             'world': 'empty',
         }.items()
     )
 
 
-    return [gz_sim, f1tenth, f1tenth_2]
+    return [gz_sim, f1tenth, f2tenth]
 
 def generate_launch_description():
 

@@ -39,7 +39,9 @@ def main():
     else:
         raise Exception('Both actor and critic paths must be provided')
     
-    path = os.path.join(Path(__file__).parent.parent.parent.parent, "recordings", "network_outputs")
+    ament_path = os.environ["AMENT_PREFIX_PATH"].split(":")[0]
+    workspace_dir = os.path.dirname(ament_path)
+    path = os.path.join(workspace_dir, "..", "recordings", "network_outputs")
     if not os.path.exists(path):
          os.mkdir(path)
     filepath = os.path.join(path, f"network_output_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.csv")

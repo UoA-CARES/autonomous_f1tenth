@@ -485,3 +485,6 @@ def lateral_translation(spline_location, angle, shift):
     x1 = x + shift*math.cos(angle+(math.pi/2))
     y1 = y + shift*math.sin(angle+(math.pi/2))
     return x1, y1
+
+def findOccurrences(s, ch):
+    return [i for i, letter in enumerate(s) if letter == ch]

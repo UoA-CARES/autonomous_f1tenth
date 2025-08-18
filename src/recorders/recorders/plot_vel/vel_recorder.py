@@ -5,7 +5,6 @@ from ackermann_msgs.msg import AckermannDriveStamped
 import time
 import os
 from datetime import datetime
-from pathlib import Path
 
 class CmdVelRecorder(Node):
     def __init__(self):
@@ -16,7 +15,9 @@ class CmdVelRecorder(Node):
         
         self.filename = f"record_{'sim' if self.onSim else 'drive'}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.txt"
         
-        path = os.path.join(Path(__file__).parent.parent.parent.parent.parent,"recordings", "vel_records")
+        ament_path = os.environ["AMENT_PREFIX_PATH"].split(":")[0]
+        workspace_dir = os.path.dirname(ament_path)
+        path = os.path.join(workspace_dir, "..", "recordings", "vel_records")
         if not os.path.exists(path):
             os.mkdir(path)
         self.file_path = os.path.join(path, self.filename)
