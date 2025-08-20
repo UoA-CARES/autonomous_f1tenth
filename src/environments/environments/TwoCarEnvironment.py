@@ -202,22 +202,18 @@ class TwoCarEnvironment(F1tenthEnvironment):
         return yaw + factor
     
     def reset(self):
-        self.get_logger().info("Resetting")
         self.STEP_COUNTER = 0
 
         self.STEPS_WITHOUT_GOAL = 0
         self.GOALS_REACHED = 0
 
         self.set_velocity(0, 0)
-        self.get_logger().info("Status is:" + str(self.STATUS))
         start = time.time()
         if self.NAME == 'f2tenth':
-            self.get_logger().info("Waiting for other car to respawn")
             while('respawn' not in self.STATUS):
                 rclpy.spin_once(self, timeout_sec=0.1)
                 currTime = time.time()
                 if ((currTime - start) > 10):
-                    self.get_logger().info("Timed out waiting for other car.")
                     state, full_state , _ = self.get_observation()
 
                     self.CURR_STATE = full_state
@@ -234,9 +230,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 self.CURR_EVAL_IDX = self.CURR_EVAL_IDX % len(eval_track_key_list)
             self.publish_status('ready')
         else:
-            self.get_logger().info("Respawning")
             self.car_spawn()
-            self.get_logger().info("Waiting for other car to be ready")
             i = 0
             while(self.STATUS != 'ready'):
                 rclpy.spin_once(self, timeout_sec=0.1)
@@ -267,17 +261,13 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.LAST_POS2 = [None, None]
         # reward function specific resets
         self.PROGRESS_NOT_MET_COUNTER = 0
-        self.get_logger().info("Reset progression: " + str(self.EP_PROGRESS1))
+
 
         self.publish_status('')
         self.change_status_lock('off')
-        self.get_logger().info("Reset complete, status: " + str(self.STATUS) + " , status lock: " + str(self.status_lock))
         return state, info
     
     def car_spawn(self):
-        #self.get_logger().info("Car spawning")
-
-
         if TwoCarEnvironment.IS_MULTI_TRACK:
             # Evaluating: loop through eval tracks sequentially
             if self.IS_EVAL:
@@ -404,14 +394,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.change_status_lock('on')
             string = 'r_' + str(self.NAME)
             self.publish_status(string)
-            self.STATUS=string 
-            self.get_logger().info("Calling reset")
-        elif (terminated or truncated):
-            self.get_logger().info('Status locked, still need to reset.')
-
+            self.STATUS=string
         if ((not truncated) and ('r' in self.STATUS)):
             truncated = True
-            self.get_logger().info("Detected r in status, truncating.")
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
@@ -475,8 +460,25 @@ class TwoCarEnvironment(F1tenthEnvironment):
         reward = 0
         reward_info = {}
 
+        odom1, odom2 = self.get_odoms()
+        if self.LAST_POS1[0] == None:
+            self.LAST_POS1 = odom1[:2]
+        if self.LAST_POS2[0] == None:
+            self.LAST_POS2 = odom2[:2]
+        progression1 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS1, odom1[:2])
+        progression2 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS2, odom2[:2])
+        if abs(progression1) < 1:
+            self.EP_PROGRESS1 += progression1
+        if abs(progression2) < 1:
+            self.EP_PROGRESS2 += progression2
+        
+        if self.NAME == 'f1tenth':
+            base_reward, base_reward_info = self.calculate_total_progress_reward(self.EP_PROGRESS1, progression1, next_state, raw_lidar_range)
+        else:
+            base_reward, base_reward_info = self.calculate_total_progress_reward(self.EP_PROGRESS2, progression2, next_state, raw_lidar_range)
+
         # calculate base reward
-        base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
+        #base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
         reward += base_reward
         reward_info.update(base_reward_info)
         
@@ -501,17 +503,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     reward -= reward * turning_penalty_factor * weight
                     #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")
                 case 'racing':
-                    odom1, odom2 = self.get_odoms()
-                    if self.LAST_POS1[0] == None:
-                        self.LAST_POS1 = odom1[:2]
-                    if self.LAST_POS2[0] == None:
-                        self.LAST_POS2 = odom2[:2]
-                    progression1 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS1, odom1[:2])
-                    progression2 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS2, odom2[:2])
-                    if abs(progression1) < 1:
-                        self.EP_PROGRESS1 += progression1
-                    if abs(progression2) < 1:
-                        self.EP_PROGRESS2 += progression2
                     # point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
                     # point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
                     if self.NAME == 'f1tenth':
@@ -576,6 +567,26 @@ class TwoCarEnvironment(F1tenthEnvironment):
         info = {}
 
         return reward, info
+
+    def calculate_total_progress_reward(self, total_progression, step_progression, next_state, raw_range):
+        reward = 0
+
+        if step_progression < 0.02:
+            self.PROGRESS_NOT_MET_COUNTER += 1
+        else:
+            self.PROGRESS_NOT_MET_COUNTER = 0
+
+        reward += total_progression
+
+        if self.PROGRESS_NOT_MET_COUNTER >= 5:
+            reward -= 2
+        if has_collided(raw_range, TwoCarEnvironment.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+            reward -= 2.5
+
+        info = {}
+
+        return reward, info
+
 
     ##########################################################################################
     ########################## Utility Functions #############################################
@@ -672,11 +683,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
     def status_lock_callback(self, msg):
         self.status_lock = msg.data
-        #self.get_logger().info(str(self.NAME) + "reads " + str(self.STATUS))
 
     def parse_status(self, msg):
-        self.get_logger().info("Parsing status")
-        #string = 'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)+ '_' + str(self.SPAWN_INDEX)
         indexes = findOccurrences(msg, '_')
         comma = findOccurrences(msg, ',')
         track = msg[(indexes[0]+1):indexes[2]]
