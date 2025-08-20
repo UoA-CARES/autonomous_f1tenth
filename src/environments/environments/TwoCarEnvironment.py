@@ -262,6 +262,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # reward function specific resets
         self.PROGRESS_NOT_MET_COUNTER = 0
 
+
         self.publish_status('')
         self.change_status_lock('off')
         return state, info
@@ -502,8 +503,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     reward -= reward * turning_penalty_factor * weight
                     #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")
                 case 'racing':
-                    
-                    
                     # point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
                     # point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
                     if self.NAME == 'f1tenth':
