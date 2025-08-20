@@ -459,8 +459,25 @@ class TwoCarEnvironment(F1tenthEnvironment):
         reward = 0
         reward_info = {}
 
+        odom1, odom2 = self.get_odoms()
+        if self.LAST_POS1[0] == None:
+            self.LAST_POS1 = odom1[:2]
+        if self.LAST_POS2[0] == None:
+            self.LAST_POS2 = odom2[:2]
+        progression1 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS1, odom1[:2])
+        progression2 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS2, odom2[:2])
+        if abs(progression1) < 1:
+            self.EP_PROGRESS1 += progression1
+        if abs(progression2) < 1:
+            self.EP_PROGRESS2 += progression2
+        
+        if self.NAME == 'f1tenth':
+            base_reward, base_reward_info = self.calculate_total_progress_reward(self.EP_PROGRESS1, progression1, next_state, raw_lidar_range)
+        else:
+            base_reward, base_reward_info = self.calculate_total_progress_reward(self.EP_PROGRESS2, progression2, next_state, raw_lidar_range)
+
         # calculate base reward
-        base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
+        #base_reward, base_reward_info = self.calculate_progressive_reward(state, next_state, raw_lidar_range)
         reward += base_reward
         reward_info.update(base_reward_info)
         
@@ -485,17 +502,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     reward -= reward * turning_penalty_factor * weight
                     #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")
                 case 'racing':
-                    odom1, odom2 = self.get_odoms()
-                    if self.LAST_POS1[0] == None:
-                        self.LAST_POS1 = odom1[:2]
-                    if self.LAST_POS2[0] == None:
-                        self.LAST_POS2 = odom2[:2]
-                    progression1 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS1, odom1[:2])
-                    progression2 = self.CURR_TRACK_MODEL.get_distance_along_track(self.LAST_POS2, odom2[:2])
-                    if abs(progression1) < 1:
-                        self.EP_PROGRESS1 += progression1
-                    if abs(progression2) < 1:
-                        self.EP_PROGRESS2 += progression2
+                    
+                    
                     # point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
                     # point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
                     if self.NAME == 'f1tenth':
@@ -560,6 +568,26 @@ class TwoCarEnvironment(F1tenthEnvironment):
         info = {}
 
         return reward, info
+
+    def calculate_total_progress_reward(self, total_progression, step_progression, next_state, raw_range):
+        reward = 0
+
+        if step_progression < 0.02:
+            self.PROGRESS_NOT_MET_COUNTER += 1
+        else:
+            self.PROGRESS_NOT_MET_COUNTER = 0
+
+        reward += total_progression
+
+        if self.PROGRESS_NOT_MET_COUNTER >= 5:
+            reward -= 2
+        if has_collided(raw_range, TwoCarEnvironment.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+            reward -= 2.5
+
+        info = {}
+
+        return reward, info
+
 
     ##########################################################################################
     ########################## Utility Functions #############################################
