@@ -70,6 +70,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
         #####################################################################################################################
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
         
+        # initialise training stage variables
+        self.is_staged_training = True
+        self.current_training_stage = 0
+        
         # Load configuration from YAML file
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
@@ -375,8 +379,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 scan = create_lidar_msg(lidar, 682, visualized_range)
             case 'avg':
                 # processed_lidar_range = avg_lidar(lidar, num_points)
-                processed_lidar_range = self.drop_random_lidar_points(avg_lidar(lidar, num_points), 0.03)
+                processed_lidar_range = self.drop_random_lidar_points(avg_lidar(lidar, num_points))
                 print (f"Processed lidar range: {processed_lidar_range}")
+                print(f"training stage: {self.current_training_stage}")
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'raw':
@@ -403,8 +408,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         return state, full_state, lidar.ranges
     
-    def drop_random_lidar_points(self, lidar_ranges, drop_ratio):
-
+    def drop_random_lidar_points(self, lidar_ranges):
+        
+        if self.current_training_stage == 0:
+            drop_ratio = 0.0
+        elif self.current_training_stage == 1:
+            drop_ratio = 0.015
+        elif self.current_training_stage == 2:
+            drop_ratio = 0.03
+        
         # if not self.is_evaluating:
         for i in range(len(lidar_ranges)):
             # random value between 0 and 1
@@ -604,3 +616,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 string += f'Lidar: {observation[8:]}\n'
 
         return string
+    
+    def increment_stage(self):
+        """
+        Increment the training stage for staged training.
+        """
+        if not self.is_staged_training:
+            return
+        
+        if self.current_training_stage <= 3: # hardcoding 3 stages
+            self.current_training_stage += 1
+            self.get_logger().info(f"\n Incremented to training stage {self.current_training_stage}.\n")
+        else:
+            self.get_logger().info("Already at the last training stage. No increment performed.")

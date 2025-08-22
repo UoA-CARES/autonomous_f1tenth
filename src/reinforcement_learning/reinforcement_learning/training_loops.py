@@ -89,6 +89,8 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
                 env.get_logger().info(f'*************--End Evaluation Loop--*************')
 
             # Reset environment
+            if episode_num in [200000, 500000, 800000]:
+                env.increment_stage()
             state, _ = env.reset()
             episode_reward = 0
             episode_timesteps = 0
