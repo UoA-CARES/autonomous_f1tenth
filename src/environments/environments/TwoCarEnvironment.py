@@ -210,7 +210,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.GOALS_REACHED = 0
 
         self.set_velocity(0, 0)
-        start = time.time()
         if self.NAME == 'f2tenth':
             while ('respawn' not in self.STATUS):
                 rclpy.spin_until_future_complete(self, self.status_observation_future, timeout_sec=10)
@@ -236,10 +235,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
             i = 0
             while(self.STATUS != 'ready'):
                 rclpy.spin_until_future_complete(self, self.status_observation_future, timeout_sec=10)
-                self.status_observation_future = Future()
-                currTime = time.time()
-                if ((currTime - start) > 5):
+                if (self.status_observation_future.result() == None):
                     break
+                self.status_observation_future = Future()
+                
         
 
         # Get initial observation
