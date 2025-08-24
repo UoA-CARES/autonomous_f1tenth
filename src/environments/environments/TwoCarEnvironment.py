@@ -473,7 +473,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.EP_PROGRESS1 += progression1
         if abs(progression2) < 1:
             self.EP_PROGRESS2 += progression2
-        self.get_logger().info("Episode progression 1: " + str(self.EP_PROGRESS1) + " , episode progression 2: " + str(self.EP_PROGRESS2))
+        #self.get_logger().info("Episode progression 1: " + str(self.EP_PROGRESS1) + " , episode progression 2: " + str(self.EP_PROGRESS2))
         
         if self.NAME == 'f1tenth':
             base_reward, base_reward_info = self.calculate_total_progress_reward(self.EP_PROGRESS1, progression1, next_state, raw_lidar_range)
