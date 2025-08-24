@@ -214,13 +214,13 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if self.NAME == 'f2tenth':
             while ('respawn' not in self.STATUS):
                 rclpy.spin_until_future_complete(self, self.status_observation_future, timeout_sec=10)
-                self.status_observation_future = Future()
                 if (self.status_observation_future.result()) == None:
                     state, full_state , _ = self.get_observation()
 
                     self.CURR_STATE = full_state
                     info = {}
                     return state, info
+                self.status_observation_future = Future()
             track, goal, spawn = self.parse_status(self.STATUS)
             self.CURR_TRACK = track
             self.GOAL_POS = [goal[0], goal[1]]
@@ -235,7 +235,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.car_spawn()
             i = 0
             while(self.STATUS != 'ready'):
-                rclpy.spin_once(self, timeout_sec=0.1)
+                rclpy.spin_until_future_complete(self, self.status_observation_future, timeout_sec=10)
+                self.status_observation_future = Future()
                 currTime = time.time()
                 if ((currTime - start) > 5):
                     break
