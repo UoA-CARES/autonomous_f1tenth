@@ -14,7 +14,8 @@ env_launch = {
     'CarTrack': 'cartrack',
     'CarBeat': 'carbeat',
     'CarOvertake': 'carovertake',
-    'TwoCar':'twocar'
+    'TwoCar':'twocar',
+    'MultiAgent':'multiagent',
 }
 
 def generate_launch_description():
