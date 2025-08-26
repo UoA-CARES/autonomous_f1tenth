@@ -97,6 +97,8 @@ def __get_env_params(param_node: Node):
             config = cfg.CarOvertakeEnvironmentConfig(**params_dict)
         case 'TwoCar':
             config = cfg.TwoCarEnvironmentConfig(**params_dict)
+        case 'MultiAgent':
+            config = cfg.TwoCarEnvironmentConfig(**params_dict)
         case 'CarRace':
             config = cfg.CarRaceEnvironmentConfig(**params_dict)
         case _:
