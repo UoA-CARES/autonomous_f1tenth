@@ -306,44 +306,59 @@ def multi_off_policy_train(env, env2, agent, memory, record, algorithm_config):
             episode_info = {}
         
 
-def multi_off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0):
+def multi_off_policy_evaluate(env, env2, agent, eval_episodes, record=None, steps_counter=0):
 
-    episode_reward = 0
+    episode_reward1 = 0
+    episode_reward2 = 0
     episode_timesteps = 0
     episode_num = 0
     episode_info:Dict[str, list[Literal['avg','sum'],any]] = {}
 
     # put environment in evaluation mode
     env.start_eval()
+    env2.start_eval()
     
     for episode_num in range(eval_episodes):
         
-        state, _ = env.reset()
-        done = False
-        truncated = False
+        state1, _ = env.reset()
+        done1 = False
+        truncated1 = False
+        state2, _ = env2.reset()
+        done2 = False
+        truncated2 = False
 
-        while not done and not truncated:
+        while not done1 and not truncated1 and not done2 and not truncated2:
             episode_timesteps += 1
 
             # select and perform action, setup for next step
-            action = agent.select_action_from_policy(state, evaluation=True)
-            action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
+            action1 = agent.select_action_from_policy(state1, evaluation=True)
+            action_env1 = hlp.denormalize(action1, env.MAX_ACTIONS, env.MIN_ACTIONS)
+            action2 = agent.select_action_from_policy(state2, evaluation=True)
+            action_env2 = hlp.denormalize(action2, env2.MAX_ACTIONS, env2.MIN_ACTIONS)
             with open("network_output.csv", 'a') as f:
-                f.write(f"{episode_num},{episode_timesteps},{action[0]:.4f},{action[1]:.4f}\n")
-            next_state, reward, done, truncated, step_info = env.step(action_env)
-            state = next_state
+                f.write(f"{episode_num},{episode_timesteps},{action1[0]:.4f},{action1[1]:.4f}\n")
+            next_state1, reward1, done1, truncated1, step_info1 = env.step(action_env1)
+            state1 = next_state1
+            next_state2, reward2, done2, truncated2, step_info2 = env.step(action_env2)
+            state2 = next_state2
 
             # record relevant log information
-            episode_reward += reward
-            for info_key, info_content in step_info.items():
+            episode_reward1 += reward1
+            episode_reward2+= reward2
+            for info_key, info_content in step_info1.items():
                 # step info has form: { "info name": ["aggregate behavior type", value] }
                 if info_key in episode_info:
                     episode_info[info_key][1] += info_content[1]
                 else:
                     episode_info[info_key] = info_content
-            
+            for info_key, info_content in step_info2.items():
+                # step info has form: { "info name": ["aggregate behavior type", value] }
+                if info_key in episode_info:
+                    episode_info[info_key][1] += info_content[1]
+                else:
+                    episode_info[info_key] = info_content
             # handle end of eval episode
-            if done or truncated:
+            if done1 or truncated1:
                 if record:
                     # aggregate episode information
                     # step info has form: { "info name": ("aggregate behavior type", value) }
@@ -358,20 +373,48 @@ def multi_off_policy_evaluate(env, agent, eval_episodes, record=None, steps_coun
                         total_steps = steps_counter + 1,
                         episode = episode_num + 1,
                         episode_steps=episode_timesteps,
-                        episode_reward = episode_reward,
+                        episode_reward = episode_reward1,
                         display = True,
                         **episode_info
                     )
 
                 # Reset environment
-                state, _ = env.reset()
-                episode_reward = 0
+                state1, _ = env.reset()
+                episode_reward1 = 0
+                episode_timesteps = 0
+                episode_num += 1
+                episode_info = {}
+                break
+            if done2 or truncated2:
+                if record:
+                    # aggregate episode information
+                    # step info has form: { "info name": ("aggregate behavior type", value) }
+                    for info_key, info_content in episode_info.items():
+                        match info_content[0]:
+                            case 'avg':
+                                episode_info[info_key] = info_content[1]/(episode_timesteps+1)
+                            case 'sum':
+                                episode_info[info_key] = info_content[1]
+
+                    record.log_eval(
+                        total_steps = steps_counter + 1,
+                        episode = episode_num + 1,
+                        episode_steps=episode_timesteps,
+                        episode_reward = episode_reward2,
+                        display = True,
+                        **episode_info
+                    )
+
+                # Reset environment
+                state2, _ = env2.reset()
+                episode_reward2 = 0
                 episode_timesteps = 0
                 episode_num += 1
                 episode_info = {}
                 break
     
-    env.stop_eval()    
+    env.stop_eval() 
+    env2.stop_eval()    
 
 def ppo_train(env, agent, memory, record, algorithm_config):
 
