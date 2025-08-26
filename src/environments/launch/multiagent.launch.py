@@ -80,7 +80,7 @@ def generate_launch_description():
 
     reset = Node(
             package='environments',
-            executable='TwoCarReset',
+            executable='MultiAgentReset',
             output='screen',
             emulate_tty=True,
     )
