@@ -14,7 +14,7 @@ import cares_reinforcement_learning.util.configurations as cfg
 
 from .parse_args import parse_args
 from .EnvironmentFactory import EnvironmentFactory
-from .training_loops import off_policy_train, ppo_train
+from .training_loops import off_policy_train, ppo_train, multi_off_policy_train
 
 def main():
     rclpy.init()
@@ -70,6 +70,8 @@ def main():
 
             if network_config['algorithm'] == 'PPO':
                 ppo_train(env, agent, memory, record, algorithm_config)
+            elif env_config['environment'] == 'MultiAgent':
+                multi_off_policy_train(env, env2, agent, memory, record, algorithm_config)
             else:
                 off_policy_train(env, agent, memory, record, algorithm_config)
         case _:
