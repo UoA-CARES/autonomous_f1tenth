@@ -6,6 +6,7 @@ from environments.CarWallEnvironment import CarWallEnvironment
 from environments.CarBeatEnvironment import CarBeatEnvironment
 from environments.CarOvertakeEnvironment import CarOvertakeEnvironment
 from environments.TwoCarEnvironment import TwoCarEnvironment
+from environments.MultiAgentEnvironment import MultiAgentEnvironment
 
 class EnvironmentFactory:
     def __init__(self):
@@ -88,6 +89,16 @@ class EnvironmentFactory:
                 config['observation_mode'], 
                 config['max_goals'],
                 config['num_lidar_points']
+            )
+        elif name == 'MultiAgent':
+            return MultiAgentEnvironment(
+                config['car_name'], 
+                config['reward_range'], 
+                config['max_steps'], 
+                config['collision_range'], 
+                config['step_length'], 
+                config['track'], 
+                config['observation_mode'], 
             )
         else:
             raise Exception('EnvironmentFactory: Environment not found')
