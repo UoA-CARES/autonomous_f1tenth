@@ -35,31 +35,37 @@ import scipy
 #         return decoded
 
 class LidarConvAE(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, encoder=None, decoder=None):
         super(LidarConvAE, self).__init__()
 
         # Encoder
-        self.encoder = torch.nn.Sequential(
-            torch.nn.Conv1d(1, 32, kernel_size=4, stride=4),  # [B, 1, 512] -> [B, 32, 128]
-            torch.nn.ReLU(True),
-            torch.nn.Conv1d(32, 64, kernel_size=4, stride=4),  # [B, 32, 128] -> [B, 64, 32]
-            torch.nn.ReLU(True),
-            torch.nn.Conv1d(64, 128, kernel_size=4, stride=4),  # [B, 64, 32] -> [B, 128, 8]
-            torch.nn.ReLU(True),
-            torch.nn.Flatten(), # Flatten [B, 128, 8] -> [B, 1024]             
-            torch.nn.Linear(1024, 10)
-        )
+        if encoder is None:
+            self.encoder = torch.nn.Sequential(
+                torch.nn.Conv1d(1, 32, kernel_size=4, stride=4),  # [B, 1, 512] -> [B, 32, 128]
+                torch.nn.ReLU(True),
+                torch.nn.Conv1d(32, 64, kernel_size=4, stride=4),  # [B, 32, 128] -> [B, 64, 32]
+                torch.nn.ReLU(True),
+                torch.nn.Conv1d(64, 128, kernel_size=4, stride=4),  # [B, 64, 32] -> [B, 128, 8]
+                torch.nn.ReLU(True),
+                torch.nn.Flatten(), # Flatten [B, 128, 8] -> [B, 1024]             
+                torch.nn.Linear(1024, 10)
+            )
+        else:
+            self.encoder = encoder
 
         # Decoder
-        self.decoder = torch.nn.Sequential(  
-            torch.nn.Linear(10,1024),
-            torch.nn.Unflatten(-1,(128,8)),       
-            torch.nn.ConvTranspose1d(128, 64, kernel_size=4, stride=4),  # [B, 128, 8] -> [B, 64, 32]
-            torch.nn.ReLU(True),
-            torch.nn.ConvTranspose1d(64, 32, kernel_size=4, stride=4),  # [B, 64, 32] -> [B, 32, 128]
-            torch.nn.ReLU(True),
-            torch.nn.ConvTranspose1d(32, 1, kernel_size=4, stride=4),  # [B, 32, 128] -> [B, 1, 512]
-        )
+        if decoder is None:
+            self.decoder = torch.nn.Sequential(  
+                torch.nn.Linear(10,1024),
+                torch.nn.Unflatten(-1,(128,8)),       
+                torch.nn.ConvTranspose1d(128, 64, kernel_size=4, stride=4),  # [B, 128, 8] -> [B, 64, 32]
+                torch.nn.ReLU(True),
+                torch.nn.ConvTranspose1d(64, 32, kernel_size=4, stride=4),  # [B, 64, 32] -> [B, 32, 128]
+                torch.nn.ReLU(True),
+                torch.nn.ConvTranspose1d(32, 1, kernel_size=4, stride=4),  # [B, 32, 128] -> [B, 1, 512]
+            )
+        else:
+            self.decoder = decoder
 
     def forward(self, x):
         x = self.encoder(x)
