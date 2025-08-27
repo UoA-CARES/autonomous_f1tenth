@@ -1,6 +1,8 @@
 import os
 import numpy as np
 
+"""Finds the standard deviation of each lidar reading when the car is standing still."""
+
 def calculate_std_for_elements(file_path):
     with open(file_path, 'r') as file:
         lines = file.readlines()

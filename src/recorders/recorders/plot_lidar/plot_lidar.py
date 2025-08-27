@@ -1,11 +1,13 @@
-# Load a CSV file, the first column is the time and the rest 683 are scan values
-# Have a slider that allows you to select a time and plot the scan values at that time
-# The scan covers 240 degrees starting from the left side, plot the scans as xy coordinates assuming the car is at 0, 0
-
 import pandas as pd
 from matplotlib.widgets import Slider
 import matplotlib.pyplot as plt
 import numpy as np
+
+"""
+This script plots the lidar reading of the car based on the logged csv file ('lidar_*.csv').
+Lidar distances are converted into x and y coordinates and plotted in a top-down view to represent the obstacle around the car.
+The blue dots are the original (valid) readings, the red lines are NaN values and the yelloe dots are processed values.
+"""
 
 def plot_lidar_scan(csv_file):
     data = pd.read_csv(csv_file)

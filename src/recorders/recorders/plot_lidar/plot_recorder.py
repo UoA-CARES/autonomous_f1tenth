@@ -4,7 +4,6 @@ import torch
 import numpy as np
 from typing import List
 import matplotlib
-# Try different backends until one works
 backends_to_try = ['TkAgg', 'Qt5Agg', 'Agg']
 for backend in backends_to_try:
     try:
@@ -19,6 +18,12 @@ from matplotlib.widgets import Slider
 import matplotlib.pyplot as plt
 import sys
 import os
+
+"""
+This is an older version of plot_lidar.py, which reads both lidar and velocity from files that are named 'record_*.txt'.
+This only shows the processed lidar points and not the original ones but this script also loads the network and constructs a state to show the network output of any point during experiment.
+The network output is shown along side the recorded values for comparison. However this is a bit buggy due to time mismatches.
+"""
 
 
 root_dir = os.path.abspath(os.path.join(

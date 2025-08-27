@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+"""
+For waypoints of simulated tracks
+"""
+
 # Filepaths to the waypoints files
 waypoints_file = 'waypoints.txt'
 original_file = 'original_waypoints.txt'

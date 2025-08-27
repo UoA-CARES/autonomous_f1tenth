@@ -1,9 +1,12 @@
 import matplotlib.pyplot as plt
 
+"""
+This script makes a plot of the linear and angular velocities published against time.
+If the vel_recorder is set to run during simulation, read from 'record_sim_*.txt' files.
+If the vel_recorder is set to run during real world driving, read from 'record_drive_*.txt' files.
+"""
+
 def read_recorded_data(file_name):
-    """
-    Reads the recorded data from the specified file and normalizes the time axis.
-    """
     times = []
     linear_velocities = []
     angular_velocities = []
