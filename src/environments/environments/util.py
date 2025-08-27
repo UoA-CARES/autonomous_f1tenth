@@ -144,7 +144,7 @@ def median_lidar(lidar: LaserScan, num_points: int):
     ranges = ranges[1:]
 
     # Apply median filter first to reduce spikes from nan values
-    window_size = math.ceil(682/num_points) #refer to line 78 in CarTrackEnvironment.py
+    window_size = math.ceil(len(ranges)/num_points) #refer to line 78 in CarTrackEnvironment.py
     filtered_ranges = scipy.ndimage.median_filter(
         ranges, window_size, mode='nearest')
 
