@@ -63,7 +63,6 @@ def main():
 
     match agent.policy_type:
         case 'policy':
-
             if network_config['algorithm'] == 'PPO':
                 ppo_train(env, agent, memory, record, algorithm_config)
             else:
