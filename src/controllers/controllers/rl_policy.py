@@ -6,12 +6,16 @@ from cares_reinforcement_learning.util.helpers import denormalize
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from reinforcement_learning.parse_args import parse_args
 import yaml
+from pathlib import Path
+import os
+from datetime import datetime
+import time
 
 def main():
     rclpy.init()
     
     # Load configuration from YAML file
-    with open('/home/anyone/autonomous_f1tenth/src/controllers/controllers/config/car.yaml', 'r') as file:
+    with open('/home/anyone/new_repo/autonomous_f1tenth/src/controllers/config/car.yaml', 'r') as file:
         config = yaml.safe_load(file)
 
     env_config, _, network_config, rest = parse_args()
@@ -35,11 +39,25 @@ def main():
     else:
         raise Exception('Both actor and critic paths must be provided')
     
+    ament_path = os.environ["AMENT_PREFIX_PATH"].split(":")[0]
+    workspace_dir = os.path.dirname(ament_path)
+    path = os.path.join(workspace_dir, "..", "recordings", "network_outputs")
+    if not os.path.exists(path):
+         os.mkdir(path)
+    filepath = os.path.join(path, f"network_output_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.csv")
+    with open(filepath, 'w') as f:
+        f.write("time,speed,steering\n")
+        
     state = controller.step([0, 0], policy_id)
+    # Full state is [coordinate_x, coordinate_y, orientation_x, orientation_y, orientation_z, orientation_w, linear_velocity, angular_velocity, 10 x lidar_data]
+    # 'lidar_only' only considers linear_velocity and angular_velocity, thus the first 6 elements are omitted
     state = state[6:]
 
     while True:
         action = agent.select_action_from_policy(state)
+        timestamp = time.time()
+        with open(filepath, 'a') as f:
+                f.write(f"{timestamp},{action[0]:.4f},{action[1]:.4f}\n")
         action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
         state = controller.step(action, policy_id)
         state = state[6:]
