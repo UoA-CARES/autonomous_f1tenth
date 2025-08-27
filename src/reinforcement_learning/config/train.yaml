@@ -12,3 +12,4 @@ train:
     is_1d: True
     latent_size: 10
     number_eval_episodes: 3
+    is_staged_training: True

@@ -447,6 +447,25 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
 
     return all_car_goals, all_car_waypoints
 
+def get_training_stages(track_name):
+    # Stage track indices
+    if track_name == 'narrow_multi_track':
+        return {
+            0: [(0, 1), (2, 2)],    # Training (start, end), Eval (start, end), both inclusive
+            1: [(3, 6), (7, 8)],
+            2: [(9, 12), (13, 14)],
+        }
+    elif track_name == 'staged_tracks':
+        return {
+            0: [(0, 3), (4, 5)],
+            1: [(6, 9), (10, 11)],
+            2: [(12, 15), (16, 17)],
+            3: [(18, 21), (22, 23)],
+            4: [(24, 27), (28, 29)],
+        }
+    else:
+        raise Exception(f"Track {track_name} not designed for staged training.")
+
 def get_track_math_defs(tracks_waypoints:dict) -> dict[str,TrackMathDef]:
     '''Expect {trackname: [Waypoint]}, output {trackname: TrackMathDef}'''
     track_math_models = {}

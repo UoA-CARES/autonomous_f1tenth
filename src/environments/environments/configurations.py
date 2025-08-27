@@ -23,6 +23,7 @@ class EnvironmentConfig(SubscriptableClass):
     max_steps: int
     step_length: float
     collision_range: Optional[float] # Doesn't apply to CarGoal
+    is_staged_training: bool # Only applies to CarTrack for now
 
 class CarGoalEnvironmentConfig(EnvironmentConfig):
     pass

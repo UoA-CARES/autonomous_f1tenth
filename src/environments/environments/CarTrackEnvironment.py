@@ -5,7 +5,7 @@ from rclpy import Future
 import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
-from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, has_collided, has_flipped_over
+from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, has_collided, has_flipped_over, get_training_stages
 from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
@@ -61,6 +61,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
+                 is_staged_training=False,
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
@@ -93,26 +94,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5
             
         # Toggles whether to use staged training on multi-tracks
-        self.is_staged_training = True
+        self.IS_STAGED_TRAINING = is_staged_training
         
-        if self.is_staged_training:
-            # Stage track indices
-            if track == 'narrow_multi_track':
-                self.training_stages = {
-                    0: [(0, 1), (2, 2)],    # Training (start, end), Eval (start, end), both inclusive
-                    1: [(3, 6), (7, 8)],
-                    2: [(9, 12), (13, 14)],
-                }
-            elif track == 'staged_tracks':
-                self.training_stages = {
-                    0: [(0, 3), (4, 5)],
-                    1: [(6, 9), (10, 11)],
-                    2: [(12, 15), (16, 17)],
-                    3: [(18, 21), (22, 23)],
-                    4: [(24, 27), (28, 29)],
-                }
-            else:
-                raise Exception(f"Track {track} not designed for staged training.")
+        if self.IS_STAGED_TRAINING:
+            self.training_stages = get_training_stages(track)
             self.current_training_stage = 0
             self.training_idx = self.training_stages[self.current_training_stage][0]
             self.eval_idx = self.training_stages[self.current_training_stage][1]
@@ -183,7 +168,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.track_model = TrackMathDef(np.array(self.track_waypoints)[:,:2])
         else:
             _, self.all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
-            if self.is_staged_training:
+            if self.IS_STAGED_TRAINING:
                 self.current_track_key = list(self.all_track_waypoints.keys())[self.training_idx[0]]
             else:
                 self.current_track_key = list(self.all_track_waypoints.keys())[0]
@@ -197,7 +182,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.is_evaluating = False
 
         if self.is_multi_track:
-            if self.is_staged_training:
+            if self.IS_STAGED_TRAINING:
                 self.eval_track_begin_idx = None
                 self.get_logger().info(f"Track '{track}', {self.training_idx} training, {self.eval_idx} evaluation")
             else:
@@ -241,26 +226,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.set_velocity(0, 0)
 
-        # if self.is_staged_training:
-        #     self.get_logger().info('Resetting for training stage.')
-
-        #     if self.is_evaluating:
-        #         # Use the current evaluation track index
-        #         eval_track_key = list(self.all_track_waypoints.keys())[self.eval_track_index]
-        #         self.current_track_key = eval_track_key
-
-        #         # Increment evaluation index
-        #         self.eval_track_index += self.track_index_increment
-        #     else:
-        #         # Use the current training track indices
-        #         train_track_key_list = list(self.all_track_waypoints.keys())[self.train_track_indices[0]:self.train_track_indices[-1] + 1]
-        #         self.current_track_key = random.choice(train_track_key_list)
-
-        #         # Increment training indices
-        #         self.train_track_indices = [(i + self.track_index_increment) % len(self.all_track_waypoints) for i in self.train_track_indices]
-
-        #     self.track_waypoints = self.all_track_waypoints[self.current_track_key]
-
         if self.is_multi_track:
             # Check if we have dedicated evaluation tracks
             if self.eval_track_begin_idx is not None and self.eval_track_begin_idx >= len(self.all_track_waypoints):
@@ -278,7 +243,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 # We have dedicated evaluation tracks (split < 1.0)
                 if self.is_evaluating:
                     # Evaluating: loop through eval tracks sequentially
-                    if self.is_staged_training:
+                    if self.IS_STAGED_TRAINING:
                         eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_idx[0]:self.eval_idx[1] + 1]
                     else:
                         eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
@@ -287,7 +252,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
                 else:
                     # Training: choose a random track that is not used for evaluation
-                    if self.is_staged_training:
+                    if self.IS_STAGED_TRAINING:
                         self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[self.training_idx[0]:self.training_idx[1] + 1])
                     else:
                         self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
@@ -651,10 +616,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         return string
     
     def increment_stage(self):
-        """
-        Increment the training stage for staged training.
-        """
-        if not self.is_staged_training:
+        if not self.IS_STAGED_TRAINING:
             return
         
         if self.current_training_stage < len(self.training_stages) - 1:
