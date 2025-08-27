@@ -55,9 +55,9 @@ def main():
 
     while True:
         action = agent.select_action_from_policy(state)
-        action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
         timestamp = time.time()
         with open(filepath, 'a') as f:
                 f.write(f"{timestamp},{action[0]:.4f},{action[1]:.4f}\n")
+        action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
         state = controller.step(action, policy_id)
         state = state[6:]
