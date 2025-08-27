@@ -72,7 +72,7 @@ class TrackMathDef():
     def get_distance_along_track(self, coord_1, coord_2):
         t1 = self.get_closest_point_on_spline(coord_1, t_only=True)
         t2 = self.get_closest_point_on_spline(coord_2, t_only=True)
-        return self.get_distance_along_track_parametric(t1, t2)
+        return self.get_distance_along_track_parametric(t1, t2, approximate=True)
 
     def arc_length_minimize_target(self, t2, t1, dist):
         return self.get_distance_along_track_parametric(t1,t2) - dist

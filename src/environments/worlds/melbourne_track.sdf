@@ -103,9 +103,5 @@
                         <uri>../meshes/melbourne_track.stl</uri>
                         <scale>0.001 0.001 0.001</scale>
                     </mesh>
-                </geometry>
-            </collision>
-        </link>
-    </model>
   </world>
 </sdf>

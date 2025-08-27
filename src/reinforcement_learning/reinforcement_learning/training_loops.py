@@ -72,15 +72,16 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
                         episode_info[info_key] = info_content[1]/(episode_timesteps+1)
                     case 'sum':
                         episode_info[info_key] = info_content[1]
-
-            record.log_train(
-                total_steps = step_counter + 1,
-                episode = episode_num + 1,
-                episode_steps=episode_timesteps,
-                episode_reward = episode_reward,
-                display = True,
-                **episode_info
-            )
+            if episode_timesteps > 2:
+                record.log_train(
+                    total_steps = step_counter + 1,
+                    episode = episode_num + 1,
+                    episode_steps=episode_timesteps,
+                    episode_reward = episode_reward,
+                    display = True,
+                    **episode_info
+                )
+                episode_num += 1
 
             if evaluate:
                 evaluate = False
@@ -92,7 +93,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
             state, _ = env.reset()
             episode_reward = 0
             episode_timesteps = 0
-            episode_num += 1
+            
             episode_info = {}
         
 

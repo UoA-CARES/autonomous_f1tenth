@@ -9,6 +9,7 @@ from nav_msgs.msg import Odometry
 from std_srvs.srv import SetBool
 from environment_interfaces.srv import Reset
 from .util import ackermann_to_twist
+import yaml
 
 
 class F1tenthEnvironment(Node):
@@ -20,7 +21,14 @@ class F1tenthEnvironment(Node):
             - fetching of car data (raw)
             - define the interface for environments to implement
     '''
-    def __init__(self, env_name, car_name, max_steps, step_length, lidar_points = 10):
+    def __init__(self,
+                 env_name,
+                 car_name,
+                 max_steps,
+                 step_length,
+                 lidar_points = 10,
+                 config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
+                 ):
         super().__init__(env_name + '_environment')
 
         if lidar_points < 1:
@@ -28,13 +36,18 @@ class F1tenthEnvironment(Node):
         
 
         # Environment Details ----------------------------------------
+                
+        # Load configuration from YAML file
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
+            
         self.NAME = car_name
         self.MAX_STEPS = max_steps
         self.STEP_LENGTH = step_length
         self.LIDAR_POINTS = lidar_points
 
-        self.MAX_ACTIONS = np.asarray([0.5, 0.85])
-        self.MIN_ACTIONS = np.asarray([0, -0.85])
+        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
  
         self.ACTION_NUM = 2
 
@@ -97,6 +110,7 @@ class F1tenthEnvironment(Node):
 
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
+        self.LAST_STATE = Future()
 
     def reset(self):
         raise NotImplementedError('reset() not implemented')
@@ -140,8 +154,13 @@ class F1tenthEnvironment(Node):
         self.observation_future.set_result({'odom': odom, 'lidar': lidar})
 
     def get_data(self) -> tuple[Odometry,LaserScan]:
-        rclpy.spin_until_future_complete(self, self.observation_future)
-        future = self.observation_future
+        rclpy.spin_until_future_complete(self, self.observation_future, timeout_sec=0.5)
+        if (self.observation_future.result()) == None:
+            future = self.LAST_STATE
+            self.get_logger().info("Using previous observation")
+        else:
+            future = self.observation_future
+            self.LAST_STATE = future
         self.observation_future = Future()
         data = future.result()
         return data['odom'], data['lidar']
