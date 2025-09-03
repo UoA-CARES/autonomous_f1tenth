@@ -122,6 +122,30 @@ def avg_lidar(lidar: LaserScan, num_points: int):
                 new_range.append(float(sum/(len(ranges)%num_ind)))
         
         return new_range
+    
+def uneven_avg_lidar(lidar: LaserScan, num_points: int):
+  
+        ranges = lidar.ranges
+        ranges = np.nan_to_num(ranges, nan=float(4), posinf=float(4), neginf=float(4))  # Lidar only sees up to 4 meters
+        ranges = ranges[1:]                                           
+        new_range = []
+        
+        window_size = [40, 50, 60 ,70, 121, 122, 70, 60, 50, 40]
+        
+        if len(ranges) != sum(window_size):
+            raise Exception("Lidar length and window size do not match")
+        
+        if len(window_size) != num_points:
+            raise Exception("Window size length and num_points do not match")
+        
+        start = 0
+        for window in window_size:
+            end = start + window
+            window_ranges = ranges[start:end]
+            new_range.append(float(np.mean(window_ranges)))
+            start = end
+            
+        return new_range
 
 def avg_lidar_w_consensus(lidar:LaserScan, num_points:int):
     '''For each 'sector', count non hitting rays, if non hitting rays >= 50% consider entire sector non-hitting. Otherwise use avg of hitting rays.'''
