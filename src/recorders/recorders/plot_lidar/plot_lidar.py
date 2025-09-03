@@ -2,6 +2,8 @@ import pandas as pd
 from matplotlib.widgets import Slider
 import matplotlib.pyplot as plt
 import numpy as np
+import math
+import scipy.ndimage
 
 """
 This script plots the lidar reading of the car based on the logged csv file ('lidar_*.csv').
@@ -34,10 +36,16 @@ def plot_lidar_scan(csv_file):
         idx = (time - current_time).abs().idxmin()
         
         scan_values = scans[idx]
-        averaged_scan_values = avg_lidar(scan_values, 10)
+        processed_scan_values = avg_lidar(scan_values, 10)
+        processed_scan_values_2 = median_lidar(scan_values, 10)
+        processed_scan_values_3 = uneven_avg_lidar(scan_values, 10)
+        processed_scan_values_4 = uneven_median_lidar(scan_values, 10)
         
         angles = np.linspace(-120 * np.pi / 180, 120 * np.pi / 180, len(scan_values))
-        avg_angles = np.linspace(-120 * np.pi / 180, 120 * np.pi / 180, len(averaged_scan_values))
+        processed_angles = np.linspace(-120 * np.pi / 180, 120 * np.pi / 180, len(processed_scan_values))
+        processed_angles_2 = np.linspace(-120 * np.pi / 180, 120 * np.pi / 180, len(processed_scan_values_2))
+        processed_angles_3 = np.linspace(-120 * np.pi / 180, 120 * np.pi / 180, len(processed_scan_values_3))
+        processed_angles_4 = np.linspace(-120 * np.pi / 180, 120 * np.pi / 180, len(processed_scan_values_4))
         
         # Separate valid and NaN values
         valid_indices = ~np.isnan(scan_values)
@@ -51,8 +59,17 @@ def plot_lidar_scan(csv_file):
         x = valid_scan_values * np.cos(valid_angles)
         y = valid_scan_values * np.sin(valid_angles)
         
-        avg_x = averaged_scan_values * np.cos(avg_angles)
-        avg_y = averaged_scan_values * np.sin(avg_angles)
+        processed_x = processed_scan_values * np.cos(processed_angles)
+        processed_y = processed_scan_values * np.sin(processed_angles)
+        
+        processed_x_2 = processed_scan_values_2 * np.cos(processed_angles_2)
+        processed_y_2 = processed_scan_values_2 * np.sin(processed_angles_2)
+        
+        processed_x_3 = processed_scan_values_3 * np.cos(processed_angles_3)
+        processed_y_3 = processed_scan_values_3 * np.sin(processed_angles_3)
+        
+        processed_x_4 = processed_scan_values_4 * np.cos(processed_angles_4)
+        processed_y_4 = processed_scan_values_4 * np.sin(processed_angles_4)
         
         max_x = np.max(np.abs(x)) + 1
         max_y = np.max(np.abs(y)) + 1
@@ -70,7 +87,13 @@ def plot_lidar_scan(csv_file):
         for angle in invalid_angles:
             ax.plot([0, 10 * np.cos(angle)], [0, 10 * np.sin(angle)], 'r-')
         
-        ax.plot(avg_x, avg_y, 'yo')
+        avg_plot, = ax.plot(processed_x, processed_y, 'mo', label='Average')         # avg
+        median_plot, = ax.plot(processed_x_2, processed_y_2, 'co', label='Median')   # median
+        uneven_avg_plot, = ax.plot(processed_x_3, processed_y_3, 'ko', label='Uneven Average')  # uneven avg
+        uneven_median_plot, = ax.plot(processed_x_4, processed_y_4, 'yo', label='Uneven Median')  # uneven median
+        
+        # Add legend
+        ax.legend(loc='upper right')
         
         fig.canvas.draw_idle()
 
@@ -90,6 +113,78 @@ def avg_lidar(lidar, num_points: int):
         
         return np.array(averaged_lidar)
     
+def uneven_avg_lidar(lidar, num_points: int):
+        ranges = lidar
+        ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))  # Lidar only sees up to 4 meters
+        new_range = []
+        
+        window_size = [121, 70, 60 ,50, 40, 40, 50, 60, 70, 122]
+        
+        if len(ranges) != sum(window_size):
+            raise Exception("Lidar length and window size do not match")
+        
+        if len(window_size) != num_points:
+            raise Exception("Window size length and num_points do not match")
+        
+        start = 0
+        for window in window_size:
+            end = start + window
+            window_ranges = ranges[start:end]
+            new_range.append(float(np.mean(window_ranges)))
+            start = end
+            
+        return new_range
+    
+def uneven_median_lidar(lidar, num_points: int):
+        ranges = lidar
+        ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))  # Lidar only sees up to 4 meters
+        new_range = []
+        
+        window_size = [121, 70, 60 ,50, 40, 40, 50, 60, 70, 122]
+        
+        if len(ranges) != sum(window_size):
+            raise Exception("Lidar length and window size do not match")
+        
+        if len(window_size) != num_points:
+            raise Exception("Window size length and num_points do not match")
+        
+        start = 0
+        for window in window_size:
+            end = start + window
+            window_ranges = ranges[start:end]
+            new_range.append(float(np.median(window_ranges)))
+            start = end
+            
+        return new_range
+
+def median_lidar(lidar, num_points: int):
+    ranges = lidar
+    ranges = np.nan_to_num(ranges, nan=float(
+        10), posinf=float(10), neginf=float(10))
+
+    # Apply median filter first to reduce spikes from nan values
+    window_size = math.ceil(len(ranges)/num_points) #refer to line 78 in CarTrackEnvironment.py
+    filtered_ranges = scipy.ndimage.median_filter(
+        ranges, window_size, mode='nearest')
+
+    new_range = []
+    angle = 240/num_points
+    iter = 240/len(filtered_ranges)
+    num_ind = np.ceil(angle/iter)
+    x = 1
+    sum_val = filtered_ranges[0]
+
+    while (x < len(filtered_ranges)):
+        if (x % num_ind == 0):
+            new_range.append(float(sum_val/num_ind))
+            sum_val = 0
+        sum_val += filtered_ranges[x]
+        x += 1
+    if (sum_val > 0):
+        new_range.append(float(sum_val/(len(filtered_ranges) % num_ind)))
+
+    return new_range
+    
 if __name__ == "__main__":
-    csv_file = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/lidar_2025-08-18_14_04_25.csv'
+    csv_file = '/home/anyone/autonomous_f1tenth/recordings/Sep3rd/lidar_records/staged_training_new.csv'
     plot_lidar_scan(csv_file)
