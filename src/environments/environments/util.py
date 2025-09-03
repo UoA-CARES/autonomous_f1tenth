@@ -123,14 +123,12 @@ def avg_lidar(lidar: LaserScan, num_points: int):
         
         return new_range
     
-def uneven_avg_lidar(lidar: LaserScan, num_points: int):
-  
-        ranges = lidar.ranges
-        ranges = np.nan_to_num(ranges, nan=float(4), posinf=float(4), neginf=float(4))  # Lidar only sees up to 4 meters
-        ranges = ranges[1:]                                           
+def uneven_median_lidar(lidar, num_points: int):
+        ranges = lidar
+        ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))  # Lidar only sees up to 4 meters
         new_range = []
         
-        window_size = [40, 50, 60 ,70, 121, 122, 70, 60, 50, 40]
+        window_size = [121, 70, 60 ,50, 40, 40, 50, 60, 70, 122]
         
         if len(ranges) != sum(window_size):
             raise Exception("Lidar length and window size do not match")
@@ -142,7 +140,7 @@ def uneven_avg_lidar(lidar: LaserScan, num_points: int):
         for window in window_size:
             end = start + window
             window_ranges = ranges[start:end]
-            new_range.append(float(np.mean(window_ranges)))
+            new_range.append(float(np.median(window_ranges)))
             start = end
             
         return new_range
