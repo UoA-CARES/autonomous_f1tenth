@@ -13,6 +13,7 @@ from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
 import yaml
+import time
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -292,6 +293,23 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # take action and wait
         lin_vel, steering_angle = action
+        
+        # action delay based on training stage
+        if self.current_training_stage == 0:
+            action_delay = 0 
+            print("No action delay")
+        elif self.current_training_stage == 1:
+            action_delay = 10
+            print("10ms action delay")
+        elif self.current_training_stage == 2:
+            action_delay = 30
+            print("30ms action delay")
+        elif self.current_training_stage >= 3:
+            action_delay = np.random.uniform(0.064, 0.084)  # 74ms ± 10ms needs be remeasured
+            print(f"{action_delay*1000:.1f}ms action delay")
+            
+        time.sleep(action_delay)
+        
         self.set_velocity(lin_vel, steering_angle)
         
         self.sleep()
@@ -378,10 +396,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 #TODO: get rid of hard coded lidar points num
                 scan = create_lidar_msg(lidar, 682, visualized_range)
             case 'avg':
-                # processed_lidar_range = avg_lidar(lidar, num_points)
-                processed_lidar_range = self.drop_random_lidar_points(avg_lidar(lidar, num_points))
-                print (f"Processed lidar range: {processed_lidar_range}")
-                print(f"training stage: {self.current_training_stage}")
+                processed_lidar_range = avg_lidar(lidar, num_points)
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'raw':
@@ -407,23 +422,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         full_state = odom + processed_lidar_range
 
         return state, full_state, lidar.ranges
-    
-    def drop_random_lidar_points(self, lidar_ranges):
-        
-        if self.current_training_stage == 0:
-            drop_ratio = 0.0
-        elif self.current_training_stage == 1:
-            drop_ratio = 0.015
-        elif self.current_training_stage == 2:
-            drop_ratio = 0.03
-        
-        # if not self.is_evaluating:
-        for i in range(len(lidar_ranges)):
-            # random value between 0 and 1
-            if random.random() < drop_ratio:
-                lidar_ranges[i] = 10.0 # simulate a NaN value
-        
-        return lidar_ranges
     
     def compute_reward(self, state, next_state, raw_lidar_range):
         '''Compute reward based on FULL states: odom + lidar + extra'''
@@ -624,7 +622,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if not self.is_staged_training:
             return
         
-        if self.current_training_stage <= 3: # hardcoding 3 stages
+        if self.current_training_stage <= 4: # hardcoding 4 stages
             self.current_training_stage += 1
             self.get_logger().info(f"\n Incremented to training stage {self.current_training_stage}.\n")
         else:
