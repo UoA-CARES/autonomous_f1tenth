@@ -320,12 +320,13 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.SPAWN_INDEX = index
         x,y,_,_ = self.CURR_WAYPOINTS[self.SPAWN_INDEX+1 if self.SPAWN_INDEX+1 < len(self.CURR_WAYPOINTS) else 0]# point toward next goal
+        goal_x, goal_y, _, _ = self.CURR_WAYPOINTS[self.SPAWN_INDEX+3 if self.SPAWN_INDEX+3 < len(self.CURR_WAYPOINTS) else 0]
         self.GOAL_POS = [x,y]
 
 
         # Spawn car
-        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name='f1tenth')
-        self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=x, goal_y=y, car_name='f2tenth')
+        self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=goal_x, goal_y=goal_y, car_name='f1tenth')
+        self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, goal_x=goal_x, goal_y=goal_y, car_name='f2tenth')
 
         if self.NAME == 'f1tenth':
             string =  'respawn_' + str(self.CURR_TRACK) + '_' + str(self.GOAL_POS)+ '_' + str(self.SPAWN_INDEX) + ', car1'
@@ -512,12 +513,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
                         if self.EP_PROGRESS1 == self.EP_PROGRESS2:
                             modifier=0
                         else:
-                            modifier = (self.EP_PROGRESS1 > self.EP_PROGRESS2)
+                            modifier = (self.EP_PROGRESS1 - self.EP_PROGRESS2)/abs(self.EP_PROGRESS1 - self.EP_PROGRESS2)
                     else:
                         if self.EP_PROGRESS1 == self.EP_PROGRESS2:
                             modifier=0
                         else:
-                            modifier = (self.EP_PROGRESS2 > self.EP_PROGRESS1)
+                            modifier = (self.EP_PROGRESS2 - self.EP_PROGRESS1)/abs(self.EP_PROGRESS2 - self.EP_PROGRESS1)
                     reward += reward * modifier * weight
                     self.LAST_POS1 = odom1[:2]
                     self.LAST_POS2 = odom2[:2]  

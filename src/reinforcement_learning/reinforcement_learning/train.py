@@ -43,8 +43,7 @@ def main():
     env = env_factory.create(env_config['environment'], env_config)
     if env_config['environment'] == 'MultiAgent':
         env2_config = env_config
-        env2_config['car_name'] = 'f2tenth'
-        env2 = env_factory.create(env_config['environment'], env2_config)
+        env2 = env_factory.create('MultiAgent2', env2_config)
     agent = network_factory.create_network(env.OBSERVATION_SIZE, env.ACTION_NUM, config=network_config)
     memory = MemoryBuffer(algorithm_config['buffer_size'])
 

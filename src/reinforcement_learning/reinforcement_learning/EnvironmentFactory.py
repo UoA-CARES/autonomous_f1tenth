@@ -100,5 +100,15 @@ class EnvironmentFactory:
                 config['track'], 
                 config['observation_mode'], 
             )
+        elif name == 'MultiAgent2':
+            return MultiAgentEnvironment(
+                'f2tenth', 
+                config['reward_range'], 
+                config['max_steps'], 
+                config['collision_range'], 
+                config['step_length'], 
+                config['track'], 
+                config['observation_mode'], 
+            )
         else:
             raise Exception('EnvironmentFactory: Environment not found')
