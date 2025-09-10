@@ -123,8 +123,8 @@ def avg_lidar(lidar: LaserScan, num_points: int):
         
         return new_range
     
-def uneven_median_lidar(lidar, num_points: int):
-        ranges = lidar
+def uneven_median_lidar(lidar: LaserScan, num_points: int):
+        ranges = lidar.ranges
         ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))  # Lidar only sees up to 4 meters
         new_range = []
         
