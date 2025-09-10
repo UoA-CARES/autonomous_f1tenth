@@ -53,11 +53,17 @@ def main():
     # 'lidar_only' only considers linear_velocity and angular_velocity, thus the first 6 elements are omitted
     state = state[6:]
 
+    with open('/home/anyone/new_repo/autonomous_f1tenth/src/environments/config/config.yaml', 'r') as file:
+            actions_config = yaml.safe_load(file)
+    max_actions = np.asarray([actions_config['actions']['max_speed'], actions_config['actions']['max_turn']])
+    min_actions = np.asarray([actions_config['actions']['min_speed'], actions_config['actions']['min_turn']])
     while True:
         action = agent.select_action_from_policy(state)
         timestamp = time.time()
         with open(filepath, 'a') as f:
                 f.write(f"{timestamp},{action[0]:.4f},{action[1]:.4f}\n")
-        action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS) 
+        
+        action = denormalize(action, max_actions, min_actions)
+        action = np.clip(action, MIN_ACTIONS, MAX_ACTIONS)
         state = controller.step(action, policy_id)
         state = state[6:]
