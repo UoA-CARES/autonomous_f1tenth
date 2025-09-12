@@ -7,8 +7,6 @@ from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from reinforcement_learning.parse_args import parse_args
 import yaml
 import os
-from datetime import datetime
-import time
 
 def main():
     rclpy.init()
