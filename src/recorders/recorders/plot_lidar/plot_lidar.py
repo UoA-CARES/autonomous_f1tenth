@@ -69,7 +69,7 @@ def plot_lidar_scan(csv_file):
         
         max_x = np.max(np.abs(x)) + 1
         max_y = np.max(np.abs(y)) + 1
-        max_range = max(max_x, max_y)
+        max_range = max(max_x, max_y) * 1.5
         ax.set_xlim(min(0, -max_range), max_range)
         ax.set_ylim(min(0, -max_range), max_range)
         
@@ -161,7 +161,6 @@ def uneven_median_lidar(lidar, num_points: int):
             angles.append(np.radians(angle_deg))
 
             start = end
-            
         return new_range, angles
 
 def median_lidar(lidar, num_points: int):
