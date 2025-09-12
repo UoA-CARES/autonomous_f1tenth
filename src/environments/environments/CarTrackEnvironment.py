@@ -284,7 +284,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.call_step(pause=False)
 
-        # take action and wait
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
         
