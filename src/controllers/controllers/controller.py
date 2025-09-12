@@ -22,7 +22,7 @@ import numpy as np
 from environments.autoencoders.lidar_beta_vae import BetaVAE1D
 from environments.autoencoders.lidar_autoencoder import LidarConvAE
 
-from environments.util import process_odom, avg_lidar, process_lidar_med_filt, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, avg_lidar_w_consensus, process_ae_lidar, process_ae_lidar_beta_vae
+from environments.util import process_odom, avg_lidar, process_lidar_med_filt, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, avg_lidar_w_consensus, process_ae_lidar, process_ae_lidar_beta_vae, uneven_median_lidar
 
 
 class Controller(Node):
@@ -37,7 +37,7 @@ class Controller(Node):
         self.NAME = car_name
         self.STEP_LENGTH = step_length
         self.LIDAR_POINTS = lidar_points
-        self.LIDAR_PROCESSING:Literal["avg","avg_w_consensus","pretrained_ae", "raw"] = 'avg'
+        self.LIDAR_PROCESSING:Literal["avg","median", "avg_w_consensus","pretrained_ae", "raw"] = 'median'
         
         # Pub/Sub ----------------------------------------------------
         # Ackermann pub only works for physical version
@@ -167,6 +167,10 @@ class Controller(Node):
         match self.LIDAR_PROCESSING:
             case 'avg':
                 processed_lidar_range = avg_lidar(lidar, num_points)
+                visualized_range = processed_lidar_range
+                scan = create_lidar_msg(lidar, num_points, visualized_range)
+            case 'median':
+                processed_lidar_range = uneven_median_lidar(lidar, num_points)
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'raw':

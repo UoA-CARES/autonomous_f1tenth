@@ -153,6 +153,28 @@ def avg_lidar_w_consensus(lidar:LaserScan, num_points:int):
         
     return processed_data
 
+def uneven_median_lidar(lidar: LaserScan, num_points: int):
+        ranges = lidar.ranges
+        ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
+        new_range = []
+        
+        window_size = [121, 70, 60 ,50, 40, 40, 50, 60, 70, 122]
+        
+        if len(ranges) != sum(window_size):
+            raise Exception("Lidar length and window size do not match")
+        
+        if len(window_size) != num_points:
+            raise Exception("Window size length and num_points do not match")
+        
+        start = 0
+        for window in window_size:
+            end = start + window
+            window_ranges = ranges[start:end]
+            new_range.append(float(np.median(window_ranges)))
+            start = end
+            
+        return new_range
+
 # This function is terrible at detecting obstacles....
 def process_lidar_med_filt(lidar:LaserScan, window_size:int, nan_to = -5): #-> np.ArrayLike:
     ranges = np.array(lidar.ranges.tolist())
