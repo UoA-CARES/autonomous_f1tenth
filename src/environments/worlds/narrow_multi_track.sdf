@@ -617,7 +617,7 @@
     </model>
 
     <model name="track_06_2m">
-      <pose>85 0 0 0 0 0</pose>
+      <pose>335 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
