@@ -2,5 +2,5 @@
 actions:
   max_speed: 5.0
   max_turn: 0.434 # maximum angular velocity
-  min_speed: 0.0
+  min_speed: 0.5
   min_turn: -0.434
