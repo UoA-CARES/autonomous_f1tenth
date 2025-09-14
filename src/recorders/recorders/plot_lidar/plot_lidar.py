@@ -1,5 +1,5 @@
 import pandas as pd
-from matplotlib.widgets import Slider
+from matplotlib.widgets import Slider, Button
 import matplotlib.pyplot as plt
 import numpy as np
 import math
@@ -52,8 +52,46 @@ def plot_lidar_scan(csv_file):
     ax.set_xlabel('X (m)')
     ax.set_ylabel('Y (m)')
 
+
     ax_slider = plt.axes([0.25, 0.1, 0.65, 0.03])
     slider = Slider(ax_slider, 'Time', time.min(), time.max(), valinit=time.min())
+
+    # Add forward/backward buttons below the slider
+    ax_back10 = plt.axes([0.18, 0.02, 0.12, 0.05])
+    ax_back1 = plt.axes([0.32, 0.02, 0.12, 0.05])
+    ax_forward1 = plt.axes([0.56, 0.02, 0.12, 0.05])
+    ax_forward10 = plt.axes([0.70, 0.02, 0.12, 0.05])
+    btn_back10 = Button(ax_back10, 'Backward (-10)')
+    btn_back1 = Button(ax_back1, 'Backward (-1)')
+    btn_forward1 = Button(ax_forward1, 'Forward (+1)')
+    btn_forward10 = Button(ax_forward10, 'Forward (+10)')
+
+    def step_backward(event):
+        current_val = slider.val
+        idx = (time - current_val).abs().idxmin()
+        if idx > 0:
+            slider.set_val(time.iloc[max(idx - 1, 0)])
+
+    def step_forward(event):
+        current_val = slider.val
+        idx = (time - current_val).abs().idxmin()
+        if idx < len(time) - 1:
+            slider.set_val(time.iloc[min(idx + 1, len(time) - 1)])
+
+    def step_backward10(event):
+        current_val = slider.val
+        idx = (time - current_val).abs().idxmin()
+        slider.set_val(time.iloc[max(idx - 10, 0)])
+
+    def step_forward10(event):
+        current_val = slider.val
+        idx = (time - current_val).abs().idxmin()
+        slider.set_val(time.iloc[min(idx + 10, len(time) - 1)])
+
+    btn_back1.on_clicked(step_backward)
+    btn_forward1.on_clicked(step_forward)
+    btn_back10.on_clicked(step_backward10)
+    btn_forward10.on_clicked(step_forward10)
 
     def update(val):
         current_time = slider.val
@@ -103,8 +141,8 @@ def plot_lidar_scan(csv_file):
         [line.remove() for line in ax.lines[1:]]
         
         # Draw red lines for NaN values
-        # for angle in invalid_angles:
-        #     ax.plot([0, 10 * np.cos(angle)], [0, 10 * np.sin(angle)], 'r-')
+        for angle in invalid_angles:
+            ax.plot([0, 10 * np.cos(angle)], [0, 10 * np.sin(angle)], 'r-')
 
         # colors = plt.cm.get_cmap('tab10', len(window_size))
         # start = 0
@@ -122,7 +160,7 @@ def plot_lidar_scan(csv_file):
         ax.plot(processed_x, processed_y, 'mo', label='Average')            # avg
         # ax.plot(processed_x_2, processed_y_2, 'co', label='Median')         # median
         # ax.plot(processed_x_3, processed_y_3, 'ko', label='Uneven Average') # uneven avg
-        ax.plot(processed_x_4, processed_y_4, 'yo', label='Uneven Median')  # uneven median
+        # ax.plot(processed_x_4, processed_y_4, 'yo', label='Uneven Median')  # uneven median
 
         # Add legend
         ax.legend(loc='upper right')
@@ -228,5 +266,5 @@ def median_lidar(lidar, num_points: int):
 
     
 if __name__ == "__main__":
-    csv_file = '/home/anyone/autonomous_f1tenth/temp.csv'
+    csv_file = '/home/anyone/autonomous_f1tenth/temp_2.csv'
     plot_lidar_scan(csv_file)
