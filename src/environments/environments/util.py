@@ -411,7 +411,6 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         all_car_goals = None
 
         # Waypoints - reordered with vary_track_width_new first, with larger spacing
-        bumpy_track_wp = waypoints['bumpy_track']
         vary_track_width_new_wp = [(x + 1, y, yaw, index) for x, y, yaw, index in waypoints['vary_track_width_new']]
         spiral_track_wp = [(x + 22, y, yaw, index) for x, y, yaw, index in waypoints['spiral_track']]  
         track_01_1m_wp = [(x + 40, y, yaw, index) for x, y, yaw, index in waypoints['track_01_1m']]
@@ -426,23 +425,36 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         narrow_track_04_wp = [(x + 187, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_04']]
         narrow_track_05_wp = [(x + 218, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_05']]
         narrow_track_06_wp = [(x + 249, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_06']]
+        track_01_2m_wp = [(x + 265, y, yaw, index) for x, y, yaw, index in waypoints['track_01_2m']]
+        track_02_2m_wp = [(x + 281, y, yaw, index) for x, y, yaw, index in waypoints['track_02_2m']]
+        track_03_2m_wp = [(x + 297, y, yaw, index) for x, y, yaw, index in waypoints['track_03_2m']]
+        track_04_2m_wp = [(x + 313, y, yaw, index) for x, y, yaw, index in waypoints['track_04_2m']]
+        track_05_2m_wp = [(x + 329, y, yaw, index) for x, y, yaw, index in waypoints['track_05_2m']]
+        track_06_2m_wp = [(x + 345, y, yaw, index) for x, y, yaw, index in waypoints['track_06_2m']]
 
         all_car_waypoints = {
             'bumpy_track': bumpy_track_wp,
             'vary_track_width_new': vary_track_width_new_wp,
             'spiral_track': spiral_track_wp,
+            # train vvvvv eval ^^^^^
+            'track_01_1m': track_01_1m_wp,
+            'track_02_1m': track_02_1m_wp,
+            'track_03_1m': track_03_1m_wp,
+            'track_04_1m': track_04_1m_wp,
+            'track_05_1m': track_05_1m_wp,
+            'track_06_1m': track_06_1m_wp,
             'narrow_track_01': narrow_track_01_wp,
             'narrow_track_02': narrow_track_02_wp,
             'narrow_track_03': narrow_track_03_wp,
             'narrow_track_04': narrow_track_04_wp,
             'narrow_track_05': narrow_track_05_wp,
             'narrow_track_06': narrow_track_06_wp,
-            'track_01_1m': track_01_1m_wp,
-            'track_02_1m': track_02_1m_wp,
-            'track_03_1m': track_03_1m_wp,
-            'track_04_1m': track_04_1m_wp,
-            'track_05_1m': track_05_1m_wp,
-            'track_06_1m': track_06_1m_wp
+            'track_01_2m': track_01_2m_wp,
+            'track_02_2m': track_02_2m_wp,
+            'track_03_2m': track_03_2m_wp,
+            'track_04_2m': track_04_2m_wp,
+            'track_05_2m': track_05_2m_wp,
+            'track_06_2m': track_06_2m_wp
         }
 
     return all_car_goals, all_car_waypoints
