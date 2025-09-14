@@ -462,9 +462,9 @@ def get_training_stages(track_name):
     # Stage track indices
     if track_name == 'narrow_multi_track':
         return {
-            0: [(0, 1), (2, 2)],    # Training (start, end), Eval (start, end), both inclusive
-            1: [(3, 6), (7, 8)],
-            2: [(9, 12), (13, 14)],
+            0: [(14, 19), (0, 1)],    # Training (start, end), Eval (start, end), both inclusive
+            1: [(8, 19), (0, 1)],
+            2: [(2, 19), (0, 1)],
         }
     elif track_name == 'staged_tracks':
         return {
