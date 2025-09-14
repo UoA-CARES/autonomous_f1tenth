@@ -299,12 +299,18 @@ class CarTrackEnvironment(F1tenthEnvironment):
             action_delay = 0 
             print("No action delay")
         elif self.current_training_stage == 1:
-            action_delay = 0.010
-            print("10ms action delay")
+            action_delay = np.random.uniform(0.018, 0.020)  # 19ms ± 1ms
+            print(f"{action_delay*1000:.1f}ms action delay")
         elif self.current_training_stage == 2:
-            action_delay = 0.030
-            print("30ms action delay")
-        elif self.current_training_stage >= 3:
+            action_delay = np.random.uniform(0.037, 0.039)  # 38ms ± 1ms
+            print(f"{action_delay*1000:.1f}ms action delay")
+        elif self.current_training_stage == 3:
+            action_delay = np.random.uniform(0.056, 0.058)  # 57ms ± 1ms
+            print(f"{action_delay*1000:.1f}ms action delay")
+        elif self.current_training_stage == 4:
+            action_delay = np.random.uniform(0.075, 0.077)  # 76ms ± 1ms
+            print(f"{action_delay*1000:.1f}ms action delay")
+        elif self.current_training_stage >= 5:
             action_delay = np.random.uniform(0.094, 0.096)  # 95ms ± 1ms
             print(f"{action_delay*1000:.1f}ms action delay")
             
@@ -622,7 +628,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if not self.is_staged_training:
             return
         
-        if self.current_training_stage <= 4: # hardcoding 4 stages
+        if self.current_training_stage <= 5: # hardcoding 5 stages
             self.current_training_stage += 1
             self.get_logger().info(f"\n Incremented to training stage {self.current_training_stage}.\n")
         else:
