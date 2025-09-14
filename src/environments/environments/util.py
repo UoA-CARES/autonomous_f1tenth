@@ -433,7 +433,6 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         track_06_2m_wp = [(x + 345, y, yaw, index) for x, y, yaw, index in waypoints['track_06_2m']]
 
         all_car_waypoints = {
-            'bumpy_track': bumpy_track_wp,
             'vary_track_width_new': vary_track_width_new_wp,
             'spiral_track': spiral_track_wp,
             # train vvvvv eval ^^^^^
