@@ -32,7 +32,7 @@ def gaussian_window_sizes(total_points, num_windows, std_ratio):
     print(f"Window sizes: {window_sizes}")
     return window_sizes
 
-window_size = gaussian_window_sizes(683, 10, 0.30)
+# window_size = gaussian_window_sizes(683, 10, 0.30)
 # window_size = [121, 70, 60 ,50, 40, 40, 50, 60, 70, 122]
 # window_size = [68, 68, 68, 68, 68, 68, 68, 69, 69, 69]
 
@@ -101,7 +101,7 @@ def plot_lidar_scan(csv_file):
         scan_values = scans[idx]
         processed_scan_values, processed_angles = avg_lidar(scan_values, 10)
         processed_scan_values_2, processed_angles_2 = median_lidar(scan_values, 10)
-        # processed_scan_values_3, processed_angles_3 = uneven_avg_lidar(scan_values, 10)
+        processed_scan_values_3, processed_angles_3 = uneven_avg_lidar(scan_values, 10)
         processed_scan_values_4, processed_angles_4 = uneven_median_lidar(scan_values, 10)
         
         angles = np.linspace(-120 * np.pi / 180, 120 * np.pi / 180, len(scan_values))
@@ -123,8 +123,8 @@ def plot_lidar_scan(csv_file):
         processed_x_2 = processed_scan_values_2 * np.cos(processed_angles_2)
         processed_y_2 = processed_scan_values_2 * np.sin(processed_angles_2)
         
-        # processed_x_3 = processed_scan_values_3 * np.cos(processed_angles_3)
-        # processed_y_3 = processed_scan_values_3 * np.sin(processed_angles_3)
+        processed_x_3 = processed_scan_values_3 * np.cos(processed_angles_3)
+        processed_y_3 = processed_scan_values_3 * np.sin(processed_angles_3)
         
         processed_x_4 = processed_scan_values_4 * np.cos(processed_angles_4)
         processed_y_4 = processed_scan_values_4 * np.sin(processed_angles_4)
@@ -158,9 +158,9 @@ def plot_lidar_scan(csv_file):
         #     start = end
         
         ax.plot(processed_x, processed_y, 'mo', label='Average')            # avg
-        # ax.plot(processed_x_2, processed_y_2, 'co', label='Median')         # median
-        # ax.plot(processed_x_3, processed_y_3, 'ko', label='Uneven Average') # uneven avg
-        # ax.plot(processed_x_4, processed_y_4, 'yo', label='Uneven Median')  # uneven median
+        ax.plot(processed_x_2, processed_y_2, 'co', label='Median')         # median
+        ax.plot(processed_x_3, processed_y_3, 'ko', label='Uneven Average') # uneven avg
+        ax.plot(processed_x_4, processed_y_4, 'yo', label='Uneven Median')  # uneven median
 
         # Add legend
         ax.legend(loc='upper right')
@@ -171,100 +171,96 @@ def plot_lidar_scan(csv_file):
     plt.show()
 
 def avg_lidar(lidar, num_points: int):
-        step = len(lidar) // num_points
-        averaged_lidar = []
-        
-        for i in range(num_points):
-            start = i * step
-            end = start + step if i < num_points - 1 else len(lidar)
-            segment = lidar[start:end]
-            segment = np.nan_to_num(segment, nan=10)
-            averaged_lidar.append(np.mean(segment))
-
-        fov_rad = np.radians(240)
-        angle_edges = np.linspace(-fov_rad/2, fov_rad/2, num_points + 1)
-        angles = (angle_edges[:-1] + angle_edges[1:]) / 2
-        return np.array(averaged_lidar), angles
+    window_size = [68, 68, 68, 68, 68, 68, 68, 69, 69, 69]
+    step = len(lidar) // num_points
+    averaged_lidar = []
     
-def uneven_avg_lidar(lidar, num_points: int):
-        ranges = lidar
-        ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))  # Lidar only sees up to 4 meters
-        new_range = []
-        
-        if len(ranges) != sum(window_size):
-            raise Exception("Lidar length and window size do not match")
-        
-        if len(window_size) != num_points:
-            raise Exception("Window size length and num_points do not match")
-        
-        start = 0
-        for window in window_size:
-            end = start + window
-            window_ranges = ranges[start:end]
-            new_range.append(float(np.mean(window_ranges)))
-            start = end
-            
-        return new_range
-    
-def uneven_median_lidar(lidar, num_points: int):
-        ranges = lidar
-        ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))  # Lidar only sees up to 4 meters
-        new_range = []
-        angles = []
-        
-        if len(ranges) != sum(window_size):
-            raise Exception("Lidar length and window size do not match")
-        
-        if len(window_size) != num_points:
-            raise Exception("Window size length and num_points do not match")
-        
-        fov_deg = 240
-        angle_per_index = fov_deg / len(lidar)
-        start = 0
-        for window in window_size:
-            end = start + window
-            window_ranges = ranges[start:end]
-            new_range.append(float(np.median(window_ranges)))
-
-            window_center_idx = (start + end) // 2
-            angle_deg = -fov_deg / 2 + angle_per_index * window_center_idx
-            angles.append(np.radians(angle_deg))
-
-            start = end
-        return new_range, angles
-
-def median_lidar(lidar, num_points: int):
-    ranges = lidar
-    ranges = np.nan_to_num(ranges, nan=float(
-        10), posinf=float(10), neginf=float(10))
-
-    # Apply median filter first to reduce spikes from nan values
-    window_size = math.ceil(len(ranges)/num_points) #refer to line 78 in CarTrackEnvironment.py
-    filtered_ranges = scipy.ndimage.median_filter(
-        ranges, window_size, mode='nearest')
-
-    new_range = []
-    angle = 240/num_points
-    iter = 240/len(filtered_ranges)
-    num_ind = np.ceil(angle/iter)
-    x = 1
-    sum_val = filtered_ranges[0]
-
-    while (x < len(filtered_ranges)):
-        if (x % num_ind == 0):
-            new_range.append(float(sum_val/num_ind))
-            sum_val = 0
-        sum_val += filtered_ranges[x]
-        x += 1
-    if (sum_val > 0):
-        new_range.append(float(sum_val/(len(filtered_ranges) % num_ind)))
+    for i in range(num_points):
+        start = i * step
+        end = start + step if i < num_points - 1 else len(lidar)
+        segment = lidar[start:end]
+        segment = np.nan_to_num(segment, nan=10)
+        averaged_lidar.append(np.mean(segment))
 
     fov_rad = np.radians(240)
     angle_edges = np.linspace(-fov_rad/2, fov_rad/2, num_points + 1)
     angles = (angle_edges[:-1] + angle_edges[1:]) / 2
+    return np.array(averaged_lidar), angles
+
+def median_lidar(lidar, num_points: int):
+    window_size = [68, 68, 68, 68, 68, 68, 68, 69, 69, 69]
+    step = len(lidar) // num_points
+    median_lidar = []
+    
+    for i in range(num_points):
+        start = i * step
+        end = start + step if i < num_points - 1 else len(lidar)
+        segment = lidar[start:end]
+        segment = np.nan_to_num(segment, nan=10)
+        median_lidar.append(np.median(segment))
+
+    fov_rad = np.radians(240)
+    angle_edges = np.linspace(-fov_rad/2, fov_rad/2, num_points + 1)
+    angles = (angle_edges[:-1] + angle_edges[1:]) / 2
+    return np.array(median_lidar), angles
+    
+def uneven_avg_lidar(lidar, num_points: int):
+    window_size = [121, 70, 60 ,50, 40, 40, 50, 60, 70, 122]
+    ranges = lidar
+    ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))  # Lidar only sees up to 4 meters
+    new_range = []
+    angles = []
+    
+    if len(ranges) != sum(window_size):
+        raise Exception("Lidar length and window size do not match")
+    
+    if len(window_size) != num_points:
+        raise Exception("Window size length and num_points do not match")
+    
+    fov_deg = 240
+    angle_per_index = fov_deg / len(lidar)
+    start = 0
+    for window in window_size:
+        end = start + window
+        window_ranges = ranges[start:end]
+        new_range.append(float(np.mean(window_ranges)))
+
+        window_center_idx = (start + end) // 2
+        angle_deg = -fov_deg / 2 + angle_per_index * window_center_idx
+        angles.append(np.radians(angle_deg))
+
+        start = end
     return new_range, angles
 
+def uneven_median_lidar(lidar, num_points: int):
+    window_size = [121, 70, 60 ,50, 40, 40, 50, 60, 70, 122]
+    ranges = lidar
+    ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))  # Lidar only sees up to 4 meters
+    new_range = []
+    angles = []
     
+    if len(ranges) != sum(window_size):
+        raise Exception("Lidar length and window size do not match")
+    
+    if len(window_size) != num_points:
+        raise Exception("Window size length and num_points do not match")
+    
+    fov_deg = 240
+    angle_per_index = fov_deg / len(lidar)
+    start = 0
+    for window in window_size:
+        end = start + window
+        window_ranges = ranges[start:end]
+        new_range.append(float(np.median(window_ranges)))
+
+        window_center_idx = (start + end) // 2
+        angle_deg = -fov_deg / 2 + angle_per_index * window_center_idx
+        angles.append(np.radians(angle_deg))
+
+        start = end
+    return new_range, angles
+
+
 if __name__ == "__main__":
     csv_file = '/home/anyone/autonomous_f1tenth/temp_2.csv'
     plot_lidar_scan(csv_file)
