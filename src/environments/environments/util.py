@@ -153,6 +153,28 @@ def avg_lidar_w_consensus(lidar:LaserScan, num_points:int):
         
     return processed_data
 
+def uneven_median_lidar(lidar: LaserScan, num_points: int):
+        ranges = lidar.ranges
+        ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
+        new_range = []
+        
+        window_size = [121, 70, 60 ,50, 40, 40, 50, 60, 70, 122]
+        
+        if len(ranges) != sum(window_size):
+            raise Exception("Lidar length and window size do not match")
+        
+        if len(window_size) != num_points:
+            raise Exception("Window size length and num_points do not match")
+        
+        start = 0
+        for window in window_size:
+            end = start + window
+            window_ranges = ranges[start:end]
+            new_range.append(float(np.median(window_ranges)))
+            start = end
+            
+        return new_range
+
 # This function is terrible at detecting obstacles....
 def process_lidar_med_filt(lidar:LaserScan, window_size:int, nan_to = -5): #-> np.ArrayLike:
     ranges = np.array(lidar.ranges.tolist())
@@ -399,6 +421,29 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         #     'track_01_150': track_01_150_wp,
         #     'track_01_200': track_01_200_wp
         # }
+
+    elif track_name == 'narrow_multi_track':
+        # Goal position - goals deprecated for narrow tracks
+        all_car_goals = None
+
+        # Waypoints - reordered with vary_track_width_new first, with larger spacing
+        vary_track_width_new_wp = waypoints['vary_track_width_new']
+        track_01_wp = [(x + 22, y, yaw, index) for x, y, yaw, index in waypoints['track_01_1m']]
+        track_02_wp = [(x + 31, y, yaw, index) for x, y, yaw, index in waypoints['track_02_1m']]
+        track_03_wp = [(x + 40, y, yaw, index) for x, y, yaw, index in waypoints['track_03_1m']]
+        track_04_wp = [(x + 49, y, yaw, index) for x, y, yaw, index in waypoints['track_04_1m']]
+        track_05_wp = [(x + 58, y, yaw, index) for x, y, yaw, index in waypoints['track_05_1m']]
+        track_06_wp = [(x + 67, y, yaw, index) for x, y, yaw, index in waypoints['track_06_1m']]
+
+        all_car_waypoints = {
+            'vary_track_width_new': vary_track_width_new_wp,
+            'track_01': track_01_wp,
+            'track_02': track_02_wp,
+            'track_03': track_03_wp,
+            'track_04': track_04_wp,
+            'track_05': track_05_wp,
+            'track_06': track_06_wp
+        }
 
     return all_car_goals, all_car_waypoints
 
