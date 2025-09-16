@@ -419,12 +419,12 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         narrow_track_04_wp = [(x + 187, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_04']]
         narrow_track_05_wp = [(x + 218, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_05']]
         narrow_track_06_wp = [(x + 249, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_06']]
-        track_01_2m_wp = [(x + 265, y, yaw, index) for x, y, yaw, index in waypoints['track_01_2m']]
-        track_02_2m_wp = [(x + 281, y, yaw, index) for x, y, yaw, index in waypoints['track_02_2m']]
-        track_03_2m_wp = [(x + 297, y, yaw, index) for x, y, yaw, index in waypoints['track_03_2m']]
-        track_04_2m_wp = [(x + 313, y, yaw, index) for x, y, yaw, index in waypoints['track_04_2m']]
-        track_05_2m_wp = [(x + 329, y, yaw, index) for x, y, yaw, index in waypoints['track_05_2m']]
-        track_06_2m_wp = [(x + 345, y, yaw, index) for x, y, yaw, index in waypoints['track_06_2m']]
+        track_01_2m_wp = [(x + 280, y, yaw, index) for x, y, yaw, index in waypoints['track_01_2m']]
+        track_02_2m_wp = [(x + 296, y, yaw, index) for x, y, yaw, index in waypoints['track_02_2m']]
+        track_03_2m_wp = [(x + 312, y, yaw, index) for x, y, yaw, index in waypoints['track_03_2m']]
+        track_04_2m_wp = [(x + 328, y, yaw, index) for x, y, yaw, index in waypoints['track_04_2m']]
+        track_05_2m_wp = [(x + 344, y, yaw, index) for x, y, yaw, index in waypoints['track_05_2m']]
+        track_06_2m_wp = [(x + 360, y, yaw, index) for x, y, yaw, index in waypoints['track_06_2m']]
 
         all_car_waypoints = {
             'vary_track_width_new': vary_track_width_new_wp,

@@ -476,8 +476,8 @@
       </link>
     </model>
 
-    <model name="track_01_2m">
-      <pose>265 0 0 0 0 0</pose>
+ <model name="track_01_2m">
+      <pose>280 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
@@ -505,7 +505,7 @@
     </model>
 
     <model name="track_02_2m">
-      <pose>281 0 0 0 0 0</pose>
+      <pose>296 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
@@ -533,7 +533,7 @@
     </model>
 
     <model name="track_03_2m">
-      <pose>297 0 0 0 0 0</pose>
+      <pose>312 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
@@ -561,7 +561,7 @@
     </model>
 
     <model name="track_04_2m">
-      <pose>313 0 0 0 0 0</pose>
+      <pose>328 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
@@ -589,7 +589,7 @@
     </model>
 
     <model name="track_05_2m">
-      <pose>329 0 0 0 0 0</pose>
+      <pose>344 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
@@ -617,7 +617,7 @@
     </model>
 
     <model name="track_06_2m">
-      <pose>335 0 0 0 0 0</pose>
+      <pose>360 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
