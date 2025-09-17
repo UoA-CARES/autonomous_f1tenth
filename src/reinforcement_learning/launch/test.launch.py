@@ -13,7 +13,8 @@ env_launch = {
     'CarBlock': 'carblock',
     'CarTrack': 'cartrack',
     'CarBeat': 'carbeat',
-    'CarOvertake': 'carovertake'
+    'CarOvertake': 'carovertake',
+    'TwoCar': 'twocar'
 }
 
 def generate_launch_description():
@@ -50,6 +51,29 @@ def generate_launch_description():
             output='screen',
             emulate_tty=True, # Allows python print to show
     )
+    if env == 'TwoCar':
+        car2_config_path = os.path.join(
+        get_package_share_directory('reinforcement_learning'),
+        'test_copy.yaml'
+    )
+        main2 = Node(
+                package='reinforcement_learning',
+                executable='test',
+                parameters=[
+                    car2_config_path
+                ],
+                name='test',
+                output='screen',
+                emulate_tty=True, # Allows python print to show
+            )
+        return LaunchDescription([
+        #TODO: Find a way to remove this
+        SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
+        SetParameter(name='use_sim_time', value=True),
+        environment,
+        main,
+        main2
+        ])
 
     return LaunchDescription([
         #TODO: Find a way to remove this
