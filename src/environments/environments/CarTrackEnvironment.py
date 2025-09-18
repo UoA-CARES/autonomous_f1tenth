@@ -294,16 +294,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # action delay based on training stage
         if self.current_training_stage == 0:
             action_delay = 0 
-            print("No action delay")
+            print(f"No action delay  stage: {self.current_training_stage}")
         elif self.current_training_stage == 1:
             action_delay = 0.010
-            print("10ms action delay")
+            print(f"10ms action delay  stage: {self.current_training_stage}")
         elif self.current_training_stage == 2:
             action_delay = 0.030
-            print("30ms action delay")
+            print(f"30ms action delay  stage: {self.current_training_stage}")
         elif self.current_training_stage >= 3:
             action_delay = np.random.uniform(0.094, 0.096)  # 95ms ± 1ms
-            print(f"{action_delay*1000:.1f}ms action delay")
+            print(f"{action_delay*1000:.1f}ms action delay  stage: {self.current_training_stage}")
             
         time.sleep(action_delay)
         
