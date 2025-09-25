@@ -262,5 +262,5 @@ def uneven_median_lidar(lidar, num_points: int):
 
 
 if __name__ == "__main__":
-    csv_file = '/home/anyone/autonomous_f1tenth/temp_2.csv'
+    csv_file = '/media/anyone/0BD1-8D90/Sep24th/recordings/lidar_records/lidar_2025-09-23_19_48_52.csv'
     plot_lidar_scan(csv_file)
