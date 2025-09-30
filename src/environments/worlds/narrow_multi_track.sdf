@@ -78,6 +78,34 @@
       </link>
     </model>
 
+    <model name="bumpy_track">
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="track">
+        <visual name="track_vis">
+          <geometry>
+            <mesh>
+              <uri>../meshes/bumpy_track.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>1.0 0.4 0.8 1</ambient>
+            <diffuse>1.0 0.4 0.8 1</diffuse>
+            <specular>0.5 0.2 0.4 1</specular>
+          </material>
+        </visual>
+        <collision name="track_col">
+          <geometry>
+            <mesh>
+              <uri>../meshes/bumpy_track.stl</uri>
+              <scale>0.001 0.001 0.001</scale>
+            </mesh>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
     <model name="vary_track_width_new">
       <pose>1 0 0 0 0 0</pose>
       <static>true</static>
@@ -643,6 +671,5 @@
         </collision>
       </link>
     </model>
-
   </world>
 </sdf>

@@ -55,7 +55,9 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
         # train agent
         if step_counter >= max_steps_exploration:
             for i in range(G):
+
                 info = agent.train_policy(memory,batch_size, i)
+
         
         # handle if should evaluate at end of episode
         if (step_counter+1) % number_steps_per_evaluation == 0:
@@ -107,6 +109,11 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
     episode_timesteps = 0
     episode_num = 0
     episode_info:Dict[str, list[Literal['avg','sum'],any]] = {}
+    
+    try:
+        env.set_ae(agent.actor_net.encoder, agent.actor_net.decoder)
+    except AttributeError:
+        print("Skipping setting encoder and decoder.")
 
     # put environment in evaluation mode
     env.start_eval()
