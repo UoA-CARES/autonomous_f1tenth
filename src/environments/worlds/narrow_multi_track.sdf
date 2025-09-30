@@ -78,6 +78,7 @@
       </link>
     </model>
 
+
     <model name="bumpy_track">
       <pose>0 0 0 0 0 0</pose>
       <static>true</static>
@@ -618,6 +619,7 @@
 
     <model name="track_05_2m">
       <pose>344 0 0 0 0 0</pose>
+
       <static>true</static>
       <link name="track">
         <visual name="track_vis">

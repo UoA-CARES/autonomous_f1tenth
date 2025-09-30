@@ -89,6 +89,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Evaluation settings - configure train/eval split based on track
         if track == 'narrow_multi_track':
 
+
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (12/15) # 12 train, 3 eval
         else:
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5
@@ -210,6 +211,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
             
             # idx used to loop through eval tracks sequentially
             self.eval_track_idx = 0
+            
+            # Debug logging
+            total_tracks = len(self.all_track_waypoints)
+            training_tracks = self.eval_track_begin_idx
+            eval_tracks = total_tracks - training_tracks
+            self.get_logger().info(f"Track '{track}' split: {total_tracks} total, {training_tracks} training, {eval_tracks} evaluation (split={self.MULTI_TRACK_TRAIN_EVAL_SPLIT})")
 
             # Debug logging
             total_tracks = len(self.all_track_waypoints)
@@ -244,6 +251,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.goals_reached = 0
 
         self.set_velocity(0, 0)
+
 
         if self.is_multi_track:
             # Check if we have dedicated evaluation tracks
@@ -330,6 +338,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         full_state = self.full_current_state
 
         self.call_step(pause=False)
+
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
         self.sleep()

@@ -47,6 +47,7 @@ def main():
             agent.critic_net.load_state_dict(torch.load(rest['critic_path'], map_location=torch.device('cpu')))
             if network_config['algorithm'] == 'SACAE1D':
                 agent.decoder_net.load_state_dict(torch.load(rest['decoder_path'], map_location=torch.device('cpu')))
+
         print('Successfully Loaded models')
     else:
         raise Exception('Both actor and critic paths must be provided')
