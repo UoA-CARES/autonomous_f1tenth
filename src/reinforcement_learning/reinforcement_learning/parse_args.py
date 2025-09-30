@@ -46,9 +46,10 @@ def __declare_params():
             ('number_eval_episodes', 5),
 
             # Network Parameters -------------------------------
-            ('actor_path', 'Models/SAC_actor.pht'),
-            ('critic_path', 'Models/SAC_critic.pht'),
-            ('algorithm', 'SAC'),
+            ('actor_path', 'Models/SACAE1D_actor.pht'),
+            ('critic_path', 'Models/SACAE1D_critic.pht'),
+            ('decoder_path', 'Models/SACAE1d_decoder.pht'),
+            ('algorithm', 'SACAE1D'),
             ('gamma', 0.95),
             ('tau', 0.005),
             ('actor_lr', 1e-4),
@@ -139,6 +140,7 @@ def __get_network_params(param_node: Node):
     params = param_node.get_parameters([
         'actor_path',
         'critic_path',
+        'decoder_path',
         'algorithm',
         'gamma',
         'tau',
@@ -166,6 +168,8 @@ def __get_network_params(param_node: Node):
             config = cares_cfg.TD3AEConfig(**params_dict)
         case 'SACAE':
             config = cares_cfg.SACAEConfig(**params_dict)
+        case 'SACAE1D':
+            config = cares_cfg.SACAE1DConfig(**params_dict)
         case _:
             config = {'algorithm': 'traditional'}
     try:
