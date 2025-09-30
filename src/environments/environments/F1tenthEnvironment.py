@@ -57,7 +57,7 @@ class F1tenthEnvironment(Node):
         self.cmd_vel_pub = self.create_publisher(
             Twist,
             f'/{self.NAME}/cmd_vel',
-            10
+            1
         )
 
         self.odom_sub = Subscriber(
@@ -75,12 +75,12 @@ class F1tenthEnvironment(Node):
         self.processed_publisher = self.create_publisher(
             LaserScan,
             f'/{self.NAME}/processed_scan',
-            10
+            1
         )
 
         self.message_filter = ApproximateTimeSynchronizer(
             [self.odom_sub, self.lidar_sub],
-            10,
+            1,
             0.1,
         )
 
@@ -192,3 +192,6 @@ class F1tenthEnvironment(Node):
 
     def timer_cb(self):
         self.timer_future.set_result(True)
+
+    def increment_stage(self):
+        raise NotImplementedError('Staged training is not implemented')

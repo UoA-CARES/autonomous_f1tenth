@@ -4,9 +4,10 @@ test:
     track: 'narrow_multi_track' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     number_eval_episodes: 1000
     max_steps: 3000
-    actor_path: /home/anyone/training_logs/baseline/123/models/final/TD3_actor.pht
-    critic_path: /home/anyone/training_logs/baseline/123/models/final/TD3_critic.pht
-    algorithm: 'TD3'
+    actor_path: /home/anyone/training_logs/baseline/123/models/final/SACAE1D_actor.pht
+    critic_path: /home/anyone/training_logs/baseline/123/models/final/SACAE1D_critic.pht
+    decoder_path: /home/anyone/training_logs/baseline/123/models/final/SACAE1D_decoder.pht
+    algorithm: 'SACAE1D'
     step_length: 0.1
     reward_range: 3
     collision_range: 0.2
