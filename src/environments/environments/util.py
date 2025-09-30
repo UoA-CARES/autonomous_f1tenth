@@ -123,6 +123,28 @@ def avg_lidar(lidar: LaserScan, num_points: int):
         
         return new_range
 
+def uneven_median_lidar(lidar: LaserScan, num_points: int):
+        ranges = lidar.ranges
+        ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
+        new_range = []
+        
+        window_size = [121, 70, 60 ,50, 40, 40, 50, 60, 70, 122]
+        
+        if len(ranges) != sum(window_size):
+            raise Exception("Lidar length and window size do not match")
+        
+        if len(window_size) != num_points:
+            raise Exception("Window size length and num_points do not match")
+        
+        start = 0
+        for window in window_size:
+            end = start + window
+            window_ranges = ranges[start:end]
+            new_range.append(float(np.median(window_ranges)))
+            start = end
+            
+        return new_range
+
 def avg_lidar_w_consensus(lidar:LaserScan, num_points:int):
     '''For each 'sector', count non hitting rays, if non hitting rays >= 50% consider entire sector non-hitting. Otherwise use avg of hitting rays.'''
     ranges = lidar.ranges
@@ -388,19 +410,184 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
                   global_wp = [(x + i*30, y, yaw, index) for x, y, yaw, index in waypoints[track]]
                   all_car_waypoints.update({track_name : global_wp})
                   i += 1
-         
-        # Waypoint
-        # track_01_100_wp = [(x, y, yaw, index) for x, y, yaw, index in waypoints['track_01']]
-        # track_01_150_wp = [(x + 10, y, yaw, index) for x, y, yaw, index in waypoints['track_01']]
-        # track_01_200_wp = [(x + 20, y, yaw, index) for x, y, yaw, index in waypoints['track_01']]
+                  
+    elif track_name == 'staged_tracks':
+        WIDTHS = [350, 300, 250, 200, 150]
+        TRACKS = ['track_01', 'track_02', 'track_03', 'track_04', 'track_05', 'track_06']
+        
+        # Usage of goals deprecated
+        all_car_goals = None
+        all_car_waypoints = {     
+        }
+        i = 0
+        
+        for width in WIDTHS:
+            for track in TRACKS:
+                  track_name = f"{track}_{str(width)}"
+                  global_wp = [(x + i*30, y, yaw, index) for x, y, yaw, index in waypoints[track_name]]
+                  all_car_waypoints.update({track_name : global_wp})
+                  i += 1
 
-        # all_car_waypoints = {
-        #     'track_01_100': track_01_100_wp,
-        #     'track_01_150': track_01_150_wp,
-        #     'track_01_200': track_01_200_wp
-        # }
+    elif track_name == 'narrow_multi_track':
+        # Goal position - goals deprecated for narrow tracks
+        all_car_goals = None
+
+        # Waypoints - reordered with vary_track_width_new first, with larger spacing
+        vary_track_width_new_wp = [(x + 1, y, yaw, index) for x, y, yaw, index in waypoints['vary_track_width_new']]
+        spiral_track_wp = [(x + 22, y, yaw, index) for x, y, yaw, index in waypoints['spiral_track']]  
+        track_01_1m_wp = [(x + 40, y, yaw, index) for x, y, yaw, index in waypoints['track_01_1m']]
+        track_02_1m_wp = [(x + 49, y, yaw, index) for x, y, yaw, index in waypoints['track_02_1m']]  
+        track_03_1m_wp = [(x + 58, y, yaw, index) for x, y, yaw, index in waypoints['track_03_1m']]  
+        track_04_1m_wp = [(x + 67, y, yaw, index) for x, y, yaw, index in waypoints['track_04_1m']]  
+        track_05_1m_wp = [(x + 76, y, yaw, index) for x, y, yaw, index in waypoints['track_05_1m']]  
+        track_06_1m_wp = [(x + 85, y, yaw, index) for x, y, yaw, index in waypoints['track_06_1m']]  
+        narrow_track_01_wp = [(x + 94, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_01']]  
+        narrow_track_02_wp = [(x + 125, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_02']]
+        narrow_track_03_wp = [(x + 156, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_03']]
+        narrow_track_04_wp = [(x + 187, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_04']]
+        narrow_track_05_wp = [(x + 218, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_05']]
+        narrow_track_06_wp = [(x + 249, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_06']]
+        track_01_2m_wp = [(x + 280, y, yaw, index) for x, y, yaw, index in waypoints['track_01_2m']]
+        track_02_2m_wp = [(x + 296, y, yaw, index) for x, y, yaw, index in waypoints['track_02_2m']]
+        track_03_2m_wp = [(x + 312, y, yaw, index) for x, y, yaw, index in waypoints['track_03_2m']]
+        track_04_2m_wp = [(x + 328, y, yaw, index) for x, y, yaw, index in waypoints['track_04_2m']]
+        track_05_2m_wp = [(x + 344, y, yaw, index) for x, y, yaw, index in waypoints['track_05_2m']]
+        track_06_2m_wp = [(x + 360, y, yaw, index) for x, y, yaw, index in waypoints['track_06_2m']]
+
+        all_car_waypoints = {
+            'vary_track_width_new': vary_track_width_new_wp,
+            'spiral_track': spiral_track_wp,
+            # train vvvvv eval ^^^^^
+            'track_01_1m': track_01_1m_wp,
+            'track_02_1m': track_02_1m_wp,
+            'track_03_1m': track_03_1m_wp,
+            'track_04_1m': track_04_1m_wp,
+            'track_05_1m': track_05_1m_wp,
+            'track_06_1m': track_06_1m_wp,
+            'narrow_track_01': narrow_track_01_wp,
+            'narrow_track_02': narrow_track_02_wp,
+            'narrow_track_03': narrow_track_03_wp,
+            'narrow_track_04': narrow_track_04_wp,
+            'narrow_track_05': narrow_track_05_wp,
+            'narrow_track_06': narrow_track_06_wp,
+            'track_01_2m': track_01_2m_wp,
+            'track_02_2m': track_02_2m_wp,
+            'track_03_2m': track_03_2m_wp,
+            'track_04_2m': track_04_2m_wp,
+            'track_05_2m': track_05_2m_wp,
+            'track_06_2m': track_06_2m_wp
+        }
+
+    elif track_name == 'narrow_multi_track':
+        # Goal position - goals deprecated for narrow tracks
+        all_car_goals = None
+
+        # Waypoints - reordered with vary_track_width_new first, with larger spacing
+        bumpy_track_wp = waypoints['bumpy_track']
+        vary_track_width_new_wp = [(x + 1, y, yaw, index) for x, y, yaw, index in waypoints['vary_track_width_new']]
+        spiral_track_wp = [(x + 22, y, yaw, index) for x, y, yaw, index in waypoints['spiral_track']]  
+        track_01_1m_wp = [(x + 40, y, yaw, index) for x, y, yaw, index in waypoints['track_01_1m']]
+        track_02_1m_wp = [(x + 49, y, yaw, index) for x, y, yaw, index in waypoints['track_02_1m']]  
+        track_03_1m_wp = [(x + 58, y, yaw, index) for x, y, yaw, index in waypoints['track_03_1m']]  
+        track_04_1m_wp = [(x + 67, y, yaw, index) for x, y, yaw, index in waypoints['track_04_1m']]  
+        track_05_1m_wp = [(x + 76, y, yaw, index) for x, y, yaw, index in waypoints['track_05_1m']]  
+        track_06_1m_wp = [(x + 85, y, yaw, index) for x, y, yaw, index in waypoints['track_06_1m']]  
+        narrow_track_01_wp = [(x + 94, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_01']]  
+        narrow_track_02_wp = [(x + 125, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_02']]
+        narrow_track_03_wp = [(x + 156, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_03']]
+        narrow_track_04_wp = [(x + 187, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_04']]
+        narrow_track_05_wp = [(x + 218, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_05']]
+        narrow_track_06_wp = [(x + 249, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_06']]
+
+        all_car_waypoints = {
+            'bumpy_track': bumpy_track_wp,
+            'vary_track_width_new': vary_track_width_new_wp,
+            'spiral_track': spiral_track_wp,
+            'narrow_track_01': narrow_track_01_wp,
+            'narrow_track_02': narrow_track_02_wp,
+            'narrow_track_03': narrow_track_03_wp,
+            'narrow_track_04': narrow_track_04_wp,
+            'narrow_track_05': narrow_track_05_wp,
+            'track_01_1m': track_01_1m_wp,
+            'track_02_1m': track_02_1m_wp,
+            'track_03_1m': track_03_1m_wp,
+            'track_04_1m': track_04_1m_wp,
+            # eval vvvvv train ^^^^^
+            'narrow_track_06': narrow_track_06_wp,
+            'track_05_1m': track_05_1m_wp,
+            'track_06_1m': track_06_1m_wp
+        }
+
+    elif track_name == 'narrow_multi_track':
+        # Goal position - goals deprecated for narrow tracks
+        all_car_goals = None
+
+        # Waypoints - reordered with vary_track_width_new first, with larger spacing
+        vary_track_width_new_wp = [(x + 1, y, yaw, index) for x, y, yaw, index in waypoints['vary_track_width_new']]
+        spiral_track_wp = [(x + 22, y, yaw, index) for x, y, yaw, index in waypoints['spiral_track']]  
+        track_01_1m_wp = [(x + 40, y, yaw, index) for x, y, yaw, index in waypoints['track_01_1m']]
+        track_02_1m_wp = [(x + 49, y, yaw, index) for x, y, yaw, index in waypoints['track_02_1m']]  
+        track_03_1m_wp = [(x + 58, y, yaw, index) for x, y, yaw, index in waypoints['track_03_1m']]  
+        track_04_1m_wp = [(x + 67, y, yaw, index) for x, y, yaw, index in waypoints['track_04_1m']]  
+        track_05_1m_wp = [(x + 76, y, yaw, index) for x, y, yaw, index in waypoints['track_05_1m']]  
+        track_06_1m_wp = [(x + 85, y, yaw, index) for x, y, yaw, index in waypoints['track_06_1m']]  
+        narrow_track_01_wp = [(x + 94, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_01']]  
+        narrow_track_02_wp = [(x + 125, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_02']]
+        narrow_track_03_wp = [(x + 156, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_03']]
+        narrow_track_04_wp = [(x + 187, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_04']]
+        narrow_track_05_wp = [(x + 218, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_05']]
+        narrow_track_06_wp = [(x + 249, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_06']]
+        track_01_2m_wp = [(x + 265, y, yaw, index) for x, y, yaw, index in waypoints['track_01_2m']]
+        track_02_2m_wp = [(x + 281, y, yaw, index) for x, y, yaw, index in waypoints['track_02_2m']]
+        track_03_2m_wp = [(x + 297, y, yaw, index) for x, y, yaw, index in waypoints['track_03_2m']]
+        track_04_2m_wp = [(x + 313, y, yaw, index) for x, y, yaw, index in waypoints['track_04_2m']]
+        track_05_2m_wp = [(x + 329, y, yaw, index) for x, y, yaw, index in waypoints['track_05_2m']]
+        track_06_2m_wp = [(x + 345, y, yaw, index) for x, y, yaw, index in waypoints['track_06_2m']]
+
+        all_car_waypoints = {
+            'vary_track_width_new': vary_track_width_new_wp,
+            'spiral_track': spiral_track_wp,
+            # train vvvvv eval ^^^^^
+            'track_01_1m': track_01_1m_wp,
+            'track_02_1m': track_02_1m_wp,
+            'track_03_1m': track_03_1m_wp,
+            'track_04_1m': track_04_1m_wp,
+            'track_05_1m': track_05_1m_wp,
+            'track_06_1m': track_06_1m_wp,
+            'narrow_track_01': narrow_track_01_wp,
+            'narrow_track_02': narrow_track_02_wp,
+            'narrow_track_03': narrow_track_03_wp,
+            'narrow_track_04': narrow_track_04_wp,
+            'narrow_track_05': narrow_track_05_wp,
+            'narrow_track_06': narrow_track_06_wp,
+            'track_01_2m': track_01_2m_wp,
+            'track_02_2m': track_02_2m_wp,
+            'track_03_2m': track_03_2m_wp,
+            'track_04_2m': track_04_2m_wp,
+            'track_05_2m': track_05_2m_wp,
+            'track_06_2m': track_06_2m_wp
+        }
 
     return all_car_goals, all_car_waypoints
+
+def get_training_stages(track_name):
+    # Stage track indices
+    if track_name == 'narrow_multi_track':
+        return {
+            0: [(14, 19), (0, 1)],    # Training (start, end), Eval (start, end), both inclusive
+            1: [(8, 13), (0, 1)],
+            2: [(2, 13), (0, 1)],
+        }
+    elif track_name == 'staged_tracks':
+        return {
+            0: [(0, 3), (4, 5)],
+            1: [(6, 9), (10, 11)],
+            2: [(12, 15), (16, 17)],
+            3: [(18, 21), (22, 23)],
+            4: [(24, 27), (28, 29)],
+        }
+    else:
+        raise Exception(f"Track {track_name} not designed for staged training.")
 
 def get_track_math_defs(tracks_waypoints:dict) -> dict[str,TrackMathDef]:
     '''Expect {trackname: [Waypoint]}, output {trackname: TrackMathDef}'''
