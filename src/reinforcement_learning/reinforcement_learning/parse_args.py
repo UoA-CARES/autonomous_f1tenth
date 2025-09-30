@@ -33,6 +33,7 @@ def __declare_params():
             ('observation_mode', 'lidar_only'),
             ('max_goals', 500),
             ('num_lidar_points', 10),
+            ('is_staged_training', False),
 
             # Algorithm Parameters -----------------------------
             ('g', 10),
@@ -75,7 +76,8 @@ def __get_env_params(param_node: Node):
         'observation_mode',
         'max_goals',
         'ftg_car_name',
-        'num_lidar_points'
+        'num_lidar_points',
+        'is_staged_training'
     ])
 
     # Convert to Dictionary

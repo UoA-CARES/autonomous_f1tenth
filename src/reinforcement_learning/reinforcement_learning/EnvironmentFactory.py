@@ -37,6 +37,7 @@ class EnvironmentFactory:
                 config['step_length'], 
                 config['track'], 
                 config['observation_mode'], 
+                config['is_staged_training']
                 )
         elif name == 'CarRace':
             return CarRaceEnvironment(
