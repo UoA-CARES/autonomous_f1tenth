@@ -46,7 +46,8 @@ setup(
             'CarOvertakeReset = environments.CarOvertakeReset:main',
             'TwoCarReset = environments.TwoCarReset:main',
             'SteppingService = environments.SteppingService:main',
-            'LidarLogger = environments.lidar_logger:main'
+            'LidarLogger = environments.lidar_logger:main',
+            'MultiAgentReset = environments.MultiAgentReset:main'
         ],
     },
 )

@@ -36,6 +36,7 @@ def main():
 
     # Load models if both paths are provided
     if rest['actor_path'] and rest['critic_path']:
+        print(rest['actor_path'])
         print('Reading saved models into actor and critic')
         if torch.cuda.is_available():
             agent.actor_net.load_state_dict(torch.load(rest['actor_path']))
