@@ -128,8 +128,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 odom_observation_size = 10
 
         # configure overall observation size
-        # self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
-        self.OBSERVATION_SIZE = {"lidar": self.LIDAR_POINTS, "vector": odom_observation_size}
+        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
+        #self.OBSERVATION_SIZE = {"lidar": self.LIDAR_POINTS, "vector": odom_observation_size}
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
@@ -211,18 +211,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             
             # idx used to loop through eval tracks sequentially
             self.eval_track_idx = 0
-            
-            # Debug logging
-            total_tracks = len(self.all_track_waypoints)
-            training_tracks = self.eval_track_begin_idx
-            eval_tracks = total_tracks - training_tracks
-            self.get_logger().info(f"Track '{track}' split: {total_tracks} total, {training_tracks} training, {eval_tracks} evaluation (split={self.MULTI_TRACK_TRAIN_EVAL_SPLIT})")
-
-            # Debug logging
-            total_tracks = len(self.all_track_waypoints)
-            training_tracks = self.eval_track_begin_idx
-            eval_tracks = total_tracks - training_tracks
-            self.get_logger().info(f"Track '{track}' split: {total_tracks} total, {training_tracks} training, {eval_tracks} evaluation (split={self.MULTI_TRACK_TRAIN_EVAL_SPLIT})")
+        
 
         self.get_logger().info('Environment Setup Complete')
 
