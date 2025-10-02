@@ -197,6 +197,25 @@ class F1tenthEnvironment(Node):
     def increment_stage(self):
         raise NotImplementedError('Staged training is not implemented')
 
+    def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y, car_name):
+        """
+        Reset the car and goal position
+        """
+
+        request = Reset.Request()
+        request.car_name = car_name
+        request.gx = float(goal_x)
+        request.gy = float(goal_y)
+        request.cx = float(car_x)
+        request.cy = float(car_y)
+        request.cyaw = float(car_Y)
+        request.flag = "car_and_goal"
+
+        future = self.reset_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+
+        return future.result()
+
     def update_goal_service(self, x, y):
         """
         Reset the goal position
