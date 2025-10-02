@@ -3,7 +3,7 @@ train:
     environment: 'CarTrack'  #'CarTrack' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat, CarTrackProgressiveGoal, CarTrack
     track: 'narrow_multi_track' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     car_name: 'f1tenth'
-    algorithm: 'SACAE1D'
+    algorithm: 'SAC'
     g: 1
     buffer_size: 1000000
     max_steps_exploration: 1000
