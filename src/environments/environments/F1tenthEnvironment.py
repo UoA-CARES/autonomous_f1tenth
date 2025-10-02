@@ -196,3 +196,18 @@ class F1tenthEnvironment(Node):
 
     def increment_stage(self):
         raise NotImplementedError('Staged training is not implemented')
+
+    def update_goal_service(self, x, y):
+        """
+        Reset the goal position
+        """
+
+        request = Reset.Request()
+        request.gx = x
+        request.gy = y
+        request.flag = "goal_only"
+
+        future = self.reset_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+
+        return future.result()
