@@ -295,9 +295,6 @@ class CarBeatEnvironment(Node):
         velocity_msg.linear.x = float(linear)
 
         self.cmd_vel_pub.publish(velocity_msg)
-    
-    def timer_cb(self):
-        self.timer_future.set_result(True)
 
     def is_terminated(self, state):
         
