@@ -284,18 +284,6 @@ class CarBeatEnvironment(Node):
         data = future.result()
         return data['odom_one'], data['lidar_one'], data['odom_two'], data['lidar_two'] 
 
-    def set_velocity(self, linear, angle):
-        """
-        Publish Twist messages to f1tenth cmd_vel topic
-        """
-        L = 0.25
-        velocity_msg = Twist()
-        angular = ackermann_to_twist(angle, linear, L)
-        velocity_msg.angular.z = float(angular)
-        velocity_msg.linear.x = float(linear)
-
-        self.cmd_vel_pub.publish(velocity_msg)
-
     def is_terminated(self, state):
         
         return has_collided(state[8:19], self.COLLISION_RANGE) \
