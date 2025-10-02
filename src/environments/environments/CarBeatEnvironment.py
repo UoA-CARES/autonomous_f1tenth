@@ -106,7 +106,6 @@ class CarBeatEnvironment(Node):
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
-        self.ACTION_NUM = 2
 
         self.step_counter = 0
 
@@ -284,25 +283,6 @@ class CarBeatEnvironment(Node):
         data = future.result()
         return data['odom_one'], data['lidar_one'], data['odom_two'], data['lidar_two'] 
 
-    def set_velocity(self, linear, angle):
-        """
-        Publish Twist messages to f1tenth cmd_vel topic
-        """
-        L = 0.25
-        velocity_msg = Twist()
-        angular = ackermann_to_twist(angle, linear, L)
-        velocity_msg.angular.z = float(angular)
-        velocity_msg.linear.x = float(linear)
-
-        self.cmd_vel_pub.publish(velocity_msg)
-
-    def sleep(self):
-        while not self.timer_future.done():
-            rclpy.spin_once(self)
-    
-    def timer_cb(self):
-        self.timer_future.set_result(True)
-
     def is_terminated(self, state):
         
         return has_collided(state[8:19], self.COLLISION_RANGE) \
@@ -387,16 +367,7 @@ class CarBeatEnvironment(Node):
 
         return reward
     
-    def call_reset_service(self, 
-                           car_x, 
-                           car_y, 
-                           car_Y, 
-                           goal_x, 
-                           goal_y, 
-                           ftg_x, 
-                           ftg_y, 
-                           ftg_Y
-                           ):
+    def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y, ftg_x, ftg_y, ftg_Y):
         """
         Reset the car and goal position
         """
@@ -426,54 +397,6 @@ class CarBeatEnvironment(Node):
         rclpy.spin_until_future_complete(self, future)
 
         return future.result()
-
-    def update_goal_service(self, x, y):
-        """
-        Reset the goal position
-        """
-
-        request = CarBeatReset.Request()
-        request.gx = x
-        request.gy = y
-        request.flag = "goal_only"
-
-        future = self.reset_client.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
-
-        return future.result()
-
-    def call_step(self, pause):
-        request = SetBool.Request()
-        request.data = pause
-
-        future = self.stepping_client.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
-
-        return future.result()
-
-    # function that parses the state and returns a string that can be printed to the terminal
-    def parse_observation(self, observation):
-        string = f'CarBeat Observation: \n'
-
-        if self.OBSERVATION_MODE == 'full':
-            string += f'Car Position: {observation[0:2]} \n'
-            string += f'Car Orientation: {observation[2:6]} \n' 
-            string += f'Car Velocity: {observation[6]} \n'
-            string += f'Car Angular Velocity: {observation[7]} \n'
-            string += f'Car Lidar: {observation[8:]} \n'
-        elif self.OBSERVATION_MODE == 'no_position':
-            string += f'Car Orientation: {observation[:4]} \n' 
-            string += f'Car Velocity: {observation[4]} \n'
-            string += f'Car Angular Velocity: {observation[5]} \n'
-            string += f'Car Lidar: {observation[6:]} \n'
-        elif self.OBSERVATION_MODE == 'lidar_only':
-            string += f'Car Velocity: {observation[0]} \n'
-            string += f'Car Angular Velocity: {observation[1]} \n'
-            string += f'Car Lidar: {observation[2:]} \n'
-        else:
-            raise ValueError(f'Invalid observation mode: {self.OBSERVATION_MODE}')
-    
-        return string
     
 
     

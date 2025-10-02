@@ -250,38 +250,9 @@ class CarRaceEnvironment(F1tenthEnvironment):
         request.cx = float(car_x)
         request.cy = float(car_y)
         request.cyaw = float(car_Y)
-        request.flag = "car_and_goal"
+        request.flag = "car"
 
         future = self.reset_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
         return future.result()
-    
-    def sleep(self):
-        while not self.timer_future.done():
-            rclpy.spin_once(self)
-
-        self.timer_future = Future()
-    
-    def parse_observation(self, observation):
-        
-        string = f'CarRace Observation\n'
-
-        match (self.odom_observation_mode):
-            case 'no_position':
-                string += f'Orientation: {observation[:4]}\n'
-                string += f'Car Velocity: {observation[4]}\n'
-                string += f'Car Angular Velocity: {observation[5]}\n'
-                string += f'Lidar: {observation[6:]}\n'
-            case 'lidar_only':
-                string += f'Car Velocity: {observation[0]}\n'
-                string += f'Car Angular Velocity: {observation[1]}\n'
-                string += f'Lidar: {observation[2:]}\n'
-            case _:
-                string += f'Position: {observation[:2]}\n'
-                string += f'Orientation: {observation[2:6]}\n'
-                string += f'Car Velocity: {observation[6]}\n'
-                string += f'Car Angular Velocity: {observation[7]}\n'
-                string += f'Lidar: {observation[8:]}\n'
-
-        return string
