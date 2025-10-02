@@ -435,15 +435,6 @@ class CarBeatEnvironment(Node):
 
         return future.result()
 
-    def call_step(self, pause):
-        request = SetBool.Request()
-        request.data = pause
-
-        future = self.stepping_client.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
-
-        return future.result()
-
     # function that parses the state and returns a string that can be printed to the terminal
     def parse_observation(self, observation):
         string = f'CarBeat Observation: \n'
