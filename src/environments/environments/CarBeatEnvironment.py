@@ -106,7 +106,6 @@ class CarBeatEnvironment(Node):
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
-        self.ACTION_NUM = 2
 
         self.step_counter = 0
 
