@@ -132,50 +132,50 @@ class TwoCarEnvironment(F1tenthEnvironment):
             
         #####################################################################################################################
         # Odom subscribers
-        self.odom_sub_1 = Subscriber(
+        self.ODOM_SUB_1 = Subscriber(
             self,
             Odometry,
             f'/f1tenth/odometry',
         )
 
-        self.odom_sub_2 = Subscriber(
+        self.ODOM_SUB_2 = Subscriber(
             self,
             Odometry,
             f'/f2tenth/odometry',
         )
 
-        self.odom_message_filter = ApproximateTimeSynchronizer(
-            [self.odom_sub_1, self.odom_sub_2],
+        self.ODOM_MESSAGE_FILTER = ApproximateTimeSynchronizer(
+            [self.ODOM_SUB_1, self.ODOM_SUB_2],
             10,
             0.1,
         )
 
-        self.odom_message_filter.registerCallback(self.odom_message_filter_callback)
-        self.odom_observation_future = Future()
+        self.ODOM_MESSAGE_FILTER.registerCallback(self.odom_message_filter_callback)
+        self.ODOM_OBSERVATION_FUTURE = Future()
 
         #####################################################################################################################
 
         # Publish and subscribe to status topic
 
-        self.status_pub = self.create_publisher(
+        self.STATUS_PUB = self.create_publisher(
             String,
             '/status',
             10
         )
 
-        self.status_sub = self.create_subscription(
+        self.STATUS_SUB = self.create_subscription(
             String,
             '/status',
             self.status_callback,
             10)
         
-        self.status_lock_pub = self.create_publisher(
+        self.STATUS_LOCK_PUB = self.create_publisher(
             String,
             '/status_lock',
             10
         )
 
-        self.status_lock_sub = self.create_subscription(
+        self.STATUS_LOCK_SUB = self.create_subscription(
             String,
             '/status_lock',
             self.status_lock_callback,
@@ -183,8 +183,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
         
         self.STATUS = 'r_f1tenth'
 
-        self.status_observation_future = Future()
-        self.status_lock = 'off'
+        self.STATUS_OBSERVATION_FUTURE = Future()
+        self.STATUS_LOCK = 'off'
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -197,7 +197,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 #   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
 
     def odom_message_filter_callback(self, odom1: Odometry, odom2: Odometry):
-        self.odom_observation_future.set_result({'odom1': odom1, 'odom2': odom2})                                                                            
+        self.ODOM_OBSERVATION_FUTURE.set_result({'odom1': odom1, 'odom2': odom2})                                                                            
     
     def randomize_yaw(self, yaw, percentage=0.5):
         factor = 1 + random.uniform(-percentage, percentage)
@@ -212,14 +212,14 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.set_velocity(0, 0)
         if self.NAME == 'f2tenth':
             while ('respawn' not in self.STATUS):
-                rclpy.spin_until_future_complete(self, self.status_observation_future, timeout_sec=10)
-                if (self.status_observation_future.result()) == None:
+                rclpy.spin_until_future_complete(self, self.STATUS_OBSERVATION_FUTURE, timeout_sec=10)
+                if (self.STATUS_OBSERVATION_FUTURE.result()) == None:
                     state, full_state , _ = self.get_observation()
 
                     self.CURR_STATE = full_state
                     info = {}
                     return state, info
-                self.status_observation_future = Future()
+                self.STATUS_OBSERVATION_FUTURE = Future()
             track, goal, spawn = self.parse_status(self.STATUS)
             self.CURR_TRACK = track
             self.GOAL_POS = [goal[0], goal[1]]
@@ -234,10 +234,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.car_spawn()
             i = 0
             while(self.STATUS != 'ready'):
-                rclpy.spin_until_future_complete(self, self.status_observation_future, timeout_sec=10)
-                if (self.status_observation_future.result() == None):
+                rclpy.spin_until_future_complete(self, self.STATUS_OBSERVATION_FUTURE, timeout_sec=10)
+                if (self.STATUS_OBSERVATION_FUTURE.result() == None):
                     break
-                self.status_observation_future = Future()
+                self.STATUS_OBSERVATION_FUTURE = Future()
                 
         
 
@@ -393,7 +393,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if self.IS_EVAL and (terminated or truncated):
             self.CURR_EVAL_IDX
 
-        if ((terminated or truncated) and self.status_lock == 'off'):
+        if ((terminated or truncated) and self.STATUS_LOCK == 'off'):
             self.change_status_lock('on')
             string = 'r_' + str(self.NAME)
             self.publish_status(string)
@@ -599,9 +599,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def get_odoms(self):
         # Get odom of both cars
 
-        rclpy.spin_until_future_complete(self, self.odom_observation_future)
-        future = self.odom_observation_future
-        self.odom_observation_future = Future()
+        rclpy.spin_until_future_complete(self, self.ODOM_OBSERVATION_FUTURE)
+        future = self.ODOM_OBSERVATION_FUTURE
+        self.ODOM_OBSERVATION_FUTURE = Future()
         data = future.result()
         odom1 = process_odom(data['odom1'])
         odom2 = process_odom(data['odom2'])
@@ -610,21 +610,21 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def publish_status(self, status):
         msg = String()
         msg.data = str(status)
-        self.status_pub.publish(msg)
+        self.STATUS_PUB.publish(msg)
 
     def status_callback(self, msg):
         self.STATUS = msg.data
-        self.status_observation_future.set_result({'status': msg}) 
+        self.STATUS_OBSERVATION_FUTURE.set_result({'status': msg}) 
         #self.get_logger().info(str(self.NAME) + "reads " + str(self.STATUS))
 
     def change_status_lock(self, change):
         msg = String()
         msg.data = str(change)
-        self.status_lock_pub.publish(msg)
-        self.status_lock = change
+        self.STATUS_LOCK_PUB.publish(msg)
+        self.STATUS_LOCK = change
 
     def status_lock_callback(self, msg):
-        self.status_lock = msg.data
+        self.STATUS_LOCK = msg.data
 
     def parse_status(self, msg):
         indexes = findOccurrences(msg, '_')
