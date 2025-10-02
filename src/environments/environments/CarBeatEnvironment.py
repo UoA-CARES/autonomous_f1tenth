@@ -434,30 +434,6 @@ class CarBeatEnvironment(Node):
         rclpy.spin_until_future_complete(self, future)
 
         return future.result()
-
-    # function that parses the state and returns a string that can be printed to the terminal
-    def parse_observation(self, observation):
-        string = f'CarBeat Observation: \n'
-
-        if self.OBSERVATION_MODE == 'full':
-            string += f'Car Position: {observation[0:2]} \n'
-            string += f'Car Orientation: {observation[2:6]} \n' 
-            string += f'Car Velocity: {observation[6]} \n'
-            string += f'Car Angular Velocity: {observation[7]} \n'
-            string += f'Car Lidar: {observation[8:]} \n'
-        elif self.OBSERVATION_MODE == 'no_position':
-            string += f'Car Orientation: {observation[:4]} \n' 
-            string += f'Car Velocity: {observation[4]} \n'
-            string += f'Car Angular Velocity: {observation[5]} \n'
-            string += f'Car Lidar: {observation[6:]} \n'
-        elif self.OBSERVATION_MODE == 'lidar_only':
-            string += f'Car Velocity: {observation[0]} \n'
-            string += f'Car Angular Velocity: {observation[1]} \n'
-            string += f'Car Lidar: {observation[2:]} \n'
-        else:
-            raise ValueError(f'Invalid observation mode: {self.OBSERVATION_MODE}')
-    
-        return string
     
 
     

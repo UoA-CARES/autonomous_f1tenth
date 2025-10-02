@@ -116,15 +116,3 @@ class CarWallEnvironment(F1tenthEnvironment):
             reward -= 25
 
         return reward
-
-    def parse_observation(self, observation):
-        
-        string = f'CarWall Observation\n'
-        string += f'Position: {observation[:2]}\n'
-        string += f'Orientation: {observation[2:6]}\n'
-        string += f'Car Velocity: {observation[6]}\n'
-        string += f'Car Angular Velocity: {observation[7]}\n'
-        string += f'Lidar Points: {observation[8:-2]}\n'
-        string += f'Goal Position: {observation[-2:]}\n'
-
-        return string

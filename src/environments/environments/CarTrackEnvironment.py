@@ -589,29 +589,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         return future.result()
     
-    def parse_observation(self, observation):
-        
-        string = f'CarTrack Observation\n'
-
-        match (self.odom_observation_mode):
-            case 'no_position':
-                string += f'Orientation: {observation[:4]}\n'
-                string += f'Car Velocity: {observation[4]}\n'
-                string += f'Car Angular Velocity: {observation[5]}\n'
-                string += f'Lidar: {observation[6:]}\n'
-            case 'lidar_only':
-                string += f'Car Velocity: {observation[0]}\n'
-                string += f'Car Angular Velocity: {observation[1]}\n'
-                string += f'Lidar: {observation[2:]}\n'
-            case _:
-                string += f'Position: {observation[:2]}\n'
-                string += f'Orientation: {observation[2:6]}\n'
-                string += f'Car Velocity: {observation[6]}\n'
-                string += f'Car Angular Velocity: {observation[7]}\n'
-                string += f'Lidar: {observation[8:]}\n'
-
-        return string
-    
 
     def increment_stage(self):
         if not self.IS_STAGED_TRAINING:
