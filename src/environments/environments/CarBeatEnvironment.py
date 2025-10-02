@@ -380,16 +380,7 @@ class CarBeatEnvironment(Node):
 
         return reward
     
-    def call_reset_service(self, 
-                           car_x, 
-                           car_y, 
-                           car_Y, 
-                           goal_x, 
-                           goal_y, 
-                           ftg_x, 
-                           ftg_y, 
-                           ftg_Y
-                           ):
+    def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y, ftg_x, ftg_y, ftg_Y):
         """
         Reset the car and goal position
         """
