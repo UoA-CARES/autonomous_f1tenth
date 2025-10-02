@@ -295,10 +295,6 @@ class CarBeatEnvironment(Node):
         velocity_msg.linear.x = float(linear)
 
         self.cmd_vel_pub.publish(velocity_msg)
-
-    def sleep(self):
-        while not self.timer_future.done():
-            rclpy.spin_once(self)
     
     def timer_cb(self):
         self.timer_future.set_result(True)

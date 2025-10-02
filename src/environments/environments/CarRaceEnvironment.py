@@ -257,12 +257,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
         return future.result()
     
-    def sleep(self):
-        while not self.timer_future.done():
-            rclpy.spin_once(self)
-
-        self.timer_future = Future()
-    
     def parse_observation(self, observation):
         
         string = f'CarRace Observation\n'

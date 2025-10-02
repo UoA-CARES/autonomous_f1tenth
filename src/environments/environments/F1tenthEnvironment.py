@@ -180,6 +180,7 @@ class F1tenthEnvironment(Node):
     def sleep(self):
         while not self.timer_future.done():
             rclpy.spin_once(self)
+        self.timer_future = Future()
     
     def call_step(self, pause):
         request = SetBool.Request()
