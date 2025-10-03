@@ -156,7 +156,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         
         if self.LIDAR_PROCESSING == 'ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
-            self.AE_LIDAR_MODEL = LidarConvAE(encoder=self.encoder, decoder=self.decoder)
+            self.AE_LIDAR_MODEL = LidarConvAE(encoder=self.ENCODER, decoder=self.DECODER)
             if self.IS_EVAL:
                 self.AE_LIDAR_MODEL.eval()
             else:
@@ -290,7 +290,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Update goal pointer to reflect starting position
         self.START_WAYPOINT_INDEX = index
         x,y,_,_ = self.TRACK_WAYPOINTS[self.START_WAYPOINT_INDEX+1 if self.START_WAYPOINT_INDEX+1 < len(self.TRACK_WAYPOINTS) else 0]# point toward next goal
-        self.goal_position = [x,y]
+        self.GOAL_POSITION = [x,y]
 
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
 
@@ -431,7 +431,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
         
-        self.processed_publisher.publish(scan)
+        self.PROCESSED_PUBLISHER.publish(scan)
 
         if self.LIDAR_PROCESSING == 'ae':
             state["lidar"] = lidar_data.tolist()
@@ -491,7 +491,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def calculate_goal_hitting_reward(self, state, next_state, raw_range):
         reward = 0
 
-        goal_position = self.goal_position
+        goal_position = self.GOAL_POSITION
 
         current_distance = math.dist(goal_position, next_state[:2])
         previous_distance = math.dist(goal_position, state[:2])
@@ -507,7 +507,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
             # Updating Goal Position
             new_x, new_y, _, _ = self.TRACK_WAYPOINTS[(self.START_WAYPOINT_INDEX + self.GOALS_REACHED) % len(self.TRACK_WAYPOINTS)]
-            self.goal_position = [new_x, new_y]
+            self.GOAL_POSITION = [new_x, new_y]
 
             self.update_goal_service(new_x, new_y)
 
@@ -526,7 +526,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def calculate_progressive_reward(self, state, next_state, raw_range):
         reward = 0
 
-        goal_position = self.goal_position
+        goal_position = self.GOAL_POSITION
 
         current_distance = math.dist(goal_position, next_state[:2])
         print(f"Position {next_state[:2]} --> {goal_position}")
@@ -550,7 +550,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
             # Updating Goal Position
             new_x, new_y, _, _ = self.TRACK_WAYPOINTS[(self.START_WAYPOINT_INDEX + self.GOALS_REACHED) % len(self.TRACK_WAYPOINTS)]
-            self.goal_position = [new_x, new_y]
+            self.GOAL_POSITION = [new_x, new_y]
 
             self.update_goal_service(new_x, new_y)
 
@@ -599,7 +599,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         print(f"Autoencoder Loss: {loss.item()}")
         
     def set_ae(self, encoder, decoder):
-        self.encoder = encoder
-        self.decoder = decoder
+        self.ENCODER = encoder
+        self.DECODER = decoder
         print("Environment set with encoder and decoder.")
 
