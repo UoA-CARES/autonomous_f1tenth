@@ -51,72 +51,72 @@ class F1tenthEnvironment(Node):
  
         self.ACTION_NUM = 2
 
-        self.step_counter = 0
+        self.STEP_COUNTER = 0
 
         # Pub/Sub ----------------------------------------------------
-        self.cmd_vel_pub = self.create_publisher(
+        self.CMD_VEL_PUB = self.create_publisher(
             Twist,
             f'/{self.NAME}/cmd_vel',
             1
         )
 
-        self.odom_sub = Subscriber(
+        self.ODOM_SUB = Subscriber(
             self,
             Odometry,
             f'/{self.NAME}/odometry',
         )
 
-        self.lidar_sub = Subscriber(
+        self.LIDAR_SUB = Subscriber(
             self,
             LaserScan,
             f'/{self.NAME}/scan',
         )
 
-        self.processed_publisher = self.create_publisher(
+        self.PROCESSED_PUBLISHER = self.create_publisher(
             LaserScan,
             f'/{self.NAME}/processed_scan',
             1
         )
 
-        self.message_filter = ApproximateTimeSynchronizer(
-            [self.odom_sub, self.lidar_sub],
+        self.MESSAGE_FILTER = ApproximateTimeSynchronizer(
+            [self.ODOM_SUB, self.LIDAR_SUB],
             1,
             0.1,
         )
 
-        self.message_filter.registerCallback(self.message_filter_callback)
+        self.MESSAGE_FILTER.registerCallback(self.message_filter_callback)
 
-        self.observation_future = Future()
+        self.OBSERVATION_FUTURE = Future()
 
         # Reset Client -----------------------------------------------
-        self.reset_client = self.create_client(
+        self.RESET_CLIENT = self.create_client(
             Reset,
             env_name + '_reset'
         )
 
-        while not self.reset_client.wait_for_service(timeout_sec=1.0):
+        while not self.RESET_CLIENT.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('reset service not available, waiting again...')
 
 
         # Stepping Client ---------------------------------------------
 
-        self.stepping_client = self.create_client(
+        self.STEPPING_CLIENT = self.create_client(
             SetBool,
             'stepping_service'
         )
 
-        while not self.stepping_client.wait_for_service(timeout_sec=1.0):
+        while not self.STEPPING_CLIENT.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('stepping service not available, waiting again...')
 
-        self.timer = self.create_timer(step_length, self.timer_cb)
-        self.timer_future = Future()
+        self.TIMER = self.create_timer(step_length, self.timer_cb)
+        self.TIMER_FUTURE = Future()
         self.LAST_STATE = Future()
 
     def reset(self):
         raise NotImplementedError('reset() not implemented')
 
     def step(self, action):
-        self.step_counter += 1
+        self.STEP_COUNTER += 1
         self.call_step(pause=False)
 
         state = self.get_observation()
@@ -124,10 +124,10 @@ class F1tenthEnvironment(Node):
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
 
-        while not self.timer_future.done():
+        while not self.TIMER_FUTURE.done():
             rclpy.spin_once(self)
 
-        self.timer_future = Future()
+        self.TIMER_FUTURE = Future()
         
         
 
@@ -136,7 +136,7 @@ class F1tenthEnvironment(Node):
 
         reward = self.compute_reward(state, next_state)
         terminated = self.is_terminated(next_state)
-        truncated = self.step_counter >= self.MAX_STEPS
+        truncated = self.STEP_COUNTER >= self.MAX_STEPS
         info = {}
 
         return next_state, reward, terminated, truncated, info
@@ -151,17 +151,17 @@ class F1tenthEnvironment(Node):
         raise NotImplementedError('is_terminated() not implemented')
 
     def message_filter_callback(self, odom: Odometry, lidar: LaserScan):
-        self.observation_future.set_result({'odom': odom, 'lidar': lidar})
+        self.OBSERVATION_FUTURE.set_result({'odom': odom, 'lidar': lidar})
 
     def get_data(self) -> tuple[Odometry,LaserScan]:
-        rclpy.spin_until_future_complete(self, self.observation_future, timeout_sec=0.5)
-        if (self.observation_future.result()) == None:
+        rclpy.spin_until_future_complete(self, self.OBSERVATION_FUTURE, timeout_sec=0.5)
+        if (self.OBSERVATION_FUTURE.result()) == None:
             future = self.LAST_STATE
             self.get_logger().info("Using previous observation")
         else:
-            future = self.observation_future
+            future = self.OBSERVATION_FUTURE
             self.LAST_STATE = future
-        self.observation_future = Future()
+        self.OBSERVATION_FUTURE = Future()
         data = future.result()
         return data['odom'], data['lidar']
 
@@ -175,24 +175,24 @@ class F1tenthEnvironment(Node):
         velocity_msg.angular.z = float(angular)
         velocity_msg.linear.x = float(lin_vel)
 
-        self.cmd_vel_pub.publish(velocity_msg)
+        self.CMD_VEL_PUB.publish(velocity_msg)
 
     def sleep(self):
-        while not self.timer_future.done():
+        while not self.TIMER_FUTURE.done():
             rclpy.spin_once(self)
-        self.timer_future = Future()
+        self.TIMER_FUTURE = Future()
     
     def call_step(self, pause):
         request = SetBool.Request()
         request.data = pause
 
-        future = self.stepping_client.call_async(request)
+        future = self.STEPPING_CLIENT.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
         return future.result()
 
     def timer_cb(self):
-        self.timer_future.set_result(True)
+        self.TIMER_FUTURE.set_result(True)
 
     def increment_stage(self):
         raise NotImplementedError('Staged training is not implemented')
@@ -211,7 +211,7 @@ class F1tenthEnvironment(Node):
         request.cyaw = float(car_Y)
         request.flag = "car_and_goal"
 
-        future = self.reset_client.call_async(request)
+        future = self.RESET_CLIENT.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
         return future.result()
@@ -226,7 +226,7 @@ class F1tenthEnvironment(Node):
         request.gy = y
         request.flag = "goal_only"
 
-        future = self.reset_client.call_async(request)
+        future = self.RESET_CLIENT.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
         return future.result()
