@@ -91,26 +91,26 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
         self.COLLISION_RANGE = collision_range
 
-        self.odom_observation_mode = observation_mode
-        self.track = track
+        self.ODOM_OBSERVATION_MODE = observation_mode
+        self.TRACK = track
 
         # initialize track progress utilities
-        self.prev_t = None
-        self.all_track_models = None
-        self.track_model = None
-        self.step_progress = 0
+        self.PREV_T = None
+        self.ALL_TRACK_MODELS = None
+        self.TRACK_MODEL = None
+        self.STEP_PROGRESS = 0
 
         if self.LIDAR_PROCESSING == 'pretrained_ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
-            self.ae_lidar_model = LidarConvAE()
-            self.ae_lidar_model.load_state_dict(torch.load(pretrained_ae_path))
-            self.ae_lidar_model.eval()
+            self.AE_LIDAR_MODEL = LidarConvAE()
+            self.AE_LIDAR_MODEL.load_state_dict(torch.load(pretrained_ae_path))
+            self.AE_LIDAR_MODEL.eval()
 
         # Reset Client -----------------------------------------------
 
-        self.goals_reached = 0
-        self.start_waypoint_index = 0
-        self.full_current_state = None
+        self.GOALS_REACHED = 0
+        self.START_WAYPOINT_INDEX = 0
+        self.FULL_CURRENT_STATE = None
 
 
         if "test_track" in track:
@@ -118,13 +118,14 @@ class CarRaceEnvironment(F1tenthEnvironment):
         else:
             track_key = track
 
-        self.track_waypoints = waypoints[track_key]
-        self.track_model = TrackMathDef(np.array(self.track_waypoints)[:,:2])
+        self.TRACK_WAYPOINTS = waypoints[track_key]
+        self.TRACK_MODEL = TrackMathDef(np.array(self.TRACK_WAYPOINTS)[:,:2])
 
 
         # Evaluation related setup ---------------------------------------------------
-        self.is_evaluating = False
+        self.IS_EVAL = False
 
+        self.STEP_COUNTER = 0
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -150,21 +151,21 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
 
     def reset(self):
-        self.step_counter = 0
+        self.STEP_COUNTER = 0
 
         self.set_velocity(0, 0)
         
         # start at beginning of track when evaluating
-        if self.is_evaluating:
-            car_x, car_y, car_yaw, index = self.track_waypoints[10]
-            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[16]
+        if self.IS_EVAL:
+            car_x, car_y, car_yaw, index = self.TRACK_WAYPOINTS[10]
+            car_2_x, car_2_y, car_2_yaw, _ = self.TRACK_WAYPOINTS[16]
         # start the car randomly along the track
         else:
-            car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
-            car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[index+2 if index+20 < len(self.track_waypoints) else 0]
+            car_x, car_y, car_yaw, index = random.choice(self.TRACK_WAYPOINTS)
+            car_2_x, car_2_y, car_2_yaw, _ = self.TRACK_WAYPOINTS[index+2 if index+20 < len(self.TRACK_WAYPOINTS) else 0]
 
         # Update goal pointer to reflect starting position
-        self.start_waypoint_index = index
+        self.START_WAYPOINT_INDEX = index
 
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, car_name=self.NAME)
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, car_name='f1tenth_2')
@@ -172,12 +173,12 @@ class CarRaceEnvironment(F1tenthEnvironment):
         # Get initial observation
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
-        self.full_current_state = full_state
+        self.FULL_CURRENT_STATE = full_state
         self.call_step(pause=True)
 
         info = {}
         
-        self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
+        self.PREV_T = self.TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         return state, info
 
@@ -193,7 +194,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
         state = []
         
         # Add odom data
-        match (self.odom_observation_mode):
+        match (self.ODOM_OBSERVATION_MODE):
             case 'no_position':
                 state += odom[2:]
             case 'lidar_only':
@@ -204,8 +205,8 @@ class CarRaceEnvironment(F1tenthEnvironment):
         # Add lidar data:
         match self.LIDAR_PROCESSING:
             case 'pretrained_ae':
-                processed_lidar_range = process_ae_lidar(lidar, self.ae_lidar_model, is_latent_only=True)
-                visualized_range = reconstruct_ae_latent(lidar, self.ae_lidar_model, processed_lidar_range)
+                processed_lidar_range = process_ae_lidar(lidar, self.AE_LIDAR_MODEL, is_latent_only=True)
+                visualized_range = reconstruct_ae_latent(lidar, self.AE_LIDAR_MODEL, processed_lidar_range)
                 #TODO: get rid of hard coded lidar points num
                 scan = create_lidar_msg(lidar, 682, visualized_range)
             case 'avg':
@@ -226,8 +227,8 @@ class CarRaceEnvironment(F1tenthEnvironment):
         for extra_observation in self.EXTRA_OBSERVATIONS:
             match extra_observation:
                 case 'prev_ang_vel':
-                    if self.full_current_state:
-                        state += [self.full_current_state[7]]
+                    if self.FULL_CURRENT_STATE:
+                        state += [self.FULL_CURRENT_STATE[7]]
                     else:
                         state += [state[7]]
 
