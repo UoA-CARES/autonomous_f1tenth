@@ -391,7 +391,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
         
-        self.processed_publisher.publish(scan)
+        self.PROCESSED_PUBLISHER.publish(scan)
 
         state += processed_lidar_range
 
