@@ -47,22 +47,26 @@ class CarWallEnvironment(F1tenthEnvironment):
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
         
-        self.goal_position = [10, 10]
+        self.GOAL_POSITION = [10, 10]
+
+        # Reset vars
+        self.STEP_COUNTER = 0
+        self.TIMER_FUTURE = Future()
         
         self.get_logger().info('Environment Setup Complete')
 
     def reset(self):
-        self.step_counter = 0
+        self.STEP_COUNTER = 0
 
         self.set_velocity(0, 0)
 
-        self.goal_position = generate_position(inner_bound=3, outer_bound=6)
+        self.GOAL_POSITION = generate_position(inner_bound=3, outer_bound=6)
 
         self.sleep()
         
-        self.timer_future = Future()
+        self.TIMER_FUTURE = Future()
 
-        new_x, new_y = self.goal_position
+        new_x, new_y = self.GOAL_POSITION
         
         self.call_reset_service(new_x, new_y)
 
@@ -96,7 +100,7 @@ class CarWallEnvironment(F1tenthEnvironment):
 
         reduced_range = reduce_lidar(lidar, 10)
 
-        return odom + reduced_range + self.goal_position
+        return odom + reduced_range + self.GOAL_POSITION
     
     def compute_reward(self, state, next_state):
 

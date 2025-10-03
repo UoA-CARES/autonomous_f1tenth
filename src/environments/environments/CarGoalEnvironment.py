@@ -41,22 +41,25 @@ class CarGoalEnvironment(F1tenthEnvironment):
         self.OBSERVATION_SIZE = 8 + 2 # odom + goal_position
         self.REWARD_RANGE = reward_range
         
-        self.goal_position = [10, 10]
+        self.GOAL_POSITION = [10, 10]
+        self.STEP_COUNTER = 0
+
+        self.TIMER_FUTURE = Future()
         
         self.get_logger().info('Environment Setup Complete')
 
     def reset(self):
-        self.step_counter = 0
+        self.STEP_COUNTER = 0
 
         self.set_velocity(0, 0)
 
-        self.goal_position = generate_position(5, 10)
+        self.GOAL_POSITION = generate_position(5, 10)
 
         self.sleep()
         
-        self.timer_future = Future()
+        self.TIMER_FUTURE = Future()
 
-        new_x, new_y = self.goal_position
+        new_x, new_y = self.GOAL_POSITION
         
         self.call_reset_service(new_x, new_y)
 
@@ -85,7 +88,7 @@ class CarGoalEnvironment(F1tenthEnvironment):
         odom, _ = self.get_data()
         odom = process_odom(odom)
 
-        return odom + self.goal_position
+        return odom + self.GOAL_POSITION
 
     def compute_reward(self, state, next_state):
 
