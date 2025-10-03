@@ -211,7 +211,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             
             # idx used to loop through eval tracks sequentially
             self.EVAL_TRACK_IDX = 0
-        
+        self.STEP_COUNTER = 0
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -235,7 +235,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         return total
 
     def reset(self):
-        self.step_counter = 0
+        self.STEP_COUNTER = 0
         self.STEPS_SINCE_LAST_GOAL = 0
         self.GOALS_REACHED = 0
 
@@ -322,7 +322,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.IS_EVAL = False
 
     def step(self, action):
-        self.step_counter += 1
+        self.STEP_COUNTER += 1
         
         full_state = self.FULL_CURRENT_STATE
 
@@ -378,10 +378,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
             case 'goal_hitting':
                 return self.STEPS_SINCE_LAST_GOAL >= 20 or \
-                self.step_counter >= self.MAX_STEPS
+                self.STEP_COUNTER >= self.MAX_STEPS
             case 'progressive':
                 return self.PROGRESS_NOT_MET_CNT >= 5 or \
-                self.step_counter >= self.MAX_STEPS
+                self.STEP_COUNTER >= self.MAX_STEPS
             case _:
                 raise Exception("Unknown truncate condition for reward function.")
 
