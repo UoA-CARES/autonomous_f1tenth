@@ -1,8 +1,5 @@
-from environments.CarBlockEnvironment import CarBlockEnvironment
-from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarTrackEnvironment import CarTrackEnvironment
 from environments.CarRaceEnvironment import CarRaceEnvironment
-from environments.CarWallEnvironment import CarWallEnvironment
 from environments.CarBeatEnvironment import CarBeatEnvironment
 from environments.CarOvertakeEnvironment import CarOvertakeEnvironment
 from environments.TwoCarEnvironment import TwoCarEnvironment
@@ -14,22 +11,7 @@ class EnvironmentFactory:
 
     def create(self, name, config):
         print(config)
-        if name == 'CarBlock':
-            return CarBlockEnvironment(
-                config['car_name'],
-                config['reward_range'],
-                config['max_steps'],
-                config['collision_range'],
-                config['step_length']
-            )
-        elif name == 'CarGoal':
-            return CarGoalEnvironment(
-                config['car_name'],
-                config['reward_range'],
-                config['max_steps'],
-                config['step_length']
-            )
-        elif name == 'CarTrack':
+        if name == 'CarTrack':
             return CarTrackEnvironment(
                 config['car_name'], 
                 config['reward_range'], 
@@ -69,14 +51,6 @@ class EnvironmentFactory:
                 config['step_length'], 
                 config['track'], 
                 config['observation_mode'], 
-            )
-        elif name == 'CarWall':
-            return CarWallEnvironment(
-                config['car_name'],
-                config['reward_range'],
-                config['max_steps'],
-                config['collision_range'],
-                config['step_length']
             )
         elif name == 'CarBeat':
             return CarBeatEnvironment(
