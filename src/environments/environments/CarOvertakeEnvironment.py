@@ -66,7 +66,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
                  ):
         
         max_steps = 200
-        super().__init__('car_overtake', car_name, max_steps, step_length)
+        super().__init__('car_overtake', car_name, reward_range, max_steps, collision_range, step_length)
 
         
 
@@ -104,9 +104,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
 
         # configure overall observation size
         self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
-
-        self.COLLISION_RANGE = collision_range
-        self.REWARD_RANGE = reward_range
 
         self.ODOM_OBSERVATION_MODE = observation_mode
         self.TRACK = track

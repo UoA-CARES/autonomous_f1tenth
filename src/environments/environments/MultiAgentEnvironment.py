@@ -37,14 +37,12 @@ class MultiAgentEnvironment(F1tenthEnvironment):
                  observation_mode='lidar_only',
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
-        super().__init__('multi_agent', car_name, max_steps, step_length)
+        super().__init__('multi_agent', car_name, reward_range, max_steps, collision_range, step_length)
 
         #####################################################################################################################
         # Read in params from init and config
         
         # Init params
-        self.REWARD_RANGE = reward_range
-        MultiAgentEnvironment.COLLISION_RANGE = collision_range
         MultiAgentEnvironment.TRACK = track
         self.OBSERVATION_MODE = observation_mode
 
@@ -399,7 +397,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
-        return has_collided(ranges, MultiAgentEnvironment.COLLISION_RANGE) \
+        return has_collided(ranges, self.COLLISION_RANGE) \
             or has_flipped_over(state[2:6])
 
     def is_truncated(self):
@@ -563,7 +561,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         if self.PROGRESS_NOT_MET_COUNTER >= 5:
             reward -= 2
 
-        if has_collided(raw_range, MultiAgentEnvironment.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+        if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 2.5
 
         info = {}
@@ -582,7 +580,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
 
         if self.PROGRESS_NOT_MET_COUNTER >= 5:
             reward -= 2
-        if has_collided(raw_range, MultiAgentEnvironment.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+        if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 2.5
 
         info = {}

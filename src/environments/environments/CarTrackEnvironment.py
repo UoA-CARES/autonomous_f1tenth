@@ -65,7 +65,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  is_staged_training=False,
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
-        super().__init__('car_track', car_name, max_steps, step_length)
+        super().__init__('car_track', car_name, reward_range, max_steps, collision_range, step_length)
 
         
 
@@ -84,8 +84,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Evaluation settings - configure train/eval split based on track
         if track == 'narrow_multi_track':
-
-
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (12/15) # 12 train, 3 eval
         else:
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5
@@ -121,10 +119,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # configure overall observation size
         self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
         #self.OBSERVATION_SIZE = {"lidar": self.LIDAR_POINTS, "vector": odom_observation_size}
-
-        self.COLLISION_RANGE = collision_range
-        self.REWARD_RANGE = reward_range
-
         self.ODOM_OBSERVATION_MODE = observation_mode
         self.TRACK = track
         self.IS_MULTI_TRACK = 'multi_track' in track or track == 'staged_tracks'

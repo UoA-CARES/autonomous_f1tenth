@@ -24,7 +24,9 @@ class F1tenthEnvironment(Node):
     def __init__(self,
                  env_name,
                  car_name,
-                 max_steps,
+                 reward_range=0.5, 
+                 max_steps=3000, 
+                 collision_range=0.2,
                  step_length,
                  lidar_points = 10,
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
@@ -42,7 +44,9 @@ class F1tenthEnvironment(Node):
             config = yaml.safe_load(file)
             
         self.NAME = car_name
+        self.COLLISION_RANGE = collision_range
         self.MAX_STEPS = max_steps
+        self.REWARD_RANGE = reward_range
         self.STEP_LENGTH = step_length
         self.LIDAR_POINTS = lidar_points
 

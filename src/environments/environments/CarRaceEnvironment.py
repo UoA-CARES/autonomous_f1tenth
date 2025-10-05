@@ -51,7 +51,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
                  observation_mode='lidar_only',
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
-        super().__init__('car_race', car_name, max_steps, step_length)
+        super().__init__('car_race', car_name, reward_range, max_steps, collision_range, step_length)
 
         
 
@@ -80,8 +80,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
         # configure overall observation size
         self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
-
-        self.COLLISION_RANGE = collision_range
 
         self.ODOM_OBSERVATION_MODE = observation_mode
         self.TRACK = track
