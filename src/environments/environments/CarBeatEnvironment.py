@@ -90,7 +90,8 @@ class CarBeatEnvironment(Node):
         self.OBSERVATION_MODE = observation_mode
         self.NUM_SPAWNS = 0
         self.LIDAR_NUM = num_lidar_points
-        
+        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
         self.MAX_GOALS = max_goals
         match observation_mode:
             case 'full':
