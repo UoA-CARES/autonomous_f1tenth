@@ -86,12 +86,6 @@ def __get_env_params(param_node: Node):
         params_dict[param.name] = param.value
     
     match params_dict['environment']:
-        case 'CarGoal':
-            config = cfg.CarGoalEnvironmentConfig(**params_dict)
-        case 'CarBlock':
-            config = cfg.CarBlockEnvironmentConfig(**params_dict)
-        case 'CarWall':
-            config = cfg.CarWallEnvironmentConfig(**params_dict)
         case 'CarTrack':
             config = cfg.CarTrackEnvironmentConfig(**params_dict)
         case 'CarBeat':

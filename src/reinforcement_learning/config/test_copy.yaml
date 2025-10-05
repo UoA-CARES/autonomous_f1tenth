@@ -2,7 +2,7 @@ test:
   ros__parameters:
     environment: 'TwoCar'
     car_name: 'f2tenth'
-    track: 'multi_track_wide' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
+    track: 'multi_track_wide' # track_1, track_2, track_3, multi_track, multi_track_testing 
     number_eval_episodes: 1000
     max_steps: 3000
     actor_path: /home/anyone/autonomous_f1tenth/overtaking_models/multiagent/4TD3_actor.pht

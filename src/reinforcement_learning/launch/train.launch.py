@@ -8,9 +8,6 @@ from launch.substitutions import TextSubstitution
 import yaml
 
 env_launch = {
-    'CarGoal': 'cargoal',
-    'CarWall': 'carwall',
-    'CarBlock': 'carblock',
     'CarTrack': 'cartrack',
     'CarBeat': 'carbeat',
     'CarOvertake': 'carovertake',
