@@ -37,9 +37,6 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'CarGoalReset = environments.CarGoalReset:main',
-            'CarWallReset = environments.CarWallReset:main',
-            'CarBlockReset = environments.CarBlockReset:main',
             'CarTrackReset = environments.CarTrackReset:main',
             'CarBeatReset = environments.CarBeatReset:main',
             'CarRaceReset = environments.CarRaceReset:main',
