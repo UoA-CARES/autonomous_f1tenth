@@ -112,7 +112,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         #####################################################################################################################
 
         # Environment Details ----------------------------------------
-        self.MAX_STEPS_PER_GOAL = max_steps
 
         # configure odom observation size:
         match observation_mode:
