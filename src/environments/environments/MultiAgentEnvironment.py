@@ -51,10 +51,6 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         # Load configuration from YAML file
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
-            
-        # Config params
-        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
-        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
 
         #####################################################################################################################
         # Initialise other vars
