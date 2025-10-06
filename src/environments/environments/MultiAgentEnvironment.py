@@ -123,7 +123,6 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         )
 
         self.ODOM_MESSAGE_FILTER.registerCallback(self.odom_message_filter_callback)
-        self.ODOM_OBSERVATION_FUTURE = Future()
 
         #####################################################################################################################
 

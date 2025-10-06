@@ -138,7 +138,7 @@ class F1tenthEnvironment(Node):
         # Futures
         self.TIMER_FUTURE = Future()
         self.LAST_STATE = Future()
-        self.OBSERVATION_FUTURE = Future()
+        self.ODOM_OBSERVATION_FUTURE = Future()
 
 
         #####################################################################################################################
@@ -182,17 +182,17 @@ class F1tenthEnvironment(Node):
         raise NotImplementedError('is_terminated() not implemented')
 
     def message_filter_callback(self, odom: Odometry, lidar: LaserScan):
-        self.OBSERVATION_FUTURE.set_result({'odom': odom, 'lidar': lidar})
+        self.ODOM_OBSERVATION_FUTURE.set_result({'odom': odom, 'lidar': lidar})
 
     def get_data(self) -> tuple[Odometry,LaserScan]:
-        rclpy.spin_until_future_complete(self, self.OBSERVATION_FUTURE, timeout_sec=0.5)
-        if (self.OBSERVATION_FUTURE.result()) == None:
+        rclpy.spin_until_future_complete(self, self.ODOM_OBSERVATION_FUTURE, timeout_sec=0.5)
+        if (self.ODOM_OBSERVATION_FUTURE.result()) == None:
             future = self.LAST_STATE
             self.get_logger().info("Using previous observation")
         else:
-            future = self.OBSERVATION_FUTURE
+            future = self.ODOM_OBSERVATION_FUTURE
             self.LAST_STATE = future
-        self.OBSERVATION_FUTURE = Future()
+        self.ODOM_OBSERVATION_FUTURE = Future()
         data = future.result()
         return data['odom'], data['lidar']
 
