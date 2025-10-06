@@ -38,6 +38,9 @@ class F1tenthEnvironment(Node):
         if lidar_points < 1:
             raise Exception("Make sure number of lidar points is more than 0")
         
+        # Init params
+        self.NAME = car_name
+
 
         # Environment Details ----------------------------------------
                 

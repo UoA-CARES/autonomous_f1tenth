@@ -51,7 +51,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
                  observation_mode='lidar_only',
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
-        super().__init__('car_race', car_name, reward_range, max_steps, collision_range, step_length, track, observation_mode)
+        super().__init__('car_race', car_name, reward_range, max_steps, collision_range, step_length, lidar_points = 10, track, observation_mode)
 
         
 
