@@ -29,6 +29,8 @@ class F1tenthEnvironment(Node):
                  collision_range=0.2,
                  step_length,
                  lidar_points = 10,
+                 track='track_1',
+                 observation_mode='lidar_only',
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
         super().__init__(env_name + '_environment')
