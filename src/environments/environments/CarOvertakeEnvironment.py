@@ -68,9 +68,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
 
         
 
-        #####################################################################################################################
-        # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
-            
+        #####################################################################################################################   
         # Reward configuration
         self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
@@ -87,7 +85,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         # reward function specific setup:
         if self.BASE_REWARD_FUNCTION == 'progressive':
             self.PROGRESS_NOT_MET_CNT = 0
-
 
         # Reset Client -----------------------------------------------
         self.STEPS_SINCE_LAST_GOAL = 0

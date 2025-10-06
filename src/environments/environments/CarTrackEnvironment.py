@@ -89,19 +89,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.TRAINING_IDX = self.TRAINING_STAGES[self.CURRENT_TRAINING_STAGE][0]
             self.EVAL_IDX = self.TRAINING_STAGES[self.CURRENT_TRAINING_STAGE][1]
 
-        #optional stuff
-        self.ENCODER = None
-        self.DECODER = None
-
-        if self.LIDAR_PROCESSING == 'ae':
-            from .autoencoders.lidar_autoencoder import LidarConvAE
-            self.AE_LIDAR_MODEL = LidarConvAE(encoder=self.ENCODER, decoder=self.DECODER)
-            if self.IS_EVAL:
-                self.AE_LIDAR_MODEL.eval()
-            else:
-                self.AE_LOSS_FUNCTION = torch.nn.MSELoss()
-                self.AE_OPTIMIZER = torch.optim.Adam(self.AE_LIDAR_MODEL.parameters(), lr=1e-3)
-
         # reward function specific setup:
         if self.BASE_REWARD_FUNCTION == 'progressive':
             self.PROGRESS_NOT_MET_CNT = 0

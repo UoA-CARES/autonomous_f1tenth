@@ -38,10 +38,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         super().__init__('multi_agent', car_name, reward_range, max_steps, collision_range, step_length, lidar_points = 10, track, observation_mode)
 
         #####################################################################################################################
-        # Read in params from init and config
-
-        #####################################################################################################################
-        # Initialise other vars
+        # Initialise vars
 
         # Track progress utilities
         self.ALL_TRACK_WAYPOINTS = None

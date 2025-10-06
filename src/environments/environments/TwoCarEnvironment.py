@@ -38,11 +38,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         super().__init__('two_car', car_name, reward_range, max_steps, collision_range, step_length, lidar_points = 10, track, observation_mode)
 
         #####################################################################################################################
-        # Read in params from init and config
-        
-
-        #####################################################################################################################
-        # Initialise other vars
+        # Initialise vars
 
         # Track progress utilities
         self.ALL_TRACK_WAYPOINTS = None
@@ -110,10 +106,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
         )
 
         self.ODOM_MESSAGE_FILTER.registerCallback(self.odom_message_filter_callback)
-        self.ODOM_OBSERVATION_FUTURE = Future()
 
         #####################################################################################################################
-
         # Publish and subscribe to status topic
 
         self.STATUS_PUB = self.create_publisher(
