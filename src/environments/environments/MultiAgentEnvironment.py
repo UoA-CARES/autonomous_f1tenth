@@ -22,8 +22,8 @@ import time
 
 class MultiAgentEnvironment(F1tenthEnvironment):
 
-    MULTI_TRACK_TRAIN_EVAL_SPLIT = 5/6
-    REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)]
+    
+    
 
     def __init__(self, 
                  car_name, 
@@ -44,7 +44,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         # Initialise other vars
 
         # Track progress utilities
-        MultiAgentEnvironment.ALL_TRACK_WAYPOINTS = None
+        self.ALL_TRACK_WAYPOINTS = None
         self.CURR_TRACK = None
         self.CURR_WAYPOINTS = None
         self.PROGRESS_NOT_MET_COUNTER = 0
@@ -63,20 +63,21 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         self.CURR_EVAL_IDX = 0
 
         #####################################################################################################################
-        
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)]
+        self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 5/6
         # Track info
         if self.IS_MULTI_TRACK:
             # Get all track infos
-            _, MultiAgentEnvironment.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(self.TRACK)
-            self.ALL_TRACK_MODELS = get_track_math_defs(MultiAgentEnvironment.ALL_TRACK_WAYPOINTS)
+            _, self.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(self.TRACK)
+            self.ALL_TRACK_MODELS = get_track_math_defs(self.ALL_TRACK_WAYPOINTS)
             
             # Get current track infos (should start empty?)
-            self.CURR_TRACK = list(MultiAgentEnvironment.ALL_TRACK_WAYPOINTS.keys())[0] # Should it always be the first one? Should it be initialized empty?
-            self.CURR_WAYPOINTS = MultiAgentEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            self.CURR_TRACK = list(self.ALL_TRACK_WAYPOINTS.keys())[0] # Should it always be the first one? Should it be initialized empty?
+            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
             self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
 
             # Set eval track indexes
-            self.EVAL_TRACKS_IDX = int(len(MultiAgentEnvironment.ALL_TRACK_WAYPOINTS)*MultiAgentEnvironment.MULTI_TRACK_TRAIN_EVAL_SPLIT)   
+            self.EVAL_TRACKS_IDX = int(len(self.ALL_TRACK_WAYPOINTS)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)   
         else:
             if "test_track" in self.TRACK:
                 track_key = self.TRACK[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
@@ -179,9 +180,9 @@ class MultiAgentEnvironment(F1tenthEnvironment):
             self.CURR_TRACK = track
             self.GOAL_POS = [goal[0], goal[1]]
             self.SPAWN_INDEX = spawn
-            self.CURR_WAYPOINTS = MultiAgentEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
             if self.IS_EVAL:
-                eval_track_key_list = list(MultiAgentEnvironment.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACKS_IDX:]
+                eval_track_key_list = list(self.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACKS_IDX:]
                 self.CURR_EVAL_IDX += 1
                 self.CURR_EVAL_IDX = self.CURR_EVAL_IDX % len(eval_track_key_list)
             self.publish_status('ready')
@@ -228,16 +229,16 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         if self.IS_MULTI_TRACK:
             # Evaluating: loop through eval tracks sequentially
             if self.IS_EVAL:
-                eval_track_key_list = list(MultiAgentEnvironment.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACKS_IDX:]
+                eval_track_key_list = list(self.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACKS_IDX:]
                 self.CURR_TRACK = eval_track_key_list[self.CURR_EVAL_IDX]
                 self.CURR_EVAL_IDX += 1
                 self.CURR_EVAL_IDX = self.CURR_EVAL_IDX % len(eval_track_key_list)
 
             # Training: choose a random track that is not used for evaluation
             else:
-                self.CURR_TRACK = random.choice(list(MultiAgentEnvironment.ALL_TRACK_WAYPOINTS.keys())[:self.EVAL_TRACKS_IDX])
+                self.CURR_TRACK = random.choice(list(self.ALL_TRACK_WAYPOINTS.keys())[:self.EVAL_TRACKS_IDX])
             
-            self.CURR_WAYPOINTS = MultiAgentEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
         else:
             self.CURR_TRACK = self.TRACK
 
@@ -442,7 +443,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         reward_info.update(base_reward_info)
         
         # calculate reward modifiers:
-        for modifier_type, weight in MultiAgentEnvironment.REWARD_MODIFIERS:
+        for modifier_type, weight in self.REWARD_MODIFIERS:
             match modifier_type:
                 case 'wall_proximity':
                     dist_to_wall = min(raw_lidar_range)
