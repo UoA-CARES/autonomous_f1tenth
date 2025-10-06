@@ -46,7 +46,6 @@ class MultiAgentEnvironment(F1tenthEnvironment):
 
         # Track progress utilities
         self.PREV_CLOSEST_POINT = None
-        MultiAgentEnvironment.ALL_TRACK_MODELS = None
         MultiAgentEnvironment.ALL_TRACK_WAYPOINTS = None
         self.CURR_TRACK_MODEL = None
         self.CURR_TRACK = None
@@ -82,12 +81,12 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         if self.IS_MULTI_TRACK:
             # Get all track infos
             _, MultiAgentEnvironment.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(self.TRACK)
-            MultiAgentEnvironment.ALL_TRACK_MODELS = get_track_math_defs(MultiAgentEnvironment.ALL_TRACK_WAYPOINTS)
+            self.ALL_TRACK_MODELS = get_track_math_defs(MultiAgentEnvironment.ALL_TRACK_WAYPOINTS)
             
             # Get current track infos (should start empty?)
             self.CURR_TRACK = list(MultiAgentEnvironment.ALL_TRACK_WAYPOINTS.keys())[0] # Should it always be the first one? Should it be initialized empty?
             self.CURR_WAYPOINTS = MultiAgentEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
-            self.CURR_TRACK_MODEL = MultiAgentEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]
+            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
 
             # Set eval track indexes
             self.EVAL_TRACKS_IDX = int(len(MultiAgentEnvironment.ALL_TRACK_WAYPOINTS)*MultiAgentEnvironment.MULTI_TRACK_TRAIN_EVAL_SPLIT)   
@@ -224,7 +223,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         # set new track model if its multi track
 
         if self.IS_MULTI_TRACK:
-            self.CURR_TRACK_MODEL = MultiAgentEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]
+            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
         self.EP_PROGRESS1 = 0
         self.EP_PROGRESS2 = 0

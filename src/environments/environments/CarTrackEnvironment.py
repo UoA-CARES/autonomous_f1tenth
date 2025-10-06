@@ -111,7 +111,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # initialize track progress utilities
         self.PREV_T = None
-        self.ALL_TRACK_MODELS = None
         self.TRACK_MODEL = None
         
         

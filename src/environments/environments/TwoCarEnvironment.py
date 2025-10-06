@@ -47,7 +47,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         # Track progress utilities
         self.PREV_CLOSEST_POINT = None
-        TwoCarEnvironment.ALL_TRACK_MODELS = None
         TwoCarEnvironment.ALL_TRACK_WAYPOINTS = None
         self.CURR_TRACK_MODEL = None
         self.CURR_TRACK = None
@@ -83,12 +82,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if self.IS_MULTI_TRACK:
             # Get all track infos
             _, TwoCarEnvironment.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(self.TRACK)
-            TwoCarEnvironment.ALL_TRACK_MODELS = get_track_math_defs(TwoCarEnvironment.ALL_TRACK_WAYPOINTS)
+            self.ALL_TRACK_MODELS = get_track_math_defs(TwoCarEnvironment.ALL_TRACK_WAYPOINTS)
             
             # Get current track infos (should start empty?)
             self.CURR_TRACK = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[0] # Should it always be the first one? Should it be initialized empty?
             self.CURR_WAYPOINTS = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
-            self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]
+            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
 
             # Set eval track indexes
             self.EVAL_TRACKS_IDX = int(len(TwoCarEnvironment.ALL_TRACK_WAYPOINTS)*TwoCarEnvironment.MULTI_TRACK_TRAIN_EVAL_SPLIT)   
@@ -226,7 +225,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # set new track model if its multi track
 
         if self.IS_MULTI_TRACK:
-            self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]
+            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
         self.EP_PROGRESS1 = 0
         self.EP_PROGRESS2 = 0

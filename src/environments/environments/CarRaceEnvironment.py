@@ -70,7 +70,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
         # initialize track progress utilities
         self.PREV_T = None
-        self.ALL_TRACK_MODELS = None
         self.TRACK_MODEL = None
 
         if self.LIDAR_PROCESSING == 'pretrained_ae':
