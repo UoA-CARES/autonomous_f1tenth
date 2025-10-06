@@ -57,11 +57,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
         #####################################################################################################################
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
-            
-        # Observation configuration
-        
-        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
-
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
@@ -101,17 +96,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
 #  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
 #   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
                                                                                       
-
-    def get_extra_observation_size(self):
-        total = 0
-        for obs in self.EXTRA_OBSERVATIONS:
-            match obs:
-                case 'prev_ang_vel':
-                    total += 1
-                case _:
-                    print("Unknown extra observation.")
-        return total
-
 
 
     def reset(self):
@@ -185,18 +169,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
         
         self.PROCESSED_PUBLISHER.publish(scan)
 
-        state += processed_lidar_range
-
-        # Add extra observation:
-        for extra_observation in self.EXTRA_OBSERVATIONS:
-            match extra_observation:
-                case 'prev_ang_vel':
-                    if self.FULL_CURRENT_STATE:
-                        state += [self.FULL_CURRENT_STATE[7]]
-                    else:
-                        state += [state[7]]
-
-        
+        state += processed_lidar_range     
         full_state = odom + processed_lidar_range
 
         return state, full_state, lidar.ranges

@@ -57,7 +57,7 @@ class F1tenthEnvironment(Node):
                 odom_observation_size = 6
             case _:
                 odom_observation_size = 10
-        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS # + self.get_extra_observation_size()
+        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS
 
         #####################################################################################################################
         # Network params ---------------------------------------------
@@ -70,7 +70,7 @@ class F1tenthEnvironment(Node):
         #####################################################################################################################
         # Vehicle params -------------------------------------------
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
-        
+
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
 

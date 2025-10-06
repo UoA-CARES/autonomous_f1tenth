@@ -78,9 +78,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
-        # Observation configuration
-        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
-
         # Evaluation settings
         self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
 
@@ -147,16 +144,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
 #  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
 #   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
                                                                                       
-
-    def get_extra_observation_size(self):
-        total = 0
-        for obs in self.EXTRA_OBSERVATIONS:
-            match obs:
-                case 'prev_ang_vel':
-                    total += 1
-                case _:
-                    print("Unknown extra observation.")
-        return total
     
     def randomize_yaw(self, yaw, percentage=0.5):
         factor = 1 + random.uniform(-percentage, percentage)
@@ -354,16 +341,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         self.PROCESSED_PUBLISHER.publish(scan)
 
         state += processed_lidar_range
-
-        # Add extra observation:
-        for extra_observation in self.EXTRA_OBSERVATIONS:
-            match extra_observation:
-                case 'prev_ang_vel':
-                    if self.FULL_CURRENT_STATE:
-                        state += [self.FULL_CURRENT_STATE[7]]
-                    else:
-                        state += [state[7]]
-
         
         full_state = odom + processed_lidar_range
 
