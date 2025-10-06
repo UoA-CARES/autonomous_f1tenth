@@ -64,8 +64,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
                  observation_mode='lidar_only',
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
-        
-        max_steps = 200
         super().__init__('car_overtake', car_name, reward_range, max_steps, collision_range, step_length, lidar_points = 10, track, observation_mode)
 
         
