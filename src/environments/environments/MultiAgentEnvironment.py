@@ -46,10 +46,6 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         MultiAgentEnvironment.TRACK = track
         self.OBSERVATION_MODE = observation_mode
 
-        # Load configuration from YAML file
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-
         #####################################################################################################################
         # Initialise other vars
 
