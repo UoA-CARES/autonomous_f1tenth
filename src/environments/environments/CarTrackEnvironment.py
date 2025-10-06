@@ -113,7 +113,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.PREV_T = None
         self.ALL_TRACK_MODELS = None
         self.TRACK_MODEL = None
-        self.STEP_PROGRESS = 0
+        
         
         # Evaluation related setup ---------------------------------------------------
         

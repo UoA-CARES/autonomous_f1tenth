@@ -51,7 +51,6 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         self.CURR_TRACK_MODEL = None
         self.CURR_TRACK = None
         self.CURR_WAYPOINTS = None
-        self.STEP_PROGRESS = 0
         self.PROGRESS_NOT_MET_COUNTER = 0
 
         # Distance covered

@@ -96,7 +96,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         self.PREV_T = None
         self.ALL_TRACK_MODELS = None
         self.TRACK_MODEL = None
-        self.STEP_PROGRESS = 0
 
         if self.LIDAR_PROCESSING == 'pretrained_ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
