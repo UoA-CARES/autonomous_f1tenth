@@ -58,8 +58,13 @@ class F1tenthEnvironment(Node):
             case _:
                 odom_observation_size = 10
         self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS # + self.get_extra_observation_size()
+
         #####################################################################################################################
-        # Environment Details ----------------------------------------
+        # Network params ---------------------------------------------
+        self.ACTION_NUM = 2
+
+        #####################################################################################################################
+        # Environment params -----------------------------------------
                 
         # Load configuration from YAML file
         with open(config_path, 'r') as file:
@@ -68,10 +73,11 @@ class F1tenthEnvironment(Node):
         self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
         self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
  
-        self.ACTION_NUM = 2
+        
 
         self.STEP_COUNTER = 0
 
+        #####################################################################################################################
         # Pub/Sub ----------------------------------------------------
         self.CMD_VEL_PUB = self.create_publisher(
             Twist,

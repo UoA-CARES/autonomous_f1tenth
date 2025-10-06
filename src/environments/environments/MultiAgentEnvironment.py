@@ -23,7 +23,6 @@ import time
 class MultiAgentEnvironment(F1tenthEnvironment):
 
     MULTI_TRACK_TRAIN_EVAL_SPLIT = 5/6
-    LIDAR_POINTS = 10
     REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)]
     LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg' 
 
@@ -392,7 +391,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         odom, lidar = self.get_data()
         odom = process_odom(odom)
         
-        num_points = MultiAgentEnvironment.LIDAR_POINTS
+        num_points = self.LIDAR_POINTS
         
         # init state
         state = []

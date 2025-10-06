@@ -65,9 +65,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  is_staged_training=False,
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
-        super().__init__('car_track', car_name, reward_range, max_steps, collision_range, step_length, lidar_points = 10, track, observation_mode)
-
-        
+        super().__init__('car_track', car_name, reward_range, max_steps, collision_range, step_length, lidar_points = 683, track, observation_mode)
 
         #####################################################################################################################
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
@@ -79,7 +77,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw", "ae"] = 'ae'
-        self.LIDAR_POINTS = 683 #683
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Evaluation settings - configure train/eval split based on track
