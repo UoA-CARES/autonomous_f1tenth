@@ -115,8 +115,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
         # Evaluation related setup ---------------------------------------------------
         self.IS_EVAL = False
 
-        self.STEP_COUNTER = 0
-
         self.get_logger().info('Environment Setup Complete')
 
 

@@ -59,8 +59,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.STEP_PROGRESS = 0
         self.PROGRESS_NOT_MET_COUNTER = 0
 
-        self.STEP_COUNTER = 0
-
         # Distance covered
         self.EP_PROGRESS1 = 0
         self.EP_PROGRESS2 = 0

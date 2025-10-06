@@ -162,8 +162,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
             self.EVAL_TRACK_BEGIN_IDX = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
             # idx used to loop through eval tracks sequentially
             self.EVAL_TRACK_IDX = 0
-        
-        self.STEP_COUNTER = 0
 
         self.get_logger().info('Environment Setup Complete')
 

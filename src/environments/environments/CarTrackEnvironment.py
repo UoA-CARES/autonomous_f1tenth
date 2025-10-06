@@ -196,7 +196,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
             
             # idx used to loop through eval tracks sequentially
             self.EVAL_TRACK_IDX = 0
-        self.STEP_COUNTER = 0
 
         self.get_logger().info('Environment Setup Complete')
 
