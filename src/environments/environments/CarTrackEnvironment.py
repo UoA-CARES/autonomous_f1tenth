@@ -68,8 +68,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         super().__init__('car_track', car_name, reward_range, max_steps, collision_range, step_length, lidar_points = 683, track, observation_mode)
 
         #####################################################################################################################
-        # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
-            
+
         # Reward configuration
         self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
@@ -90,19 +89,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.TRAINING_IDX = self.TRAINING_STAGES[self.CURRENT_TRAINING_STAGE][0]
             self.EVAL_IDX = self.TRAINING_STAGES[self.CURRENT_TRAINING_STAGE][1]
 
-
         #optional stuff
         self.ENCODER = None
         self.DECODER = None
 
-        #####################################################################################################################
-
-        # Environment Details ----------------------------------------
-
-        
-        #self.OBSERVATION_SIZE = {"lidar": self.LIDAR_POINTS, "vector": odom_observation_size}
-        
-        
         if self.LIDAR_PROCESSING == 'ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
             self.AE_LIDAR_MODEL = LidarConvAE(encoder=self.ENCODER, decoder=self.DECODER)
@@ -116,20 +106,29 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.BASE_REWARD_FUNCTION == 'progressive':
             self.PROGRESS_NOT_MET_CNT = 0
 
-
-        # Reset Client -----------------------------------------------
-
         self.STEPS_SINCE_LAST_GOAL = 0
         if self.IS_MULTI_TRACK:
             _, self.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(track)
             if self.IS_STAGED_TRAINING:
                 self.CURRENT_TRACK_KEY = list(self.ALL_TRACK_WAYPOINTS.keys())[self.TRAINING_IDX[0]]
+                self.EVAL_TRACK_BEGIN_IDX = None
+                self.get_logger().info(f"Track '{track}', {self.TRAINING_IDX} training, {self.EVAL_IDX} evaluation")
             else:
                 self.CURRENT_TRACK_KEY = list(self.ALL_TRACK_WAYPOINTS.keys())[0]
+                # define from which track in the track lists to be used for eval only
+                self.EVAL_TRACK_BEGIN_IDX = int(len(self.ALL_TRACK_WAYPOINTS)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
+                # Debug logging
+                total_tracks = len(self.ALL_TRACK_WAYPOINTS)
+                training_tracks = self.EVAL_TRACK_BEGIN_IDX
+                eval_tracks = total_tracks - training_tracks
+                self.get_logger().info(f"Track '{track}' split: {total_tracks} total, {training_tracks} training, {eval_tracks} evaluation (split={self.MULTI_TRACK_TRAIN_EVAL_SPLIT})")
 
             # set track models
             self.ALL_TRACK_MODELS = get_track_math_defs(self.ALL_TRACK_WAYPOINTS)
             self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURRENT_TRACK_KEY]
+            
+            # idx used to loop through eval tracks sequentially
+            self.EVAL_TRACK_IDX = 0
         else:
             if "test_track" in track:
                 track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.    
@@ -138,22 +137,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
             self.TRACK_WAYPOINTS = waypoints[track_key]
             self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.TRACK_WAYPOINTS)[:,:2])
-
-        if self.IS_MULTI_TRACK:
-            if self.IS_STAGED_TRAINING:
-                self.EVAL_TRACK_BEGIN_IDX = None
-                self.get_logger().info(f"Track '{track}', {self.TRAINING_IDX} training, {self.EVAL_IDX} evaluation")
-            else:
-                # define from which track in the track lists to be used for eval only
-                self.EVAL_TRACK_BEGIN_IDX = int(len(self.ALL_TRACK_WAYPOINTS)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
-                # Debug logging
-                total_tracks = len(self.ALL_TRACK_WAYPOINTS)
-                training_tracks = self.EVAL_TRACK_BEGIN_IDX
-                eval_tracks = total_tracks - training_tracks
-                self.get_logger().info(f"Track '{track}' split: {total_tracks} total, {training_tracks} training, {eval_tracks} evaluation (split={self.MULTI_TRACK_TRAIN_EVAL_SPLIT})")
-            
-            # idx used to loop through eval tracks sequentially
-            self.EVAL_TRACK_IDX = 0
 
         self.get_logger().info('Environment Setup Complete')
 
