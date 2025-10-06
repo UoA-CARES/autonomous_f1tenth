@@ -58,17 +58,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
         #####################################################################################################################
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
-        #optional stuff
-        pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
-
-        #####################################################################################################################
-
-        if self.LIDAR_PROCESSING == 'pretrained_ae':
-            from .autoencoders.lidar_autoencoder import LidarConvAE
-            self.AE_LIDAR_MODEL = LidarConvAE()
-            self.AE_LIDAR_MODEL.load_state_dict(torch.load(pretrained_ae_path))
-            self.AE_LIDAR_MODEL.eval()
-
         # Reset Client -----------------------------------------------
 
         self.START_WAYPOINT_INDEX = 0

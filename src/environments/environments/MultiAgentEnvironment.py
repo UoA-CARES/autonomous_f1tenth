@@ -65,13 +65,6 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         self.CURR_EVAL_IDX = 0
 
         #####################################################################################################################
-
-        # AE
-        if self.LIDAR_PROCESSING == 'pretrained_ae':
-            from .autoencoders.lidar_autoencoder import LidarConvAE
-            self.AE_LIDAR = LidarConvAE()
-            self.AE_LIDAR.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))
-            self.AE_LIDAR.eval()
         
         # Track info
         if self.IS_MULTI_TRACK:

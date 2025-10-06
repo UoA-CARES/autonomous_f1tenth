@@ -92,7 +92,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
 
         #optional stuff
-        pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
         self.ENCODER = None
         self.DECODER = None
 
@@ -103,17 +102,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         
         #self.OBSERVATION_SIZE = {"lidar": self.LIDAR_POINTS, "vector": odom_observation_size}
         
-
-        
-        
-        # Evaluation related setup ---------------------------------------------------
-        
-
-        if self.LIDAR_PROCESSING == 'pretrained_ae':
-            from .autoencoders.lidar_autoencoder import LidarConvAE
-            self.AE_LIDAR_MODEL = LidarConvAE()
-            self.AE_LIDAR_MODEL.load_state_dict(torch.load(pretrained_ae_path))
-            self.AE_LIDAR_MODEL.eval()
         
         if self.LIDAR_PROCESSING == 'ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE

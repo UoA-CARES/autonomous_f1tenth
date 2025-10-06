@@ -81,18 +81,10 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         # Evaluation settings
         self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
 
-        #optional stuff
-        pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
-
         #####################################################################################################################
 
         # Environment Details ----------------------------------------
 
-        if self.LIDAR_PROCESSING == 'pretrained_ae':
-            from .autoencoders.lidar_autoencoder import LidarConvAE
-            self.AE_LIDAR_MODEL = LidarConvAE()
-            self.AE_LIDAR_MODEL.load_state_dict(torch.load(pretrained_ae_path))
-            self.AE_LIDAR_MODEL.eval()
 
         # reward function specific setup:
         if self.BASE_REWARD_FUNCTION == 'progressive':

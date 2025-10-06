@@ -70,6 +70,12 @@ class F1tenthEnvironment(Node):
         #####################################################################################################################
         # Vehicle params -------------------------------------------
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
+        # AE
+        if self.LIDAR_PROCESSING == 'pretrained_ae':
+            from .autoencoders.lidar_autoencoder import LidarConvAE
+            self.AE_LIDAR = LidarConvAE()
+            self.AE_LIDAR.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))
+            self.AE_LIDAR.eval()
 
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
