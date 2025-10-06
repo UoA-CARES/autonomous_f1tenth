@@ -39,7 +39,7 @@ class F1tenthEnvironment(Node):
             raise Exception("Make sure number of lidar points is more than 0")
 
         #####################################################################################################################
-        # Init params
+        # Init params ----------------------------------------------
         self.NAME = car_name
         self.REWARD_RANGE = reward_range
         self.MAX_STEPS = max_steps
@@ -73,10 +73,6 @@ class F1tenthEnvironment(Node):
         self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
         self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
  
-        
-
-        self.STEP_COUNTER = 0
-
         #####################################################################################################################
         # Pub/Sub ----------------------------------------------------
         self.CMD_VEL_PUB = self.create_publisher(
@@ -103,39 +99,47 @@ class F1tenthEnvironment(Node):
             1
         )
 
+        #####################################################################################################################
+        # Message filter ---------------------------------------------
         self.MESSAGE_FILTER = ApproximateTimeSynchronizer(
             [self.ODOM_SUB, self.LIDAR_SUB],
             1,
             0.1,
         )
-
         self.MESSAGE_FILTER.registerCallback(self.message_filter_callback)
-
-        self.OBSERVATION_FUTURE = Future()
 
         # Reset Client -----------------------------------------------
         self.RESET_CLIENT = self.create_client(
             Reset,
             env_name + '_reset'
         )
-
         while not self.RESET_CLIENT.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('reset service not available, waiting again...')
 
-
         # Stepping Client ---------------------------------------------
-
         self.STEPPING_CLIENT = self.create_client(
             SetBool,
             'stepping_service'
         )
-
         while not self.STEPPING_CLIENT.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('stepping service not available, waiting again...')
 
+        # Timer -------------------------------------------------------
         self.TIMER = self.create_timer(step_length, self.timer_cb)
+
+        #####################################################################################################################
+        # Initialise vars ---------------------------------------------
+
+        self.STEP_COUNTER = 0
+
+
+        # Futures
         self.TIMER_FUTURE = Future()
         self.LAST_STATE = Future()
+        self.OBSERVATION_FUTURE = Future()
+
+
+        #####################################################################################################################
 
     def reset(self):
         raise NotImplementedError('reset() not implemented')
