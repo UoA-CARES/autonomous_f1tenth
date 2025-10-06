@@ -106,7 +106,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         
         #self.OBSERVATION_SIZE = {"lidar": self.LIDAR_POINTS, "vector": odom_observation_size}
-        self.IS_MULTI_TRACK = 'multi_track' in track or track == 'staged_tracks'
+        
 
 
         # initialize track progress utilities

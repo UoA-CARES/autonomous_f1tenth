@@ -92,8 +92,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
 
         # Environment Details ----------------------------------------
 
-        self.IS_MULTI_TRACK = 'multi_track' in track
-
         # initialize track progress utilities
         self.PREV_T = None
         self.ALL_TRACK_MODELS = None

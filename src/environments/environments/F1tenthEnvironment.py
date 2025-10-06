@@ -65,7 +65,8 @@ class F1tenthEnvironment(Node):
 
         #####################################################################################################################
         # Environment params -----------------------------------------
-                
+        self.IS_MULTI_TRACK = 'multi_track' in self.TRACK or self.TRACK == 'staged_tracks'
+
         # Load configuration from YAML file
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
@@ -129,7 +130,8 @@ class F1tenthEnvironment(Node):
 
         #####################################################################################################################
         # Initialise vars ---------------------------------------------
-
+        
+        # Loop vars
         self.STEP_COUNTER = 0
 
 

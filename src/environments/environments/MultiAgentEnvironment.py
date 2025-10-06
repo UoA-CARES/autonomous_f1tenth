@@ -81,8 +81,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
             self.AE_LIDAR.eval()
         
         # Track info
-        MultiAgentEnvironment.IS_MULTI_TRACK = 'multi_track' in self.TRACK
-        if MultiAgentEnvironment.IS_MULTI_TRACK:
+        if self.IS_MULTI_TRACK:
             # Get all track infos
             _, MultiAgentEnvironment.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(self.TRACK)
             MultiAgentEnvironment.ALL_TRACK_MODELS = get_track_math_defs(MultiAgentEnvironment.ALL_TRACK_WAYPOINTS)
@@ -227,7 +226,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         # get track progress related info
         # set new track model if its multi track
 
-        if MultiAgentEnvironment.IS_MULTI_TRACK:
+        if self.IS_MULTI_TRACK:
             self.CURR_TRACK_MODEL = MultiAgentEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
         self.EP_PROGRESS1 = 0
@@ -243,7 +242,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         return state, info
     
     def car_spawn(self):
-        if MultiAgentEnvironment.IS_MULTI_TRACK:
+        if self.IS_MULTI_TRACK:
             # Evaluating: loop through eval tracks sequentially
             if self.IS_EVAL:
                 eval_track_key_list = list(MultiAgentEnvironment.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACKS_IDX:]
