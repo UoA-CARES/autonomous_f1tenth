@@ -93,16 +93,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
 
         # Reset Client -----------------------------------------------
         self.STEPS_SINCE_LAST_GOAL = 0
-        if not self.IS_MULTI_TRACK:
-            if "test_track" in track:
-                track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
-            else:
-                track_key = track
-
-            self.TRACK_WAYPOINTS = waypoints[track_key]
-            self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.TRACK_WAYPOINTS)[:,:2])
-            
-        else:
+        if self.IS_MULTI_TRACK:
             _, self.all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
             self.CURRENT_TRACK_KEY = list(self.all_track_waypoints.keys())[0]
 
@@ -112,13 +103,19 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
             # set track models
             self.ALL_TRACK_MODELS = get_track_math_defs(self.all_track_waypoints)
             self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURRENT_TRACK_KEY]
-
-        if self.IS_MULTI_TRACK:
             # define from which track in the track lists to be used for eval only
             self.EVAL_TRACK_BEGIN_IDX = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
             # idx used to loop through eval tracks sequentially
             self.EVAL_TRACK_IDX = 0
+        else:
+            if "test_track" in track:
+                track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
+            else:
+                track_key = track
 
+            self.TRACK_WAYPOINTS = waypoints[track_key]
+            self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.TRACK_WAYPOINTS)[:,:2])
+            
         self.get_logger().info('Environment Setup Complete')
 
 
