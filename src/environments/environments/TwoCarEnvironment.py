@@ -42,9 +42,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         #####################################################################################################################
         # Read in params from init and config
         
-        # Init params
-        self.TRACK = track
-        self.OBSERVATION_MODE = observation_mode
 
         #####################################################################################################################
         # Initialise other vars
@@ -84,16 +81,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.AE_LIDAR = LidarConvAE()
             self.AE_LIDAR.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))
             self.AE_LIDAR.eval()
-
-        # Observation Size
-        match self.OBSERVATION_MODE:
-            case 'lidar_only':
-                odom_size = 2
-            case 'no_position':
-                odom_size = 6
-            case _:
-                odom_size = 10
-        TwoCarEnvironment.OBSERVATION_SIZE = odom_size + TwoCarEnvironment.LIDAR_POINTS
         
         # Track info
         TwoCarEnvironment.IS_MULTI_TRACK = 'multi_track' in self.TRACK
@@ -412,7 +399,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         state = []
         
         # Add odom data
-        match (self.OBSERVATION_MODE):
+        match (self.ODOM_OBSERVATION_MODE):
             case 'no_position':
                 state += odom[2:]
             case 'lidar_only':

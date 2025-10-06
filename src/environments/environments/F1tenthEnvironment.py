@@ -37,23 +37,33 @@ class F1tenthEnvironment(Node):
 
         if lidar_points < 1:
             raise Exception("Make sure number of lidar points is more than 0")
-        
+
+        #####################################################################################################################
         # Init params
         self.NAME = car_name
+        self.REWARD_RANGE = reward_range
+        self.MAX_STEPS = max_steps
+        self.COLLISION_RANGE = collision_range
+        self.STEP_LENGTH = step_length
+        self.LIDAR_POINTS = lidar_points
+        self.TRACK = track
+        self.ODOM_OBSERVATION_MODE = observation_mode
 
-
+        # configure odom observation size:
+        match observation_mode:
+            case 'lidar_only':
+                odom_observation_size = 2
+            case 'no_position':
+                odom_observation_size = 6
+            case _:
+                odom_observation_size = 10
+        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS # + self.get_extra_observation_size()
+        #####################################################################################################################
         # Environment Details ----------------------------------------
                 
         # Load configuration from YAML file
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
-            
-        self.NAME = car_name
-        self.COLLISION_RANGE = collision_range
-        self.MAX_STEPS = max_steps
-        self.REWARD_RANGE = reward_range
-        self.STEP_LENGTH = step_length
-        self.LIDAR_POINTS = lidar_points
 
         self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
         self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])

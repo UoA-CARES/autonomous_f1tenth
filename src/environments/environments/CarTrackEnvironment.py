@@ -107,20 +107,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Environment Details ----------------------------------------
 
-        # configure odom observation size:
-        match observation_mode:
-            case 'lidar_only':
-                odom_observation_size = 2
-            case 'no_position':
-                odom_observation_size = 6
-            case _:
-                odom_observation_size = 10
-
-        # configure overall observation size
-        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
+        
         #self.OBSERVATION_SIZE = {"lidar": self.LIDAR_POINTS, "vector": odom_observation_size}
-        self.ODOM_OBSERVATION_MODE = observation_mode
-        self.TRACK = track
         self.IS_MULTI_TRACK = 'multi_track' in track or track == 'staged_tracks'
 
 
