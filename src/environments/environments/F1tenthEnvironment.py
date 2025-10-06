@@ -133,6 +133,7 @@ class F1tenthEnvironment(Node):
         
         # Track vars
         self.ALL_TRACK_MODELS = None
+        self.CURR_TRACK_MODEL = None
 
         # Loop vars
         self.STEP_COUNTER = 0

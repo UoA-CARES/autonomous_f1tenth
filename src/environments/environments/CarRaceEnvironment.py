@@ -70,7 +70,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
         # initialize track progress utilities
         self.PREV_T = None
-        self.TRACK_MODEL = None
 
         if self.LIDAR_PROCESSING == 'pretrained_ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
@@ -91,7 +90,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
             track_key = track
 
         self.TRACK_WAYPOINTS = waypoints[track_key]
-        self.TRACK_MODEL = TrackMathDef(np.array(self.TRACK_WAYPOINTS)[:,:2])
+        self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.TRACK_WAYPOINTS)[:,:2])
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -144,7 +143,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
         info = {}
         
-        self.PREV_T = self.TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
+        self.PREV_T = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         return state, info
 

@@ -111,7 +111,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # initialize track progress utilities
         self.PREV_T = None
-        self.TRACK_MODEL = None
         
         
         # Evaluation related setup ---------------------------------------------------
@@ -151,7 +150,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 track_key = track
 
             self.TRACK_WAYPOINTS = waypoints[track_key]
-            self.TRACK_MODEL = TrackMathDef(np.array(self.TRACK_WAYPOINTS)[:,:2])
+            self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.TRACK_WAYPOINTS)[:,:2])
         else:
             _, self.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(track)
             if self.IS_STAGED_TRAINING:
@@ -161,7 +160,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
             # set track models
             self.ALL_TRACK_MODELS = get_track_math_defs(self.ALL_TRACK_WAYPOINTS)
-            self.TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURRENT_TRACK_KEY]
+            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURRENT_TRACK_KEY]
 
 
 
@@ -273,8 +272,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # get track progress related info
         # set new track model if its multi track
         if self.IS_MULTI_TRACK:
-            self.TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURRENT_TRACK_KEY]
-        self.PREV_T = self.TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
+            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURRENT_TRACK_KEY]
+        self.PREV_T = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         # reward function specific resets
         if self.BASE_REWARD_FUNCTION == 'progressive':
@@ -306,11 +305,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.FULL_CURRENT_STATE = full_next_state
         
         if not self.PREV_T:
-            self.PREV_T = self.TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
+            self.PREV_T = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
-        t2 = self.TRACK_MODEL.get_closest_point_on_spline(full_next_state[:2], t_only=True)
-        self.STEP_PROGRESS = self.TRACK_MODEL.get_distance_along_track_parametric(self.PREV_T, t2, approximate=True)
-        self.center_line_offset = self.TRACK_MODEL.get_distance_to_spline_point(t2, full_next_state[:2])
+        t2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_next_state[:2], t_only=True)
+        self.STEP_PROGRESS = self.CURR_TRACK_MODEL.get_distance_along_track_parametric(self.PREV_T, t2, approximate=True)
+        self.center_line_offset = self.CURR_TRACK_MODEL.get_distance_to_spline_point(t2, full_next_state[:2])
 
         self.PREV_T = t2
 
