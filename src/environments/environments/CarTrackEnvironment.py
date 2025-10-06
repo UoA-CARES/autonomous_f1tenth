@@ -302,7 +302,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             action_delay = 0.030
             print(f"30ms action delay  stage: {self.current_training_stage}")
         elif self.current_training_stage >= 3:
-            action_delay = np.random.uniform(0.094, 0.096)  # 95ms ± 1ms
+            action_delay = np.random.uniform(0.073, 0.075)  # 74ms ± 1ms
             print(f"{action_delay*1000:.1f}ms action delay  stage: {self.current_training_stage}")
             
         time.sleep(action_delay)
