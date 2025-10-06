@@ -59,7 +59,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
         # Reset Client -----------------------------------------------
-        self.START_WAYPOINT_INDEX = 0
 
 
         if "test_track" in track:
@@ -97,7 +96,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
             car_2_x, car_2_y, car_2_yaw, _ = self.TRACK_WAYPOINTS[index+2 if index+20 < len(self.TRACK_WAYPOINTS) else 0]
 
         # Update goal pointer to reflect starting position
-        self.START_WAYPOINT_INDEX = index
+        self.SPAWN_INDEX = index
 
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, car_name=self.NAME)
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, car_name='f1tenth_2')

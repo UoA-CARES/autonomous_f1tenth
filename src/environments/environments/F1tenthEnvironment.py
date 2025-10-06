@@ -151,6 +151,7 @@ class F1tenthEnvironment(Node):
         self.CURR_STATE = None
         self.PREV_CLOSEST_POINT = None
         self.IS_EVAL = False
+        self.SPAWN_INDEX = 0
 
         # Futures
         self.TIMER_FUTURE = Future()

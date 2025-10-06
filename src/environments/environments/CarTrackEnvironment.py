@@ -119,7 +119,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Reset Client -----------------------------------------------
 
-        self.START_WAYPOINT_INDEX = 0
         self.STEPS_SINCE_LAST_GOAL = 0
         
 
@@ -224,8 +223,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
             car_x, car_y, car_yaw, index = random.choice(self.TRACK_WAYPOINTS)
 
         # Update goal pointer to reflect starting position
-        self.START_WAYPOINT_INDEX = index
-        x,y,_,_ = self.TRACK_WAYPOINTS[self.START_WAYPOINT_INDEX+1 if self.START_WAYPOINT_INDEX+1 < len(self.TRACK_WAYPOINTS) else 0]# point toward next goal
+        self.SPAWN_INDEX = index
+        x,y,_,_ = self.TRACK_WAYPOINTS[self.SPAWN_INDEX+1 if self.SPAWN_INDEX+1 < len(self.TRACK_WAYPOINTS) else 0]# point toward next goal
         self.GOAL_POSITION = [x,y]
 
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
@@ -442,7 +441,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.GOALS_REACHED += 1
 
             # Updating Goal Position
-            new_x, new_y, _, _ = self.TRACK_WAYPOINTS[(self.START_WAYPOINT_INDEX + self.GOALS_REACHED) % len(self.TRACK_WAYPOINTS)]
+            new_x, new_y, _, _ = self.TRACK_WAYPOINTS[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.TRACK_WAYPOINTS)]
             self.GOAL_POSITION = [new_x, new_y]
 
             self.update_goal_service(new_x, new_y)
@@ -485,7 +484,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.GOALS_REACHED += 1
 
             # Updating Goal Position
-            new_x, new_y, _, _ = self.TRACK_WAYPOINTS[(self.START_WAYPOINT_INDEX + self.GOALS_REACHED) % len(self.TRACK_WAYPOINTS)]
+            new_x, new_y, _, _ = self.TRACK_WAYPOINTS[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.TRACK_WAYPOINTS)]
             self.GOAL_POSITION = [new_x, new_y]
 
             self.update_goal_service(new_x, new_y)

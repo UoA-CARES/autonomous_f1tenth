@@ -57,7 +57,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.LAST_POS2 = [0, 0]
 
         # Reset client
-        self.SPAWN_INDEX = 0
         self.STEPS_WITHOUT_GOAL = 0
 
         # Eval utilities
