@@ -59,7 +59,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
             
         # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
+        
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
 

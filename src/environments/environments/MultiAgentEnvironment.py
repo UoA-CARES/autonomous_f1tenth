@@ -24,7 +24,6 @@ class MultiAgentEnvironment(F1tenthEnvironment):
 
     MULTI_TRACK_TRAIN_EVAL_SPLIT = 5/6
     REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)]
-    LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg' 
 
     def __init__(self, 
                  car_name, 
@@ -69,7 +68,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         #####################################################################################################################
 
         # AE
-        if MultiAgentEnvironment.LIDAR_PROCESSING == 'pretrained_ae':
+        if self.LIDAR_PROCESSING == 'pretrained_ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE
             self.AE_LIDAR = LidarConvAE()
             self.AE_LIDAR.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))
@@ -399,7 +398,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
                 state += odom 
         
         # Add lidar data:
-        match MultiAgentEnvironment.LIDAR_PROCESSING:
+        match self.LIDAR_PROCESSING:
             case 'pretrained_ae':
                 processed_lidar_range = process_ae_lidar(lidar, self.AE_LIDAR, is_latent_only=True)
                 visualized_range = reconstruct_ae_latent(lidar, self.AE_LIDAR, processed_lidar_range)

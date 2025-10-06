@@ -67,7 +67,10 @@ class F1tenthEnvironment(Node):
         # Environment params -----------------------------------------
         self.IS_MULTI_TRACK = 'multi_track' in self.TRACK or self.TRACK == 'staged_tracks'
 
-        # Load configuration from YAML file
+        #####################################################################################################################
+        # Vehicle params -------------------------------------------
+        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
+        
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
 

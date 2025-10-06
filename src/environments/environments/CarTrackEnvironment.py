@@ -76,7 +76,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw", "ae"] = 'ae'
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Evaluation settings - configure train/eval split based on track
