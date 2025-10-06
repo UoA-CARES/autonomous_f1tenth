@@ -58,7 +58,6 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         self.LAST_POS2 = [0, 0]
 
         # Reset client
-        self.GOALS_REACHED = 0
         self.SPAWN_INDEX = 0
         self.STEPS_WITHOUT_GOAL = 0
         self.CURR_STATE = None #Can reformat this var

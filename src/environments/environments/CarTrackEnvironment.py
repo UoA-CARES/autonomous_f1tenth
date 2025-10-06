@@ -138,7 +138,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # Reset Client -----------------------------------------------
 
-        self.GOALS_REACHED = 0
         self.START_WAYPOINT_INDEX = 0
         self.STEPS_SINCE_LAST_GOAL = 0
         self.FULL_CURRENT_STATE = None

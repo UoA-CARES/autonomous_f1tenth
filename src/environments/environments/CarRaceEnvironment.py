@@ -79,7 +79,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
         # Reset Client -----------------------------------------------
 
-        self.GOALS_REACHED = 0
         self.START_WAYPOINT_INDEX = 0
         self.FULL_CURRENT_STATE = None
 
