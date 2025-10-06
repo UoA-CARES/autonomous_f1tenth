@@ -45,7 +45,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Initialise other vars
 
         # Track progress utilities
-        self.PREV_CLOSEST_POINT = None
         TwoCarEnvironment.ALL_TRACK_WAYPOINTS = None
         self.CURR_TRACK = None
         self.CURR_WAYPOINTS = None

@@ -104,9 +104,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         #self.OBSERVATION_SIZE = {"lidar": self.LIDAR_POINTS, "vector": odom_observation_size}
         
 
-
-        # initialize track progress utilities
-        self.PREV_T = None
         
         
         # Evaluation related setup ---------------------------------------------------
@@ -257,7 +254,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # set new track model if its multi track
         if self.IS_MULTI_TRACK:
             self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURRENT_TRACK_KEY]
-        self.PREV_T = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
+        self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         # reward function specific resets
         if self.BASE_REWARD_FUNCTION == 'progressive':
@@ -288,14 +285,14 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.FULL_CURRENT_STATE = full_next_state
         
-        if not self.PREV_T:
-            self.PREV_T = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
+        if not self.PREV_CLOSEST_POINT:
+            self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         t2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_next_state[:2], t_only=True)
-        self.STEP_PROGRESS = self.CURR_TRACK_MODEL.get_distance_along_track_parametric(self.PREV_T, t2, approximate=True)
+        self.STEP_PROGRESS = self.CURR_TRACK_MODEL.get_distance_along_track_parametric(self.PREV_CLOSEST_POINT, t2, approximate=True)
         self.center_line_offset = self.CURR_TRACK_MODEL.get_distance_to_spline_point(t2, full_next_state[:2])
 
-        self.PREV_T = t2
+        self.PREV_CLOSEST_POINT = t2
 
         # guard against random error from progress estimate. See get_closest_point_on_spline, suspect differential evo have something to do with this.
         if abs(self.STEP_PROGRESS) > (full_next_state[6]/10*3): # traveled distance should not too different from lin vel * step time

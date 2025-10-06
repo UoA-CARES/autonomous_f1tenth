@@ -142,6 +142,7 @@ class F1tenthEnvironment(Node):
         self.STEP_COUNTER = 0
         self.STEP_PROGRESS = 0
         self.GOALS_REACHED = 0
+        self.PREV_CLOSEST_POINT = None
         self.IS_EVAL = False
 
         # Futures
