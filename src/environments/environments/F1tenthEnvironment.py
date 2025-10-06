@@ -133,7 +133,7 @@ class F1tenthEnvironment(Node):
         
         # Loop vars
         self.STEP_COUNTER = 0
-
+        self.IS_EVAL = False
 
         # Futures
         self.TIMER_FUTURE = Future()

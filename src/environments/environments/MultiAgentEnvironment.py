@@ -67,7 +67,6 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         self.CURR_STATE = None #Can reformat this var
 
         # Eval utilities
-        self.IS_EVAL = False
         self.EVAL_TRACKS_IDX = 0
         self.CURR_EVAL_IDX = 0
 

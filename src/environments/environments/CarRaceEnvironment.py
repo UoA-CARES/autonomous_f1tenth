@@ -95,10 +95,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
         self.TRACK_WAYPOINTS = waypoints[track_key]
         self.TRACK_MODEL = TrackMathDef(np.array(self.TRACK_WAYPOINTS)[:,:2])
 
-
-        # Evaluation related setup ---------------------------------------------------
-        self.IS_EVAL = False
-
         self.get_logger().info('Environment Setup Complete')
 
 

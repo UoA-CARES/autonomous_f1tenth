@@ -116,7 +116,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.STEP_PROGRESS = 0
         
         # Evaluation related setup ---------------------------------------------------
-        self.IS_EVAL = False
+        
 
         if self.LIDAR_PROCESSING == 'pretrained_ae':
             from .autoencoders.lidar_autoencoder import LidarConvAE

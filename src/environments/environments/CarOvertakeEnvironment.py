@@ -136,10 +136,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
             self.ALL_TRACK_MODELS = get_track_math_defs(self.all_track_waypoints)
             self.TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURRENT_TRACK_KEY]
 
-
-        # Evaluation related setup ---------------------------------------------------
-        self.IS_EVAL = False
-
         if self.IS_MULTI_TRACK:
             # define from which track in the track lists to be used for eval only
             self.EVAL_TRACK_BEGIN_IDX = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
