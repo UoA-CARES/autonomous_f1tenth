@@ -121,7 +121,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.START_WAYPOINT_INDEX = 0
         self.STEPS_SINCE_LAST_GOAL = 0
-        self.FULL_CURRENT_STATE = None
+        
 
         if not self.IS_MULTI_TRACK:
             if "test_track" in track:
@@ -233,7 +233,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Get initial observation
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
-        self.FULL_CURRENT_STATE = full_state
+        self.CURR_STATE = full_state
         self.call_step(pause=True)
 
         info = {}
@@ -260,7 +260,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def step(self, action):
         self.STEP_COUNTER += 1
         
-        full_state = self.FULL_CURRENT_STATE
+        full_state = self.CURR_STATE
 
         self.call_step(pause=False)
 
@@ -271,7 +271,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         next_state, full_next_state, raw_lidar_range = self.get_observation()
         self.call_step(pause=True)
 
-        self.FULL_CURRENT_STATE = full_next_state
+        self.CURR_STATE = full_next_state
         
         if not self.PREV_CLOSEST_POINT:
             self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)

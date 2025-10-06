@@ -58,7 +58,6 @@ class MultiAgentEnvironment(F1tenthEnvironment):
         # Reset client
         self.SPAWN_INDEX = 0
         self.STEPS_WITHOUT_GOAL = 0
-        self.CURR_STATE = None #Can reformat this var
 
         # Eval utilities
         self.EVAL_TRACKS_IDX = 0

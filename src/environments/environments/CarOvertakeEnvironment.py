@@ -95,8 +95,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
 
         self.START_WAYPOINT_INDEX = 0
         self.STEPS_SINCE_LAST_GOAL = 0
-        self.FULL_CURRENT_STATE = None
-
         if not self.IS_MULTI_TRACK:
             if "test_track" in track:
                 track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
@@ -194,7 +192,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         # Get initial observation
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
-        self.FULL_CURRENT_STATE = full_state
+        self.CURR_STATE = full_state
         self.call_step(pause=True)
 
         info = {}
@@ -222,7 +220,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         self.STEP_COUNTER += 1
         
         # get current state
-        full_state = self.FULL_CURRENT_STATE
+        full_state = self.CURR_STATE
 
         # unpause simulation
         self.call_step(pause=False)
@@ -238,7 +236,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         self.call_step(pause=True)
 
         # set new step as 'current state' for next step
-        self.FULL_CURRENT_STATE = full_next_state
+        self.CURR_STATE = full_next_state
         
         # calculate progress along track
         if not self.PREV_CLOSEST_POINT:

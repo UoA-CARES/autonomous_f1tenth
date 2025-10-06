@@ -59,9 +59,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
         # Reset Client -----------------------------------------------
-
         self.START_WAYPOINT_INDEX = 0
-        self.FULL_CURRENT_STATE = None
 
 
         if "test_track" in track:
@@ -107,7 +105,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
         # Get initial observation
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
-        self.FULL_CURRENT_STATE = full_state
+        self.CURR_STATE = full_state
         self.call_step(pause=True)
 
         info = {}
