@@ -43,7 +43,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # Read in params from init and config
         
         # Init params
-        TwoCarEnvironment.TRACK = track
+        self.TRACK = track
         self.OBSERVATION_MODE = observation_mode
 
         #####################################################################################################################
@@ -96,10 +96,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
         TwoCarEnvironment.OBSERVATION_SIZE = odom_size + TwoCarEnvironment.LIDAR_POINTS
         
         # Track info
-        TwoCarEnvironment.IS_MULTI_TRACK = 'multi_track' in TwoCarEnvironment.TRACK
+        TwoCarEnvironment.IS_MULTI_TRACK = 'multi_track' in self.TRACK
         if TwoCarEnvironment.IS_MULTI_TRACK:
             # Get all track infos
-            _, TwoCarEnvironment.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(TwoCarEnvironment.TRACK)
+            _, TwoCarEnvironment.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(self.TRACK)
             TwoCarEnvironment.ALL_TRACK_MODELS = get_track_math_defs(TwoCarEnvironment.ALL_TRACK_WAYPOINTS)
             
             # Get current track infos (should start empty?)
@@ -110,10 +110,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
             # Set eval track indexes
             self.EVAL_TRACKS_IDX = int(len(TwoCarEnvironment.ALL_TRACK_WAYPOINTS)*TwoCarEnvironment.MULTI_TRACK_TRAIN_EVAL_SPLIT)   
         else:
-            if "test_track" in TwoCarEnvironment.TRACK:
-                track_key = TwoCarEnvironment.TRACK[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
+            if "test_track" in self.TRACK:
+                track_key = self.TRACK[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
             else:
-                track_key = TwoCarEnvironment.TRACK
+                track_key = self.TRACK
 
             self.CURR_WAYPOINTS = waypoints[track_key] #from waypoints.py
             self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.CURR_WAYPOINTS)[:,:2])
@@ -272,7 +272,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             
             self.CURR_WAYPOINTS = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
         else:
-            self.CURR_TRACK = TwoCarEnvironment.TRACK
+            self.CURR_TRACK = self.TRACK
 
         if (self.CURR_TRACK[-3:]).isdigit():
             width = int(self.CURR_TRACK[-3:])
