@@ -18,19 +18,6 @@ class CarOvertakeReset(F1TenthReset):
     def __init__(self):
         super().__init__('car_overtake')
 
-        srv_cb_group = MutuallyExclusiveCallbackGroup()
-        self.srv = self.create_service(Reset, 'car_overtake_reset', callback=self.service_callback, callback_group=srv_cb_group)
-
-        set_pose_cb_group = MutuallyExclusiveCallbackGroup()
-        self.set_pose_client = self.create_client(
-            SetEntityPose,
-            f'world/empty/set_pose',
-            callback_group=set_pose_cb_group
-        )
-
-        while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('set_pose service not available, waiting again...')
-
     def service_callback(self, request, response):
 
         goal_req = self.create_request('goal', x=request.gx, y=request.gy, z=1)
