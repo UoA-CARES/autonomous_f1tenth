@@ -2,7 +2,7 @@ import sys
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
-from environments.F1tenthReset import F1tenthReset
+from .F1TenthReset import F1TenthReset
 from environment_interfaces.srv import Reset
 from f1tenth_control.SimulationServices import SimulationServices
 from ros_gz_interfaces.srv import SetEntityPose
