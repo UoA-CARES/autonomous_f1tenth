@@ -95,35 +95,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.STEPS_SINCE_LAST_GOAL = 0
         if self.IS_MULTI_TRACK:
-            _, self.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(track)
             if self.IS_STAGED_TRAINING:
-                self.CURRENT_TRACK_KEY = list(self.ALL_TRACK_WAYPOINTS.keys())[self.TRAINING_IDX[0]]
+                self.CURR_TRACK = list(self.ALL_TRACK_WAYPOINTS.keys())[self.TRAINING_IDX[0]]
                 self.EVAL_TRACK_BEGIN_IDX = None
                 self.get_logger().info(f"Track '{track}', {self.TRAINING_IDX} training, {self.EVAL_IDX} evaluation")
             else:
-                self.CURRENT_TRACK_KEY = list(self.ALL_TRACK_WAYPOINTS.keys())[0]
                 # define from which track in the track lists to be used for eval only
                 self.EVAL_TRACK_BEGIN_IDX = int(len(self.ALL_TRACK_WAYPOINTS)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
-                # Debug logging
-                total_tracks = len(self.ALL_TRACK_WAYPOINTS)
-                training_tracks = self.EVAL_TRACK_BEGIN_IDX
-                eval_tracks = total_tracks - training_tracks
-                self.get_logger().info(f"Track '{track}' split: {total_tracks} total, {training_tracks} training, {eval_tracks} evaluation (split={self.MULTI_TRACK_TRAIN_EVAL_SPLIT})")
-
-            # set track models
-            self.ALL_TRACK_MODELS = get_track_math_defs(self.ALL_TRACK_WAYPOINTS)
-            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURRENT_TRACK_KEY]
             
             # idx used to loop through eval tracks sequentially
             self.EVAL_TRACK_IDX = 0
-        else:
-            if "test_track" in track:
-                track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.    
-            else:
-                track_key = track
-
-            self.TRACK_WAYPOINTS = waypoints[track_key]
-            self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.TRACK_WAYPOINTS)[:,:2])
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -151,12 +132,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 if self.IS_EVAL:
                     # For evaluation, cycle through all tracks sequentially
                     all_track_keys = list(self.ALL_TRACK_WAYPOINTS.keys())
-                    self.CURRENT_TRACK_KEY = all_track_keys[self.EVAL_TRACK_IDX]
+                    self.CURR_TRACK = all_track_keys[self.EVAL_TRACK_IDX]
                     self.EVAL_TRACK_IDX += 1
                     self.EVAL_TRACK_IDX = self.EVAL_TRACK_IDX % len(all_track_keys)
                 else:
                     # For training, choose random track from all tracks
-                    self.CURRENT_TRACK_KEY = random.choice(list(self.ALL_TRACK_WAYPOINTS.keys()))
+                    self.CURR_TRACK = random.choice(list(self.ALL_TRACK_WAYPOINTS.keys()))
             else:
                 # We have dedicated evaluation tracks (split < 1.0)
                 if self.IS_EVAL:
@@ -167,19 +148,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     else:
                         eval_track_key_list = list(self.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACK_BEGIN_IDX:]
 
-                    self.CURRENT_TRACK_KEY = eval_track_key_list[self.EVAL_TRACK_IDX]
+                    self.CURR_TRACK = eval_track_key_list[self.EVAL_TRACK_IDX]
                     self.EVAL_TRACK_IDX += 1
                     self.EVAL_TRACK_IDX = self.EVAL_TRACK_IDX % len(eval_track_key_list)
                 else:
                     # Training: choose a random track that is not used for evaluation
 
                     if self.IS_STAGED_TRAINING:
-                        self.CURRENT_TRACK_KEY = random.choice(list(self.ALL_TRACK_WAYPOINTS.keys())[self.TRAINING_IDX[0]:self.TRAINING_IDX[1] + 1])
+                        self.CURR_TRACK = random.choice(list(self.ALL_TRACK_WAYPOINTS.keys())[self.TRAINING_IDX[0]:self.TRAINING_IDX[1] + 1])
                     else:
-                        self.CURRENT_TRACK_KEY = random.choice(list(self.ALL_TRACK_WAYPOINTS.keys())[:self.EVAL_TRACK_BEGIN_IDX])
+                        self.CURR_TRACK = random.choice(list(self.ALL_TRACK_WAYPOINTS.keys())[:self.EVAL_TRACK_BEGIN_IDX])
 
             
-            self.TRACK_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURRENT_TRACK_KEY]
+            self.TRACK_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
 
         # start at beginning of track when evaluating
         if self.IS_EVAL:
@@ -206,7 +187,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # get track progress related info
         # set new track model if its multi track
         if self.IS_MULTI_TRACK:
-            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURRENT_TRACK_KEY]
+            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         # reward function specific resets

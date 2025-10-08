@@ -65,25 +65,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 5/6
         # Track info
         if self.IS_MULTI_TRACK:
-            # Get all track infos
-            _, self.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(self.TRACK)
-            self.ALL_TRACK_MODELS = get_track_math_defs(self.ALL_TRACK_WAYPOINTS)
-            
-            # Get current track infos (should start empty?)
-            self.CURR_TRACK = list(self.ALL_TRACK_WAYPOINTS.keys())[0] # Should it always be the first one? Should it be initialized empty?
-            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
-            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
-
             # Set eval track indexes
-            self.EVAL_TRACKS_IDX = int(len(self.ALL_TRACK_WAYPOINTS)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)   
-        else:
-            if "test_track" in self.TRACK:
-                track_key = self.TRACK[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
-            else:
-                track_key = self.TRACK
-
-            self.CURR_WAYPOINTS = waypoints[track_key] #from waypoints.py
-            self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.CURR_WAYPOINTS)[:,:2])
+            self.EVAL_TRACKS_IDX = int(len(self.ALL_TRACK_WAYPOINTS)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT) 
             
         #####################################################################################################################
         # Odom subscribers

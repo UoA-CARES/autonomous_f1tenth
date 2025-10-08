@@ -54,15 +54,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
         super().__init__('car_race', car_name, reward_range, max_steps, collision_range, step_length, lidar_points = 10, track, observation_mode)
 
         #####################################################################################################################
-        # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
 
-        if "test_track" in track:
-            track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
-        else:
-            track_key = track
-
-        self.TRACK_WAYPOINTS = waypoints[track_key]
-        self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.TRACK_WAYPOINTS)[:,:2])
 
         self.get_logger().info('Environment Setup Complete')
 

@@ -8,7 +8,9 @@ from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from std_srvs.srv import SetBool
 from environment_interfaces.srv import Reset
-from .util import ackermann_to_twist
+from .util import ackermann_to_twist, get_track_math_defs, get_all_goals_and_waypoints_in_multi_tracks
+from .util_track_progress import TrackMathDef
+from .waypoints import waypoints
 import yaml
 
 
@@ -66,6 +68,19 @@ class F1tenthEnvironment(Node):
         #####################################################################################################################
         # Environment params -----------------------------------------
         self.IS_MULTI_TRACK = 'multi_track' in self.TRACK or self.TRACK == 'staged_tracks'
+        if self.IS_MULTI_TRACK:
+            _, self.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(self.TRACK)
+            self.ALL_TRACK_MODELS = get_track_math_defs(self.ALL_TRACK_WAYPOINTS)
+            self.CURR_TRACK = list(self.ALL_TRACK_WAYPOINTS.keys())[0]
+            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
+        else:
+            if "test_track" in self.TRACK:
+                track_key = self.TRACK[0:-4]
+            else:
+                track_key = self.TRACK
+            self.CURR_WAYPOINTS = waypoints[track_key] #from waypoints.py
+            self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.CURR_WAYPOINTS)[:,:2])
 
         #####################################################################################################################
         # Vehicle params -------------------------------------------
@@ -149,6 +164,7 @@ class F1tenthEnvironment(Node):
         # Track vars
         self.ALL_TRACK_MODELS = None
         self.CURR_TRACK_MODEL = None
+        
 
         # Loop vars
         self.STEP_COUNTER = 0
