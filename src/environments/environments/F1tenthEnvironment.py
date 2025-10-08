@@ -161,11 +161,6 @@ class F1tenthEnvironment(Node):
         #####################################################################################################################
         # Initialise vars ---------------------------------------------
         
-        # Track vars
-        self.ALL_TRACK_MODELS = None
-        self.CURR_TRACK_MODEL = None
-        
-
         # Loop vars
         self.STEP_COUNTER = 0
         self.STEP_PROGRESS = 0
