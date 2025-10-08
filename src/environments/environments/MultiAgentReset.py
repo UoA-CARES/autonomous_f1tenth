@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
-
+from environments.F1tenthReset import F1tenthReset
 from environment_interfaces.srv import Reset
 from f1tenth_control.SimulationServices import SimulationServices
 from ros_gz_interfaces.srv import SetEntityPose
@@ -14,9 +14,9 @@ from ament_index_python import get_package_share_directory
 
 from .util import get_quaternion_from_euler
 
-class MultiAgentReset(Node):
+class MultiAgentReset(F1TenthReset):
     def __init__(self):
-        super().__init__('multi_agent_reset')
+        super().__init__('multi_agent')
 
         srv_cb_group = MutuallyExclusiveCallbackGroup()
         self.srv = self.create_service(Reset, 'multi_agent_reset', callback=self.service_callback, callback_group=srv_cb_group)
