@@ -29,7 +29,7 @@ class F1tenthEnvironment(Node):
                  reward_range=0.5, 
                  max_steps=3000, 
                  collision_range=0.2,
-                 step_length,
+                 step_length=0.5,
                  lidar_points = 10,
                  track='track_1',
                  observation_mode='lidar_only',
