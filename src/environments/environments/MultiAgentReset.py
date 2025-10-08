@@ -1,7 +1,6 @@
 import sys
 import rclpy
 from rclpy.node import Node
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from environments.F1tenthReset import F1tenthReset
 from environment_interfaces.srv import Reset
