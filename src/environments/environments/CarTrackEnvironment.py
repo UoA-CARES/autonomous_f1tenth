@@ -319,7 +319,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             state["lidar"] = lidar_data.tolist()
             full_state = odom + lidar_data.tolist()
         else:
-            raise Exception(f"Current state configuration can only work with 'ae'")
+            full_state = odom + processed_lidar_range
         
         return state, full_state, lidar.ranges
 
