@@ -22,10 +22,8 @@ import time
 
 class TwoCarEnvironment(F1tenthEnvironment):
 
-    MULTI_TRACK_TRAIN_EVAL_SPLIT = 5/6
-    LIDAR_POINTS = 10
-    REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)]
-    LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg' 
+    
+    
 
     def __init__(self, 
                  car_name, 
@@ -37,39 +35,16 @@ class TwoCarEnvironment(F1tenthEnvironment):
                  observation_mode='lidar_only',
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
-        super().__init__('two_car', car_name, max_steps, step_length)
+        super().__init__('two_car', car_name, reward_range, max_steps, collision_range, step_length, 10, track, observation_mode)
 
         #####################################################################################################################
-        # Read in params from init and config
-        
-        # Init params
-        self.REWARD_RANGE = reward_range
-        TwoCarEnvironment.COLLISION_RANGE = collision_range
-        TwoCarEnvironment.TRACK = track
-        self.OBSERVATION_MODE = observation_mode
-
-        # Load configuration from YAML file
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-            
-        # Config params
-        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
-        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
-
-        #####################################################################################################################
-        # Initialise other vars
+        # Initialise vars
 
         # Track progress utilities
-        self.PREV_CLOSEST_POINT = None
-        TwoCarEnvironment.ALL_TRACK_MODELS = None
-        TwoCarEnvironment.ALL_TRACK_WAYPOINTS = None
-        self.CURR_TRACK_MODEL = None
+        self.ALL_TRACK_WAYPOINTS = None
         self.CURR_TRACK = None
         self.CURR_WAYPOINTS = None
-        self.STEP_PROGRESS = 0
         self.PROGRESS_NOT_MET_COUNTER = 0
-
-        self.STEP_COUNTER = 0
 
         # Distance covered
         self.EP_PROGRESS1 = 0
@@ -78,57 +53,20 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.LAST_POS2 = [0, 0]
 
         # Reset client
-        self.GOALS_REACHED = 0
-        self.SPAWN_INDEX = 0
         self.STEPS_WITHOUT_GOAL = 0
-        self.CURR_STATE = None #Can reformat this var
 
         # Eval utilities
-        self.IS_EVAL = False
         self.EVAL_TRACKS_IDX = 0
         self.CURR_EVAL_IDX = 0
 
         #####################################################################################################################
 
-        # AE
-        if TwoCarEnvironment.LIDAR_PROCESSING == 'pretrained_ae':
-            from .autoencoders.lidar_autoencoder import LidarConvAE
-            self.AE_LIDAR = LidarConvAE()
-            self.AE_LIDAR.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))
-            self.AE_LIDAR.eval()
-
-        # Observation Size
-        match self.OBSERVATION_MODE:
-            case 'lidar_only':
-                odom_size = 2
-            case 'no_position':
-                odom_size = 6
-            case _:
-                odom_size = 10
-        TwoCarEnvironment.OBSERVATION_SIZE = odom_size + TwoCarEnvironment.LIDAR_POINTS
-        
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)]
+        self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 5/6
         # Track info
-        TwoCarEnvironment.IS_MULTI_TRACK = 'multi_track' in TwoCarEnvironment.TRACK
-        if TwoCarEnvironment.IS_MULTI_TRACK:
-            # Get all track infos
-            _, TwoCarEnvironment.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(TwoCarEnvironment.TRACK)
-            TwoCarEnvironment.ALL_TRACK_MODELS = get_track_math_defs(TwoCarEnvironment.ALL_TRACK_WAYPOINTS)
-            
-            # Get current track infos (should start empty?)
-            self.CURR_TRACK = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[0] # Should it always be the first one? Should it be initialized empty?
-            self.CURR_WAYPOINTS = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
-            self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]
-
+        if self.IS_MULTI_TRACK:
             # Set eval track indexes
-            self.EVAL_TRACKS_IDX = int(len(TwoCarEnvironment.ALL_TRACK_WAYPOINTS)*TwoCarEnvironment.MULTI_TRACK_TRAIN_EVAL_SPLIT)   
-        else:
-            if "test_track" in TwoCarEnvironment.TRACK:
-                track_key = TwoCarEnvironment.TRACK[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
-            else:
-                track_key = TwoCarEnvironment.TRACK
-
-            self.CURR_WAYPOINTS = waypoints[track_key] #from waypoints.py
-            self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.CURR_WAYPOINTS)[:,:2])
+            self.EVAL_TRACKS_IDX = int(len(self.ALL_TRACK_WAYPOINTS)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT) 
             
         #####################################################################################################################
         # Odom subscribers
@@ -151,10 +89,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
         )
 
         self.ODOM_MESSAGE_FILTER.registerCallback(self.odom_message_filter_callback)
-        self.ODOM_OBSERVATION_FUTURE = Future()
 
         #####################################################################################################################
-
         # Publish and subscribe to status topic
 
         self.STATUS_PUB = self.create_publisher(
@@ -224,9 +160,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.CURR_TRACK = track
             self.GOAL_POS = [goal[0], goal[1]]
             self.SPAWN_INDEX = spawn
-            self.CURR_WAYPOINTS = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
             if self.IS_EVAL:
-                eval_track_key_list = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACKS_IDX:]
+                eval_track_key_list = list(self.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACKS_IDX:]
                 self.CURR_EVAL_IDX += 1
                 self.CURR_EVAL_IDX = self.CURR_EVAL_IDX % len(eval_track_key_list)
             self.publish_status('ready')
@@ -254,8 +190,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
         # get track progress related info
         # set new track model if its multi track
 
-        if TwoCarEnvironment.IS_MULTI_TRACK:
-            self.CURR_TRACK_MODEL = TwoCarEnvironment.ALL_TRACK_MODELS[self.CURR_TRACK]
+        if self.IS_MULTI_TRACK:
+            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
         self.EP_PROGRESS1 = 0
         self.EP_PROGRESS2 = 0
@@ -270,21 +206,21 @@ class TwoCarEnvironment(F1tenthEnvironment):
         return state, info
     
     def car_spawn(self):
-        if TwoCarEnvironment.IS_MULTI_TRACK:
+        if self.IS_MULTI_TRACK:
             # Evaluating: loop through eval tracks sequentially
             if self.IS_EVAL:
-                eval_track_key_list = list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACKS_IDX:]
+                eval_track_key_list = list(self.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACKS_IDX:]
                 self.CURR_TRACK = eval_track_key_list[self.CURR_EVAL_IDX]
                 self.CURR_EVAL_IDX += 1
                 self.CURR_EVAL_IDX = self.CURR_EVAL_IDX % len(eval_track_key_list)
 
             # Training: choose a random track that is not used for evaluation
             else:
-                self.CURR_TRACK = random.choice(list(TwoCarEnvironment.ALL_TRACK_WAYPOINTS.keys())[:self.EVAL_TRACKS_IDX])
+                self.CURR_TRACK = random.choice(list(self.ALL_TRACK_WAYPOINTS.keys())[:self.EVAL_TRACKS_IDX])
             
-            self.CURR_WAYPOINTS = TwoCarEnvironment.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
         else:
-            self.CURR_TRACK = TwoCarEnvironment.TRACK
+            self.CURR_TRACK = self.TRACK
 
         if (self.CURR_TRACK[-3:]).isdigit():
             width = int(self.CURR_TRACK[-3:])
@@ -403,7 +339,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
-        return has_collided(ranges, TwoCarEnvironment.COLLISION_RANGE) \
+        return has_collided(ranges, self.COLLISION_RANGE) \
             or has_flipped_over(state[2:6])
 
     def is_truncated(self):
@@ -418,13 +354,13 @@ class TwoCarEnvironment(F1tenthEnvironment):
         odom, lidar = self.get_data()
         odom = process_odom(odom)
         
-        num_points = TwoCarEnvironment.LIDAR_POINTS
+        num_points = self.LIDAR_POINTS
         
         # init state
         state = []
         
         # Add odom data
-        match (self.OBSERVATION_MODE):
+        match (self.ODOM_OBSERVATION_MODE):
             case 'no_position':
                 state += odom[2:]
             case 'lidar_only':
@@ -433,7 +369,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 state += odom 
         
         # Add lidar data:
-        match TwoCarEnvironment.LIDAR_PROCESSING:
+        match self.LIDAR_PROCESSING:
             case 'pretrained_ae':
                 processed_lidar_range = process_ae_lidar(lidar, self.AE_LIDAR, is_latent_only=True)
                 visualized_range = reconstruct_ae_latent(lidar, self.AE_LIDAR, processed_lidar_range)
@@ -487,7 +423,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         reward_info.update(base_reward_info)
         
         # calculate reward modifiers:
-        for modifier_type, weight in TwoCarEnvironment.REWARD_MODIFIERS:
+        for modifier_type, weight in self.REWARD_MODIFIERS:
             match modifier_type:
                 case 'wall_proximity':
                     dist_to_wall = min(raw_lidar_range)
@@ -565,7 +501,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         if self.PROGRESS_NOT_MET_COUNTER >= 5:
             reward -= 2
 
-        if has_collided(raw_range, TwoCarEnvironment.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+        if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 2.5
 
         info = {}
@@ -584,7 +520,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         if self.PROGRESS_NOT_MET_COUNTER >= 5:
             reward -= 2
-        if has_collided(raw_range, TwoCarEnvironment.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
+        if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 2.5
 
         info = {}

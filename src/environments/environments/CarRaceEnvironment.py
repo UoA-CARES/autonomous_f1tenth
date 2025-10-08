@@ -51,81 +51,10 @@ class CarRaceEnvironment(F1tenthEnvironment):
                  observation_mode='lidar_only',
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
-        super().__init__('car_race', car_name, max_steps, step_length)
-
-        
-
-        #####################################################################################################################
-        # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
-        
-        # Load configuration from YAML file
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-            
-        # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
-        self.LIDAR_POINTS = 10 #682
-        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
-
-
-        #optional stuff
-        pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
-
-        # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
-        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
+        super().__init__('car_race', car_name, reward_range, max_steps, collision_range, step_length, 10, track, observation_mode)
 
         #####################################################################################################################
 
-        # configure odom observation size:
-        match observation_mode:
-            case 'lidar_only':
-                odom_observation_size = 2
-            case 'no_position':
-                odom_observation_size = 6
-            case _:
-                odom_observation_size = 10
-
-        # configure overall observation size
-        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
-
-        self.COLLISION_RANGE = collision_range
-
-        self.ODOM_OBSERVATION_MODE = observation_mode
-        self.TRACK = track
-
-        # initialize track progress utilities
-        self.PREV_T = None
-        self.ALL_TRACK_MODELS = None
-        self.TRACK_MODEL = None
-        self.STEP_PROGRESS = 0
-
-        if self.LIDAR_PROCESSING == 'pretrained_ae':
-            from .autoencoders.lidar_autoencoder import LidarConvAE
-            self.AE_LIDAR_MODEL = LidarConvAE()
-            self.AE_LIDAR_MODEL.load_state_dict(torch.load(pretrained_ae_path))
-            self.AE_LIDAR_MODEL.eval()
-
-        # Reset Client -----------------------------------------------
-
-        self.GOALS_REACHED = 0
-        self.START_WAYPOINT_INDEX = 0
-        self.FULL_CURRENT_STATE = None
-
-
-        if "test_track" in track:
-            track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
-        else:
-            track_key = track
-
-        self.TRACK_WAYPOINTS = waypoints[track_key]
-        self.TRACK_MODEL = TrackMathDef(np.array(self.TRACK_WAYPOINTS)[:,:2])
-
-
-        # Evaluation related setup ---------------------------------------------------
-        self.IS_EVAL = False
-
-        self.STEP_COUNTER = 0
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -137,17 +66,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
 #  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
 #   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
                                                                                       
-
-    def get_extra_observation_size(self):
-        total = 0
-        for obs in self.EXTRA_OBSERVATIONS:
-            match obs:
-                case 'prev_ang_vel':
-                    total += 1
-                case _:
-                    print("Unknown extra observation.")
-        return total
-
 
 
     def reset(self):
@@ -165,7 +83,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
             car_2_x, car_2_y, car_2_yaw, _ = self.TRACK_WAYPOINTS[index+2 if index+20 < len(self.TRACK_WAYPOINTS) else 0]
 
         # Update goal pointer to reflect starting position
-        self.START_WAYPOINT_INDEX = index
+        self.SPAWN_INDEX = index
 
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, car_name=self.NAME)
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, car_name='f1tenth_2')
@@ -173,12 +91,12 @@ class CarRaceEnvironment(F1tenthEnvironment):
         # Get initial observation
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
-        self.FULL_CURRENT_STATE = full_state
+        self.CURR_STATE = full_state
         self.call_step(pause=True)
 
         info = {}
         
-        self.PREV_T = self.TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
+        self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         return state, info
 
@@ -221,18 +139,7 @@ class CarRaceEnvironment(F1tenthEnvironment):
         
         self.PROCESSED_PUBLISHER.publish(scan)
 
-        state += processed_lidar_range
-
-        # Add extra observation:
-        for extra_observation in self.EXTRA_OBSERVATIONS:
-            match extra_observation:
-                case 'prev_ang_vel':
-                    if self.FULL_CURRENT_STATE:
-                        state += [self.FULL_CURRENT_STATE[7]]
-                    else:
-                        state += [state[7]]
-
-        
+        state += processed_lidar_range     
         full_state = odom + processed_lidar_range
 
         return state, full_state, lidar.ranges

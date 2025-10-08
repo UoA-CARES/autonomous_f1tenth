@@ -64,119 +64,36 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
                  observation_mode='lidar_only',
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
-        
-        max_steps = 200
-        super().__init__('car_overtake', car_name, max_steps, step_length)
+        super().__init__('car_overtake', car_name, reward_range, max_steps, collision_range, step_length, 10, track, observation_mode)
 
         
 
-        #####################################################################################################################
-        # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
-        
-        # Load configuration from YAML file
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-            
+        #####################################################################################################################   
         # Reward configuration
         self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
-        # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
-        self.LIDAR_POINTS = 10 #682
-        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
-
         # Evaluation settings
         self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
-
-        #optional stuff
-        pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
-
-        # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
-        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
 
         #####################################################################################################################
 
         # Environment Details ----------------------------------------
-        self.MAX_STEPS_PER_GOAL = max_steps
 
-        # configure odom observation size:
-        match observation_mode:
-            case 'lidar_only':
-                odom_observation_size = 2
-            case 'no_position':
-                odom_observation_size = 6
-            case _:
-                odom_observation_size = 10
-
-        # configure overall observation size
-        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
-
-        self.COLLISION_RANGE = collision_range
-        self.REWARD_RANGE = reward_range
-
-        self.ODOM_OBSERVATION_MODE = observation_mode
-        self.TRACK = track
-        self.IS_MULTI_TRACK = 'multi_track' in track
-
-        # initialize track progress utilities
-        self.PREV_T = None
-        self.ALL_TRACK_MODELS = None
-        self.TRACK_MODEL = None
-        self.STEP_PROGRESS = 0
-
-        if self.LIDAR_PROCESSING == 'pretrained_ae':
-            from .autoencoders.lidar_autoencoder import LidarConvAE
-            self.AE_LIDAR_MODEL = LidarConvAE()
-            self.AE_LIDAR_MODEL.load_state_dict(torch.load(pretrained_ae_path))
-            self.AE_LIDAR_MODEL.eval()
 
         # reward function specific setup:
         if self.BASE_REWARD_FUNCTION == 'progressive':
             self.PROGRESS_NOT_MET_CNT = 0
 
-
         # Reset Client -----------------------------------------------
-
-        self.GOALS_REACHED = 0
-        self.START_WAYPOINT_INDEX = 0
         self.STEPS_SINCE_LAST_GOAL = 0
-        self.FULL_CURRENT_STATE = None
-
-        if not self.IS_MULTI_TRACK:
-            if "test_track" in track:
-                track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
-            else:
-                track_key = track
-
-            self.TRACK_WAYPOINTS = waypoints[track_key]
-            self.TRACK_MODEL = TrackMathDef(np.array(self.TRACK_WAYPOINTS)[:,:2])
-            
-        else:
-            _, self.all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
-            self.CURRENT_TRACK_KEY = list(self.all_track_waypoints.keys())[0]
-
-            # set current track waypoints
-            self.TRACK_WAYPOINTS = self.all_track_waypoints[self.CURRENT_TRACK_KEY]
-
-            # set track models
-            self.ALL_TRACK_MODELS = get_track_math_defs(self.all_track_waypoints)
-            self.TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURRENT_TRACK_KEY]
-
-
-        # Evaluation related setup ---------------------------------------------------
-        self.IS_EVAL = False
-
         if self.IS_MULTI_TRACK:
             # define from which track in the track lists to be used for eval only
-            self.EVAL_TRACK_BEGIN_IDX = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
+            self.EVAL_TRACK_BEGIN_IDX = int(len(self.ALL_TRACK_WAYPOINTS)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
             # idx used to loop through eval tracks sequentially
             self.EVAL_TRACK_IDX = 0
-        
-        self.STEP_COUNTER = 0
-
+            
         self.get_logger().info('Environment Setup Complete')
 
 
@@ -187,16 +104,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
 #  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
 #   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
                                                                                       
-
-    def get_extra_observation_size(self):
-        total = 0
-        for obs in self.EXTRA_OBSERVATIONS:
-            match obs:
-                case 'prev_ang_vel':
-                    total += 1
-                case _:
-                    print("Unknown extra observation.")
-        return total
     
     def randomize_yaw(self, yaw, percentage=0.5):
         factor = 1 + random.uniform(-percentage, percentage)
@@ -215,40 +122,40 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         if self.IS_MULTI_TRACK:
             # Evaluating: loop through eval tracks sequentially
             if self.IS_EVAL:
-                eval_track_key_list = list(self.all_track_waypoints.keys())[self.EVAL_TRACK_BEGIN_IDX:]
-                self.CURRENT_TRACK_KEY = eval_track_key_list[self.EVAL_TRACK_IDX]
+                eval_track_key_list = list(self.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACK_BEGIN_IDX:]
+                self.CURR_TRACK = eval_track_key_list[self.EVAL_TRACK_IDX]
                 self.EVAL_TRACK_IDX += 1
                 self.EVAL_TRACK_IDX = self.EVAL_TRACK_IDX % len(eval_track_key_list)
 
             # Training: choose a random track that is not used for evaluation
             else:
-                self.CURRENT_TRACK_KEY = random.choice(list(self.all_track_waypoints.keys())[:self.EVAL_TRACK_BEGIN_IDX])
+                self.CURR_TRACK = random.choice(list(self.ALL_TRACK_WAYPOINTS.keys())[:self.EVAL_TRACK_BEGIN_IDX])
             
-            self.TRACK_WAYPOINTS = self.all_track_waypoints[self.CURRENT_TRACK_KEY]
+            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
 
         # start at beginning of track when evaluating
         # if self.is_evaluating:
-        #     car_x, car_y, car_yaw, index = self.track_waypoints[10]
-        #     car_2_x, car_2_y, car_2_yaw, _ = self.track_waypoints[16]
-        #     car_3_x, car_3_y, car_3_yaw, _ = self.track_waypoints[21]
+        #     car_x, car_y, car_yaw, index = self.CURR_WAYPOINTS[10]
+        #     car_2_x, car_2_y, car_2_yaw, _ = self.CURR_WAYPOINTS[16]
+        #     car_3_x, car_3_y, car_3_yaw, _ = self.CURR_WAYPOINTS[21]
         # # start the car randomly along the track
         # else:
-        car_x, car_y, car_yaw, index = random.choice(self.TRACK_WAYPOINTS)
+        car_x, car_y, car_yaw, index = random.choice(self.CURR_WAYPOINTS)
         car_yaw = self.randomize_yaw(car_yaw, 0.25)
 
         car_2_offset = random.randint(8, 16)  
-        car_2_index = (index + car_2_offset) % len(self.TRACK_WAYPOINTS)
-        car_2_x, car_2_y, car_2_yaw, _ = self.TRACK_WAYPOINTS[car_2_index]
+        car_2_index = (index + car_2_offset) % len(self.CURR_WAYPOINTS)
+        car_2_x, car_2_y, car_2_yaw, _ = self.CURR_WAYPOINTS[car_2_index]
         car_2_yaw = self.randomize_yaw(car_2_yaw, 0.25)
 
         car_3_offset = random.randint(20, 40)  
-        car_3_index = (index + car_3_offset) % len(self.TRACK_WAYPOINTS)
-        car_3_x, car_3_y, car_3_yaw, _ = self.TRACK_WAYPOINTS[car_3_index]
+        car_3_index = (index + car_3_offset) % len(self.CURR_WAYPOINTS)
+        car_3_x, car_3_y, car_3_yaw, _ = self.CURR_WAYPOINTS[car_3_index]
         car_3_yaw = self.randomize_yaw(car_3_yaw, 0.25)
 
         # Update goal pointer to reflect starting position
-        self.START_WAYPOINT_INDEX = index
-        x,y,_,_ = self.TRACK_WAYPOINTS[self.START_WAYPOINT_INDEX+1 if self.START_WAYPOINT_INDEX+1 < len(self.TRACK_WAYPOINTS) else 0]# point toward next goal
+        self.SPAWN_INDEX = index
+        x,y,_,_ = self.CURR_WAYPOINTS[self.SPAWN_INDEX+1 if self.SPAWN_INDEX+1 < len(self.CURR_WAYPOINTS) else 0]# point toward next goal
         self.goal_position = [x,y]
 
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
@@ -258,7 +165,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         # Get initial observation
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
-        self.FULL_CURRENT_STATE = full_state
+        self.CURR_STATE = full_state
         self.call_step(pause=True)
 
         info = {}
@@ -266,8 +173,8 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         # get track progress related info
         # set new track model if its multi track
         if self.IS_MULTI_TRACK:
-            self.TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURRENT_TRACK_KEY]
-        self.PREV_T = self.TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
+            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
+        self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
         # reward function specific resets
         if self.BASE_REWARD_FUNCTION == 'progressive':
@@ -286,7 +193,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         self.STEP_COUNTER += 1
         
         # get current state
-        full_state = self.FULL_CURRENT_STATE
+        full_state = self.CURR_STATE
 
         # unpause simulation
         self.call_step(pause=False)
@@ -302,17 +209,17 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         self.call_step(pause=True)
 
         # set new step as 'current state' for next step
-        self.FULL_CURRENT_STATE = full_next_state
+        self.CURR_STATE = full_next_state
         
         # calculate progress along track
-        if not self.PREV_T:
-            self.PREV_T = self.TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
+        if not self.PREV_CLOSEST_POINT:
+            self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
 
-        t2 = self.TRACK_MODEL.get_closest_point_on_spline(full_next_state[:2], t_only=True)
-        self.STEP_PROGRESS = self.TRACK_MODEL.get_distance_along_track_parametric(self.PREV_T, t2, approximate=True)
-        self.CENTRE_LINE_OFFSET = self.TRACK_MODEL.get_distance_to_spline_point(t2, full_next_state[:2])
+        t2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_next_state[:2], t_only=True)
+        self.STEP_PROGRESS = self.CURR_TRACK_MODEL.get_distance_along_track_parametric(self.PREV_CLOSEST_POINT, t2, approximate=True)
+        self.CENTRE_LINE_OFFSET = self.CURR_TRACK_MODEL.get_distance_to_spline_point(t2, full_next_state[:2])
 
-        self.PREV_T = t2
+        self.PREV_CLOSEST_POINT = t2
 
         # guard against random error from progress estimate. See get_closest_point_on_spline, suspect differential evo have something to do with this.
         if abs(self.STEP_PROGRESS) > (full_next_state[6]/10*3): # traveled distance should not too different from lin vel * step time
@@ -394,16 +301,6 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
         self.PROCESSED_PUBLISHER.publish(scan)
 
         state += processed_lidar_range
-
-        # Add extra observation:
-        for extra_observation in self.EXTRA_OBSERVATIONS:
-            match extra_observation:
-                case 'prev_ang_vel':
-                    if self.FULL_CURRENT_STATE:
-                        state += [self.FULL_CURRENT_STATE[7]]
-                    else:
-                        state += [state[7]]
-
         
         full_state = odom + processed_lidar_range
 
@@ -474,7 +371,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
             self.GOALS_REACHED += 1
 
             # Updating Goal Position
-            new_x, new_y, _, _ = self.TRACK_WAYPOINTS[(self.START_WAYPOINT_INDEX + self.GOALS_REACHED) % len(self.TRACK_WAYPOINTS)]
+            new_x, new_y, _, _ = self.CURR_WAYPOINTS[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.CURR_WAYPOINTS)]
             self.goal_position = [new_x, new_y]
 
             self.update_goal_service(new_x, new_y)
@@ -516,7 +413,7 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
             self.GOALS_REACHED += 1
 
             # Updating Goal Position
-            new_x, new_y, _, _ = self.TRACK_WAYPOINTS[(self.START_WAYPOINT_INDEX + self.GOALS_REACHED) % len(self.TRACK_WAYPOINTS)]
+            new_x, new_y, _, _ = self.CURR_WAYPOINTS[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.CURR_WAYPOINTS)]
             self.goal_position = [new_x, new_y]
 
             self.update_goal_service(new_x, new_y)
