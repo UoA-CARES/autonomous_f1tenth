@@ -623,7 +623,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if not self.is_staged_training:
             return
         
-        if self.current_training_stage <= 4: # hardcoding 4 stages
+        if self.current_training_stage <= 4: # hardcoding stages 0-4 inclusive
             self.current_training_stage += 1
             self.get_logger().info(f"\n Incremented to training stage {self.current_training_stage}.\n")
         else:
