@@ -91,8 +91,13 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
 
             # Reset environment
             if hasattr(env, 'IS_STAGED_TRAINING') and env.IS_STAGED_TRAINING:
-                if episode_num in [250000, 500000]:
-                    env.increment_stage()
+                stages = [200000, 350000, 500000, 650000]
+                current_stage = env.current_training_stage
+                for i in range(len(stages)):
+                    if current_stage == i and step_counter > stages[i]:
+                        env.increment_stage()
+                        break
+                        
             state, _ = env.reset()
             episode_reward = 0
             episode_timesteps = 0
