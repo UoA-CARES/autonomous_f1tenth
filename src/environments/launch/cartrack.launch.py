@@ -71,7 +71,10 @@ def generate_launch_description():
 
     reset = Node(
             package='environments',
-            executable='CarTrackReset',
+            executable='F1TenthReset',
+            parameters=[
+                {'env_name': 'CarTrack'}
+            ],
             output='screen',
             emulate_tty=True,
     )
