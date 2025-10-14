@@ -345,6 +345,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.is_evaluating and (terminated or truncated):
             self.eval_track_idx
 
+        print(f"stage {self.current_training_stage} training track {self.currrent_track_key}")
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
