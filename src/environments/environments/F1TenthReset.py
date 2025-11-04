@@ -80,15 +80,8 @@ def main():
     rclpy.init()
     param_node = rclpy.create_node('params')
     
-    param_node.declare_parameters(
-        '',
-        [
-            ('env_name', 'beep')
-        ]
-    )
-    params = param_node.get_parameters(['env_name'])
-    params = [param.value for param in params]
-    env_name = params[0]
+    param_node.declare_parameter('env_name', 'beep')
+    env_name = param_node.get_parameter('env_name').get_parameter_value().string_value
     
     pkg_environments = get_package_share_directory('environments')
 
