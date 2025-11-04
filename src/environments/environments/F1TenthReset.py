@@ -14,8 +14,13 @@ from .util import get_quaternion_from_euler
 class F1TenthReset(Node):
 
     def __init__(self, env_name):
+        
         name = env_name + '_reset'
+        
         super().__init__(name)
+        self.get_logger().info("Environment: " + name)
+        # self.declare_parameter('env_name', 'beep')
+        # environment = self.get_parameter('env_name').get_parameter_value().string_value
 
         srv_cb_group = MutuallyExclusiveCallbackGroup()
         self.srv = self.create_service(Reset, name, callback=self.service_callback, callback_group=srv_cb_group)
@@ -73,9 +78,21 @@ class F1TenthReset(Node):
 
 def main():
     rclpy.init()
+    param_node = rclpy.create_node('params')
+    
+    param_node.declare_parameters(
+        '',
+        [
+            ('env_name', 'beep')
+        ]
+    )
+    params = param_node.get_parameters(['env_name'])
+    params = [param.value for param in params]
+    env_name = params[0]
+    
     pkg_environments = get_package_share_directory('environments')
 
-    reset_service = F1TenthReset('car_track')
+    reset_service = F1TenthReset(env_name)
 
     services = SimulationServices('empty')
 

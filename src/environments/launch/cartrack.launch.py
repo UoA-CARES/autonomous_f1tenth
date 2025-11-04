@@ -73,7 +73,7 @@ def generate_launch_description():
             package='environments',
             executable='F1TenthReset',
             parameters=[
-                {'env_name': 'CarTrack'}
+                {'env_name': 'car_track'}
             ],
             output='screen',
             emulate_tty=True,
