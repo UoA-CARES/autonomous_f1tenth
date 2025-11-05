@@ -44,7 +44,8 @@ setup(
             'TwoCarReset = environments.TwoCarReset:main',
             'SteppingService = environments.SteppingService:main',
             'LidarLogger = environments.lidar_logger:main',
-            'MultiAgentReset = environments.MultiAgentReset:main'
+            'MultiAgentReset = environments.MultiAgentReset:main',
+            'F1TenthReset = environments.F1TenthReset:main'
         ],
     },
 )

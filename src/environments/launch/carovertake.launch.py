@@ -109,7 +109,10 @@ def generate_launch_description():
 
     reset = Node(
             package='environments',
-            executable='CarOvertakeReset',
+            executable='F1TenthReset',
+            parameters=[
+                {'env_name': 'car_overtake'}
+            ],
             output='screen',
             emulate_tty=True,
     )
