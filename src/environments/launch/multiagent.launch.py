@@ -80,7 +80,10 @@ def generate_launch_description():
 
     reset = Node(
             package='environments',
-            executable='MultiAgentReset',
+            executable='F1TenthReset',
+            parameters=[
+                {'env_name': 'multi_agent'}
+            ],
             output='screen',
             emulate_tty=True,
     )
