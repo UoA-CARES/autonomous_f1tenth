@@ -4,13 +4,11 @@ import yaml
 
 import numpy as np
 import rclpy
-from rclpy.parameter import Parameter
 import torch
 
 from cares_reinforcement_learning.memory import MemoryBuffer
 from cares_reinforcement_learning.util.record import Record
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
-import cares_reinforcement_learning.util.configurations as cfg
 
 from .parse_args import parse_args
 from .EnvironmentFactory import EnvironmentFactory
