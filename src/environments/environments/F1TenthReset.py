@@ -53,7 +53,7 @@ class F1TenthReset(Node):
         response.success = True
 
         return response
-    from f1tenth_control.SimulationServices import SimulationServices
+    
     def create_request(self, name, x=0, y=0, z=0, roll=0, pitch=0, yaw=0):
         req = SetEntityPose.Request()
 

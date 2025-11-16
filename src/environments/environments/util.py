@@ -2,7 +2,6 @@ import numpy as np
 import random
 import math
 import scipy.signal
-import torch.types
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from .goal_positions import goal_positions

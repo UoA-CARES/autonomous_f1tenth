@@ -1,6 +1,5 @@
 from rclpy.node import Node
 
-import sys
 import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
@@ -9,9 +8,6 @@ from rclpy.executors import MultiThreadedExecutor
 from ros_gz_interfaces.srv import ControlWorld
 from std_srvs.srv import SetBool
 
-from ament_index_python import get_package_share_directory
-
-from .util import get_quaternion_from_euler
 
 class SteppingService(Node):
     def __init__(self):

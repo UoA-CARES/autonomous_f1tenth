@@ -1,15 +1,8 @@
 import rclpy
 import numpy as np
-from rclpy import Future
 import random
-from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from .util import process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, reconstruct_ae_latent
-from .util_track_progress import TrackMathDef
-from .waypoints import waypoints
-from typing import Literal, List
-import torch
-import yaml
 
 class CarRaceEnvironment(F1tenthEnvironment):
 

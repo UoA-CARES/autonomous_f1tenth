@@ -3,21 +3,13 @@ import rclpy
 import numpy as np
 from rclpy import Future
 import random
-from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from .util import has_collided, has_flipped_over, findOccurrences
-from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, twist_to_ackermann, reconstruct_ae_latent, lateral_translation
-from .util_track_progress import TrackMathDef
-from .waypoints import waypoints
-from std_srvs.srv import SetBool
-from typing import Literal, List, Optional, Tuple
+from .util import process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, twist_to_ackermann, reconstruct_ae_latent, lateral_translation
+from typing import Literal, List, Tuple
 from std_msgs.msg import String
-import torch
-from datetime import datetime
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from nav_msgs.msg import Odometry
-import yaml
-import time
 
 
 class MultiAgentEnvironment(F1tenthEnvironment):

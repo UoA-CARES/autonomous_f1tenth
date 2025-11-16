@@ -12,6 +12,7 @@ from .util import ackermann_to_twist, get_track_math_defs, get_all_goals_and_way
 from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
 import yaml
+import torch
 
 
 class F1tenthEnvironment(Node):
