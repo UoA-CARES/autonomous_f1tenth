@@ -3,6 +3,7 @@ import numpy as np
 import random
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from .util import process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, reconstruct_ae_latent
+from environment_interfaces.srv import Reset
 
 class CarRaceEnvironment(F1tenthEnvironment):
 
@@ -46,65 +47,40 @@ class CarRaceEnvironment(F1tenthEnvironment):
                  ):
         super().__init__('car_race', car_name, reward_range, max_steps, collision_range, step_length, 10, track, observation_mode)
 
-        #####################################################################################################################
-
-
         self.get_logger().info('Environment Setup Complete')
 
-
-
-#    ____ _        _    ____ ____    _____ _   _ _   _  ____ _____ ___ ___  _   _ ____  
-#   / ___| |      / \  / ___/ ___|  |  ___| | | | \ | |/ ___|_   _|_ _/ _ \| \ | / ___| 
-#  | |   | |     / _ \ \___ \___ \  | |_  | | | |  \| | |     | |  | | | | |  \| \___ \ 
-#  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
-#   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
-                                                                                      
-
+        #####################################################################################################################
 
     def reset(self):
         self.STEP_COUNTER = 0
-
         self.set_velocity(0, 0)
         
-        # start at beginning of track when evaluating
         if self.IS_EVAL:
             car_x, car_y, car_yaw, index = self.TRACK_WAYPOINTS[10]
             car_2_x, car_2_y, car_2_yaw, _ = self.TRACK_WAYPOINTS[16]
-        # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.TRACK_WAYPOINTS)
             car_2_x, car_2_y, car_2_yaw, _ = self.TRACK_WAYPOINTS[index+2 if index+20 < len(self.TRACK_WAYPOINTS) else 0]
 
-        # Update goal pointer to reflect starting position
         self.SPAWN_INDEX = index
-
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, car_name=self.NAME)
         self.call_reset_service(car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, car_name='f1tenth_2')
 
-        # Get initial observation
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
         self.CURR_STATE = full_state
         self.call_step(pause=True)
-
-        info = {}
         
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(full_state[:2], t_only=True)
-
+        info = {}
         return state, info
 
     def get_observation(self):
-
-        # Get Position and Orientation of F1tenth
         odom, lidar = self.get_data()
         odom = process_odom(odom)
-        
         num_points = self.LIDAR_POINTS
         
-        # init state
         state = []
-        
-        # Add odom data
         match (self.ODOM_OBSERVATION_MODE):
             case 'no_position':
                 state += odom[2:]
@@ -112,13 +88,10 @@ class CarRaceEnvironment(F1tenthEnvironment):
                 state += odom[-2:] 
             case _:
                 state += odom 
-        
-        # Add lidar data:
         match self.LIDAR_PROCESSING:
             case 'pretrained_ae':
                 processed_lidar_range = process_ae_lidar(lidar, self.AE_LIDAR_MODEL, is_latent_only=True)
                 visualized_range = reconstruct_ae_latent(lidar, self.AE_LIDAR_MODEL, processed_lidar_range)
-                #TODO: get rid of hard coded lidar points num
                 scan = create_lidar_msg(lidar, 682, visualized_range)
             case 'avg':
                 processed_lidar_range = avg_lidar(lidar, num_points)
@@ -128,24 +101,13 @@ class CarRaceEnvironment(F1tenthEnvironment):
                 processed_lidar_range = np.array(lidar.ranges.tolist())
                 processed_lidar_range = np.nan_to_num(processed_lidar_range, posinf=-5, nan=-1, neginf=-5).tolist()  
                 visualized_range = processed_lidar_range
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
-        
+                scan = create_lidar_msg(lidar, num_points, visualized_range)    
         self.PROCESSED_PUBLISHER.publish(scan)
-
         state += processed_lidar_range     
         full_state = odom + processed_lidar_range
-
         return state, full_state, lidar.ranges
 
-    ##########################################################################################
-    ########################## Utility Functions #############################################
-    ##########################################################################################
-
     def call_reset_service(self, car_x, car_y, car_Y, car_name):
-        """
-        Reset the car and goal position
-        """
-
         request = Reset.Request()
         request.car_name = car_name
         request.cx = float(car_x)
@@ -155,5 +117,4 @@ class CarRaceEnvironment(F1tenthEnvironment):
 
         future = self.reset_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
-
         return future.result()
