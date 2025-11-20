@@ -190,9 +190,7 @@ class F1tenthEnvironment(Node):
     def step(self, action):
         self.STEP_COUNTER += 1
         self.call_step(pause=False)
-
         state = self.get_observation()
-        
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
 
@@ -200,17 +198,12 @@ class F1tenthEnvironment(Node):
             rclpy.spin_once(self)
 
         self.TIMER_FUTURE = Future()
-        
-        
-
         next_state = self.get_observation()
         self.call_step(pause=True)
-
         reward = self.compute_reward(state, next_state)
         terminated = self.is_terminated(next_state)
         truncated = self.STEP_COUNTER >= self.MAX_STEPS
         info = {}
-
         return next_state, reward, terminated, truncated, info
 
     def get_observation(self):
@@ -238,15 +231,10 @@ class F1tenthEnvironment(Node):
         return data['odom'], data['lidar']
 
     def set_velocity(self, lin_vel, steering_angle, L=0.325):
-        """
-        Publish Twist Message. In place since simulator takes angular velocity commands but policies should produce ackermann steering angle.
-        Takes linear velocity and steering ANGLE, NOT angular velocity.
-        """
         angular = ackermann_to_twist(steering_angle, lin_vel, L)
         velocity_msg = Twist()
         velocity_msg.angular.z = float(angular)
         velocity_msg.linear.x = float(lin_vel)
-
         self.CMD_VEL_PUB.publish(velocity_msg)
 
     def sleep(self):
@@ -257,10 +245,8 @@ class F1tenthEnvironment(Node):
     def call_step(self, pause):
         request = SetBool.Request()
         request.data = pause
-
         future = self.STEPPING_CLIENT.call_async(request)
         rclpy.spin_until_future_complete(self, future)
-
         return future.result()
 
     def timer_cb(self):
@@ -270,10 +256,6 @@ class F1tenthEnvironment(Node):
         raise NotImplementedError('Staged training is not implemented')
 
     def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y, car_name):
-        """
-        Reset the car and goal position
-        """
-
         request = Reset.Request()
         request.car_name = car_name
         request.gx = float(goal_x)
@@ -289,16 +271,10 @@ class F1tenthEnvironment(Node):
         return future.result()
 
     def update_goal_service(self, x, y):
-        """
-        Reset the goal position
-        """
-
         request = Reset.Request()
         request.gx = x
         request.gy = y
         request.flag = "goal_only"
-
         future = self.RESET_CLIENT.call_async(request)
         rclpy.spin_until_future_complete(self, future)
-
         return future.result()
