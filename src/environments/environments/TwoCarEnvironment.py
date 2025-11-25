@@ -107,6 +107,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.STATUS = 'r_f1tenth'
 
         self.STATUS_OBSERVATION_FUTURE = Future()
+        self.ODOMS_OBSERVATION_FUTURE = Future()
         self.STATUS_LOCK = 'off'
 
         #####################################################################################################################
@@ -123,7 +124,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 #   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
 
     def odom_message_filter_callback(self, odom1: Odometry, odom2: Odometry):
-        self.ODOM_OBSERVATION_FUTURE.set_result({'odom1': odom1, 'odom2': odom2})                                                                            
+        self.ODOMS_OBSERVATION_FUTURE.set_result({'odom1': odom1, 'odom2': odom2})                                                                            
     
     def randomize_yaw(self, yaw, percentage=0.5):
         factor = 1 + random.uniform(-percentage, percentage)
@@ -525,9 +526,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
     def get_odoms(self):
         # Get odom of both cars
 
-        rclpy.spin_until_future_complete(self, self.ODOM_OBSERVATION_FUTURE)
-        future = self.ODOM_OBSERVATION_FUTURE
-        self.ODOM_OBSERVATION_FUTURE = Future()
+        rclpy.spin_until_future_complete(self, self.ODOMS_OBSERVATION_FUTURE)
+        future = self.ODOMS_OBSERVATION_FUTURE
+        self.ODOMS_OBSERVATION_FUTURE = Future()
         data = future.result()
         odom1 = process_odom(data['odom1'])
         odom2 = process_odom(data['odom2'])
