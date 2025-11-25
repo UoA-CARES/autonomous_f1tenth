@@ -14,9 +14,6 @@ from nav_msgs.msg import Odometry
 
 class TwoCarEnvironment(F1tenthEnvironment):
 
-    
-    
-
     def __init__(self, 
                  car_name, 
                  reward_range=0.5, 
@@ -30,10 +27,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
         super().__init__('two_car', car_name, reward_range, max_steps, collision_range, step_length, 10, track, observation_mode)
 
         #####################################################################################################################
-        # Initialise vars
-
-        # Track progress utilities
-        self.ALL_TRACK_WAYPOINTS = None
+        # Env params ----------------------------------------------
+        #self.ALL_TRACK_WAYPOINTS = None
         self.CURR_TRACK = None
         self.CURR_WAYPOINTS = None
         self.PROGRESS_NOT_MET_COUNTER = 0
@@ -113,6 +108,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         self.STATUS_OBSERVATION_FUTURE = Future()
         self.STATUS_LOCK = 'off'
+
+        #####################################################################################################################
+        # Initialise vars ---------------------------------------------
 
         self.get_logger().info('Environment Setup Complete')
 

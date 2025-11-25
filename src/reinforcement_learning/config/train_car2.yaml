@@ -1,7 +1,7 @@
 train:
   ros__parameters:
-    environment: 'MultiAgent'  # CarTrack, CarBeat, TwoCar, MultiAgent
-    track: 'multi_track_wide' # track_1, track_2, track_3, multi_track, multi_track_testing
+    environment: 'TwoCar'  # CarTrack, CarBeat, TwoCar, MultiAgent
+    track: 'narrow_multi_track' # track_1, track_2, track_3, multi_track, multi_track_testing
     car_name: 'f2tenth'
     algorithm: 'TD3'
     g: 1
