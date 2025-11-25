@@ -14,16 +14,8 @@ from .waypoints import waypoints
 import yaml
 import torch
 
-
 class F1tenthEnvironment(Node):
-    '''
-    Repository Parent Environment:
-        
-        The responsibilities of this class is the following:
-            - handle the topic subscriptions/publishers
-            - fetching of car data (raw)
-            - define the interface for environments to implement
-    '''
+
     def __init__(self,
                  env_name,
                  car_name,
