@@ -6,12 +6,10 @@ from scipy import integrate, optimize, interpolate
 class TrackMathDef():
     
     def __init__(self, points:list):
-        '''Need list of [x,y] coord to contruct a b-spline representation of track. Will connect the first point and the last point in array.'''
         points = np.array(points)
         points = np.append(points, [points[0]], axis=0)
         x_points = points[:, 0]
         y_points = points[:, 1]
-
         t = np.linspace(0, 1, len(x_points))
         self.para_x = interpolate.splrep(t, x_points, k=2)
         self.para_y = interpolate.splrep(t, y_points, k=2)
@@ -50,7 +48,6 @@ class TrackMathDef():
         given the small amount of time per step the progress can likely be approximated with a straight line.'''
         if approximate:
             return np.linalg.norm(self.get_spline_point(t1) - self.get_spline_point(t2))
-
         if t1 <= t2:
             if t2 - t1 < 0.5:
                 # going forward normally
@@ -59,7 +56,6 @@ class TrackMathDef():
                 # going backward passing origin
                 print("SPECIAL CASE: BACKING PAST ORIGIN")
                 return - self.get_arc_length_forward(0,t1) - self.get_arc_length_forward(t2,1)
-
         else: 
             if t1 - t2 < 0.5:
                 # going backward
