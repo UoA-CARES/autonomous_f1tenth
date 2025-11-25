@@ -1,12 +1,9 @@
-import random
-from datetime import datetime
 import yaml
 
 import rclpy
 import torch
 
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
-import cares_reinforcement_learning.util.configurations as cfg
 
 from .parse_args import parse_args
 from .EnvironmentFactory import EnvironmentFactory
