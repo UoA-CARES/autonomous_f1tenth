@@ -23,7 +23,7 @@ from environments.autoencoders.lidar_beta_vae import BetaVAE1D
 from environments.autoencoders.lidar_autoencoder import LidarConvAE
 
 from environments.util import process_odom, avg_lidar, process_lidar_med_filt, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, avg_lidar_w_consensus, process_ae_lidar, process_ae_lidar_beta_vae
-
+from std_msgs.msg import Header  # Import Header
 
 class Controller(Node):
     def __init__(self, node_name, car_name, step_length, isCar=False, lidar_points = 10):
@@ -218,6 +218,11 @@ class Controller(Node):
 
         car_velocity_msg.drive.steering_angle = float(steering_angle) #-float(angle*0.5)
         car_velocity_msg.drive.speed = float(lin_vel)
+        
+        # Add a ROS header with a timestamp
+        header = Header()
+        header.stamp = self.get_clock().now().to_msg()  # Use the ROS clock for the timestamp
+        car_velocity_msg.header = header  # Attach the header to the message
 
         self.ackerman_pub.publish(car_velocity_msg)
         self.cmd_vel_pub.publish(sim_velocity_msg)
