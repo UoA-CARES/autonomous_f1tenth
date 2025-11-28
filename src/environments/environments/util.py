@@ -128,7 +128,7 @@ def uneven_median_lidar(lidar: LaserScan, num_points: int):
         ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))  # Lidar only sees up to 4 meters
         new_range = []
         
-        window_size = [121, 70, 60 ,50, 40, 40, 50, 60, 70, 122]
+        window_size = [136, 79, 52, 40, 35, 35, 40, 52, 79, 135]
         
         if len(ranges) != sum(window_size):
             raise Exception("Lidar length and window size do not match")
