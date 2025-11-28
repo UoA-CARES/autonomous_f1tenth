@@ -13,6 +13,7 @@ from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
+from collections import deque
 import yaml
 from ament_index_python.packages import get_package_share_directory
 import time
@@ -105,6 +106,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
+        
 
         # Speed and turn limit
         self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
@@ -125,7 +127,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 odom_observation_size = 10
 
         # configure overall observation size
-        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
+        self.OBSERVATION_SIZE = (odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size())*2
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
@@ -156,7 +158,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.goals_reached = 0
         self.start_waypoint_index = 0
         self.steps_since_last_goal = 0
-        self.full_current_state = None
+        self.current_state, self.full_current_state, _ = self.get_observation()
 
         if not self.is_multi_track:
             if "test_track" in track:
@@ -267,6 +269,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
         self.full_current_state = full_state
+        self.current_state = state  # Store initial state
         self.call_step(pause=True)
 
         info = {}
@@ -280,8 +283,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # reward function specific resets
         if self.BASE_REWARD_FUNCTION == 'progressive':
             self.progress_not_met_cnt = 0
+            
+        # For first observation, duplicate the state since we don't have a previous one
+        nn_state = state + state  # Initial state is duplicated for first observation
 
-        return state, info
+        return nn_state, info
     
     def start_eval(self):
         self.eval_track_idx = 0
@@ -296,6 +302,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         full_state = self.full_current_state
 
         self.call_step(pause=False)
+        
+        if not self.is_evaluating:
+            time.sleep(0.074)  # 74ms delay to simulate delay between nn output from previous step and action now
 
         # take action and wait
         if is_training:
@@ -329,7 +338,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.call_step(pause=True)
 
         self.full_current_state = full_next_state
-        
+
+        nn_state = self.current_state + next_state # state from previous step
+        self.current_state = next_state
+
         # calculate progress along track
         if not self.prev_t:
             self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
@@ -360,7 +372,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.is_evaluating and (terminated or truncated):
             self.eval_track_idx
 
-        return next_state, reward, terminated, truncated, info
+        return nn_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
         return has_collided(ranges, self.COLLISION_RANGE) \
