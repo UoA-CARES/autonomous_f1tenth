@@ -213,6 +213,8 @@ class F1tenthEnvironment(Node):
     def timer_cb(self):
         self.timer_future.set_result(True)
 
+    def increment_stage(self):
+        raise NotImplementedError('Staged training is not implemented')
     
     def randomise_action(self, action):
         lin_vel, steering_angle = action

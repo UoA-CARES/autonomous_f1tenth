@@ -55,7 +55,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
         # train agent
         if step_counter >= max_steps_exploration:
             for i in range(G):
-                info = agent.train_policy(memory,batch_size,i)
+                info = agent.train_policy(memory,batch_size, i)
         
         # handle if should evaluate at end of episode
         if (step_counter+1) % number_steps_per_evaluation == 0:
@@ -89,19 +89,19 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
                 off_policy_evaluate(env, agent, number_eval_episodes, record, step_counter)
                 env.get_logger().info(f'*************--End Evaluation Loop--*************')
 
-            # Increment training stage
-            stages = [200000, 350000, 500000, 650000]
-            current_stage = env.current_training_stage
-            for i in range(len(stages)):
-                if current_stage == i and step_counter > stages[i]:
-                    env.increment_stage()
-            
-            # Reset environment 
+            # Reset environment
+            if hasattr(env, 'IS_STAGED_TRAINING') and env.IS_STAGED_TRAINING:
+                stages = [250000, 500000]
+                current_stage = env.current_training_stage
+                for i in range(len(stages)):
+                    if current_stage == i and step_counter > stages[i]:
+                        env.increment_stage()
             state, _ = env.reset()
             episode_reward = 0
             episode_timesteps = 0
             
             episode_info = {}
+            
         
 
 def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0):
@@ -115,7 +115,6 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
     env.start_eval()
     
     for episode_num in range(eval_episodes):
-        
         state, _ = env.reset()
         done = False
         truncated = False

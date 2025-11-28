@@ -410,17 +410,23 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
                   global_wp = [(x + i*30, y, yaw, index) for x, y, yaw, index in waypoints[track]]
                   all_car_waypoints.update({track_name : global_wp})
                   i += 1
-         
-        # Waypoint
-        # track_01_100_wp = [(x, y, yaw, index) for x, y, yaw, index in waypoints['track_01']]
-        # track_01_150_wp = [(x + 10, y, yaw, index) for x, y, yaw, index in waypoints['track_01']]
-        # track_01_200_wp = [(x + 20, y, yaw, index) for x, y, yaw, index in waypoints['track_01']]
-
-        # all_car_waypoints = {
-        #     'track_01_100': track_01_100_wp,
-        #     'track_01_150': track_01_150_wp,
-        #     'track_01_200': track_01_200_wp
-        # }
+                  
+    elif track_name == 'staged_tracks':
+        WIDTHS = [350, 300, 250, 200, 150]
+        TRACKS = ['track_01', 'track_02', 'track_03', 'track_04', 'track_05', 'track_06']
+        
+        # Usage of goals deprecated
+        all_car_goals = None
+        all_car_waypoints = {     
+        }
+        i = 0
+        
+        for width in WIDTHS:
+            for track in TRACKS:
+                  track_name = f"{track}_{str(width)}"
+                  global_wp = [(x + i*30, y, yaw, index) for x, y, yaw, index in waypoints[track_name]]
+                  all_car_waypoints.update({track_name : global_wp})
+                  i += 1
 
     elif track_name == 'narrow_multi_track':
         # Goal position - goals deprecated for narrow tracks
@@ -473,6 +479,25 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         }
 
     return all_car_goals, all_car_waypoints
+
+def get_training_stages(track_name):
+    # Stage track indices
+    if track_name == 'narrow_multi_track':
+        return {
+            0: [(14, 19), (0, 1)],    # Training (start, end), Eval (start, end), both inclusive
+            1: [(8, 13), (0, 1)],
+            2: [(2, 13), (0, 1)],
+        }
+    elif track_name == 'staged_tracks':
+        return {
+            0: [(0, 3), (4, 5)],
+            1: [(6, 9), (10, 11)],
+            2: [(12, 15), (16, 17)],
+            3: [(18, 21), (22, 23)],
+            4: [(24, 27), (28, 29)],
+        }
+    else:
+        raise Exception(f"Track {track_name} not designed for staged training.")
 
 def get_track_math_defs(tracks_waypoints:dict) -> dict[str,TrackMathDef]:
     '''Expect {trackname: [Waypoint]}, output {trackname: TrackMathDef}'''
