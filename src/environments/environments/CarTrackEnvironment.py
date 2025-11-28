@@ -77,7 +77,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # Reward configuration
         self.BASE_REWARD_FUNCTION:Literal["goal_hitting", "progressive"] = 'progressive'
         self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
-        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.5), ('wall_proximity', 0.5)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
         self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
@@ -85,10 +85,14 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Evaluation settings - configure train/eval split based on track
-        if track == 'narrow_multi_track':
+        if track == 'narrow_multi_track' or track == 'narrow_multi_track_staged_training':
             # train: vary_track_new, track_01_1m, track_02_1m, track_03_1m
             # eval: track_04_1m, track_05_1m, track_06_1m
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (4/7)
+        elif track == 'many_narrow_multi_track':
+            # train: vary_track_new, , narrow_track_01, narrow_track_02, narrow_track_03, narrow_track_04, narrow_track_05, narrow_track_06, track_01_1m, track_02_1m, track_03_1m
+            # eval: track_04_1m, track_05_1m, track_06_1m
+            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (10/13)
         else:
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5
 
@@ -122,6 +126,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.odom_observation_mode = observation_mode
         self.track = track
         self.is_multi_track = 'multi_track' in track
+        self.is_staged_training = 'staged_training' in track
+        self.is_many_multi_track = 'many_narrow_multi_track' in track
+
+        if self.is_staged_training:
+            self.current_stage = 0
 
         # initialize track progress utilities
         self.prev_t = None
@@ -233,8 +242,17 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     self.eval_track_idx += 1
                     self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
                 else:
-                    # Training: choose a random track that is not used for evaluation
-                    self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
+                    if self.is_staged_training:
+                        # Staged Training, Stage 1: first 2 tracks (new vary width track and track_01_1m) Stage 2: next 2 tracks (track_02_1m, track_03_1m) Evaluation: last 3 tracks (track_04_1m, track_05_1m, track_06_1m)
+                        if self.current_stage == 0:
+                            # Stage 1: first 2 tracks
+                            self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:2])
+                        elif self.current_stage == 1:
+                            # Stage 2: next 2 tracks
+                            self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[2:4])
+                    else:
+                        # Training: choose a random track that is not used for evaluation
+                        self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
 
@@ -244,7 +262,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
-
+        
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
@@ -285,8 +303,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         full_state = self.full_current_state
 
         self.call_step(pause=False)
-
-        # take action and wait
+        
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
         
@@ -375,7 +392,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 #TODO: get rid of hard coded lidar points num
                 scan = create_lidar_msg(lidar, 682, visualized_range)
             case 'avg':
-                processed_lidar_range = median_lidar(lidar, num_points)
+                processed_lidar_range = avg_lidar(lidar, num_points)
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'raw':
@@ -434,13 +451,13 @@ class CarTrackEnvironment(F1tenthEnvironment):
             match modifier_type:
                 case 'wall_proximity':
                     dist_to_wall = min(raw_lidar_range)
-                    close_to_wall_penalize_factor = 1 / (1 + np.exp(35 * (dist_to_wall - 0.5))) #y=\frac{1}{1+e^{35\left(x-0.5\right)}}
+                    close_to_wall_penalize_factor = 1 / (1 + np.exp(40 * (dist_to_wall - 0.375))) #y=\frac{1}{1+e^{35\left(x-0.5\right)}}
                     reward -= reward * close_to_wall_penalize_factor * weight
                     reward_info.update({"dist_to_wall":["avg",dist_to_wall]})
                     print(f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}")   
                 case 'turn':
                     angular_vel_diff = abs(state[7] - next_state[7])
-                    turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.3)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
+                    turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.45)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
                     reward -= reward * turning_penalty_factor * weight
                     print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
 
@@ -593,3 +610,16 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 string += f'Lidar: {observation[8:]}\n'
 
         return string
+    
+    def increment_stage(self):
+        """
+        Increment the training stage for staged training.
+        """
+        if not self.is_staged_training:
+            return
+        
+        if self.current_stage < 1:  # Currently using current_stage in your code, not current_training_stage
+            self.current_stage += 1
+            self.get_logger().info(f"Incremented to training stage {self.current_stage}")
+        else:
+            self.get_logger().info("Already at the last training stage. No increment performed.")

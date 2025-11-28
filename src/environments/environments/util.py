@@ -115,8 +115,7 @@ def reduce_lidar(lidar: LaserScan, num_points: int):
 def avg_lidar(lidar: LaserScan, num_points: int):
 
     ranges = lidar.ranges
-    ranges = np.nan_to_num(ranges, nan=float(
-        10), posinf=float(10), neginf=float(10))
+    ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
     ranges = ranges[1:]
     new_range = []
     angle = 240/num_points
@@ -394,16 +393,11 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
 
         # Waypoints
         track_01_wp = waypoints['track_01']
-        track_02_wp = [(x + 30, y, yaw, index)
-                       for x, y, yaw, index in waypoints['track_02']]
-        track_03_wp = [(x + 60, y, yaw, index)
-                       for x, y, yaw, index in waypoints['track_03']]
-        track_04_wp = [(x + 90, y, yaw, index)
-                       for x, y, yaw, index in waypoints['track_04']]
-        track_05_wp = [(x + 120, y, yaw, index)
-                       for x, y, yaw, index in waypoints['track_05']]
-        track_06_wp = [(x + 150, y, yaw, index)
-                       for x, y, yaw, index in waypoints['track_06']]
+        track_02_wp = [(x + 30, y, yaw, index) for x, y, yaw, index in waypoints['track_02']]
+        track_03_wp = [(x + 60, y, yaw, index) for x, y, yaw, index in waypoints['track_03']]
+        track_04_wp = [(x + 90, y, yaw, index) for x, y, yaw, index in waypoints['track_04']]
+        track_05_wp = [(x + 120, y, yaw, index) for x, y, yaw, index in waypoints['track_05']]
+        track_06_wp = [(x + 150, y, yaw, index) for x, y, yaw, index in waypoints['track_06']]
 
         all_car_waypoints = {
             'track_01': track_01_wp,
@@ -448,15 +442,14 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
 
         # loop through each track
         for track in TRACKS:
-            # loop through each width variant of each track
-            for width in WIDTHS:
-                # combine to get the correct key for returned dict
-                track_name = f"{track}_{str(width)}"
-                # set correct x offset
-                global_wp = [(x + i*30, y, yaw, index)
-                             for x, y, yaw, index in waypoints[track]]
-                all_car_waypoints.update({track_name: global_wp})
-                i += 1
+             # loop through each width variant of each track
+             for width in WIDTHS:
+                  # combine to get the correct key for returned dict
+                  track_name = f"{track}_{str(width)}"
+                  # set correct x offset
+                  global_wp = [(x + i*30, y, yaw, index) for x, y, yaw, index in waypoints[track]]
+                  all_car_waypoints.update({track_name : global_wp})
+                  i += 1              
 
     elif track_name == 'multi_track_test_01':
         WIDTHS = [150, 200, 250, 300, 350]
@@ -514,6 +507,70 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
             'track_04': track_04_wp,
             'track_05': track_05_wp,
             'track_06': track_06_wp
+        }
+    
+    elif track_name == 'narrow_multi_track_staged_training':
+        # Goal position - goals deprecated for narrow tracks
+        all_car_goals = None
+
+        # Waypoints - reordered with vary_track_width_new first, with larger spacing
+        vary_track_width_new_wp = waypoints['vary_track_width_new']
+        track_01_wp = [(x + 22, y, yaw, index)
+                    for x, y, yaw, index in waypoints['track_01_1m']]
+        track_02_wp = [(x + 31, y, yaw, index)
+                    for x, y, yaw, index in waypoints['track_02_1m']]
+        track_03_wp = [(x + 40, y, yaw, index)
+                    for x, y, yaw, index in waypoints['track_03_1m']]
+        track_04_wp = [(x + 49, y, yaw, index)
+                    for x, y, yaw, index in waypoints['track_04_1m']]
+        track_05_wp = [(x + 58, y, yaw, index)
+                    for x, y, yaw, index in waypoints['track_05_1m']]
+        track_06_wp = [(x + 67, y, yaw, index)
+                    for x, y, yaw, index in waypoints['track_06_1m']]
+
+        all_car_waypoints = {
+            'vary_track_width_new': vary_track_width_new_wp,
+            'track_01': track_01_wp,
+            'track_02': track_02_wp,
+            'track_03': track_03_wp,
+            'track_04': track_04_wp,
+            'track_05': track_05_wp,
+            'track_06': track_06_wp
+        }
+        
+    elif track_name == 'many_narrow_multi_track':
+        # Goal position - goals deprecated for narrow tracks
+        all_car_goals = None
+
+        # Waypoints - reordered with vary_track_width_new first, with larger spacing
+        vary_track_width_new_wp = [(x + 1, y, yaw, index) for x, y, yaw, index in waypoints['vary_track_width_new']] 
+        track_01_1m_wp = [(x + 40, y, yaw, index) for x, y, yaw, index in waypoints['track_01_1m']]
+        track_02_1m_wp = [(x + 49, y, yaw, index) for x, y, yaw, index in waypoints['track_02_1m']]  
+        track_03_1m_wp = [(x + 58, y, yaw, index) for x, y, yaw, index in waypoints['track_03_1m']]  
+        track_04_1m_wp = [(x + 67, y, yaw, index) for x, y, yaw, index in waypoints['track_04_1m']]  
+        track_05_1m_wp = [(x + 76, y, yaw, index) for x, y, yaw, index in waypoints['track_05_1m']]  
+        track_06_1m_wp = [(x + 85, y, yaw, index) for x, y, yaw, index in waypoints['track_06_1m']]  
+        narrow_track_01_wp = [(x + 94, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_01']]  
+        narrow_track_02_wp = [(x + 125, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_02']]
+        narrow_track_03_wp = [(x + 156, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_03']]
+        narrow_track_04_wp = [(x + 187, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_04']]
+        narrow_track_05_wp = [(x + 218, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_05']]
+        narrow_track_06_wp = [(x + 249, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_06']]
+
+        all_car_waypoints = {
+            'vary_track_width_new': vary_track_width_new_wp,
+            'narrow_track_01': narrow_track_01_wp,
+            'narrow_track_02': narrow_track_02_wp,
+            'narrow_track_03': narrow_track_03_wp,
+            'narrow_track_04': narrow_track_04_wp,
+            'narrow_track_05': narrow_track_05_wp,
+            'narrow_track_06': narrow_track_06_wp,
+            'track_01_1m': track_01_1m_wp,
+            'track_02_1m': track_02_1m_wp,
+            'track_03_1m': track_03_1m_wp,
+            'track_04_1m': track_04_1m_wp,
+            'track_05_1m': track_05_1m_wp,
+            'track_06_1m': track_06_1m_wp
         }
 
     return all_car_goals, all_car_waypoints
