@@ -29,7 +29,7 @@ class F1tenthEnvironment(Node):
                  max_steps,
                  step_length,
                  lidar_points = 10,
-                 config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
+                 config_path='/autonomous_F1tenth/src/environments/config/config.yaml',
                  ):
         super().__init__(env_name + '_environment')
 
@@ -212,3 +212,13 @@ class F1tenthEnvironment(Node):
 
     def timer_cb(self):
         self.timer_future.set_result(True)
+
+    
+    def randomise_action(self, action):
+        lin_vel, steering_angle = action
+        steering_noise = np.random.uniform(-0.0217, 0.0217) #   +- 5% noise
+        randomized_steering = steering_angle + steering_noise
+        lin_vel_noise = np.random.uniform(-0.25, 0.25)
+        randomized_lin_vel = lin_vel + lin_vel_noise
+
+        return randomized_lin_vel, randomized_steering

@@ -64,7 +64,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
-                 config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
+                 config_path='/autonomous_F1tenth/src/environments/config/config.yaml',
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
 
@@ -302,7 +302,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
             lin_vel, steering_angle = super().randomise_action(action)
         else:
             lin_vel, steering_angle = action
-        lin_vel, steering_angle = action
+
+        self.set_velocity(lin_vel, steering_angle)
         
         # action delay based on training stage
         if self.current_training_stage == 0:
