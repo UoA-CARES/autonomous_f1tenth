@@ -55,7 +55,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
         # train agent
         if step_counter >= max_steps_exploration:
             for i in range(G):
-                info = agent.train_policy(memory,batch_size)
+                info = agent.train_policy(memory,batch_size,i)
         
         # handle if should evaluate at end of episode
         if (step_counter+1) % number_steps_per_evaluation == 0:
@@ -72,15 +72,16 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
                         episode_info[info_key] = info_content[1]/(episode_timesteps+1)
                     case 'sum':
                         episode_info[info_key] = info_content[1]
-
-            record.log_train(
-                total_steps = step_counter + 1,
-                episode = episode_num + 1,
-                episode_steps=episode_timesteps,
-                episode_reward = episode_reward,
-                display = True,
-                **episode_info
-            )
+            if episode_timesteps > 2:
+                record.log_train(
+                    total_steps = step_counter + 1,
+                    episode = episode_num + 1,
+                    episode_steps=episode_timesteps,
+                    episode_reward = episode_reward,
+                    display = True,
+                    **episode_info
+                )
+                episode_num += 1
 
             if evaluate:
                 evaluate = False
@@ -88,11 +89,18 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
                 off_policy_evaluate(env, agent, number_eval_episodes, record, step_counter)
                 env.get_logger().info(f'*************--End Evaluation Loop--*************')
 
-            # Reset environment
+            # Increment training stage
+            stages = [200000, 350000, 500000, 650000]
+            current_stage = env.current_training_stage
+            for i in range(len(stages)):
+                if current_stage == i and step_counter > stages[i]:
+                    env.increment_stage()
+            
+            # Reset environment 
             state, _ = env.reset()
             episode_reward = 0
             episode_timesteps = 0
-            episode_num += 1
+            
             episode_info = {}
         
 
