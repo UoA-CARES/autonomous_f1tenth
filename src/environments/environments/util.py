@@ -122,6 +122,28 @@ def avg_lidar(lidar: LaserScan, num_points: int):
                 new_range.append(float(sum/(len(ranges)%num_ind)))
         
         return new_range
+    
+def uneven_median_lidar(lidar: LaserScan, num_points: int):
+        ranges = lidar.ranges
+        ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))  # Lidar only sees up to 4 meters
+        new_range = []
+        
+        window_size = [136, 79, 52, 40, 35, 35, 40, 52, 79, 135]
+        
+        if len(ranges) != sum(window_size):
+            raise Exception("Lidar length and window size do not match")
+        
+        if len(window_size) != num_points:
+            raise Exception("Window size length and num_points do not match")
+        
+        start = 0
+        for window in window_size:
+            end = start + window
+            window_ranges = ranges[start:end]
+            new_range.append(float(np.median(window_ranges)))
+            start = end
+            
+        return new_range
 
 def avg_lidar_w_consensus(lidar:LaserScan, num_points:int):
     '''For each 'sector', count non hitting rays, if non hitting rays >= 50% consider entire sector non-hitting. Otherwise use avg of hitting rays.'''
@@ -350,6 +372,27 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
                   global_wp = [(x + i*30, y, yaw, index) for x, y, yaw, index in waypoints[track]]
                   all_car_waypoints.update({track_name : global_wp})
                   i += 1
+    elif track_name == 'multi_track_02':
+
+        WIDTHS = [350] #[150, 200, 250, 300, 350]
+        TRACKS = ['track_01', 'track_02', 'track_03', 'track_04', 'track_05', 'track_06']
+        
+        # Usage of goals deprecated
+        all_car_goals = None
+        all_car_waypoints = {    
+        }
+        i = 0
+        
+        # loop through each track
+        for track in TRACKS:
+             # loop through each width variant of each track
+             for width in WIDTHS:
+                  # combine to get the correct key for returned dict
+                  track_name = f"{track}_{str(width)}"
+                  # set correct x offset
+                  global_wp = [(x + i*30, y, yaw, index) for x, y, yaw, index in waypoints[track]]
+                  all_car_waypoints.update({track_name : global_wp})
+                  i += 1              
 
     elif track_name == 'multi_track_test_01':
         WIDTHS = [150, 200, 250, 300, 350]
@@ -384,22 +427,49 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
         all_car_goals = None
 
         # Waypoints - reordered with vary_track_width_new first, with larger spacing
-        vary_track_width_new_wp = waypoints['vary_track_width_new']
-        track_01_wp = [(x + 22, y, yaw, index) for x, y, yaw, index in waypoints['track_01_1m']]
-        track_02_wp = [(x + 31, y, yaw, index) for x, y, yaw, index in waypoints['track_02_1m']]
-        track_03_wp = [(x + 40, y, yaw, index) for x, y, yaw, index in waypoints['track_03_1m']]
-        track_04_wp = [(x + 49, y, yaw, index) for x, y, yaw, index in waypoints['track_04_1m']]
-        track_05_wp = [(x + 58, y, yaw, index) for x, y, yaw, index in waypoints['track_05_1m']]
-        track_06_wp = [(x + 67, y, yaw, index) for x, y, yaw, index in waypoints['track_06_1m']]
+        vary_track_width_new_wp = [(x + 1, y, yaw, index) for x, y, yaw, index in waypoints['vary_track_width_new']]
+        spiral_track_wp = [(x + 22, y, yaw, index) for x, y, yaw, index in waypoints['spiral_track']]  
+        track_01_1m_wp = [(x + 40, y, yaw, index) for x, y, yaw, index in waypoints['track_01_1m']]
+        track_02_1m_wp = [(x + 49, y, yaw, index) for x, y, yaw, index in waypoints['track_02_1m']]  
+        track_03_1m_wp = [(x + 58, y, yaw, index) for x, y, yaw, index in waypoints['track_03_1m']]  
+        track_04_1m_wp = [(x + 67, y, yaw, index) for x, y, yaw, index in waypoints['track_04_1m']]  
+        track_05_1m_wp = [(x + 76, y, yaw, index) for x, y, yaw, index in waypoints['track_05_1m']]  
+        track_06_1m_wp = [(x + 85, y, yaw, index) for x, y, yaw, index in waypoints['track_06_1m']]  
+        narrow_track_01_wp = [(x + 94, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_01']]  
+        narrow_track_02_wp = [(x + 125, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_02']]
+        narrow_track_03_wp = [(x + 156, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_03']]
+        narrow_track_04_wp = [(x + 187, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_04']]
+        narrow_track_05_wp = [(x + 218, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_05']]
+        narrow_track_06_wp = [(x + 249, y, yaw, index) for x, y, yaw, index in waypoints['narrow_track_06']]
+        track_01_2m_wp = [(x + 280, y, yaw, index) for x, y, yaw, index in waypoints['track_01_2m']]
+        track_02_2m_wp = [(x + 296, y, yaw, index) for x, y, yaw, index in waypoints['track_02_2m']]
+        track_03_2m_wp = [(x + 312, y, yaw, index) for x, y, yaw, index in waypoints['track_03_2m']]
+        track_04_2m_wp = [(x + 328, y, yaw, index) for x, y, yaw, index in waypoints['track_04_2m']]
+        track_05_2m_wp = [(x + 344, y, yaw, index) for x, y, yaw, index in waypoints['track_05_2m']]
+        track_06_2m_wp = [(x + 360, y, yaw, index) for x, y, yaw, index in waypoints['track_06_2m']]
 
         all_car_waypoints = {
             'vary_track_width_new': vary_track_width_new_wp,
-            'track_01': track_01_wp,
-            'track_02': track_02_wp,
-            'track_03': track_03_wp,
-            'track_04': track_04_wp,
-            'track_05': track_05_wp,
-            'track_06': track_06_wp
+            'spiral_track': spiral_track_wp,
+            # train vvvvv eval ^^^^^
+            'track_01_1m': track_01_1m_wp,
+            'track_02_1m': track_02_1m_wp,
+            'track_03_1m': track_03_1m_wp,
+            'track_04_1m': track_04_1m_wp,
+            'track_05_1m': track_05_1m_wp,
+            'track_06_1m': track_06_1m_wp,
+            'narrow_track_01': narrow_track_01_wp,
+            'narrow_track_02': narrow_track_02_wp,
+            'narrow_track_03': narrow_track_03_wp,
+            'narrow_track_04': narrow_track_04_wp,
+            'narrow_track_05': narrow_track_05_wp,
+            'narrow_track_06': narrow_track_06_wp,
+            'track_01_2m': track_01_2m_wp,
+            'track_02_2m': track_02_2m_wp,
+            'track_03_2m': track_03_2m_wp,
+            'track_04_2m': track_04_2m_wp,
+            'track_05_2m': track_05_2m_wp,
+            'track_06_2m': track_06_2m_wp
         }
 
     return all_car_goals, all_car_waypoints
@@ -464,3 +534,6 @@ def lateral_translation(spline_location, angle, shift):
     x1 = x + shift*math.cos(angle+(math.pi/2))
     y1 = y + shift*math.sin(angle+(math.pi/2))
     return x1, y1
+
+def findOccurrences(s, ch):
+    return [i for i, letter in enumerate(s) if letter == ch]

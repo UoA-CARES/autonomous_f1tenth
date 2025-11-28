@@ -93,14 +93,14 @@
     </light>
 
 
-    <model name="track_02">
+    <model name="narrow_track_01">
       <pose>0 0 0 0 0 0</pose>
       <static>true</static>
       <link name="track">
         <visual name="track_vis">
           <geometry>
             <mesh>
-              <uri>../meshes/track_02.stl</uri>
+              <uri>../meshes/narrow_track_01.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
           </geometry>
@@ -113,8 +113,12 @@
         <collision name="track_col">
           <geometry>
             <mesh>
-              <uri>../meshes/track_02.stl</uri>
+              <uri>../meshes/narrow_track_01.stl</uri>
               <scale>0.001 0.001 0.001</scale>
             </mesh>
+          </geometry>
+        </collision>
+      </link>
+    </model>
   </world>
 </sdf>
