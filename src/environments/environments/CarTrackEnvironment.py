@@ -288,6 +288,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         # unpause simulation
         self.call_step(pause=False)
+        
+        if not self.is_evaluating:
+            time.sleep(0.074)  # 74ms delay to simulate delay between nn output from previous step and action now
 
         # take action and wait
         lin_vel, steering_angle = action
