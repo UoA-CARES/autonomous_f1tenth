@@ -110,6 +110,7 @@ class F1tenthEnvironment(Node):
 
         self.timer = self.create_timer(step_length, self.timer_cb)
         self.timer_future = Future()
+        self.LAST_STATE = Future()
 
     def reset(self):
         raise NotImplementedError('reset() not implemented')
@@ -153,8 +154,13 @@ class F1tenthEnvironment(Node):
         self.observation_future.set_result({'odom': odom, 'lidar': lidar})
 
     def get_data(self) -> tuple[Odometry,LaserScan]:
-        rclpy.spin_until_future_complete(self, self.observation_future)
-        future = self.observation_future
+        rclpy.spin_until_future_complete(self, self.observation_future, timeout_sec=0.5)
+        if (self.observation_future.result()) == None:
+            future = self.LAST_STATE
+            self.get_logger().info("Using previous observation")
+        else:
+            future = self.observation_future
+            self.LAST_STATE = future
         self.observation_future = Future()
         data = future.result()
         return data['odom'], data['lidar']

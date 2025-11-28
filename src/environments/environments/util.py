@@ -143,7 +143,7 @@ def median_lidar(lidar: LaserScan, num_points: int):
     ranges = ranges[1:]
 
     # Apply median filter first to reduce spikes from nan values
-    window_size = math.ceil(682/num_points) #refer to line 78 in CarTrackEnvironment.py
+    window_size = math.ceil(len(ranges)/num_points) #refer to line 78 in CarTrackEnvironment.py
     filtered_ranges = scipy.ndimage.median_filter(
         ranges, window_size, mode='nearest')
 
@@ -643,3 +643,6 @@ def lateral_translation(spline_location, angle, shift):
     x1 = x + shift*math.cos(angle+(math.pi/2))
     y1 = y + shift*math.sin(angle+(math.pi/2))
     return x1, y1
+
+def findOccurrences(s, ch):
+    return [i for i, letter in enumerate(s) if letter == ch]
