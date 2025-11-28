@@ -19,6 +19,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
     episode_info:Dict[str, list[Literal['avg','sum'],any]] = {}
 
     state, _ = env.reset()
+    stage_incremented = False
     
     # obs = env.parse_observation(state)
     # env.get_logger().info('-----------------------------------')
@@ -89,6 +90,11 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
                 env.get_logger().info(f'*************--End Evaluation Loop--*************')
 
             # Reset environment
+            # Increment stage after 500 episodes
+            if  not stage_incremented and step_counter >= 500000:  # After completing 500 episodes
+                env.increment_stage()  # Call your implemented stage increment method
+                stage_incremented = True
+
             state, _ = env.reset()
             episode_reward = 0
             episode_timesteps = 0
