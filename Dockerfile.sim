@@ -4,6 +4,16 @@ SHELL ["/bin/bash", "-c"]
 
 RUN sudo apt-get update -y && \
     sudo apt install -y python3-pip wget lsb-release gnupg curl
+    
+RUN sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null && \
+    sudo apt-get update -y && \
+    sudo apt-get upgrade -y
+
+RUN sudo sh -c 'echo "deb http://packages.ros.org/ros2/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros2-latest.list' && \
+    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add - && \
+    sudo apt-get update -y && \
+    sudo apt-get install -y python3-vcstool python3-colcon-common-extensions
 
 RUN sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null && \
@@ -33,7 +43,7 @@ RUN colcon build --merge-install --cmake-args -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
 RUN echo ". /gz/install/setup.bash" >> /etc/bash.bashrc
 
-ARG PROJECT_WORKSPACE_DIR=/autonomous_F1tenth
+ARG PROJECT_WORKSPACE_DIR=/autonomous_f1tenth
 WORKDIR ${PROJECT_WORKSPACE_DIR}
 COPY . ${PROJECT_WORKSPACE_DIR}
 
@@ -53,6 +63,12 @@ RUN . /opt/ros/humble/setup.bash && \
     rm -rf build/environments install/environments && \
     colcon build --symlink-install --cmake-args -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
+# Create symbolic link for /home/anyone to point to /autonomous_f1tenth
+RUN mkdir -p /home/anyone && ln -s /autonomous_f1tenth /home/anyone/autonomous_f1tenth
+
+RUN source /opt/ros/humble/setup.bash && \
+    source /gz/install/setup.bash && \
+    colcon build --symlink-install --cmake-args -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 RUN echo "#!/bin/bash" > /usr/local/bin/docker_entrypoint.sh && \
     echo "source /opt/ros/humble/setup.bash" >> /usr/local/bin/docker_entrypoint.sh && \
     echo "source /gz/install/setup.bash" >> /usr/local/bin/docker_entrypoint.sh && \
