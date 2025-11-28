@@ -66,6 +66,9 @@ RUN . /opt/ros/humble/setup.bash && \
 # Create symbolic link for /home/anyone to point to /autonomous_f1tenth
 RUN mkdir -p /home/anyone && ln -s /autonomous_f1tenth /home/anyone/autonomous_f1tenth
 
+RUN source /opt/ros/humble/setup.bash && \
+    source /gz/install/setup.bash && \
+    colcon build --symlink-install --cmake-args -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 RUN echo "#!/bin/bash" > /usr/local/bin/docker_entrypoint.sh && \
     echo "source /opt/ros/humble/setup.bash" >> /usr/local/bin/docker_entrypoint.sh && \
     echo "source /gz/install/setup.bash" >> /usr/local/bin/docker_entrypoint.sh && \

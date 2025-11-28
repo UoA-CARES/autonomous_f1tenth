@@ -1,4 +1,5 @@
 import math
+import os
 import rclpy
 import numpy as np
 from rclpy import Future
@@ -13,6 +14,7 @@ from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
 import yaml
+from ament_index_python.packages import get_package_share_directory
 import time
 
 class CarTrackEnvironment(F1tenthEnvironment):
@@ -65,6 +67,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
+
+        # Set default config path if not provided
+        if config_path is None:
+            # Use ROS2 package share directory to find the config file
+            package_share_directory = get_package_share_directory('environments')
+            config_path = os.path.join(package_share_directory, 'config', 'config.yaml')
 
         
 
@@ -282,13 +290,18 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def stop_eval(self):
         self.is_evaluating = False
 
-    def step(self, action):
+    def step(self, action, is_training):
         self.step_counter += 1
         
         full_state = self.full_current_state
 
         self.call_step(pause=False)
 
+        # take action and wait
+        if is_training:
+            lin_vel, steering_angle = super().randomise_action(action)
+        else:
+            lin_vel, steering_angle = action
         lin_vel, steering_angle = action
         
         # action delay based on training stage
@@ -308,7 +321,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         time.sleep(action_delay)
         
         self.set_velocity(lin_vel, steering_angle)
-        
+
         self.sleep()
         
         next_state, full_next_state, raw_lidar_range = self.get_observation()
