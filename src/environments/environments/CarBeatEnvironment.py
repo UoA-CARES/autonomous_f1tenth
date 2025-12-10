@@ -13,8 +13,7 @@ from nav_msgs.msg import Odometry
 import numpy as np
 from environment_interfaces.srv import CarBeatReset
 from std_srvs.srv import SetBool
-from .util import process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, has_collided, has_flipped_over
-
+from .util import process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, has_collided, has_flipped_over
 from .goal_positions import goal_positions
 from .waypoints import waypoints
 import yaml
@@ -48,7 +47,7 @@ class CarBeatEnvironment(Node):
             No. of lidar points is configurable
 
         Action:
-            It's linear and angular velocity (Twist)
+            Its linear and angular velocity (Twist)
         
         Reward:
             +2 if it comes within REWARD_RANGE units of a goal
@@ -76,24 +75,21 @@ class CarBeatEnvironment(Node):
                  ):
         super().__init__('car_beat_environment')
 
-        # Environment Details ----------------------------------------
-                
-        # Load configuration from YAML file
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-            
+        #####################################################################################################################
+        # Init params ----------------------------------------------
+          
         self.NAME = rl_car_name
         self.OTHER_CAR_NAME = ftg_car_name
+        self.REWARD_RANGE = reward_range
         self.MAX_STEPS = max_steps
+        self.COLLISION_RANGE = collision_range
         self.STEP_LENGTH = step_length
-        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
-        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
-        self.MAX_STEPS_PER_GOAL = max_steps
+        self.TRACK = track
         self.OBSERVATION_MODE = observation_mode
-        self.num_spawns = 0
+        self.MAX_GOALS = max_goals
         self.LIDAR_NUM = num_lidar_points
         
-        self.MAX_GOALS = max_goals
+        # configure odom observation size:
         match observation_mode:
             case 'full':
                 self.OBSERVATION_SIZE = 8 + 10 
@@ -104,136 +100,143 @@ class CarBeatEnvironment(Node):
             case _:
                 raise ValueError(f'Invalid observation mode: {observation_mode}')
 
-        self.COLLISION_RANGE = collision_range
-        self.REWARD_RANGE = reward_range
-        self.ACTION_NUM = 2
-
-        self.step_counter = 0
-
-        self.track = track
-
-        # Goal/Track Info -----------------------------------------------
-        self.goals_reached = 0
-        self.start_goal_index = 0
-
-        self.ftg_goals_reached = 0
-        self.ftg_start_goal_index = 0
-        self.ftg_offset = 0
-        self.steps_since_last_goal = 0
-
+        #####################################################################################################################
+        # Environment params -----------------------------------------
         if 'multi_track' not in track:
-            self.all_goals = goal_positions[track]
-            self.car_waypoints = waypoints[track]
+            self.ALL_GOALS = goal_positions[track]
+            self.CAR_WAYPOINTS = waypoints[track]
         else:
-            self.all_car_goals, self.all_car_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
-            self.current_track = list(self.all_car_goals.keys())[0]
+            self.ALL_CAR_GOALS, self.ALL_CAR_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(track)
+            self.CURRENT_TRACK = list(self.ALL_CAR_GOALS.keys())[0]
 
-            self.all_goals = self.all_car_goals[self.current_track]
-            self.car_waypoints = self.all_car_waypoints[self.current_track]
-
+            self.ALL_GOALS = self.ALL_CAR_GOALS[self.CURRENT_TRACK]
+            self.CAR_WAYPOINTS = self.ALL_CAR_WAYPOINTS[self.CURRENT_TRACK]
+        
+        #####################################################################################################################
+        # Vehicle params -------------------------------------------
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)  
+        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
+        
+        #####################################################################################################################
         # Pub/Sub ----------------------------------------------------
-        self.cmd_vel_pub = self.create_publisher(
+        self.CMD_VEL_PUB = self.create_publisher(
             Twist,
             f'/{self.NAME}/cmd_vel',
             10
         )
         
-        self.reset_pub = self.create_publisher(
+        self.RESET_PUB = self.create_publisher(
             Empty,
             f'/reset',
             10
         )
 
-        self.odom_sub_one = Subscriber(
+        self.ODOM_SUB_ONE = Subscriber(
             self,
             Odometry,
             f'/{self.NAME}/odometry',
         )
 
-        self.lidar_sub_one = Subscriber(
+        self.LIDAR_SUB_ONE = Subscriber(
             self,
             LaserScan,
             f'/{self.NAME}/scan',
         )
 
-        self.odom_sub_two = Subscriber(
+        self.ODOM_SUB_TWO = Subscriber(
             self,
             Odometry,
             f'/{self.OTHER_CAR_NAME}/odometry',
         )
 
-        self.lidar_sub_two = Subscriber(
+        self.LIDAR_SUB_TWO = Subscriber(
             self,
             LaserScan,
             f'/{self.OTHER_CAR_NAME}/scan',
         )
 
-        self.processed_publisher = self.create_publisher(
+        self.PROCESSED_PUBLISHER = self.create_publisher(
             LaserScan,
             f'/{self.NAME}/processed_scan',
             10
         )
 
-        self.message_filter = ApproximateTimeSynchronizer(
-            [self.odom_sub_one, self.lidar_sub_one, self.odom_sub_two, self.lidar_sub_two],
+        #####################################################################################################################
+        # Message filter ---------------------------------------------
+        self.MESSAGE_FILTER = ApproximateTimeSynchronizer(
+            [self.ODOM_SUB_ONE, self.LIDAR_SUB_ONE, self.ODOM_SUB_TWO, self.LIDAR_SUB_TWO],
             10,
             0.1,
         )
-
-        self.message_filter.registerCallback(self.message_filter_callback)
-
-        self.observation_future = Future()
+        self.MESSAGE_FILTER.registerCallback(self.message_filter_callback)
 
         # Reset Client -----------------------------------------------
-        self.reset_client = self.create_client(
+        self.RESET_CLIENT = self.create_client(
             CarBeatReset,
             'car_beat_reset'
         )
-
-        while not self.reset_client.wait_for_service(timeout_sec=1.0):
+        while not self.RESET_CLIENT.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('reset service not available, waiting again...')
 
         # Stepping Client ---------------------------------------------
-        self.stepping_client = self.create_client(
+        self.STEPPING_CLIENT = self.create_client(
             SetBool,
             'stepping_service'
         )
-
-        while not self.stepping_client.wait_for_service(timeout_sec=1.0):
+        while not self.STEPPING_CLIENT.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('stepping service not available, waiting again...')
 
-        self.timer = self.create_timer(step_length, self.timer_cb)
-        self.timer_future = Future()
+        # Timer -------------------------------------------------------
+        self.TIMER = self.create_timer(step_length, self.TIMER_CB)
+        
+        #####################################################################################################################
+        # Initialise vars ---------------------------------------------
+        
+        # Loop vars
+        self.NUM_SPAWNS = 0
+        self.STEP_COUNTER = 0
+        self.GOALS_REACHED = 0
+        self.START_GOAL_INDEX = 0
+        self.FTG_GOALS_REACHED = 0
+        self.FTG_START_GOAL_INDEX = 0
+        self.FTG_OFFSET = 0
+        self.STEPS_SINCE_LAST_GOAL = 0
+
+        # Futures
+        self.OBSERVATION_FUTURE = Future()
+        self.TIMER_FUTURE = Future()
+
+        #####################################################################################################################
 
     def reset(self):
-        self.step_counter = 0
-        self.num_spawns = 0
-        self.steps_since_last_goal = 0
-        self.goals_reached = 0
-        self.ftg_offset = np.random.randint(8, 12)
-        self.ftg_goals_reached = 0
+        # Reset vars
+        self.STEP_COUNTER = 0
+        self.NUM_SPAWNS = 0
+        self.STEPS_SINCE_LAST_GOAL = 0
+        self.GOALS_REACHED = 0
+        self.FTG_OFFSET = np.random.randint(8, 12)
+        self.FTG_GOALS_REACHED = 0
 
         self.set_velocity(0, 0)
 
+        # Choose next track
         if 'multi_track' in self.track:
-            self.current_track = random.choice(list(self.all_car_goals.keys()))
-            self.all_goals = self.all_car_goals[self.current_track]
-            self.car_waypoints = self.all_car_waypoints[self.current_track]
+            self.CURRENT_TRACK = random.choice(list(self.ALL_CAR_GOALS.keys()))
+            self.ALL_GOALS = self.ALL_CAR_GOALS[self.CURRENT_TRACK]
+            self.CAR_WAYPOINTS = self.ALL_CAR_WAYPOINTS[self.CURRENT_TRACK]
 
-        # New random starting point for the cars
-        car_x, car_y, car_yaw, index = random.choice(self.car_waypoints)
-        ftg_x, ftg_y, ftg_yaw, ftg_index = self.car_waypoints[(index + self.ftg_offset) % len(self.car_waypoints)]
-        
-        self.start_goal_index = index
-        self.ftg_start_goal_index = ftg_index
+        # Choose spawn point
+        car_x, car_y, car_yaw, self.START_GOAL_INDEX = random.choice(self.CAR_WAYPOINTS)
+        ftg_x, ftg_y, ftg_yaw, self.FTG_START_GOAL_INDEX = self.CAR_WAYPOINTS[(self.START_GOAL_INDEX + self.FTG_OFFSET) % len(self.CAR_WAYPOINTS)]
 
-        self.goal_position = self.all_goals[self.start_goal_index]
-        self.ftg_goal_position = self.all_goals[self.ftg_start_goal_index]
+        self.GOAL_POSITION = self.ALL_GOALS[self.START_GOAL_INDEX]
+        goal_x, goal_y = self.GOAL_POSITION
+        self.FTG_GOAL_POSITION = self.ALL_GOALS[self.FTG_START_GOAL_INDEX]
 
+        # Reset
         self.sleep()
-
-        goal_x, goal_y = self.goal_position
-
         self.call_reset_service(
             car_x=car_x,
             car_y=car_y,
@@ -244,82 +247,51 @@ class CarBeatEnvironment(Node):
             ftg_y=ftg_y,
             ftg_Y=ftg_yaw
         )
-
         self.call_step(pause=False)
         state, _ = self.get_observation()
         self.call_step(pause=True)
-        info = {}
 
+        info = {}
         return state, info
 
     def step(self, action):
-        self.step_counter += 1
+        lin_vel, ang_vel = action
+        self.STEP_COUNTER += 1
 
         self.call_step(pause=False)
         _, full_state = self.get_observation()
-
-        lin_vel, ang_vel = action
         self.set_velocity(lin_vel, ang_vel)
-
         self.sleep()
-
 
         next_state, full_next_state  = self.get_observation()
         self.call_step(pause=True)
         
         reward = self.compute_reward(full_state, full_next_state)
         terminated = self.is_terminated(full_next_state)
-        truncated = self.steps_since_last_goal >= self.MAX_STEPS_PER_GOAL
+        truncated = self.STEPS_SINCE_LAST_GOAL >= self.MAX_STEPS
         info = {}
-
         return next_state, reward, terminated, truncated, info
 
     def message_filter_callback(self, odom_one: Odometry, lidar_one: LaserScan, odom_two: Odometry, lidar_two: LaserScan):
-        self.observation_future.set_result({'odom_one': odom_one, 'lidar_one': lidar_one, 'odom_two': odom_two, 'lidar_two': lidar_two})
+        self.OBSERVATION_FUTURE.set_result({'odom_one': odom_one, 'lidar_one': lidar_one, 'odom_two': odom_two, 'lidar_two': lidar_two})
 
     def get_data(self):
-        rclpy.spin_until_future_complete(self, self.observation_future)
-        future = self.observation_future
-        self.observation_future = Future()
+        rclpy.spin_until_future_complete(self, self.OBSERVATION_FUTURE)
+        future = self.OBSERVATION_FUTURE
+        self.OBSERVATION_FUTURE = Future()
         data = future.result()
         return data['odom_one'], data['lidar_one'], data['odom_two'], data['lidar_two'] 
 
-    def set_velocity(self, linear, angle):
-        """
-        Publish Twist messages to f1tenth cmd_vel topic
-        """
-        L = 0.25
-        velocity_msg = Twist()
-        angular = ackermann_to_twist(angle, linear, L)
-        velocity_msg.angular.z = float(angular)
-        velocity_msg.linear.x = float(linear)
-
-        self.cmd_vel_pub.publish(velocity_msg)
-
-    def sleep(self):
-        while not self.timer_future.done():
-            rclpy.spin_once(self)
-    
-    def timer_cb(self):
-        self.timer_future.set_result(True)
-
-    def is_terminated(self, state):
-        
+    def is_terminated(self, state):    
         return has_collided(state[8:19], self.COLLISION_RANGE) \
             or has_flipped_over(state[2:6]) \
-            or self.goals_reached >= self.MAX_GOALS
-    
+            or self.GOALS_REACHED >= self.MAX_GOALS
 
     def get_observation(self):
-
-        # Get Position and Orientation of F1tenth
+        # Get odom and lidar data
         odom_one, lidar_one, odom_two, lidar_two = self.get_data()
-        
-        num_points = self.LIDAR_NUM
-
         odom_one = process_odom(odom_one)
         odom_two = process_odom(odom_two)
-
         lidar_one_range = avg_lidar(lidar_one, self.LIDAR_NUM)
         lidar_two_range = avg_lidar(lidar_two, self.LIDAR_NUM)
 
@@ -333,147 +305,70 @@ class CarBeatEnvironment(Node):
             case _:
                 ValueError(f'Invalid observation mode: {self.OBSERVATION_MODE}')
 
-        scan = create_lidar_msg(lidar_one, num_points, lidar_one_range)
+        scan = create_lidar_msg(lidar_one, self.LIDAR_NUM, lidar_one_range)
+        self.PROCESSED_PUBLISHER.publish(scan)
 
-        self.processed_publisher.publish(scan)
-
-        full_state = odom_one + lidar_one_range + odom_two + lidar_two_range + self.goal_position
+        full_state = odom_one + lidar_one_range + odom_two + lidar_two_range + self.GOAL_POSITION
 
         return state, full_state
  
     def compute_reward(self, state, next_state):
-
         reward = 0
-
-        goal_position = self.goal_position
+        goal_position = self.GOAL_POSITION
 
         current_distance = math.dist(goal_position, next_state[:2])
         prev_distance = math.dist(goal_position, state[:2])
-
         reward += prev_distance - current_distance
 
-        self.steps_since_last_goal += 1
+        self.STEPS_SINCE_LAST_GOAL += 1
 
         if current_distance < self.REWARD_RANGE:
-            print(f'Goal #{self.goals_reached} Reached')
             reward += 2
-            self.goals_reached += 1
-
-            # Updating Goal Position
-            new_x, new_y = self.all_goals[(self.start_goal_index + self.goals_reached) % len(self.all_goals)]
-            self.goal_position = [new_x, new_y]
-
+            self.GOALS_REACHED += 1
+            new_x, new_y = self.ALL_GOALS[(self.START_GOAL_INDEX + self.GOALS_REACHED) % len(self.ALL_GOALS)]
+            self.GOAL_POSITION = [new_x, new_y]
             self.update_goal_service(new_x, new_y)
+            self.STEPS_SINCE_LAST_GOAL = 0
 
-            self.steps_since_last_goal = 0
-
-        ftg_current_distance = math.dist(self.all_goals[(self.ftg_start_goal_index + self.ftg_goals_reached) % len(self.all_goals)], next_state[8 + self.LIDAR_NUM:8 + self.LIDAR_NUM + 2])
-
-        # Keeping track of FTG car goal number
+        ftg_current_distance = math.dist(self.ALL_GOALS[(self.FTG_START_GOAL_INDEX + self.FTG_GOALS_REACHED) % len(self.ALL_GOALS)], next_state[8 + self.LIDAR_NUM:8 + self.LIDAR_NUM + 2])
         if ftg_current_distance < self.REWARD_RANGE:
-            self.ftg_goals_reached += 1
+            self.FTG_GOALS_REACHED += 1
         
         # If RL car has overtaken FTG car
-        if self.goals_reached >= (self.ftg_goals_reached + self.ftg_offset + 3):
+        if self.GOALS_REACHED >= (self.FTG_GOALS_REACHED + self.FTG_OFFSET + 3):
             print(f'RL Car has overtaken FTG Car')
             reward  += 200
-
             # Ensure overtaking won't happen again
-            self.ftg_goals_reached += 500
+            self.FTG_GOALS_REACHED += 500
             
-
         if has_collided(next_state[8:8 + self.LIDAR_NUM], self.COLLISION_RANGE) or has_flipped_over(next_state[2:6]):
             reward -= 25  # TODO: find optimal value for this
 
         return reward
     
-    def call_reset_service(self, 
-                           car_x, 
-                           car_y, 
-                           car_Y, 
-                           goal_x, 
-                           goal_y, 
-                           ftg_x, 
-                           ftg_y, 
-                           ftg_Y
-                           ):
-        """
-        Reset the car and goal position
-        """
-
+    def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y, ftg_x, ftg_y, ftg_Y):
         request = CarBeatReset.Request()
         
         request.gx = goal_x
         request.gy = goal_y
-
         request.car_one = self.NAME
         request.cx_one = car_x
         request.cy_one = car_y
         request.cyaw_one = car_Y
-
         request.car_two = self.OTHER_CAR_NAME
         request.cx_two = ftg_x
         request.cy_two = ftg_y
         request.cyaw_two = ftg_Y
-
         request.flag = "car_and_goal"
 
         # Publish to reset Topic to reset other nodes
         empty_msg = Empty()
-        self.reset_pub.publish(empty_msg)
+        self.RESET_PUB.publish(empty_msg)
 
-        future = self.reset_client.call_async(request)
+        future = self.RESET_CLIENT.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
         return future.result()
-
-    def update_goal_service(self, x, y):
-        """
-        Reset the goal position
-        """
-
-        request = CarBeatReset.Request()
-        request.gx = x
-        request.gy = y
-        request.flag = "goal_only"
-
-        future = self.reset_client.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
-
-        return future.result()
-
-    def call_step(self, pause):
-        request = SetBool.Request()
-        request.data = pause
-
-        future = self.stepping_client.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
-
-        return future.result()
-
-    # function that parses the state and returns a string that can be printed to the terminal
-    def parse_observation(self, observation):
-        string = f'CarBeat Observation: \n'
-
-        if self.OBSERVATION_MODE == 'full':
-            string += f'Car Position: {observation[0:2]} \n'
-            string += f'Car Orientation: {observation[2:6]} \n' 
-            string += f'Car Velocity: {observation[6]} \n'
-            string += f'Car Angular Velocity: {observation[7]} \n'
-            string += f'Car Lidar: {observation[8:]} \n'
-        elif self.OBSERVATION_MODE == 'no_position':
-            string += f'Car Orientation: {observation[:4]} \n' 
-            string += f'Car Velocity: {observation[4]} \n'
-            string += f'Car Angular Velocity: {observation[5]} \n'
-            string += f'Car Lidar: {observation[6:]} \n'
-        elif self.OBSERVATION_MODE == 'lidar_only':
-            string += f'Car Velocity: {observation[0]} \n'
-            string += f'Car Angular Velocity: {observation[1]} \n'
-            string += f'Car Lidar: {observation[2:]} \n'
-        else:
-            raise ValueError(f'Invalid observation mode: {self.OBSERVATION_MODE}')
-    
-        return string
     
 
     

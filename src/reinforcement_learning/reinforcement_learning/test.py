@@ -1,12 +1,9 @@
-import random
-from datetime import datetime
 import yaml
 
 import rclpy
 import torch
 
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
-import cares_reinforcement_learning.util.configurations as cfg
 
 from .parse_args import parse_args
 from .EnvironmentFactory import EnvironmentFactory
@@ -15,9 +12,6 @@ from .training_loops import off_policy_evaluate, ppo_evaluate
 import os
 
 def main():
-    with open("network_output.csv", 'w') as f:
-        f.write("episode_num,episode_timesteps,speed,steering\n")
-    
     rclpy.init()
 
     env_config, algorithm_config, network_config, rest = parse_args()
@@ -39,9 +33,10 @@ def main():
 
     # Load models if both paths are provided
     if rest['actor_path'] and rest['critic_path']:
+        print(rest['actor_path'])
         print('Reading saved models into actor and critic')
-        agent.actor_net.load_state_dict(torch.load(rest['actor_path'], map_location=torch.device('cpu')))
-        agent.critic_net.load_state_dict(torch.load(rest['critic_path'], map_location=torch.device('cpu')))
+        agent.actor_net.load_state_dict(torch.load(rest['actor_path']))
+        agent.critic_net.load_state_dict(torch.load(rest['critic_path']))
         print('Successfully Loaded models')
     else:
         raise Exception('Both actor and critic paths must be provided')

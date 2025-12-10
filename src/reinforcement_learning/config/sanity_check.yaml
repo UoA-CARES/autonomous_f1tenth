@@ -1,4 +1,0 @@
-sanity_check:
-  ros__parameters:
-    environment: 'CarGoal' # CarGoal, CarWall, CarBlock, CarTrack
-    
