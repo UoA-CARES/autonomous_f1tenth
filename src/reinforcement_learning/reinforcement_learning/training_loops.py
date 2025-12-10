@@ -19,6 +19,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
     episode_info:Dict[str, list[Literal['avg','sum'],any]] = {}
 
     state, _ = env.reset()
+    stage_incremented = False
     
     # obs = env.parse_observation(state)
     # env.get_logger().info('-----------------------------------')

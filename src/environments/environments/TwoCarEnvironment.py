@@ -189,6 +189,22 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.status_callback,
             10)
         
+        self.status = ''
+
+        # Publish and subscribe to status topic
+
+        self.status_pub = self.create_publisher(
+            String,
+            '/status',
+            10
+        )
+
+        self.status_sub = self.create_subscription(
+            String,
+            '/status',
+            self.status_callback,
+            10)
+        
         self.status_lock_pub = self.create_publisher(
             String,
             '/status_lock',
@@ -217,7 +233,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
 #   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
 
     def odom_message_filter_callback(self, odom1: Odometry, odom2: Odometry):
-        self.odom_observation_future.set_result({'odom1': odom1, 'odom2': odom2})                                                                            
+        self.odom_observation_future.set_result({'odom1': odom1, 'odom2': odom2})                                                                             
     
     def randomize_yaw(self, yaw, percentage=0.5):
         factor = 1 + random.uniform(-percentage, percentage)
@@ -260,6 +276,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 self.status_observation_future = Future()
                 
         
+        self.car_spawn()
 
         # Get initial observation
         self.call_step(pause=False)
@@ -285,11 +302,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.PROGRESS_NOT_MET_COUNTER = 0
 
 
-        self.publish_status('')
-        self.change_status_lock('off')
         return state, info
     
     def car_spawn(self):
+        #self.get_logger().info("Car spawning")
+
+
         if TwoCarEnvironment.IS_MULTI_TRACK:
             # Evaluating: loop through eval tracks sequentially
             if self.IS_EVAL:
@@ -526,8 +544,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     reward -= reward * turning_penalty_factor * weight
                     #print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")
                 case 'racing':
-                    # point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
-                    # point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
+                    odom1, odom2 = self.get_odoms()
+                    point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
+                    point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
                     if self.NAME == 'f1tenth':
                         if self.EP_PROGRESS1 == self.EP_PROGRESS2:
                             modifier=0

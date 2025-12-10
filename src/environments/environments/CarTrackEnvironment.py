@@ -6,7 +6,7 @@ from rclpy import Future
 import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
-from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, has_collided, has_flipped_over, get_training_stages, uneven_median_lidar
+from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, has_collided, has_flipped_over, median_lidar, get_training_stages, uneven_median_lidar
 from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
@@ -100,8 +100,14 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Evaluation settings - configure train/eval split based on track
-        if track == 'narrow_multi_track':
-            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (12/15) # 12 train, 3 eval
+        if track == 'narrow_multi_track' or track == 'narrow_multi_track_staged_training':
+            # train: vary_track_new, track_01_1m, track_02_1m, track_03_1m
+            # eval: track_04_1m, track_05_1m, track_06_1m
+            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (4/7)
+        elif track == 'many_narrow_multi_track':
+            # train: vary_track_new, , narrow_track_01, narrow_track_02, narrow_track_03, narrow_track_04, narrow_track_05, narrow_track_06, track_01_1m, track_02_1m, track_03_1m
+            # eval: track_04_1m, track_05_1m, track_06_1m
+            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (10/13)
         else:
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5
             
@@ -519,13 +525,13 @@ class CarTrackEnvironment(F1tenthEnvironment):
             match modifier_type:
                 case 'wall_proximity':
                     dist_to_wall = min(raw_lidar_range)
-                    close_to_wall_penalize_factor = 1 / (1 + np.exp(50 * (dist_to_wall - 0.3))) #y=\frac{1}{1+e^{35\left(x-0.5\right)}}
+                    close_to_wall_penalize_factor = 1 / (1 + np.exp(40 * (dist_to_wall - 0.375))) #y=\frac{1}{1+e^{35\left(x-0.5\right)}}
                     reward -= reward * close_to_wall_penalize_factor * weight
                     reward_info.update({"dist_to_wall":["avg",dist_to_wall]})
                     print(f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}")   
                 case 'turn':
                     angular_vel_diff = abs(state[7] - next_state[7])
-                    turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.5)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
+                    turning_penalty_factor = 1 - (1 / (1 + np.exp(15 * (angular_vel_diff - 0.45)))) #y=1-\frac{1}{1+e^{15\left(x-0.3\right)}}
                     reward -= reward * turning_penalty_factor * weight
                     print(f"--- Turning penalty factor: {weight} * {turning_penalty_factor}")  
 
