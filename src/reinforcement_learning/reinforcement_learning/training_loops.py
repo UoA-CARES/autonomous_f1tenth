@@ -40,7 +40,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
 
         
         # perform action, step environment, and setup for next step
-        next_state, reward, done, truncated, step_info = env.step(action_env)
+        next_state, reward, done, truncated, step_info = env.step(action_env, is_training=True)
         memory.add(state, action, reward, next_state, done)
         state = next_state
 
@@ -56,7 +56,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
         # train agent
         if step_counter >= max_steps_exploration:
             for i in range(G):
-                info = agent.train_policy(memory,batch_size,i)  # training_step parameter is not used but required, so random i value here
+                info = agent.train_policy(memory,batch_size, i)
         
         # handle if should evaluate at end of episode
         if (step_counter+1) % number_steps_per_evaluation == 0:
@@ -91,16 +91,18 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
                 env.get_logger().info(f'*************--End Evaluation Loop--*************')
 
             # Reset environment
-            # Increment stage after 500 episodes
-            if  not stage_incremented and step_counter >= 500000:  # After completing 500 episodes
-                env.increment_stage()  # Call your implemented stage increment method
-                stage_incremented = True
-
+            if hasattr(env, 'IS_STAGED_TRAINING') and env.IS_STAGED_TRAINING:
+                stages = [250000, 500000]
+                current_stage = env.current_training_stage
+                for i in range(len(stages)):
+                    if current_stage == i and step_counter > stages[i]:
+                        env.increment_stage()
             state, _ = env.reset()
             episode_reward = 0
             episode_timesteps = 0
             
             episode_info = {}
+            
         
 
 def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0):
@@ -114,7 +116,6 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
     env.start_eval()
     
     for episode_num in range(eval_episodes):
-        
         state, _ = env.reset()
         done = False
         truncated = False
@@ -127,7 +128,7 @@ def off_policy_evaluate(env, agent, eval_episodes, record=None, steps_counter=0)
             action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
             with open("network_output.csv", 'a') as f:
                 f.write(f"{episode_num},{episode_timesteps},{action[0]:.4f},{action[1]:.4f}\n")
-            next_state, reward, done, truncated, step_info = env.step(action_env)
+            next_state, reward, done, truncated, step_info = env.step(action_env, is_training=False)
             state = next_state
 
             # record relevant log information
@@ -197,7 +198,7 @@ def ppo_train(env, agent, memory, record, algorithm_config):
         action, log_prob = agent.select_action_from_policy(state)
         action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
 
-        next_state, reward, done, truncated, info = env.step(action_env)
+        next_state, reward, done, truncated, info = env.step(action_env, is_training=True)
         memory.add(state, action, reward, next_state, done, log_prob)
 
         state = next_state
@@ -256,7 +257,7 @@ def ppo_evaluate(env, agent, eval_episodes, record=None, steps_counter=0):
             action, _ = agent.select_action_from_policy(state)
             action_env = hlp.denormalize(action, env.MAX_ACTIONS, env.MIN_ACTIONS)
 
-            next_state, reward, done, truncated, _ = env.step(action_env)
+            next_state, reward, done, truncated, _ = env.step(action_env, is_training=False)
 
             state = next_state
             episode_reward += reward

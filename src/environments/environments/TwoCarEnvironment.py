@@ -40,6 +40,23 @@ class TwoCarEnvironment(F1tenthEnvironment):
         super().__init__('two_car', car_name, max_steps, step_length)
 
         #####################################################################################################################
+        # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
+        
+        # Load configuration from YAML file
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
+            
+        # Reward configuration
+        self.EXTRA_REWARD_TERMS:List[Literal['penalize_turn']] = []
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
+
+        # Observation configuration
+        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
+        self.LIDAR_POINTS = 10 #682
+        self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
+
+        # Evaluation settings
+        self.MULTI_TRACK_TRAIN_EVAL_SPLIT=0.5 
         # Read in params from init and config
         
         # Init params
@@ -56,6 +73,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
         self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
 
+        # Speed and turn limit
+        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
+        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
         #####################################################################################################################
         # Initialise other vars
 

@@ -1,18 +1,22 @@
 import math
+import os
 import rclpy
 import numpy as np
 from rclpy import Future
 import random
 from environment_interfaces.srv import Reset
 from environments.F1tenthEnvironment import F1tenthEnvironment
-from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, has_collided, has_flipped_over, median_lidar
+from .util import get_track_math_defs, process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, get_all_goals_and_waypoints_in_multi_tracks, ackermann_to_twist, reconstruct_ae_latent, has_collided, has_flipped_over, median_lidar, get_training_stages, uneven_median_lidar
 from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
 from std_srvs.srv import SetBool
 from typing import Literal, List, Optional, Tuple
 import torch
 from datetime import datetime
+from collections import deque
 import yaml
+from ament_index_python.packages import get_package_share_directory
+import time
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -61,14 +65,25 @@ class CarTrackEnvironment(F1tenthEnvironment):
                  step_length=0.5, 
                  track='track_1',
                  observation_mode='lidar_only',
+                 is_staged_training=False,
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
         super().__init__('car_track', car_name, max_steps, step_length)
+
+        # Set default config path if not provided
+        if config_path is None:
+            # Use ROS2 package share directory to find the config file
+            package_share_directory = get_package_share_directory('environments')
+            config_path = os.path.join(package_share_directory, 'config', 'config.yaml')
 
         
 
         #####################################################################################################################
         # CHANGE SETTINGS HERE, might be specific to environment, therefore not moved to config file (for now at least).
+        
+        # initialise training stage variables
+        self.is_staged_training = True
+        self.current_training_stage = 0
         
         # Load configuration from YAML file
         with open(config_path, 'r') as file:
@@ -80,8 +95,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity'],float]] = [('turn', 0.3), ('wall_proximity', 0.7)] # [ (penalize_turn", 0.3), (penalize_wall_proximity, 0.7) ]
 
         # Observation configuration
-        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw"] = 'avg'
-        self.LIDAR_POINTS = 10 #683
+        self.LIDAR_PROCESSING:Literal["avg","pretrained_ae", "raw", "uneven_median"] = 'uneven_median'
+        self.LIDAR_POINTS = 10 #682
         self.EXTRA_OBSERVATIONS:List[Literal['prev_ang_vel']] = []
 
         # Evaluation settings - configure train/eval split based on track
@@ -95,9 +110,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = (10/13)
         else:
             self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5
+            
+        # Toggles whether to use staged training on multi-tracks
+        self.IS_STAGED_TRAINING = is_staged_training
+        
+        if self.IS_STAGED_TRAINING:
+            self.training_stages = get_training_stages(track)
+            self.current_training_stage = 0
+            self.training_idx = self.training_stages[self.current_training_stage][0]
+            self.eval_idx = self.training_stages[self.current_training_stage][1]
 
         #optional stuff
         pretrained_ae_path = "/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt" #"/ws/lidar_ae_ftg_rand.pt"
+        
 
         # Speed and turn limit
         self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
@@ -118,19 +143,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 odom_observation_size = 10
 
         # configure overall observation size
-        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size()
+        self.OBSERVATION_SIZE = (odom_observation_size + self.LIDAR_POINTS+ self.get_extra_observation_size())*2
 
         self.COLLISION_RANGE = collision_range
         self.REWARD_RANGE = reward_range
 
         self.odom_observation_mode = observation_mode
         self.track = track
-        self.is_multi_track = 'multi_track' in track
-        self.is_staged_training = 'staged_training' in track
-        self.is_many_multi_track = 'many_narrow_multi_track' in track
+        self.is_multi_track = 'multi_track' in track or track == 'staged_tracks'
 
-        if self.is_staged_training:
-            self.current_stage = 0
 
         # initialize track progress utilities
         self.prev_t = None
@@ -154,23 +175,22 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.goals_reached = 0
         self.start_waypoint_index = 0
         self.steps_since_last_goal = 0
-        self.full_current_state = None
+        self.current_state, self.full_current_state, _ = self.get_observation()
 
         if not self.is_multi_track:
             if "test_track" in track:
-                track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.
+                track_key = track[0:-4] # "test_track_xx_xxx" -> "test_track_xx", here due to test_track's different width variants having the same waypoints.    
             else:
                 track_key = track
 
             self.track_waypoints = waypoints[track_key]
             self.track_model = TrackMathDef(np.array(self.track_waypoints)[:,:2])
-            
         else:
             _, self.all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(track)
-            self.current_track_key = list(self.all_track_waypoints.keys())[0]
-
-            # set current track waypoints
-            self.track_waypoints = self.all_track_waypoints[self.current_track_key]
+            if self.IS_STAGED_TRAINING:
+                self.current_track_key = list(self.all_track_waypoints.keys())[self.training_idx[0]]
+            else:
+                self.current_track_key = list(self.all_track_waypoints.keys())[0]
 
             # set track models
             self.all_track_models = get_track_math_defs(self.all_track_waypoints)
@@ -181,16 +201,21 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.is_evaluating = False
 
         if self.is_multi_track:
-            # define from which track in the track lists to be used for eval only
-            self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
+            if self.IS_STAGED_TRAINING:
+                self.eval_track_begin_idx = None
+                self.get_logger().info(f"Track '{track}', {self.training_idx} training, {self.eval_idx} evaluation")
+            else:
+                # define from which track in the track lists to be used for eval only
+                self.eval_track_begin_idx = int(len(self.all_track_waypoints)*self.MULTI_TRACK_TRAIN_EVAL_SPLIT)
+                # Debug logging
+                total_tracks = len(self.all_track_waypoints)
+                training_tracks = self.eval_track_begin_idx
+                eval_tracks = total_tracks - training_tracks
+                self.get_logger().info(f"Track '{track}' split: {total_tracks} total, {training_tracks} training, {eval_tracks} evaluation (split={self.MULTI_TRACK_TRAIN_EVAL_SPLIT})")
+            
             # idx used to loop through eval tracks sequentially
             self.eval_track_idx = 0
             
-            # Debug logging
-            total_tracks = len(self.all_track_waypoints)
-            training_tracks = self.eval_track_begin_idx
-            eval_tracks = total_tracks - training_tracks
-            self.get_logger().info(f"Track '{track}' split: {total_tracks} total, {training_tracks} training, {eval_tracks} evaluation (split={self.MULTI_TRACK_TRAIN_EVAL_SPLIT})")
 
         self.get_logger().info('Environment Setup Complete')
 
@@ -219,10 +244,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.goals_reached = 0
 
         self.set_velocity(0, 0)
-        
+
         if self.is_multi_track:
             # Check if we have dedicated evaluation tracks
-            if self.eval_track_begin_idx >= len(self.all_track_waypoints):
+            if self.eval_track_begin_idx is not None and self.eval_track_begin_idx >= len(self.all_track_waypoints):
                 # No dedicated eval tracks (split = 1.0), use all tracks for both training and evaluation
                 if self.is_evaluating:
                     # For evaluation, cycle through all tracks sequentially
@@ -237,21 +262,18 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 # We have dedicated evaluation tracks (split < 1.0)
                 if self.is_evaluating:
                     # Evaluating: loop through eval tracks sequentially
-                    eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
+                    if self.IS_STAGED_TRAINING:
+                        eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_idx[0]:self.eval_idx[1] + 1]
+                    else:
+                        eval_track_key_list = list(self.all_track_waypoints.keys())[self.eval_track_begin_idx:]
                     self.current_track_key = eval_track_key_list[self.eval_track_idx]
                     self.eval_track_idx += 1
                     self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
                 else:
-                    if self.is_staged_training:
-                        # Staged Training, Stage 1: first 2 tracks (new vary width track and track_01_1m) Stage 2: next 2 tracks (track_02_1m, track_03_1m) Evaluation: last 3 tracks (track_04_1m, track_05_1m, track_06_1m)
-                        if self.current_stage == 0:
-                            # Stage 1: first 2 tracks
-                            self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:2])
-                        elif self.current_stage == 1:
-                            # Stage 2: next 2 tracks
-                            self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[2:4])
+                    # Training: choose a random track that is not used for evaluation
+                    if self.IS_STAGED_TRAINING:
+                        self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[self.training_idx[0]:self.training_idx[1] + 1])
                     else:
-                        # Training: choose a random track that is not used for evaluation
                         self.current_track_key = random.choice(list(self.all_track_waypoints.keys())[:self.eval_track_begin_idx])
             
             self.track_waypoints = self.all_track_waypoints[self.current_track_key]
@@ -262,7 +284,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # start the car randomly along the track
         else:
             car_x, car_y, car_yaw, index = random.choice(self.track_waypoints)
-        
+
         # Update goal pointer to reflect starting position
         self.start_waypoint_index = index
         x,y,_,_ = self.track_waypoints[self.start_waypoint_index+1 if self.start_waypoint_index+1 < len(self.track_waypoints) else 0]# point toward next goal
@@ -274,6 +296,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
         self.full_current_state = full_state
+        self.current_state = state  # Store initial state
         self.call_step(pause=True)
 
         info = {}
@@ -287,8 +310,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
         # reward function specific resets
         if self.BASE_REWARD_FUNCTION == 'progressive':
             self.progress_not_met_cnt = 0
+            
+        # For first observation, duplicate the state since we don't have a previous one
+        nn_state = state + state  # Initial state is duplicated for first observation
 
-        return state, info
+        return nn_state, info
     
     def start_eval(self):
         self.eval_track_idx = 0
@@ -297,23 +323,67 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def stop_eval(self):
         self.is_evaluating = False
 
-    def step(self, action):
+    def step(self, action, is_training):
         self.step_counter += 1
         
         full_state = self.full_current_state
 
         self.call_step(pause=False)
         
+        # get action
         lin_vel, steering_angle = action
+        
+        # simulate delay between NN output from previous step and action now
+        # if not self.is_evaluating:
+        action_delay = np.random.uniform(0.064, 0.084)  # 74ms ± 10ms needs be remeasured
+        time.sleep(action_delay)
+        
+        # take action and wait
+        if not self.is_evaluating:
+            time.sleep(0.074)  # 74ms delay to simulate delay between nn output from previous step and action now
+
+        # take action and wait
+        if is_training:
+            lin_vel, steering_angle = super().randomise_action(action)
+        else:
+            lin_vel, steering_angle = action
+
         self.set_velocity(lin_vel, steering_angle)
         
+        # action delay based on training stage
+        if self.current_training_stage == 0:
+            action_delay = 0 
+            print(f"No action delay  stage: {self.current_training_stage}")
+        elif self.current_training_stage == 1:
+            action_delay = 0.010
+            print(f"10ms action delay  stage: {self.current_training_stage}")
+        elif self.current_training_stage == 2:
+            action_delay = 0.030
+            print(f"30ms action delay  stage: {self.current_training_stage}")
+        elif self.current_training_stage >= 3:
+            action_delay = np.random.uniform(0.073, 0.075)  # 74ms ± 1ms
+            print(f"{action_delay*1000:.1f}ms action delay  stage: {self.current_training_stage}")
+            
+        time.sleep(action_delay)
+        
+        self.set_velocity(lin_vel, steering_angle)
+
         self.sleep()
         
         next_state, full_next_state, raw_lidar_range = self.get_observation()
+        
+        # simulate sensor-to-NN delay
+        # if not self.is_evaluating:
+        sensor_delay = np.random.uniform(0.0017, 0.0037) # 2.7ms ± 1ms needs be remeasured
+        time.sleep(sensor_delay)
+            
         self.call_step(pause=True)
 
         self.full_current_state = full_next_state
-        
+
+        nn_state = self.current_state + next_state # state from previous step
+        self.current_state = next_state
+
         # calculate progress along track
         if not self.prev_t:
             self.prev_t = self.track_model.get_closest_point_on_spline(full_state[:2], t_only=True)
@@ -344,6 +414,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.is_evaluating and (terminated or truncated):
             self.eval_track_idx
 
+        print(f"stage {self.current_training_stage} training track {self.currrent_track_key}")
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
@@ -362,7 +433,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 self.step_counter >= self.MAX_STEPS
             case _:
                 raise Exception("Unknown truncate condition for reward function.")
-
 
     def get_observation(self):
 
@@ -395,6 +465,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 processed_lidar_range = avg_lidar(lidar, num_points)
                 visualized_range = processed_lidar_range
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
+            case 'uneven_median':
+                processed_lidar_range = uneven_median_lidar(lidar, num_points)
+                visualized_range = processed_lidar_range
+                scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'raw':
                 processed_lidar_range = np.array(lidar.ranges.tolist())
                 processed_lidar_range = np.nan_to_num(processed_lidar_range, posinf=-5, nan=-1, neginf=-5).tolist()  
@@ -418,7 +492,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         full_state = odom + processed_lidar_range
 
         return state, full_state, lidar.ranges
-
+    
     def compute_reward(self, state, next_state, raw_lidar_range):
         '''Compute reward based on FULL states: odom + lidar + extra'''
         reward = 0
@@ -612,14 +686,13 @@ class CarTrackEnvironment(F1tenthEnvironment):
         return string
     
     def increment_stage(self):
-        """
-        Increment the training stage for staged training.
-        """
-        if not self.is_staged_training:
+        if not self.IS_STAGED_TRAINING:
             return
         
-        if self.current_stage < 1:  # Currently using current_stage in your code, not current_training_stage
-            self.current_stage += 1
-            self.get_logger().info(f"Incremented to training stage {self.current_stage}")
+        if self.current_training_stage < len(self.training_stages) - 1:
+            self.current_training_stage += 1
+            self.training_idx = self.training_stages[self.current_training_stage][0]
+            self.eval_idx = self.training_stages[self.current_training_stage][1]
+            self.get_logger().info(f"Incremented to training stage {self.current_training_stage}. Training indices: {self.training_idx}, Evaluation indices: {self.eval_idx}")
         else:
             self.get_logger().info("Already at the last training stage. No increment performed.")
