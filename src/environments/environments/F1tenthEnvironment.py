@@ -170,12 +170,7 @@ class F1tenthEnvironment(Node):
 
 
         #####################################################################################################################
-#    ____ _        _    ____ ____    _____ _   _ _   _  ____ _____ ___ ___  _   _ ____  
-#   / ___| |      / \  / ___/ ___|  |  ___| | | | \ | |/ ___|_   _|_ _/ _ \| \ | / ___| 
-#  | |   | |     / _ \ \___ \___ \  | |_  | | | |  \| | |     | |  | | | | |  \| \___ \ 
-#  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
-#   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
-     
+
     def reset(self):
         raise NotImplementedError('reset() not implemented')
 
@@ -270,3 +265,11 @@ class F1tenthEnvironment(Node):
         future = self.RESET_CLIENT.call_async(request)
         rclpy.spin_until_future_complete(self, future)
         return future.result()
+    
+    def randomise_action(self, action):
+        lin_vel, steering_angle = action
+        steering_noise = np.random.uniform(-0.05, 0.05)
+        randomized_steering = steering_angle + steering_noise
+        lin_vel_noise = np.random.uniform(-0.05, 0.05)
+        randomized_lin_vel = lin_vel + lin_vel_noise
+        return randomized_lin_vel, randomized_steering

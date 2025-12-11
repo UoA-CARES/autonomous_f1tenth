@@ -33,9 +33,9 @@ RUN colcon build --merge-install --cmake-args -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
 RUN echo ". /gz/install/setup.bash" >> /etc/bash.bashrc
 
-ARG PROJECT_WORKSPACE_DIR=/autonomous_F1tenth
-WORKDIR ${PROJECT_WORKSPACE_DIR}
-COPY . ${PROJECT_WORKSPACE_DIR}
+SHELL [ "/bin/bash", "-c" ]
+WORKDIR /ws
+COPY . .
 
 RUN rm -rf cares_reinforcement_learning || true && \
     git clone https://github.com/UoA-CARES/cares_reinforcement_learning.git && \
@@ -45,22 +45,15 @@ RUN rm -rf cares_reinforcement_learning || true && \
     pip3 install --ignore-installed sympy -r requirements.txt && \
     pip3 install --editable .
 
-RUN rosdep update --rosdistro humble && \
-    rosdep install -r --from-paths cares_reinforcement_learning src -i -y --rosdistro humble
+# Install dep
+RUN rosdep update -y && \
+    rosdep install -r --from-paths src -i -y --rosdistro humble
 
-RUN . /opt/ros/humble/setup.bash && \
-    . /gz/install/setup.bash && \
-    rm -rf build/environments install/environments && \
-    colcon build --symlink-install --cmake-args -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+RUN source /opt/ros/humble/setup.bash && \
+    source /gz/install/setup.bash && \
+    colcon build --symlink-install
 
-RUN echo "#!/bin/bash" > /usr/local/bin/docker_entrypoint.sh && \
-    echo "source /opt/ros/humble/setup.bash" >> /usr/local/bin/docker_entrypoint.sh && \
-    echo "source /gz/install/setup.bash" >> /usr/local/bin/docker_entrypoint.sh && \
-    echo "source ${PROJECT_WORKSPACE_DIR}/install/setup.bash" >> /usr/local/bin/docker_entrypoint.sh && \
-    echo "exec \"\$@\"" >> /usr/local/bin/docker_entrypoint.sh && \
-    chmod +x /usr/local/bin/docker_entrypoint.sh
-
-ENTRYPOINT ["/usr/local/bin/docker_entrypoint.sh"]
-CMD ["bash"]
+RUN echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && \
+    echo 'source install/setup.bash' >> ~/.bashrc
 
 WORKDIR ${PROJECT_WORKSPACE_DIR}

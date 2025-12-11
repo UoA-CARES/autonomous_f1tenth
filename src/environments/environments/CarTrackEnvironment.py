@@ -6,6 +6,7 @@ from .util import process_ae_lidar, process_odom, avg_lidar, create_lidar_msg, r
 from typing import Literal, List, Tuple
 import torch
 import scipy
+import time
 
 class CarTrackEnvironment(F1tenthEnvironment):
 
@@ -165,10 +166,29 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.call_step(pause=False)
 
         lin_vel, steering_angle = action
+        if not self.IS_EVAL:
+            time.sleep(0.074)  # 74ms delay to simulate delay between nn output from previous step and action now
         self.set_velocity(lin_vel, steering_angle)
-        self.sleep()
+        # action delay based on training stage
+        if self.CURRENT_TRAINING_STAGE == 0:
+            action_delay = 0 
+            print(f"No action delay  stage: {self.CURRENT_TRAINING_STAGE}")
+        elif self.CURRENT_TRAINING_STAGE == 1:
+            action_delay = 0.010
+            print(f"10ms action delay  stage: {self.CURRENT_TRAINING_STAGE}")
+        elif self.CURRENT_TRAINING_STAGE == 2:
+            action_delay = 0.030
+            print(f"30ms action delay  stage: {self.CURRENT_TRAINING_STAGE}")
+        elif self.CURRENT_TRAINING_STAGE >= 3:
+            action_delay = np.random.uniform(0.073, 0.075)  # 74ms ± 1ms
+            print(f"{action_delay*1000:.1f}ms action delay  stage: {self.CURRENT_TRAINING_STAGE}")
+        time.sleep(action_delay)
         next_state, full_next_state, raw_lidar_range = self.get_observation()
         self.call_step(pause=True)
+        # simulate sensor-to-NN delay
+        # if not self.is_evaluating:
+        sensor_delay = np.random.uniform(0.0017, 0.0037) # 2.7ms ± 1ms needs be remeasured
+        time.sleep(sensor_delay)
 
         self.CURR_STATE = full_next_state
         if not self.PREV_CLOSEST_POINT:
@@ -372,4 +392,3 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.ENCODER = encoder
         self.DECODER = decoder
         print("Environment set with encoder and decoder.")
-

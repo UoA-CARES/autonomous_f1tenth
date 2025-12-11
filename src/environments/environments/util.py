@@ -32,6 +32,17 @@ def get_euler_from_quarternion(w,x,y,z):
     cosy_cosp = 1 - 2 * (y * y + z * z)
     yaw = math.atan2(siny_cosp, cosy_cosp)
     return roll, pitch, yaw
+
+def generate_position(inner_bound=3, outer_bound=8):
+        inner_bound = float(inner_bound)
+        outer_bound = float(outer_bound)
+
+        x_pos = random.uniform(-outer_bound, outer_bound)
+        x_pos = x_pos + inner_bound if x_pos >= 0 else x_pos - inner_bound
+        y_pos = random.uniform(-outer_bound, outer_bound)
+        y_pos = y_pos + inner_bound if y_pos >= 0 else y_pos - inner_bound
+
+        return [x_pos, y_pos]
       
 def process_odom(odom: Odometry):
     pose = odom.pose.pose
@@ -86,25 +97,27 @@ def process_ae_lidar(lidar:LaserScan, ae_model, is_latent_only=True):
     range_list = np.nan_to_num(range_list, posinf=-5)
     range_list = scipy.signal.resample(range_list, 512)
     range_tensor = torch.tensor(range_list, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+
     if (is_latent_only):
-         return ae_model.encoder(range_tensor).tolist()[0]
+        return ae_model.encoder(range_tensor).tolist()[0]
     else:
         return ae_model(range_tensor).tolist()[0][0]
 
-def process_ae_lidar_beta_vae(lidar:LaserScan, ae_model, is_latent_only=True):
+def process_ae_lidar_beta_vae(lidar: LaserScan, ae_model, is_latent_only=True):
     range_list = np.array(lidar.ranges)
     range_list = np.nan_to_num(range_list, posinf=-5)
     range_list = scipy.signal.resample(range_list, 512)
     range_tensor = torch.tensor(range_list, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+
     if (is_latent_only):
-         return ae_model.get_latent(range_tensor)
+        return ae_model.get_latent(range_tensor)
     else:
         print(ae_model.get_latent(range_tensor))
     return ae_model.generate(range_tensor).tolist()[0][0]
 
-def reconstruct_ae_latent(original_lidar:LaserScan, ae_model, latent:list):
+def reconstruct_ae_latent(original_lidar: LaserScan, ae_model, latent: list):
     latent_tensor = torch.tensor(latent)
-    reconstructed_range = ae_model.decoder(latent_tensor).tolist()[0]
+    reconstructed_range = ae_model.decoder(latent_tensor).tolist()[0] 
     reconstructed_range = scipy.signal.resample(reconstructed_range, len(original_lidar.ranges))
     return np.array(reconstructed_range,dtype=np.float32).tolist()
 
@@ -419,7 +432,6 @@ def twist_to_ackermann(omega, linear_v, L):
         return 0
     delta = math.atan((L * omega) / linear_v)
     return delta
-
 
 def ackermann_to_twist(delta, linear_v, L):
     try: 

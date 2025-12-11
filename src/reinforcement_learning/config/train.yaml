@@ -1,7 +1,7 @@
 train:
   ros__parameters:
-    environment: 'TwoCar'  # CarTrack, CarBeat, TwoCar, MultiAgent
-    track: 'multi_track_wide' # track_1, track_2, track_3, multi_track, multi_track_testing
+    environment: 'TwoCar'  #'CarTrack' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat, CarTrackProgressiveGoal, CarTrack
+    track: 'multi_track_wide' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
     car_name: 'f1tenth'
     algorithm: 'SAC'
     g: 1
@@ -12,4 +12,5 @@ train:
     is_1d: True
     latent_size: 10
     number_eval_episodes: 3
+    max_steps: 250
     is_staged_training: False
