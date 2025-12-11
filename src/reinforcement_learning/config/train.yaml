@@ -13,3 +13,4 @@ train:
     latent_size: 10
     number_eval_episodes: 3
     max_steps: 250
+    is_staged_training: False
