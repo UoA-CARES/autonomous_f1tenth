@@ -1,3 +1,4 @@
+
 import math
 import rclpy
 import numpy as np
@@ -27,25 +28,10 @@ class TwoCarEnvironment(F1tenthEnvironment):
         super().__init__('two_car', car_name, reward_range, max_steps, collision_range, step_length, 10, track, observation_mode)
 
         #####################################################################################################################
-        # Read in params from init and config
-        
-        # Init params
-        self.REWARD_RANGE = reward_range
-        TwoCarEnvironment.COLLISION_RANGE = collision_range
-        TwoCarEnvironment.TRACK = track
-        self.OBSERVATION_MODE = observation_mode
+        # Reward params ----------------------------------------------
+        self.REWARD_MODIFIERS:List[Tuple[Literal['turn','wall_proximity', 'racing'],float]] = [('turn', 0.3), ('wall_proximity', 0.7), ('racing', 1)]
+        self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 5/6
 
-        # Load configuration from YAML file
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-            
-        # Config params
-        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
-        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
-
-        # Speed and turn limit
-        self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
-        self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
         #####################################################################################################################
         # Environment configuration -------------------------------------
         if self.IS_MULTI_TRACK:
@@ -65,20 +51,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
             f'/f2tenth/odometry',
         )
 
-        self.odom_message_filter = ApproximateTimeSynchronizer(
-            [self.odom_sub_1, self.odom_sub_2],
-            10,
-            0.1,
-        )
-
-        self.odom_message_filter.registerCallback(self.odom_message_filter_callback)
-        self.odom_observation_future = Future()
-
-        #####################################################################################################################
-
-        # Publish and subscribe to status topic
-
-        self.status_pub = self.create_publisher(
+        self.STATUS_PUB = self.create_publisher(
             String,
             '/status',
             10
@@ -137,7 +110,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         #####################################################################################################################
 
     def odom_message_filter_callback(self, odom1: Odometry, odom2: Odometry):
-        self.odom_observation_future.set_result({'odom1': odom1, 'odom2': odom2})                                                                            
+        self.ODOMS_OBSERVATION_FUTURE.set_result({'odom1': odom1, 'odom2': odom2})                                                                            
     
     def randomize_yaw(self, yaw, percentage=0.5):
         factor = 1 + random.uniform(-percentage, percentage)
@@ -175,11 +148,8 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 rclpy.spin_until_future_complete(self, self.STATUS_OBSERVATION_FUTURE, timeout_sec=10)
                 if (self.STATUS_OBSERVATION_FUTURE.result() == None):
                     break
-                self.status_observation_future = Future()
-                
-        
+                self.STATUS_OBSERVATION_FUTURE = Future()
 
-        # Get initial observation
         self.call_step(pause=False)
         state, full_state , _ = self.get_observation()
         self.CURR_STATE = full_state
@@ -195,11 +165,12 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.LAST_POS2 = [None, None]
         self.PROGRESS_NOT_MET_COUNTER = 0
 
+        self.publish_status('')
+        self.change_status_lock('off')
         return state, info
     
     def car_spawn(self):
-        if TwoCarEnvironment.IS_MULTI_TRACK:
-            # Evaluating: loop through eval tracks sequentially
+        if self.IS_MULTI_TRACK:
             if self.IS_EVAL:
                 eval_track_key_list = list(self.ALL_TRACK_WAYPOINTS.keys())[self.EVAL_TRACKS_IDX:]
                 self.CURR_TRACK = eval_track_key_list[self.CURR_EVAL_IDX]
@@ -388,8 +359,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
                     
                     reward -= reward * turning_penalty_factor * weight
                 case 'racing':
-                    # point1 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom1[:2], t_only=True)
-                    # point2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(odom2[:2], t_only=True)
                     if self.NAME == 'f1tenth':
                         if self.EP_PROGRESS1 == self.EP_PROGRESS2:
                             modifier=0
