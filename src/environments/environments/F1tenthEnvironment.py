@@ -1,5 +1,4 @@
 import numpy as np
-import os
 import rclpy
 from geometry_msgs.msg import Twist
 from message_filters import Subscriber, ApproximateTimeSynchronizer
@@ -13,7 +12,7 @@ from .util import ackermann_to_twist, get_track_math_defs, get_all_goals_and_way
 from .util_track_progress import TrackMathDef
 from .waypoints import waypoints
 import yaml
-
+import torch
 
 class F1tenthEnvironment(Node):
 
@@ -25,7 +24,7 @@ class F1tenthEnvironment(Node):
                  collision_range=0.2,
                  step_length=0.5,
                  lidar_points = 10,
-                 track = 'track_1',
+                 track='track_1',
                  observation_mode='lidar_only',
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
@@ -33,14 +32,9 @@ class F1tenthEnvironment(Node):
 
         if lidar_points < 1:
             raise Exception("Make sure number of lidar points is more than 0")
-        
 
-        # Environment Details ----------------------------------------
-                
-        # Load configuration from YAML file
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-            
+        #####################################################################################################################
+        # Init params ----------------------------------------------
         self.NAME = car_name
         self.REWARD_RANGE = reward_range
         self.MAX_STEPS = max_steps
@@ -176,20 +170,14 @@ class F1tenthEnvironment(Node):
 
 
         #####################################################################################################################
-#    ____ _        _    ____ ____    _____ _   _ _   _  ____ _____ ___ ___  _   _ ____  
-#   / ___| |      / \  / ___/ ___|  |  ___| | | | \ | |/ ___|_   _|_ _/ _ \| \ | / ___| 
-#  | |   | |     / _ \ \___ \___ \  | |_  | | | |  \| | |     | |  | | | | |  \| \___ \ 
-#  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
-#   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
-     
+
     def reset(self):
         raise NotImplementedError('reset() not implemented')
 
     def step(self, action):
-        self.step_counter += 1
+        self.STEP_COUNTER += 1
         self.call_step(pause=False)
         state = self.get_observation()
-        
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
 
@@ -205,16 +193,6 @@ class F1tenthEnvironment(Node):
         info = {}
         return next_state, reward, terminated, truncated, info
 
-    def randomise_action(self, action):
-        lin_vel, steering_angle = action
-        steering_noise = np.random.uniform(-0.05, 0.05)
-        randomized_steering = steering_angle + steering_noise
-        
-        lin_vel_noise = np.random.uniform(-0.05, 0.05)
-        randomized_lin_vel = lin_vel + lin_vel_noise
-        
-        return randomized_lin_vel, randomized_steering
-    
     def get_observation(self):
         raise NotImplementedError('get_observation() not implemented')
 
@@ -259,4 +237,39 @@ class F1tenthEnvironment(Node):
         return future.result()
 
     def timer_cb(self):
-        self.timer_future.set_result(True)
+        self.TIMER_FUTURE.set_result(True)
+
+    def increment_stage(self):
+        raise NotImplementedError('Staged training is not implemented')
+
+    def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y, car_name):
+        request = Reset.Request()
+        request.car_name = car_name
+        request.gx = float(goal_x)
+        request.gy = float(goal_y)
+        request.cx = float(car_x)
+        request.cy = float(car_y)
+        request.cyaw = float(car_Y)
+        request.flag = "car_and_goal"
+
+        future = self.RESET_CLIENT.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+
+        return future.result()
+
+    def update_goal_service(self, x, y):
+        request = Reset.Request()
+        request.gx = x
+        request.gy = y
+        request.flag = "goal_only"
+        future = self.RESET_CLIENT.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+        return future.result()
+    
+    def randomise_action(self, action):
+        lin_vel, steering_angle = action
+        steering_noise = np.random.uniform(-0.05, 0.05)
+        randomized_steering = steering_angle + steering_noise
+        lin_vel_noise = np.random.uniform(-0.05, 0.05)
+        randomized_lin_vel = lin_vel + lin_vel_noise
+        return randomized_lin_vel, randomized_steering
