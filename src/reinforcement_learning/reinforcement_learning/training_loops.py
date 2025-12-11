@@ -34,7 +34,7 @@ def off_policy_train(env, agent, memory, record, algorithm_config):
 
         
         # perform action, step environment, and setup for next step
-        next_state, reward, done, truncated, step_info = env.step(action_env, is_training=True)
+        next_state, reward, done, truncated, step_info = env.step(action_env)
         memory.add(state, action, reward, next_state, done)
         state = next_state
 
