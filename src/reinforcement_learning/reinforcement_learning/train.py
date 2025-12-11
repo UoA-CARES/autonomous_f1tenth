@@ -62,7 +62,7 @@ def main():
 
     # TODO: Load Actor and Critic if passed. Only load if both are passed
 
-    match agent.type:
+    match agent.policy_type:
         case 'policy':
             if network_config['algorithm'] == 'PPO':
                 ppo_train(env, agent, memory, record, algorithm_config)
