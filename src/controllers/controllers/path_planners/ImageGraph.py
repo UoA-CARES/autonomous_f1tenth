@@ -14,6 +14,4 @@ class ImageGraph:
         return neighbors
     
     def cost(self, from_id, to_id):
-        # Here, you could use a simple distance metric (like Euclidean or Manhattan distance)
-        # Calculate Euclidean distance between from_id and to_id
         return np.sqrt((from_id[0] - to_id[0]) ** 2 + (from_id[1] - to_id[1]) ** 2)

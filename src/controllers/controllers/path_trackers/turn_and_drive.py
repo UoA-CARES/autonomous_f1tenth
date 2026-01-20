@@ -38,10 +38,6 @@ class TurnAndDrive():
 
         # if already at goal location
         if ((abs(distance[0]) < self.goal_tolerance) and (abs(distance[1] < self.goal_tolerance))):
-            #self.logger.info("At goal")
-            #lin = 0
-            #action = np.asarray([lin, ang])
-            #return action
             self.logger.info("At goal")
             goal = nextGoal
             self.logger.info("Next goal: "+str(goal))
@@ -55,8 +51,6 @@ class TurnAndDrive():
             action = np.asarray([lin, ang])
             self.turnedLast = True
             return action
-        
-        # if already heading toward goal
         else:
 
             # transitioning from turning to straight, need to wait for steering to return to neutral
