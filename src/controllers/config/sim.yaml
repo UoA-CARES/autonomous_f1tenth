@@ -3,7 +3,7 @@ sim:
     algorithm: 'ftg'
     observation_mode: 'lidar_only'
     environment: 'CarTrack'
-    track: 'track_01' # track_1, track_2, track_3, multi_track, multi_track_testing
+    track: 'track_01' 
     start_stage: 'track' # init, plan, track
     number_eval_episodes: 100
     path_file_path: 'newpath.txt'
