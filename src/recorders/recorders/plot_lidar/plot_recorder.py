@@ -1,0 +1,290 @@
+import math
+import json
+import torch
+import numpy as np
+from typing import List
+import matplotlib
+backends_to_try = ['TkAgg', 'Qt5Agg', 'Agg']
+for backend in backends_to_try:
+    try:
+        matplotlib.use(backend)
+        break
+    except ImportError:
+        continue
+else:
+    print("Warning: Could not set a GUI backend, using default")
+
+from matplotlib.widgets import Slider
+import matplotlib.pyplot as plt
+import sys
+import os
+
+"""
+This is an older version of plot_lidar.py, which reads both lidar and velocity from files that are named 'record_*.txt'.
+This only shows the processed lidar points and not the original ones but this script also loads the network and constructs a state to show the network output of any point during experiment.
+The network output is shown along side the recorded values for comparison. However this is a bit buggy due to time mismatches.
+"""
+
+
+root_dir = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), '../../../../'))
+sys.path.append(os.path.join(root_dir, 'cares_reinforcement_learning'))
+
+from cares_reinforcement_learning.util.network_factory import NetworkFactory
+from cares_reinforcement_learning.util.configurations import TD3Config
+from cares_reinforcement_learning.util.helpers import denormalize
+
+VEL_RECORD = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_sim_2025-07-23 15:52:16.txt'
+LIDAR_RECORD = '/home/anyone/autonomous_f1tenth/src/recorders/recorders/plot_lidar/record_lidar_2025-07-23 15:52:16.txt'
+MODEL_PATH = '/home/anyone/training_logs/narrow_vary_width/123/models/final/'
+ACTOR = os.path.join(MODEL_PATH, 'TD3_actor.pht')
+CRITIC = os.path.join(MODEL_PATH, 'TD3_critic.pht')
+NETWORK_CONFIG_PATH = os.path.join(MODEL_PATH, '../../../', 'network_config.json')
+
+class RecordedData:
+    def __init__(self, timestamp):
+        self.timestamp = timestamp
+
+class LidarData(RecordedData):
+    def __init__(self, timestamp):
+        super().__init__(timestamp)
+        self.odom = None    # Car position (x, y)
+        self.scans = []     # List of Lidar distances
+        self.wall_points = []  # List of wall points (x, y)
+
+    def set_odom(self, odom):
+        self.odom = odom
+
+    def add_scan(self, scan):
+        self.scans.append(scan)
+
+    def add_wall_point(self, point):
+        self.wall_points.append(point)
+
+
+class VelData(RecordedData):
+    def __init__(self, timestamp):
+        super().__init__(timestamp)
+        self.linear = None
+        self.angular = None
+
+    def set_velocities(self, linear, angular):
+        self.linear = linear
+        self.angular = angular
+
+
+def read_lidar_data(lidar_file_path):
+    lidar_data_list: List[LidarData] = []
+    data = None
+    with open(lidar_file_path, 'r') as lidar_file:
+        lines = lidar_file.readlines()
+        for line in lines:
+            line = line.strip()
+            if not line:
+                if data:
+                    lidar_data_list.append(data)
+                    data = None
+            elif line.startswith("Time:"):
+                timestamp = float(line.split(":")[1].strip()[:-1])
+                data = LidarData(timestamp)
+            elif line.startswith("Car Position:"):
+                position = line.split(":")[1].strip("() /n")
+                x_str, y_str = [p.strip() for p in position.split(",")]
+                data.set_odom((float(x_str), float(y_str)))
+            elif line.startswith("("):
+                line = line.strip("(), /t/n")
+                x_str, y_str = [p.strip() for p in line.split(",")]
+                x, y = float(x_str), float(y_str)
+                distance = math.sqrt(
+                    (x-data.odom[0]) ** 2 + (y-data.odom[1]) ** 2)
+                data.add_scan(distance)
+                data.add_wall_point((x, y))
+
+        # Add the last data point if it exists
+        if data:
+            lidar_data_list.append(data)
+
+    return lidar_data_list
+
+
+def read_vel_data(vel_file_path):
+    vel_data_list: List[VelData] = []
+    with open(vel_file_path, 'r') as vel_file:
+        lines = vel_file.readlines()
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split(",")
+            if len(parts) == 3:
+                time, linear, angular = (
+                    float(part.split('=')[1]) for part in parts)
+                data = VelData(time)
+                data.set_velocities(linear, angular)
+                vel_data_list.append(data)
+    return vel_data_list
+
+def format_data_lists(lidar_data_list, vel_data_list):
+    if len(lidar_data_list) < len(vel_data_list):
+        # Lidar list is shorter
+        new_vel_data_list = []
+        for lidar_data in lidar_data_list:
+            lidar_data_time = lidar_data.timestamp
+            closest_vel_data = min(
+                vel_data_list, key=lambda v: abs(v.timestamp - lidar_data_time))
+            new_vel_data_list.append(closest_vel_data)
+        return lidar_data_list, new_vel_data_list
+    elif len(vel_data_list) < len(lidar_data_list):
+        # Vel list is shorter
+        new_lidar_data_list = []
+        for vel_data in vel_data_list:
+            vel_data_time = vel_data.timestamp
+            closest_lidar_data = min(
+                lidar_data_list, key=lambda l: abs(l.timestamp - vel_data_time))
+            new_lidar_data_list.append(closest_lidar_data)
+        return new_lidar_data_list, vel_data_list
+    else:
+        # Both lists are the same length
+        return lidar_data_list, vel_data_list
+
+def plot():
+    lidar_data_list = read_lidar_data(LIDAR_RECORD)
+    vel_data_list = read_vel_data(VEL_RECORD)
+
+    if not lidar_data_list:
+        print("No lidar data!")
+        return
+
+    if not vel_data_list:
+        print("No vel data!")
+        return
+
+    print(f"Loaded {len(lidar_data_list)} lidar data points")
+    print(f"Loaded {len(vel_data_list)} vel data points")
+
+    lidar_data_list, vel_data_list = format_data_lists(lidar_data_list, vel_data_list)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    lidar_time_text = fig.text(0.75, 0.95, 'Lidar Time', fontsize=10, va='center')
+    vel_time_text = fig.text(0.75, 0.9, 'Vel Time', fontsize=10, va='center')
+    fig.text(0.85, 0.85, 'Recorded Values', fontsize=10, va='center')
+    linear_text = fig.text(0.85, 0.8, '', fontsize=10, va='center')
+    angular_text = fig.text(0.85, 0.75, '', fontsize=10, va='center')
+    fig.text(0.85, 0.70, 'Network Output', fontsize=10, va='center')
+    speed_text = fig.text(0.85, 0.65, '', fontsize=10, va='center')
+    steering_text = fig.text(0.85, 0.60, '', fontsize=10, va='center')
+
+    plt.subplots_adjust(bottom=0.2)  # Adjust space for the slider
+
+    wall_plot, = ax.plot([], [], 'o', markersize=2, label="Walls")
+    car_plot, = ax.plot([], [], 'ro', markersize=2, label="Car Position")
+
+    ax.set_title("Track Walls and Car Position - Top-Down View")
+    ax.set_xlabel("X (meters)")
+    ax.set_ylabel("Y (meters)")
+    ax.legend()
+    ax.grid()
+    ax.axis('equal')
+
+    ax_slider = plt.axes([0.2, 0.05, 0.65, 0.03])  # Position of the slider
+    slider = Slider(ax_slider, 'Index', 1, min(
+        len(lidar_data_list), len(vel_data_list))-1, valinit=1, valstep=1)
+
+    def update(val):
+        index = int(slider.val)
+        lidar_data_sublist = lidar_data_list[:index]
+        last_lidar_data = lidar_data_list[index]
+        recorded_vel_data = vel_data_list[index-1]
+
+        state = data_to_state(last_lidar_data, recorded_vel_data)
+        steering_angle, speed = get_network_output(state, AGENT)
+
+        lidar_time_text.set_text(f"Lidar Time: {last_lidar_data.timestamp:.2f}")
+        vel_time_text.set_text(f"Vel Time: {recorded_vel_data.timestamp:.2f}")
+        linear_text.set_text(f"Linear: {recorded_vel_data.linear:.2f}")
+        angular_text.set_text(f"Angular: {recorded_vel_data.angular:.2f}")
+        speed_text.set_text(f"Linear: {speed:.2f}")
+        steering_text.set_text(f"Angular: {steering_angle:.2f}")
+
+        # Flatten wall points into x and y coordinates
+        wall_points = [
+            point for data in lidar_data_sublist for point in data.wall_points]
+        
+        wall_points = wall_points[-10:]
+        if wall_points:
+            wall_x, wall_y = zip(*wall_points)
+        else:
+            wall_x, wall_y = [], []  # Handle empty wall points
+
+        # Extract car positions
+        car_positions = [data.odom for data in lidar_data_sublist]
+        car_x, car_y = zip(*car_positions) if car_positions else ([], [])
+
+        # Update the plots
+        wall_plot.set_data(wall_x, wall_y)
+        car_plot.set_data(car_x, car_y)
+
+        # Auto-scale the axes to fit the data
+        ax.relim()
+        ax.autoscale_view()
+
+        # Force a redraw
+        fig.canvas.draw()
+
+    slider.on_changed(update)
+
+    # Initialize the plot with the first point
+    update(1)
+    plt.show()
+
+
+def get_network_config():
+    with open(NETWORK_CONFIG_PATH, 'r') as config_file:
+        config_dict = json.load(config_file)
+    return TD3Config(**config_dict)
+
+
+def data_to_state(lidar_data: LidarData, vel_data: VelData):
+    linear_velocity = vel_data.linear
+    angular_velocity = vel_data.angular
+    scans = lidar_data.scans
+    state = [linear_velocity, angular_velocity] + scans
+
+    return np.array(state)
+
+
+def get_network_output(state, agent):
+    MAX_ACTIONS = np.asarray([3, 0.65])
+    MIN_ACTIONS = np.asarray([0, -0.65])
+
+    action = agent.select_action_from_policy(state)
+    action = denormalize(action, MAX_ACTIONS, MIN_ACTIONS)
+    linear, angular = action
+    angular = ackermann_to_twist(angular, linear)
+    return angular, linear
+
+def ackermann_to_twist(delta, linear_v, L=0.325):
+    try: 
+        omega = math.tan(delta)*linear_v/L
+    except ZeroDivisionError:
+        print("Wheelbase must be greater than zero")
+        return 0
+    return omega
+
+if __name__ == "__main__":
+    OBSERVATION_SIZE = 2 + 10   # 2 Odom, 10 Lidar
+    ACTION_NUM = 2
+    network_config = get_network_config()
+    network_factory = NetworkFactory()
+    agent = network_factory.create_network(
+        OBSERVATION_SIZE, ACTION_NUM, config=network_config)
+    print('Reading saved models into actor and critic')
+    agent.actor_net.load_state_dict(torch.load(
+        ACTOR, map_location=torch.device('cpu')))
+    agent.critic_net.load_state_dict(torch.load(
+        CRITIC, map_location=torch.device('cpu')))
+    print('Successfully Loaded models')
+    AGENT = agent
+
+    plot()

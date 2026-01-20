@@ -49,6 +49,21 @@ def generate_launch_description():
             output='screen',
             emulate_tty=True, # Allows python print to show
     )
+    
+    vel_recorder = Node(
+        package='recorders',
+        executable='vel_recorder',
+        name='vel_recorder',
+        output='screen',
+        parameters=[{'onSim': True}]
+    )
+    
+    lidar_recorder = Node(
+        package='recorders',
+        executable='lidar_recorder',
+        name='lidar_recorder',
+        output='screen'
+    )
     if env == 'TwoCar':
         car2_config_path = os.path.join(
         get_package_share_directory('reinforcement_learning'),
@@ -78,5 +93,7 @@ def generate_launch_description():
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
         SetParameter(name='use_sim_time', value=True),
         environment,
-        main
+        main,
+        # vel_recorder,
+        # lidar_recorder
 ])
