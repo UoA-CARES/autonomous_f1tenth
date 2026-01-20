@@ -1,4 +1,3 @@
-from abc import abstractmethod
 import rclpy
 from rclpy import Future
 from rclpy.node import Node
@@ -6,23 +5,15 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from ackermann_msgs.msg import AckermannDriveStamped
 from message_filters import Subscriber, ApproximateTimeSynchronizer
-import rclpy.time
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
-from tf2_ros import TransformListener, Buffer, Time
+from tf2_ros import TransformListener, Buffer
 from tf2_msgs.msg import TFMessage
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import math
-import torch
-from torch import nn
-from typing import List, Literal
-import scipy
-import numpy as np
+from typing import Literal
 
-from environments.autoencoders.lidar_beta_vae import BetaVAE1D
-from environments.autoencoders.lidar_autoencoder import LidarConvAE
-
-from environments.util import process_odom, avg_lidar, process_lidar_med_filt, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, avg_lidar_w_consensus, process_ae_lidar, process_ae_lidar_beta_vae, uneven_median_lidar
+from environments.util import process_odom, avg_lidar, process_lidar_med_filt, forward_reduce_lidar, ackermann_to_twist, create_lidar_msg, avg_lidar_w_consensus, uneven_median_lidar
 
 
 class Controller(Node):
@@ -30,8 +21,7 @@ class Controller(Node):
         super().__init__(node_name + 'controller')
 
         if lidar_points < 1:
-            raise Exception("Make sure number of lidar points is more than 0")
-          
+            raise Exception("Make sure number of lidar points is more than 0")   
 
         # Environment Details ----------------------------------------
         self.NAME = car_name
@@ -102,55 +92,20 @@ class Controller(Node):
         
         self.firstOdom = isCar
         self.offset = [0, 0, 0, 0, 0, 0]
-        
-        
-        #TODO:figure out what to do with this
-        # # Lidar processing 
-        # self.ae_lidar_model = LidarConvAE()
-        # # self.ae_lidar_model = BetaVAE1D(1,10,beta=4)
-        # self.ae_lidar_model.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/src/environments/environments/autoencoders/trained_models/lidar_ae_ftg_rand.pt"))
-        # self.ae_lidar_model.eval()
+
 
     def step(self, action, policy):
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
-
         self.sleep()
-
         self.timer_future = Future()
-
         state = self.get_observation(policy)
-
         return state
 
     def message_filter_callback(self, odom: Odometry, lidar: LaserScan):
         self.observation_future.set_result({'odom': odom, 'lidar': lidar})
 
     def get_observation(self, policy):
-        #odom: [position.x, position.y, orientation.w, orientation.x, orientation.y, orientation.z, lin_vel.x, ang_vel.z]
-
-        # TODO: turn on later  |
-        #                      V
-        # if policy == 'a_star' or policy == 'd_star':
-        #     now = rclpy.time.Time()
-        #     transformation = self.tf_buffer.lookup_transform('map',f'{self.NAME}base_link', now)
-        #     x = transformation.transform.translation.x
-        #     y = transformation.transform.translation.y
-        #     self.get_logger().info(f"Coord: ({x}, {y})")
-        #     return (x,y)
-
-        # TODO: delete later
-        # latest = self.get_clock().now()
-        # self.get_logger().info(f"getting coord")
-        # try: 
-        #     transformation = self.tf_buffer.lookup_transform('map', f'{self.NAME}base_link', Time())
-        #     x = transformation.transform.translation.x
-        #     y = transformation.transform.translation.y
-        #     self.get_logger().info(f"Coord: ({x}, {y})")
-        # except Exception as e:
-        #     self.get_logger().info(str(e))
-
-
         odom, lidar = self.get_data()
         odom = process_odom(odom)
         if self.firstOdom:
@@ -183,24 +138,10 @@ class Controller(Node):
                 scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'forward_reduce':
                 processed_lidar_range = forward_reduce_lidar(lidar)
-
-        # if policy == 'ftg':
-        #     lidar_range = forward_reduce_lidar(lidar)
-        # else:
-        #     lidar_range = avg_lidar(lidar, num_points)
-
-        # TODO: find out how to deal with this better. 
-        # Testing code for pre trained AE
-        # # ae_range = process_ae_lidar_beta_vae(lidar, self.ae_lidar_model, is_latent_only=False) #[1, 1, 512]
-        # ae_range = process_ae_lidar(lidar, self.ae_lidar_model,is_latent_only = False)
-        # # scan = create_lidar_msg(lidar, num_points, lidar_range)
-        # scan = create_lidar_msg(lidar, len(ae_range), ae_range)
-        
         self.processed_publisher.publish(scan)
         state = odom+processed_lidar_range
         return state
         
-
     def get_data(self):
         rclpy.spin_until_future_complete(self, self.observation_future)
         future = self.observation_future
@@ -209,66 +150,22 @@ class Controller(Node):
         return data['odom'], data['lidar']
 
     def set_velocity(self, lin_vel, steering_angle, L=0.325):
-        """
-        Publish Twist messages to f1tenth cmd_vel topic
-        """
-
         ang_vel = ackermann_to_twist(steering_angle, lin_vel, L)
-
         car_velocity_msg = AckermannDriveStamped()
         sim_velocity_msg = Twist()
         sim_velocity_msg.angular.z = float(ang_vel)
         sim_velocity_msg.linear.x = float(lin_vel)
 
-        car_velocity_msg.drive.steering_angle = float(steering_angle) #-float(angle*0.5)
+        car_velocity_msg.drive.steering_angle = float(steering_angle)
         car_velocity_msg.drive.speed = float(lin_vel)
         
         # Add a ROS header with a timestamp
         header = Header()
-        header.stamp = self.get_clock().now().to_msg()  # Use the ROS clock for the timestamp
-        car_velocity_msg.header = header  # Attach the header to the message
+        header.stamp = self.get_clock().now().to_msg() 
+        car_velocity_msg.header = header
 
         self.ackerman_pub.publish(car_velocity_msg)
         self.cmd_vel_pub.publish(sim_velocity_msg)
-
-
-    def omega_to_ackerman(self, omega, linear_v, L):
-        '''
-        Convert CG angular velocity to Ackerman steering angle.
-
-        Parameters:
-        - omega: CG angular velocity in rad/s
-        - v: Vehicle speed in m/s
-        - L: Wheelbase of the vehicle in m
-
-        Returns:
-        - delta: Ackerman steering angle in radians
-
-        Derivation:
-        R = v / omega 
-        R = L / tan(delta)  equation 10 from https://www.researchgate.net/publication/228464812_Electric_Vehicle_Stability_with_Rear_Electronic_Differential_Traction#pf3
-        tan(delta) = L * omega / v
-        delta = arctan(L * omega/ v)
-        '''
-        if linear_v == 0:
-            return 0
-
-        delta = math.atan((L * omega) / linear_v)
-
-        return delta
-
-
-    def vel_mod(self, linear):
-        max_vel = 5
-        linear = min(max_vel, linear)
-        return linear
-
-    def angle_mod(self, angle):
-        max_angle = 0.85
-        angle = min(max_angle, angle)
-        if (abs(angle)<0.2):
-            angle = 0
-        return angle
 
     def sleep(self):
         while not self.timer_future.done():

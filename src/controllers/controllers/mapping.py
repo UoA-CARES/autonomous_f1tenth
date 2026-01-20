@@ -1,9 +1,6 @@
-import sys
-
 from slam_toolbox.srv import SaveMap
 import rclpy
 from rclpy.node import Node
-import time
 
 
 class MinimalClientAsync(Node):

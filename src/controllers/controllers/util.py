@@ -2,9 +2,8 @@ import numpy as np
 
 # Returns steering angle to turn to goal
 def turn_to_goal(location, yaw, goal, goal_tolerance=0.5, angle_diff_tolerance=0.2, max_turn=1):
-
-    distance = goal - location # x, y array
-    if ((abs(distance[0]) < goal_tolerance) and (abs(distance[1] < goal_tolerance))): # Already at goal
+    distance = goal - location
+    if ((abs(distance[0]) < goal_tolerance) and (abs(distance[1] < goal_tolerance))): 
         ang = 0
         return ang
      
@@ -15,8 +14,6 @@ def turn_to_goal(location, yaw, goal, goal_tolerance=0.5, angle_diff_tolerance=0
             ang -= 2 * np.pi
         elif ang < -np.pi:
             ang += 2 * np.pi
-
-        # make sure turning angle is not more than 90deg
         if ang > max_turn:
             ang = max_turn
         elif ang < -1*max_turn:

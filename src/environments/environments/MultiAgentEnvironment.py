@@ -14,9 +14,6 @@ from nav_msgs.msg import Odometry
 
 class MultiAgentEnvironment(F1tenthEnvironment):
 
-    
-    
-
     def __init__(self, 
                  car_name, 
                  reward_range=0.5, 
@@ -115,13 +112,7 @@ class MultiAgentEnvironment(F1tenthEnvironment):
 
         self.get_logger().info('Environment Setup Complete')
 
-        #####################################################################################################################
-
-#    ____ _        _    ____ ____    _____ _   _ _   _  ____ _____ ___ ___  _   _ ____  
-#   / ___| |      / \  / ___/ ___|  |  ___| | | | \ | |/ ___|_   _|_ _/ _ \| \ | / ___| 
-#  | |   | |     / _ \ \___ \___ \  | |_  | | | |  \| | |     | |  | | | | |  \| \___ \ 
-#  | |___| |___ / ___ \ ___) |__) | |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
-#   \____|_____/_/   \_\____/____/  |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
+    #####################################################################################################################
 
     def odom_message_filter_callback(self, odom1: Odometry, odom2: Odometry):
         self.ODOM_OBSERVATION_FUTURE.set_result({'odom1': odom1, 'odom2': odom2})                                                                            

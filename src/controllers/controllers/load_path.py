@@ -1,8 +1,6 @@
 import rclpy
 from .controller import Controller
 import time
-import numpy as np
-import sys
 
 def main():
     rclpy.init()

@@ -2,7 +2,7 @@ import rclpy
 import numpy as np
 import os
 from .controller import Controller
-from .util import closestPointIndAhead, loadPath, furthestPointInRange
+from .util import loadPath, furthestPointInRange
 import time
 
 def main():
@@ -51,8 +51,7 @@ def main():
             goal = np.asarray([[0, 0]])
             nextGoal = goal
         state = controller.get_observation(policy_id)
-        action = policy.select_action(state, goal, nextGoal)   
-        # moves car
+        action = policy.select_action(state, goal, nextGoal)
         controller.step(action, policy_id)
         s = '['+str(round(state[0], 2))+', '+str(round(state[1], 2)) + '], '
         file.write(s)

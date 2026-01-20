@@ -19,8 +19,6 @@ class F1TenthReset(Node):
         
         super().__init__(name)
         self.get_logger().info("Environment: " + name)
-        # self.declare_parameter('env_name', 'beep')
-        # environment = self.get_parameter('env_name').get_parameter_value().string_value
 
         srv_cb_group = MutuallyExclusiveCallbackGroup()
         self.srv = self.create_service(Reset, name, callback=self.service_callback, callback_group=srv_cb_group)

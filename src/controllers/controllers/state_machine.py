@@ -1,10 +1,7 @@
 import rclpy
 from rclpy.node import Node
-from rclpy import Future
 from std_msgs.msg import String
 import time
-from message_filters import Subscriber
-from nav_msgs.msg import Odometry
 from .util import absoluteDistance
 import numpy as np
 from .controller import Controller

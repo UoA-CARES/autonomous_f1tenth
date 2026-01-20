@@ -10,45 +10,31 @@ import yaml
 
 def generate_launch_description():
     pkg_controllers = get_package_share_directory('controllers')
-
-    config_path = os.path.join(
-        pkg_controllers,
-        'car.yaml'
-    )
-
+    config_path = os.path.join(pkg_controllers, 'car.yaml')
     config = yaml.load(open(config_path), Loader=yaml.Loader)
     alg = config['car']['ros__parameters']['algorithm']
     tracking = config['car']['ros__parameters']['tracking']
 
     if tracking:
         alg = Node(
-        package='controllers',
-        executable='track',
-        output='screen',
-        parameters=[{'car_name': TextSubstitution(text=str(config['car']['ros__parameters'].get('car_name', 'f1tenth')))},
-                    {'alg': TextSubstitution(text=str(alg))}, {'isCar': True}],
+            package='controllers',
+            executable='track',
+            output='screen',
+            parameters=[{'car_name': TextSubstitution(text=str(config['car']['ros__parameters'].get('car_name', 'f1tenth')))},
+                        {'alg': TextSubstitution(text=str(alg))}, {'isCar': True}],
         )
-        return LaunchDescription([
-            alg,
-        ])
-
+    elif (f'{alg}' != 'rl'):
+        alg = Node(
+            package='controllers',
+            executable=f'{alg}_policy',
+            output='screen',
+            parameters=[{'car_name': TextSubstitution(text=str(config['car']['ros__parameters'].get('car_name', 'f1tenth')))}],
+        )
     else:
-        if (f'{alg}' != 'rl'):
-            alg = Node(
-                package='controllers',
-                executable=f'{alg}_policy',
-                output='screen',
-                parameters=[{'car_name': TextSubstitution(text=str(config['car']['ros__parameters'].get('car_name', 'f1tenth')))}],
-            )
-        else:
-            alg = IncludeLaunchDescription(
-                launch_description_source = PythonLaunchDescriptionSource(
-                    os.path.join(pkg_controllers, f'{alg}.launch.py')),
-                launch_arguments={
-                    'car_name': TextSubstitution(text=str(config['car']['ros__parameters'].get('car_name', 'f1tenth'))),
-                }.items()
-            )  
-
-    return LaunchDescription([
-        alg,
-])
+        alg = IncludeLaunchDescription(
+            launch_description_source = PythonLaunchDescriptionSource(os.path.join(pkg_controllers, f'{alg}.launch.py')),
+            launch_arguments={
+                'car_name': TextSubstitution(text=str(config['car']['ros__parameters'].get('car_name', 'f1tenth'))),
+            }.items()
+        )  
+    return LaunchDescription([alg])

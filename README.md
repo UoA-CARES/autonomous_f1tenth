@@ -1,42 +1,19 @@
 # Autonomous F1tenth
-Using reinforcement learning techniques to drive the f1tenth
+Using reinforcement learning techniques to drive the f1tenth vehicle platform.
 
-### This repository uses
+### Dependencies
 | Dependencies | Version |
 | ----------- | ----------- |
 | Gazebo | [Garden](https://gazebosim.org/docs/garden/install_ubuntu_src) |
 | ROS2 | [Humble Hawksbill](https://docs.ros.org/en/humble/Installation.html) |
-| CARES RL |[Link](https://github.com/UoA-CARES/cares_reinforcement_learning) |
+| colcon | [ROS2](https://colcon.readthedocs.io/en/released/user/installation.html) |
+| CARES RL | [Link](https://github.com/UoA-CARES/cares_reinforcement_learning) |
+| f1tenth | [Link](https://github.com/UoA-CARES/f1tenth) |
 
-We source build Gazebo Garden, and use a forked `gz-sim` – it's best just to use the docker
-
-# Installation Instructions
-Follow these instructions to run/test this repository on your local machine.
-
-## Locally
-Ensure you have installed the dependencies outlined above.
-
-Install colcon
-```
-sudo apt install python3-colcon-common-extensions
-```
-
-To use the forked gz-sim run the following command before building gazebo
+We source build Gazebo Garden, and use a forked `gz-sim`. To use the forked `gz-sim` run the following command before building Gazebo
 ```
 rm -rdf gz-sim
 git clone https://github.com/UoA-CARES/gz-sim.git
-```
-
-Clone the repository
-```
-git clone --recurse-submodules https://github.com/UoA-CARES/autonomous_f1tenth.git
-```
-
-Install the dependencies using `rosdep`
-```
-cd autonomous_f1tenth/
-rosdep update -y
-rosdep install --from-paths src --ignore-src -r -y
 ```
 
 If running on the physical car, install additional dependency
@@ -44,7 +21,25 @@ If running on the physical car, install additional dependency
 sudo apt-get install -y ros-humble-urg-node
 ```
 
-## Using Docker (Recommended)
+# Installation Instructions
+Follow these instructions to run/test this repository on your local machine.
+
+### Locally
+Ensure you have installed the dependencies outlined above.
+
+Clone the repository
+```
+git clone --recurse-submodules https://github.com/UoA-CARES/autonomous_f1tenth.git
+```
+
+Install dependencies using `rosdep`
+```
+cd autonomous_f1tenth/
+rosdep update -y
+rosdep install --from-paths src --ignore-src -r -y --rosdistro humble
+```
+
+### Using Docker (Recommended)
 
 Use this command to run the docker, it will automatically pull the image if not found locally:
 ```
@@ -53,20 +48,13 @@ docker run --rm -it --network host --gpus all -e DISPLAY -e GZ_PARTITION=12 -e R
 **Note: it is important to have a different GZ_PARITION/ROS_DOMAIN_ID for every container you plan on running**
 
 # Runnning the Simulations
-There are several **Reinforcement Learning** Environments that are available. Refer to the wiki for more detailed information.
-| Environment      | Task | Observation |
-| ----------- | ----------- | ----------- |
-| CarGoal      | Drive to a goal position       | Odometry, Goal Position |
-| CarWall   | Drive to a goal position inside a walled area | Odometry, Lidar, Goal Position |
-| CarBlock   | Drive to a goal position, with static obstacles randomly placed | Odometry, Lidar, Goal Position |
-| CarTrack   | Drive around a track | Orientation, Lidar |
-| CarBeat   | Overtake a Car | _Still in progress_|
+There are several environments that are available. Refer to the wiki for more detailed information.
 
 This repository provides two functions:
 1. **Training** a reinforcement learning agent on a particular _environment_
 2. **Testing** (evaluating) your trained agent on a particular _environment_
 
-To control **aspects** of the **training/testing** – eg. environment, hyperparameters, model paths – you edit the `src/reinforcement_learning/config/train.yaml` and `src/reinforcement_learning/config/test.yaml` files respectively.
+To control **aspects** of the **training/testing** – eg. environment, hyperparameters, model paths – edit the `src/reinforcement_learning/config/train.yaml` and `src/reinforcement_learning/config/test.yaml` files respectively.
 
 An example of the yaml that controls training is shown below:
 ```

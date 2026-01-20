@@ -19,9 +19,7 @@ def main():
 
     params = param_node.get_parameters(['car_name', 'track_name'])
     CAR_NAME, TRACK_NAME = [param.value for param in params]
-
     controller = Controller('ftg_policy_', CAR_NAME, 0.1)
-
     policy = FollowTheGapPolicy()
     policy_id = 'ftg'
     state = controller.get_observation(policy_id)
@@ -64,10 +62,7 @@ class FollowTheGapPolicy():
         return val
     
     def select_action(self, state):
-        # Current x: state[0], current y: state[1], orientation w: state[2], orientation x: state[3], orientation y: state[4], orientation z: state[5]
-        # linear vel x: state[6], angular vel z: state[7], LIDAR points 1-10: state[8-17] where each entry is the 64th LIDAR point
-
-        lin = 1 #0.6
+        lin = 1
         turn_angle = 0.4667
         min_turn_radius = 0.625
         lidar_angle=1.396
@@ -75,7 +70,6 @@ class FollowTheGapPolicy():
         max_lidar_range = 10
         lidar_poss_angles = np.linspace(-lidar_angle, lidar_angle, 10)
         meeting_dist = self.calc_func()
-
         goal_angle = 0
 
         obstacles_angles = []
