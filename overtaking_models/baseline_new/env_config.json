@@ -1,1 +1,0 @@
-{"environment": "CarTrack", "car_name": "f1tenth", "reward_range": 3.0, "max_steps": 250, "step_length": 0.1, "collision_range": 0.2, "track": "track_04", "observation_mode": "lidar_only", "max_goals": 500}
