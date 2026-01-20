@@ -1,11 +1,9 @@
-from environments.CarBlockEnvironment import CarBlockEnvironment
-from environments.CarGoalEnvironment import CarGoalEnvironment
 from environments.CarTrackEnvironment import CarTrackEnvironment
 from environments.CarRaceEnvironment import CarRaceEnvironment
-from environments.CarWallEnvironment import CarWallEnvironment
 from environments.CarBeatEnvironment import CarBeatEnvironment
 from environments.CarOvertakeEnvironment import CarOvertakeEnvironment
 from environments.TwoCarEnvironment import TwoCarEnvironment
+from environments.MultiAgentEnvironment import MultiAgentEnvironment
 
 class EnvironmentFactory:
     def __init__(self):
@@ -13,22 +11,7 @@ class EnvironmentFactory:
 
     def create(self, name, config):
         print(config)
-        if name == 'CarBlock':
-            return CarBlockEnvironment(
-                config['car_name'],
-                config['reward_range'],
-                config['max_steps'],
-                config['collision_range'],
-                config['step_length']
-            )
-        elif name == 'CarGoal':
-            return CarGoalEnvironment(
-                config['car_name'],
-                config['reward_range'],
-                config['max_steps'],
-                config['step_length']
-            )
-        elif name == 'CarTrack':
+        if name == 'CarTrack':
             return CarTrackEnvironment(
                 config['car_name'], 
                 config['reward_range'], 
@@ -37,6 +20,7 @@ class EnvironmentFactory:
                 config['step_length'], 
                 config['track'], 
                 config['observation_mode'], 
+                config['is_staged_training']
                 )
         elif name == 'CarRace':
             return CarRaceEnvironment(
@@ -68,14 +52,6 @@ class EnvironmentFactory:
                 config['track'], 
                 config['observation_mode'], 
             )
-        elif name == 'CarWall':
-            return CarWallEnvironment(
-                config['car_name'],
-                config['reward_range'],
-                config['max_steps'],
-                config['collision_range'],
-                config['step_length']
-            )
         elif name == 'CarBeat':
             return CarBeatEnvironment(
                 config['car_name'],
@@ -88,6 +64,26 @@ class EnvironmentFactory:
                 config['observation_mode'], 
                 config['max_goals'],
                 config['num_lidar_points']
+            )
+        elif name == 'MultiAgent':
+            return MultiAgentEnvironment(
+                config['car_name'], 
+                config['reward_range'], 
+                config['max_steps'], 
+                config['collision_range'], 
+                config['step_length'], 
+                config['track'], 
+                config['observation_mode'], 
+            )
+        elif name == 'MultiAgent2':
+            return MultiAgentEnvironment(
+                'f2tenth', 
+                config['reward_range'], 
+                config['max_steps'], 
+                config['collision_range'], 
+                config['step_length'], 
+                config['track'], 
+                config['observation_mode'], 
             )
         else:
             raise Exception('EnvironmentFactory: Environment not found')

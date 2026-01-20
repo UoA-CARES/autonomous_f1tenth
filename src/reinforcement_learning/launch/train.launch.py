@@ -8,13 +8,11 @@ from launch.substitutions import TextSubstitution
 import yaml
 
 env_launch = {
-    'CarGoal': 'cargoal',
-    'CarWall': 'carwall',
-    'CarBlock': 'carblock',
     'CarTrack': 'cartrack',
     'CarBeat': 'carbeat',
     'CarOvertake': 'carovertake',
-    'TwoCar':'twocar'
+    'TwoCar':'twocar',
+    'MultiAgent':'multiagent',
 }
 
 def generate_launch_description():

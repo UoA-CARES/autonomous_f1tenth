@@ -7,28 +7,48 @@ from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, Opaq
 from launch.substitutions import LaunchConfiguration
 
 def launch(context, *args, **kwargs):
+    pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
+    pkg_environments = get_package_share_directory('environments')
     pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
 
+    track = LaunchConfiguration('track').perform(context)
     car_name = LaunchConfiguration('car_name').perform(context)
+    
+    gz_sim = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
+        launch_arguments={
+            'gz_args': f'-s -r {pkg_environments}/worlds/{track}.sdf',
+        }.items()
+    )
 
     f1tenth = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
         launch_arguments={
-            'name': car_name,
+            'name': 'f1tenth',
             'world': 'empty',
-            'x': '0',
-            'y': '0',
-            'z': '5',
         }.items()
     )
 
-    return[f1tenth]
+    f2tenth = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            os.path.join(pkg_f1tenth_bringup, 'simulation_bringup.launch.py')),
+        launch_arguments={
+            'name': 'f2tenth',
+            'world': 'empty',
+        }.items()
+    )
+
+
+    return [gz_sim, f1tenth, f2tenth]
 
 def generate_launch_description():
-    pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
-    pkg_environments = get_package_share_directory('environments')
-    pkg_f1tenth_bringup = get_package_share_directory('f1tenth_bringup')
+
+    track_arg = DeclareLaunchArgument(
+        'track',
+        default_value='track_1'
+    )
 
     car_name = DeclareLaunchArgument(
         'car_name',
@@ -51,21 +71,6 @@ def generate_launch_description():
         ],
     )
 
-    gz_sim = IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
-        launch_arguments={
-            'gz_args': f'-s -r {pkg_environments}/worlds/wall.sdf',
-        }.items()
-    )
-
-    reset = Node(
-            package='environments',
-            executable='CarWallReset',
-            output='screen',
-            emulate_tty=True,
-    )
-
     stepping_service = Node(
             package='environments',
             executable='SteppingService',
@@ -73,11 +78,21 @@ def generate_launch_description():
             emulate_tty=True,
     )
 
+    reset = Node(
+            package='environments',
+            executable='F1TenthReset',
+            parameters=[
+                {'env_name': 'multi_agent'}
+            ],
+            output='screen',
+            emulate_tty=True,
+    )
+
     return LaunchDescription([
-        gz_sim,
-        car_name,
+        track_arg,
         OpaqueFunction(function=launch),
         service_bridge,
         reset,
-        stepping_service
-])
+        stepping_service,
+        car_name,
+    ])

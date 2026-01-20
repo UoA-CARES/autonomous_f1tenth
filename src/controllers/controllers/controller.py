@@ -44,14 +44,14 @@ class Controller(Node):
         self.ackerman_pub = self.create_publisher(
             AckermannDriveStamped,
             f'/{self.NAME}/drive',
-            10
+            1
         )
 
         # Twist for sim
         self.cmd_vel_pub = self.create_publisher(
             Twist,
             f'/{self.NAME}/cmd_vel',
-            10
+            1
         )
 
         self.odom_sub = Subscriber(
@@ -69,7 +69,7 @@ class Controller(Node):
         self.processed_publisher = self.create_publisher(
             LaserScan,
             f'/{self.NAME}/processed_scan',
-            10
+            1
         )
 
         ##### FOR LOCALIZED METHODS ONLY############################
@@ -89,7 +89,7 @@ class Controller(Node):
 
         self.message_filter = ApproximateTimeSynchronizer(
             [self.odom_sub, self.lidar_sub],
-            10,
+            1,
             0.1,
         )
 
@@ -222,6 +222,11 @@ class Controller(Node):
 
         car_velocity_msg.drive.steering_angle = float(steering_angle) #-float(angle*0.5)
         car_velocity_msg.drive.speed = float(lin_vel)
+        
+        # Add a ROS header with a timestamp
+        header = Header()
+        header.stamp = self.get_clock().now().to_msg()  # Use the ROS clock for the timestamp
+        car_velocity_msg.header = header  # Attach the header to the message
 
         self.ackerman_pub.publish(car_velocity_msg)
         self.cmd_vel_pub.publish(sim_velocity_msg)

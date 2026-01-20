@@ -1,12 +1,9 @@
-import random
-from datetime import datetime
 import yaml
 
 import rclpy
 import torch
 
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
-import cares_reinforcement_learning.util.configurations as cfg
 
 from .parse_args import parse_args
 from .EnvironmentFactory import EnvironmentFactory
@@ -36,13 +33,18 @@ def main():
 
     # Load models if both paths are provided
     if rest['actor_path'] and rest['critic_path']:
+        print(rest['actor_path'])
         print('Reading saved models into actor and critic')
         if torch.cuda.is_available():
             agent.actor_net.load_state_dict(torch.load(rest['actor_path']))
             agent.critic_net.load_state_dict(torch.load(rest['critic_path']))
+            if network_config['algorithm'] == 'SACAE1D':
+                agent.decoder_net.load_state_dict(torch.load(rest['decoder_path']))
         else:
             agent.actor_net.load_state_dict(torch.load(rest['actor_path'], map_location=torch.device('cpu')))
             agent.critic_net.load_state_dict(torch.load(rest['critic_path'], map_location=torch.device('cpu')))
+            if network_config['algorithm'] == 'SACAE1D':
+                agent.decoder_net.load_state_dict(torch.load(rest['decoder_path'], map_location=torch.device('cpu')))
         print('Successfully Loaded models')
     else:
         raise Exception('Both actor and critic paths must be provided')

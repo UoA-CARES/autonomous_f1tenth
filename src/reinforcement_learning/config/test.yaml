@@ -6,6 +6,7 @@ test:
     max_steps: 3000
     actor_path: /home/anyone/training_logs/baseline/123/models/final/TD3_actor.pht
     critic_path: /home/anyone/training_logs/baseline/123/models/final/TD3_critic.pht
+    decoder_path: /home/anyone/training_logs/baseline/123/models/final/SACAE1D_decoder.pht
     algorithm: 'TD3'
     step_length: 0.1
     reward_range: 3

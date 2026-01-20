@@ -33,6 +33,7 @@ def __declare_params():
             ('observation_mode', 'lidar_only'),
             ('max_goals', 500),
             ('num_lidar_points', 10),
+            ('is_staged_training', False),
 
             # Algorithm Parameters -----------------------------
             ('g', 10),
@@ -46,9 +47,10 @@ def __declare_params():
             ('number_eval_episodes', 5),
 
             # Network Parameters -------------------------------
-            ('actor_path', 'Models/SAC_actor.pht'),
-            ('critic_path', 'Models/SAC_critic.pht'),
-            ('algorithm', 'SAC'),
+            ('actor_path', 'Models/SACAE1D_actor.pht'),
+            ('critic_path', 'Models/SACAE1D_critic.pht'),
+            ('decoder_path', 'Models/SACAE1d_decoder.pht'),
+            ('algorithm', 'SACAE1D'),
             ('gamma', 0.95),
             ('tau', 0.005),
             ('actor_lr', 1e-4),
@@ -74,7 +76,8 @@ def __get_env_params(param_node: Node):
         'observation_mode',
         'max_goals',
         'ftg_car_name',
-        'num_lidar_points'
+        'num_lidar_points',
+        'is_staged_training'
     ])
 
     # Convert to Dictionary
@@ -83,12 +86,6 @@ def __get_env_params(param_node: Node):
         params_dict[param.name] = param.value
     
     match params_dict['environment']:
-        case 'CarGoal':
-            config = cfg.CarGoalEnvironmentConfig(**params_dict)
-        case 'CarBlock':
-            config = cfg.CarBlockEnvironmentConfig(**params_dict)
-        case 'CarWall':
-            config = cfg.CarWallEnvironmentConfig(**params_dict)
         case 'CarTrack':
             config = cfg.CarTrackEnvironmentConfig(**params_dict)
         case 'CarBeat':
@@ -96,6 +93,8 @@ def __get_env_params(param_node: Node):
         case 'CarOvertake':
             config = cfg.CarOvertakeEnvironmentConfig(**params_dict)
         case 'TwoCar':
+            config = cfg.TwoCarEnvironmentConfig(**params_dict)
+        case 'MultiAgent':
             config = cfg.TwoCarEnvironmentConfig(**params_dict)
         case 'CarRace':
             config = cfg.CarRaceEnvironmentConfig(**params_dict)
@@ -139,6 +138,7 @@ def __get_network_params(param_node: Node):
     params = param_node.get_parameters([
         'actor_path',
         'critic_path',
+        'decoder_path',
         'algorithm',
         'gamma',
         'tau',
@@ -166,6 +166,8 @@ def __get_network_params(param_node: Node):
             config = cares_cfg.TD3AEConfig(**params_dict)
         case 'SACAE':
             config = cares_cfg.SACAEConfig(**params_dict)
+        case 'SACAE1D':
+            config = cares_cfg.SACAE1DConfig(**params_dict)
         case _:
             config = {'algorithm': 'traditional'}
     try:

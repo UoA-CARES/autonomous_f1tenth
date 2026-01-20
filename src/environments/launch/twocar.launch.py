@@ -80,7 +80,10 @@ def generate_launch_description():
 
     reset = Node(
             package='environments',
-            executable='TwoCarReset',
+            executable='F1TenthReset',
+            parameters=[
+                {'env_name': 'two_car'}
+            ],
             output='screen',
             emulate_tty=True,
     )

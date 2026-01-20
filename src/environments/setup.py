@@ -22,6 +22,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name), glob('launch/*launch.[pxy][yma]*')),
+        (os.path.join('share', package_name, 'config'), glob('config/*')),
         (os.path.join('share', package_name, 'sdf'), glob('sdf/*')),
         (os.path.join('share', package_name, 'worlds'), glob('worlds/*')),
         (os.path.join('share', package_name, 'meshes'), glob('meshes/*')),
@@ -37,16 +38,15 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'CarGoalReset = environments.CarGoalReset:main',
-            'CarWallReset = environments.CarWallReset:main',
-            'CarBlockReset = environments.CarBlockReset:main',
             'CarTrackReset = environments.CarTrackReset:main',
             'CarBeatReset = environments.CarBeatReset:main',
             'CarRaceReset = environments.CarRaceReset:main',
             'CarOvertakeReset = environments.CarOvertakeReset:main',
             'TwoCarReset = environments.TwoCarReset:main',
             'SteppingService = environments.SteppingService:main',
-            'LidarLogger = environments.lidar_logger:main'
+            'LidarLogger = environments.lidar_logger:main',
+            'MultiAgentReset = environments.MultiAgentReset:main',
+            'F1TenthReset = environments.F1TenthReset:main'
         ],
     },
 )

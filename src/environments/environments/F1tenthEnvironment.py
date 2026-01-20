@@ -8,137 +8,189 @@ from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from std_srvs.srv import SetBool
 from environment_interfaces.srv import Reset
-from .util import ackermann_to_twist
+from .util import ackermann_to_twist, get_track_math_defs, get_all_goals_and_waypoints_in_multi_tracks
+from .util_track_progress import TrackMathDef
+from .waypoints import waypoints
 import yaml
-
+import torch
 
 class F1tenthEnvironment(Node):
-    '''
-    Repository Parent Environment:
-        
-        The responsibilities of this class is the following:
-            - handle the topic subscriptions/publishers
-            - fetching of car data (raw)
-            - define the interface for environments to implement
-    '''
+
     def __init__(self,
                  env_name,
                  car_name,
-                 max_steps,
-                 step_length,
+                 reward_range=0.5, 
+                 max_steps=3000, 
+                 collision_range=0.2,
+                 step_length=0.5,
                  lidar_points = 10,
+                 track='track_1',
+                 observation_mode='lidar_only',
                  config_path='/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml',
                  ):
         super().__init__(env_name + '_environment')
 
         if lidar_points < 1:
             raise Exception("Make sure number of lidar points is more than 0")
-        
 
-        # Environment Details ----------------------------------------
-                
-        # Load configuration from YAML file
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-            
+        #####################################################################################################################
+        # Init params ----------------------------------------------
         self.NAME = car_name
+        self.REWARD_RANGE = reward_range
         self.MAX_STEPS = max_steps
+        self.COLLISION_RANGE = collision_range
         self.STEP_LENGTH = step_length
         self.LIDAR_POINTS = lidar_points
+        self.TRACK = track
+        self.ODOM_OBSERVATION_MODE = observation_mode
+
+        # configure odom observation size:
+        match observation_mode:
+            case 'lidar_only':
+                odom_observation_size = 2
+            case 'no_position':
+                odom_observation_size = 6
+            case _:
+                odom_observation_size = 10
+        self.OBSERVATION_SIZE = odom_observation_size + self.LIDAR_POINTS
+
+        #####################################################################################################################
+        # Network params ---------------------------------------------
+        self.ACTION_NUM = 2
+
+        #####################################################################################################################
+        # Environment params -----------------------------------------
+        self.IS_MULTI_TRACK = 'multi_track' in self.TRACK or self.TRACK == 'staged_tracks'
+        if self.IS_MULTI_TRACK:
+            _, self.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(self.TRACK)
+            self.ALL_TRACK_MODELS = get_track_math_defs(self.ALL_TRACK_WAYPOINTS)
+            self.CURR_TRACK = list(self.ALL_TRACK_WAYPOINTS.keys())[0]
+            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
+        else:
+            if "test_track" in self.TRACK:
+                track_key = self.TRACK[0:-4]
+            else:
+                track_key = self.TRACK
+            self.CURR_WAYPOINTS = waypoints[track_key] #from waypoints.py
+            self.CURR_TRACK_MODEL = TrackMathDef(np.array(self.CURR_WAYPOINTS)[:,:2])
+
+        #####################################################################################################################
+        # Vehicle params -------------------------------------------
+        self.LIDAR_PROCESSING:Literal["avg","ae","pretrained_ae","raw"] = 'avg'
+        # AE
+        if "ae" in self.LIDAR_PROCESSING:
+            from .autoencoders.lidar_autoencoder import LidarConvAE
+            self.ENCODER = None
+            self.DECODER = None
+            self.AE_LIDAR_MODEL = LidarConvAE(encoder=self.ENCODER, decoder=self.DECODER)
+            if self.LIDAR_PROCESSING == 'pretrained_ae':
+                self.AE_LIDAR.load_state_dict(torch.load("/home/anyone/autonomous_f1tenth/lidar_ae_ftg_rand.pt"))
+                self.AE_LIDAR.eval()
+            elif self.LIDAR_PROCESSING == 'ae':
+                self.AE_LOSS_FUNCTION = torch.nn.MSELoss()
+                self.AE_OPTIMIZER = torch.optim.Adam(self.AE_LIDAR_MODEL.parameters(), lr=1e-3)
+
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
 
         self.MAX_ACTIONS = np.asarray([config['actions']['max_speed'], config['actions']['max_turn']])
         self.MIN_ACTIONS = np.asarray([config['actions']['min_speed'], config['actions']['min_turn']])
  
-        self.ACTION_NUM = 2
-
-        self.step_counter = 0
-
+        #####################################################################################################################
         # Pub/Sub ----------------------------------------------------
-        self.cmd_vel_pub = self.create_publisher(
+        self.CMD_VEL_PUB = self.create_publisher(
             Twist,
             f'/{self.NAME}/cmd_vel',
-            10
+            1
         )
 
-        self.odom_sub = Subscriber(
+        self.ODOM_SUB = Subscriber(
             self,
             Odometry,
             f'/{self.NAME}/odometry',
         )
 
-        self.lidar_sub = Subscriber(
+        self.LIDAR_SUB = Subscriber(
             self,
             LaserScan,
             f'/{self.NAME}/scan',
         )
 
-        self.processed_publisher = self.create_publisher(
+        self.PROCESSED_PUBLISHER = self.create_publisher(
             LaserScan,
             f'/{self.NAME}/processed_scan',
-            10
+            1
         )
 
-        self.message_filter = ApproximateTimeSynchronizer(
-            [self.odom_sub, self.lidar_sub],
-            10,
+        #####################################################################################################################
+        # Message filter ---------------------------------------------
+        self.MESSAGE_FILTER = ApproximateTimeSynchronizer(
+            [self.ODOM_SUB, self.LIDAR_SUB],
+            1,
             0.1,
         )
-
-        self.message_filter.registerCallback(self.message_filter_callback)
-
-        self.observation_future = Future()
+        self.MESSAGE_FILTER.registerCallback(self.message_filter_callback)
 
         # Reset Client -----------------------------------------------
-        self.reset_client = self.create_client(
+        self.RESET_CLIENT = self.create_client(
             Reset,
             env_name + '_reset'
         )
-
-        while not self.reset_client.wait_for_service(timeout_sec=1.0):
+        while not self.RESET_CLIENT.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('reset service not available, waiting again...')
 
-
         # Stepping Client ---------------------------------------------
-
-        self.stepping_client = self.create_client(
+        self.STEPPING_CLIENT = self.create_client(
             SetBool,
             'stepping_service'
         )
-
-        while not self.stepping_client.wait_for_service(timeout_sec=1.0):
+        while not self.STEPPING_CLIENT.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('stepping service not available, waiting again...')
 
-        self.timer = self.create_timer(step_length, self.timer_cb)
-        self.timer_future = Future()
+        # Timer -------------------------------------------------------
+        self.TIMER = self.create_timer(step_length, self.timer_cb)
+
+        #####################################################################################################################
+        # Initialise vars ---------------------------------------------
+        
+        # Loop vars
+        self.STEP_COUNTER = 0
+        self.STEP_PROGRESS = 0
+        self.GOALS_REACHED = 0
+        self.CURR_STATE = None
+        self.PREV_CLOSEST_POINT = None
+        self.IS_EVAL = False
+        self.SPAWN_INDEX = 0
+
+        # Futures
+        self.TIMER_FUTURE = Future()
         self.LAST_STATE = Future()
+        self.ODOM_OBSERVATION_FUTURE = Future()
+
+
+        #####################################################################################################################
 
     def reset(self):
         raise NotImplementedError('reset() not implemented')
 
     def step(self, action):
-        self.step_counter += 1
+        self.STEP_COUNTER += 1
         self.call_step(pause=False)
-
         state = self.get_observation()
-        
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
 
-        while not self.timer_future.done():
+        while not self.TIMER_FUTURE.done():
             rclpy.spin_once(self)
 
-        self.timer_future = Future()
-        
-        
-
+        self.TIMER_FUTURE = Future()
         next_state = self.get_observation()
         self.call_step(pause=True)
-
         reward = self.compute_reward(state, next_state)
         terminated = self.is_terminated(next_state)
-        truncated = self.step_counter >= self.MAX_STEPS
+        truncated = self.STEP_COUNTER >= self.MAX_STEPS
         info = {}
-
         return next_state, reward, terminated, truncated, info
 
     def get_observation(self):
@@ -151,44 +203,73 @@ class F1tenthEnvironment(Node):
         raise NotImplementedError('is_terminated() not implemented')
 
     def message_filter_callback(self, odom: Odometry, lidar: LaserScan):
-        self.observation_future.set_result({'odom': odom, 'lidar': lidar})
+        self.ODOM_OBSERVATION_FUTURE.set_result({'odom': odom, 'lidar': lidar})
 
     def get_data(self) -> tuple[Odometry,LaserScan]:
-        rclpy.spin_until_future_complete(self, self.observation_future, timeout_sec=0.5)
-        if (self.observation_future.result()) == None:
+        rclpy.spin_until_future_complete(self, self.ODOM_OBSERVATION_FUTURE, timeout_sec=0.5)
+        if (self.ODOM_OBSERVATION_FUTURE.result()) == None:
             future = self.LAST_STATE
             self.get_logger().info("Using previous observation")
         else:
-            future = self.observation_future
+            future = self.ODOM_OBSERVATION_FUTURE
             self.LAST_STATE = future
-        self.observation_future = Future()
+        self.ODOM_OBSERVATION_FUTURE = Future()
         data = future.result()
         return data['odom'], data['lidar']
 
     def set_velocity(self, lin_vel, steering_angle, L=0.325):
-        """
-        Publish Twist Message. In place since simulator takes angular velocity commands but policies should produce ackermann steering angle.
-        Takes linear velocity and steering ANGLE, NOT angular velocity.
-        """
         angular = ackermann_to_twist(steering_angle, lin_vel, L)
         velocity_msg = Twist()
         velocity_msg.angular.z = float(angular)
         velocity_msg.linear.x = float(lin_vel)
-
-        self.cmd_vel_pub.publish(velocity_msg)
+        self.CMD_VEL_PUB.publish(velocity_msg)
 
     def sleep(self):
-        while not self.timer_future.done():
+        while not self.TIMER_FUTURE.done():
             rclpy.spin_once(self)
+        self.TIMER_FUTURE = Future()
     
     def call_step(self, pause):
         request = SetBool.Request()
         request.data = pause
+        future = self.STEPPING_CLIENT.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+        return future.result()
 
-        future = self.stepping_client.call_async(request)
+    def timer_cb(self):
+        self.TIMER_FUTURE.set_result(True)
+
+    def increment_stage(self):
+        raise NotImplementedError('Staged training is not implemented')
+
+    def call_reset_service(self, car_x, car_y, car_Y, goal_x, goal_y, car_name):
+        request = Reset.Request()
+        request.car_name = car_name
+        request.gx = float(goal_x)
+        request.gy = float(goal_y)
+        request.cx = float(car_x)
+        request.cy = float(car_y)
+        request.cyaw = float(car_Y)
+        request.flag = "car_and_goal"
+
+        future = self.RESET_CLIENT.call_async(request)
         rclpy.spin_until_future_complete(self, future)
 
         return future.result()
 
-    def timer_cb(self):
-        self.timer_future.set_result(True)
+    def update_goal_service(self, x, y):
+        request = Reset.Request()
+        request.gx = x
+        request.gy = y
+        request.flag = "goal_only"
+        future = self.RESET_CLIENT.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+        return future.result()
+    
+    def randomise_action(self, action):
+        lin_vel, steering_angle = action
+        steering_noise = np.random.uniform(-0.05, 0.05)
+        randomized_steering = steering_angle + steering_noise
+        lin_vel_noise = np.random.uniform(-0.05, 0.05)
+        randomized_lin_vel = lin_vel + lin_vel_noise
+        return randomized_lin_vel, randomized_steering
