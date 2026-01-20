@@ -27,11 +27,9 @@ def main():
 
     controller = Controller('rl_policy_', env_config['car_name'], step_length=0.1)
     policy_id = 'rl'
-
     network_factory = NetworkFactory()
     agent = network_factory.create_network(OBSERVATION_SIZE, ACTION_NUM, config=network_config)
 
-    # Load models if both paths are provided
     if rest['actor_path'] and rest['critic_path']:
         print('Reading saved models into actor and critic')
         agent.actor_net.load_state_dict(torch.load(rest['actor_path'], map_location=torch.device('cpu')))
@@ -40,10 +38,7 @@ def main():
     else:
         raise Exception('Both actor and critic paths must be provided')
     
-        
     state = controller.step([0, 0], policy_id)
-    # Full state is [coordinate_x, coordinate_y, orientation_x, orientation_y, orientation_z, orientation_w, linear_velocity, angular_velocity, 10 x lidar_data]
-    # 'lidar_only' only considers linear_velocity and angular_velocity, thus the first 6 elements are omitted
     state = state[6:]
 
     with open(f'{config_path}/config.yaml', 'r') as file:
