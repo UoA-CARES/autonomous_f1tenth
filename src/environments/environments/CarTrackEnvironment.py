@@ -127,15 +127,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
                         self.CURR_TRACK = random.choice(list(self.ALL_TRACK_WAYPOINTS.keys())[self.TRAINING_IDX[0]:self.TRAINING_IDX[1] + 1])
                     else:
                         self.CURR_TRACK = random.choice(list(self.ALL_TRACK_WAYPOINTS.keys())[:self.EVAL_TRACK_BEGIN_IDX])
-            self.TRACK_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
 
         if self.IS_EVAL:
-            car_x, car_y, car_yaw, index = self.TRACK_WAYPOINTS[10]
+            car_x, car_y, car_yaw, index = self.CURR_WAYPOINTS[10]
         else:
-            car_x, car_y, car_yaw, index = random.choice(self.TRACK_WAYPOINTS)
+            car_x, car_y, car_yaw, index = random.choice(self.CURR_WAYPOINTS)
 
         self.SPAWN_INDEX = index
-        x,y,_,_ = self.TRACK_WAYPOINTS[self.SPAWN_INDEX+1 if self.SPAWN_INDEX+1 < len(self.TRACK_WAYPOINTS) else 0]# point toward next goal
+        x,y,_,_ = self.CURR_WAYPOINTS[self.SPAWN_INDEX+1 if self.SPAWN_INDEX+1 < len(self.CURR_WAYPOINTS) else 0]# point toward next goal
         self.GOAL_POSITION = [x,y]
         self.call_reset_service(car_x=car_x, car_y=car_y, car_Y=car_yaw, goal_x=x, goal_y=y, car_name=self.NAME)
 
@@ -326,7 +326,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if current_distance < self.REWARD_RANGE:
             reward += 2
             self.GOALS_REACHED += 1
-            new_x, new_y, _, _ = self.TRACK_WAYPOINTS[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.TRACK_WAYPOINTS)]
+            new_x, new_y, _, _ = self.CURR_WAYPOINTS[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.CURR_WAYPOINTS)]
             self.GOAL_POSITION = [new_x, new_y]
             self.update_goal_service(new_x, new_y)
             self.STEPS_SINCE_LAST_GOAL = 0
@@ -353,7 +353,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         if current_distance < self.REWARD_RANGE:
             self.GOALS_REACHED += 1
-            new_x, new_y, _, _ = self.TRACK_WAYPOINTS[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.TRACK_WAYPOINTS)]
+            new_x, new_y, _, _ = self.CURR_WAYPOINTS[(self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.CURR_WAYPOINTS)]
             self.GOAL_POSITION = [new_x, new_y]
             self.update_goal_service(new_x, new_y)
             self.STEPS_SINCE_LAST_GOAL = 0
