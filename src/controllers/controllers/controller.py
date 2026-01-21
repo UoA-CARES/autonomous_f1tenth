@@ -5,6 +5,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from ackermann_msgs.msg import AckermannDriveStamped
 from message_filters import Subscriber, ApproximateTimeSynchronizer
+from std_msgs.msg import Header
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from tf2_ros import TransformListener, Buffer
