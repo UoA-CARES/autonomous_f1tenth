@@ -208,8 +208,13 @@ class F1tenthEnvironment(Node):
     def get_data(self) -> tuple[Odometry,LaserScan]:
         rclpy.spin_until_future_complete(self, self.ODOM_OBSERVATION_FUTURE, timeout_sec=0.5)
         if (self.ODOM_OBSERVATION_FUTURE.result()) == None:
-            future = self.LAST_STATE
-            self.get_logger().info("Using previous observation")
+            if self.LAST_STATE.result() == None:
+                rclpy.spin_until_future_complete(self, self.ODOM_OBSERVATION_FUTURE, timeout_sec=10)
+                future = self.ODOM_OBSERVATION_FUTURE
+                self.LAST_STATE = future
+            else:
+                future = self.LAST_STATE
+                self.get_logger().info("Using previous observation")
         else:
             future = self.ODOM_OBSERVATION_FUTURE
             self.LAST_STATE = future
