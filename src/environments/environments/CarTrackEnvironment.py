@@ -75,10 +75,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.IS_STAGED_TRAINING = is_staged_training
         if self.IS_STAGED_TRAINING:
             self.TRAINING_STAGES = get_training_stages(track)
-            self.CURRENT_TRAINING_STAGE = 0
             self.TRAINING_IDX = self.TRAINING_STAGES[self.CURRENT_TRAINING_STAGE][0]
             self.EVAL_IDX = self.TRAINING_STAGES[self.CURRENT_TRAINING_STAGE][1]
-
+        self.CURRENT_TRAINING_STAGE = 0
         #####################################################################################################################
         # Environment configuration -------------------------------------
         if self.BASE_REWARD_FUNCTION == 'progressive':
