@@ -5,11 +5,6 @@ from launch import LaunchDescription
 from launch.substitutions import TextSubstitution
 import yaml
 
-alg_launch = {
-    'astar': 'astar',
-    'dstarlite': 'dstarlite',
-}
-
 def generate_launch_description():
     pkg_controllers = get_package_share_directory('controllers')
     config_path = os.path.join(pkg_controllers, 'plan.yaml')
@@ -22,7 +17,9 @@ def generate_launch_description():
             package='controllers',
             executable='planner',
             output='screen',
-            parameters=[{'alg': TextSubstitution(text=str(alg))}, {'map': TextSubstitution(text=str(map))}, {'yaml_path': TextSubstitution(text=str(yaml_path))}]
-        )
+            parameters=[{'alg': TextSubstitution(text=str(alg))}, 
+                {'map': TextSubstitution(text=str(map))}, 
+                {'yaml_path': TextSubstitution(text=str(yaml_path))}]
+    )
     return LaunchDescription([SetParameter(name='use_sim_time', value=True), alg])
 
