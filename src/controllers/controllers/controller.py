@@ -140,9 +140,9 @@ class Controller(Node):
         sim_velocity_msg = Twist()
         sim_velocity_msg.angular.z = float(ang_vel)
         sim_velocity_msg.linear.x = float(lin_vel)
-
         car_velocity_msg.drive.steering_angle = float(steering_angle)
         car_velocity_msg.drive.speed = float(lin_vel)
+        
         header = Header()
         header.stamp = self.get_clock().now().to_msg() 
         car_velocity_msg.header = header
