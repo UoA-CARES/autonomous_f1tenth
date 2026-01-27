@@ -63,9 +63,7 @@ def generate_launch_description():
             package='controllers',
             executable='track',
             output='screen',
-            parameters=[{'car_name': car_name},
-                {'alg': alg}, 
-                {'path_file_path': path_file_path}]
+            parameters=[{'car_name': car_name}, {'alg': alg},  {'path_file_path': path_file_path}]
         )
 
         if startStage == 'track':
@@ -121,11 +119,5 @@ def generate_launch_description():
     else:
         alg = IncludeLaunchDescription(alg_launch, launch_arguments={'car_name': car_name})
 
-    return LaunchDescription([
-        env_var,
-        SetParameter(name='use_sim_time', value=True),
-        environment,
-        alg,
-        sim
-    ])
+    return LaunchDescription([env_var, SetParameter(name='use_sim_time', value=True), environment, alg, sim])
 
