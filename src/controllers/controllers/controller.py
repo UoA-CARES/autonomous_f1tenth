@@ -31,14 +31,12 @@ class Controller(Node):
         self.LIDAR_PROCESSING:Literal["avg","median", "avg_w_consensus","pretrained_ae", "raw"] = 'median'
         
         # Pub/Sub ----------------------------------------------------
-        # Ackermann pub only works for physical version
         self.ackerman_pub = self.create_publisher(
             AckermannDriveStamped,
             f'/{self.NAME}/drive',
             1
         )
 
-        # Twist for sim
         self.cmd_vel_pub = self.create_publisher(
             Twist,
             f'/{self.NAME}/cmd_vel',
@@ -63,6 +61,19 @@ class Controller(Node):
             1
         )
 
+        self.message_filter = ApproximateTimeSynchronizer(
+            [self.odom_sub, self.lidar_sub],
+            1,
+            0.1,
+        )
+
+        self.message_filter.registerCallback(self.message_filter_callback)
+        self.timer = self.create_timer(step_length, self.timer_cb)
+        self.observation_future = Future()
+        self.timer_future = Future()
+        self.firstOdom = isCar
+        self.offset = [0, 0, 0, 0, 0, 0]
+
         ##### FOR LOCALIZED METHODS ONLY############################
         qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
@@ -76,24 +87,7 @@ class Controller(Node):
         )
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
-        # -----------------------------------------------------------
-
-        self.message_filter = ApproximateTimeSynchronizer(
-            [self.odom_sub, self.lidar_sub],
-            1,
-            0.1,
-        )
-
-        self.message_filter.registerCallback(self.message_filter_callback)
-
-        self.observation_future = Future()
-
-        self.timer = self.create_timer(step_length, self.timer_cb)
-        self.timer_future = Future()
-        
-        self.firstOdom = isCar
-        self.offset = [0, 0, 0, 0, 0, 0]
-
+        ##################################################################################################################### 
 
     def step(self, action, policy):
         lin_vel, steering_angle = action
@@ -112,12 +106,8 @@ class Controller(Node):
         if self.firstOdom:
             self.offset = odom[0:6]
             self.firstOdom = False
-        odom[0] = odom[0] - self.offset[0]
-        odom[1] = odom[1] - self.offset[1]
-        odom[2] = odom[2] - self.offset[2]
-        odom[3] = odom[3] - self.offset[3]
-        odom[4] = odom[4] - self.offset[4]
-        odom[5] = odom[5] - self.offset[5]
+        for i in range(0,6):
+            odom[i] = odom[i] - self.offset[i]
         num_points = self.LIDAR_POINTS
 
         match self.LIDAR_PROCESSING:
