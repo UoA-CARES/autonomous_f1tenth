@@ -20,6 +20,10 @@ def generate_launch_description():
     alg = config['sim']['ros__parameters']['algorithm']
     startStage = config['sim']['ros__parameters']['start_stage']
     car_name = config['sim']['ros__parameters'].get('car_name', 'f1tenth')
+    track = config['sim']['ros__parameters']['track']
+
+    env_launch = PythonLaunchDescriptionSource(os.path.join(pkg_environments, f'{env.lower()}.launch.py'))
+    alg_launch = PythonLaunchDescriptionSource(os.path.join(pkg_controllers, f'{alg}.launch.py'))
 
     match alg:
         case 'rl' | 'ftg':
@@ -28,8 +32,8 @@ def generate_launch_description():
             tracking = True
 
     environment =  IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(os.path.join(pkg_environments, f'{env.lower()}.launch.py')),
-        launch_arguments={'track': TextSubstitution(text=str(config['sim']['ros__parameters']['track'])),
+        env_launch,
+        launch_arguments={'track': track,
             'car_name': car_name,
             'car_one': car_name,
             #'car_two': TextSubstitution(text=str(config['sim']['ros__parameters']['ftg_car_name']) if 'ftg_car_name' in config['sim']['ros__parameters'] else 'ftg_car'),
@@ -119,10 +123,7 @@ def generate_launch_description():
             parameters=[{'car_name': car_name}],
         )
     else:
-        alg = IncludeLaunchDescription(
-            launch_description_source = PythonLaunchDescriptionSource(os.path.join(pkg_controllers, f'{alg}.launch.py')),
-            launch_arguments={'car_name': car_name,}.items()
-        )
+        alg = IncludeLaunchDescription(alg_launch, launch_arguments={'car_name': car_name,}.items())
 
     return LaunchDescription([
         SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
