@@ -113,22 +113,16 @@ class Controller(Node):
         match self.LIDAR_PROCESSING:
             case 'avg':
                 processed_lidar_range = avg_lidar(lidar, num_points)
-                visualized_range = processed_lidar_range
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'median':
                 processed_lidar_range = uneven_median_lidar(lidar, num_points)
-                visualized_range = processed_lidar_range
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'raw':
                 processed_lidar_range = process_lidar_med_filt(lidar, 15)
-                visualized_range = processed_lidar_range
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'avg_w_consensus':
                 processed_lidar_range = avg_lidar_w_consensus(lidar, num_points)
-                visualized_range = processed_lidar_range
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'forward_reduce':
                 processed_lidar_range = forward_reduce_lidar(lidar)
+        visualized_range = processed_lidar_range
+        scan = create_lidar_msg(lidar, num_points, visualized_range)
         self.processed_publisher.publish(scan)
         state = odom+processed_lidar_range
         return state
@@ -149,8 +143,6 @@ class Controller(Node):
 
         car_velocity_msg.drive.steering_angle = float(steering_angle)
         car_velocity_msg.drive.speed = float(lin_vel)
-        
-        # Add a ROS header with a timestamp
         header = Header()
         header.stamp = self.get_clock().now().to_msg() 
         car_velocity_msg.header = header
