@@ -65,7 +65,7 @@ class FollowTheGapPolicy():
             val = (np.pi*2-abs(val))*-1*np.sign(val)
         return val
     
-    def cos_rule(d1, d2, phi):
+    def cos_rule(self, d1, d2, phi):
         l = np.sqrt((d1**2+d2**2-2*d1*d2*np.cos(phi))/4)
         h = np.sqrt((d1**2+d2**2+2*d1*d2*np.cos(phi))/4)
         return l, h
