@@ -5,10 +5,8 @@ import os
 import time
 
 def main():
-    rclpy.init()
-    
+    rclpy.init() 
     param_node = rclpy.create_node('params')
-    
     param_node.declare_parameters(
         '',
         [
@@ -16,7 +14,6 @@ def main():
             ('track_name', 'multi_track'),
         ]
     )
-
     params = param_node.get_parameters(['car_name', 'track_name'])
     CAR_NAME, TRACK_NAME = [param.value for param in params]
     controller = Controller('ftg_policy_', CAR_NAME, 0.1)
@@ -57,7 +54,6 @@ class FollowTheGapPolicy():
     def calc_border_distances(self,range):
         obstacle_buffer = 0.001 # value needs to be tinkered with
         chassis_width = 0.16
-
         d_n = np.sqrt(max(0.001,range**2-(obstacle_buffer+chassis_width)**2))
         return d_n
     
@@ -68,6 +64,11 @@ class FollowTheGapPolicy():
         if abs(val) > np.pi:
             val = (np.pi*2-abs(val))*-1*np.sign(val)
         return val
+    
+    def cos_rule(d1, d2, phi):
+        l = np.sqrt((d1**2+d2**2-2*d1*d2*np.cos(phi))/4)
+        h = np.sqrt((d1**2+d2**2+2*d1*d2*np.cos(phi))/4)
+        return l, h
     
     def select_action(self, state):
         lidar_poss_angles = np.linspace(-self.lidar_angle, self.lidar_angle, 10)
@@ -132,7 +133,6 @@ class FollowTheGapPolicy():
             action = np.asarray([self.lin, 0])
             return action
         
-        
         # Generate complete gap array, find max
         G = []
         if (border_angles[0] > angle_constraint_r):
@@ -173,33 +173,25 @@ class FollowTheGapPolicy():
             d2 = border_ranges[greatest_gap_index*2]
             theta1 = border_angles[greatest_gap_index*2-1]
             theta2 = border_angles[greatest_gap_index*2]
+
         if (theta1 > 0): # Both obstacles to left of robot
             phi = theta2-theta1
-            l = np.sqrt((d1**2+d2**2-2*d1*d2*np.cos(phi))/4)
-            h = np.sqrt((d1**2+d2**2+2*d1*d2*np.cos(phi))/4)
-            gap_centre_angle = (np.arccos((h**2+d1**2-l**2)/(2*h*d1))) + theta1
-            
+            l, h = self.cos_rule(d1, d2, phi)
+            gap_centre_angle = (np.arccos((h**2+d1**2-l**2)/(2*h*d1))) + theta1    
         elif (theta2 < 0): # Both obstacles to right of robot
             phi = theta1-theta2
-            l = np.sqrt((d1**2+d2**2-2*d1*d2*np.cos(phi))/4)
-            h = np.sqrt((d1**2+d2**2+2*d1*d2*np.cos(phi))/4)
+            l, h = self.cos_rule(d1, d2, phi)
             gap_centre_angle = (np.arccos((d2**2+h**2-l**2)/(2*d2*h)))*-1 + theta2
         else: # One obstacle on left, other on right
             phi = abs(theta1)+theta2
-            l = np.sqrt((d1**2+d2**2-2*d1*d2*np.cos(phi))/4)
-            h = np.sqrt((d1**2+d2**2+2*d1*d2*np.cos(phi))/4)
+            l, h = self.cos_rule(d1, d2, phi)
             if (l > (d2*np.sin(theta2))): # Turning right
                 gap_centre_angle = (np.arccos((d2**2+h**2-l**2)/(2*d2*h))-theta2)*-1
-
             else: # Turning left
                 gap_centre_angle = np.arccos((d1**2+h**2-l**2)/(2*d1*h))-abs(theta1)
-        gap_centre_angle = self.constrain_angle(gap_centre_angle)
-
-        ang = gap_centre_angle 
+        ang = self.constrain_angle(gap_centre_angle)
         action = np.asarray([self.lin, ang])
         return action
-
-
 
 if __name__ == '__main__':
     main()
