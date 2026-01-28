@@ -1,6 +1,5 @@
 import numpy as np
 
-# Returns steering angle to turn to goal
 def turn_to_goal(location, yaw, goal, goal_tolerance=0.5, angle_diff_tolerance=0.2, max_turn=1):
     distance = goal - location
     if ((abs(distance[0]) < goal_tolerance) and (abs(distance[1] < goal_tolerance))): 
@@ -83,13 +82,11 @@ def furthestPointInRange(location, path, look_ahead):
         return closestPointInd
     return lastPointInd
 
-# Needs fix
 def linCalc(ang, maxLin=1, maxAng=0.85, fullSpeedCutoff = 0.05):
     if ang < fullSpeedCutoff:
         return maxLin
     else:
         minLin = 0.05*maxLin
-        # Calculate linear decreasing function
         gradient = (minLin - maxLin)/(maxAng - fullSpeedCutoff)
         c = minLin - (maxAng * gradient)
         lin = gradient*ang + c
@@ -103,16 +100,16 @@ def loadPath(filename):
     file.close()
     i = 0
     while i < len(txt)-1:
-        if txt[i] == '[': # New coordinate
+        if txt[i] == '[':
             i+= 1
             string = ''
-            while txt[i] != ',': # First value
+            while txt[i] != ',': 
                 string += txt[i]
                 i += 1
             num1 = float(string)
             string = ''
             i += 2
-            while txt[i] != ']': # Second value
+            while txt[i] != ']':
                 string += txt[i]
                 i+=1
             num2 = float(string)

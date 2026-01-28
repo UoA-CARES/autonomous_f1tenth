@@ -31,14 +31,12 @@ class Controller(Node):
         self.LIDAR_PROCESSING:Literal["avg","median", "avg_w_consensus","pretrained_ae", "raw"] = 'median'
         
         # Pub/Sub ----------------------------------------------------
-        # Ackermann pub only works for physical version
         self.ackerman_pub = self.create_publisher(
             AckermannDriveStamped,
             f'/{self.NAME}/drive',
             1
         )
 
-        # Twist for sim
         self.cmd_vel_pub = self.create_publisher(
             Twist,
             f'/{self.NAME}/cmd_vel',
@@ -63,6 +61,19 @@ class Controller(Node):
             1
         )
 
+        self.message_filter = ApproximateTimeSynchronizer(
+            [self.odom_sub, self.lidar_sub],
+            1,
+            0.1,
+        )
+
+        self.message_filter.registerCallback(self.message_filter_callback)
+        self.timer = self.create_timer(step_length, self.timer_cb)
+        self.observation_future = Future()
+        self.timer_future = Future()
+        self.firstOdom = isCar
+        self.offset = [0, 0, 0, 0, 0, 0]
+
         ##### FOR LOCALIZED METHODS ONLY############################
         qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
@@ -76,24 +87,7 @@ class Controller(Node):
         )
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
-        # -----------------------------------------------------------
-
-        self.message_filter = ApproximateTimeSynchronizer(
-            [self.odom_sub, self.lidar_sub],
-            1,
-            0.1,
-        )
-
-        self.message_filter.registerCallback(self.message_filter_callback)
-
-        self.observation_future = Future()
-
-        self.timer = self.create_timer(step_length, self.timer_cb)
-        self.timer_future = Future()
-        
-        self.firstOdom = isCar
-        self.offset = [0, 0, 0, 0, 0, 0]
-
+        ##################################################################################################################### 
 
     def step(self, action, policy):
         lin_vel, steering_angle = action
@@ -112,33 +106,23 @@ class Controller(Node):
         if self.firstOdom:
             self.offset = odom[0:6]
             self.firstOdom = False
-        odom[0] = odom[0] - self.offset[0]
-        odom[1] = odom[1] - self.offset[1]
-        odom[2] = odom[2] - self.offset[2]
-        odom[3] = odom[3] - self.offset[3]
-        odom[4] = odom[4] - self.offset[4]
-        odom[5] = odom[5] - self.offset[5]
+        for i in range(0,6):
+            odom[i] = odom[i] - self.offset[i]
         num_points = self.LIDAR_POINTS
 
         match self.LIDAR_PROCESSING:
             case 'avg':
                 processed_lidar_range = avg_lidar(lidar, num_points)
-                visualized_range = processed_lidar_range
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'median':
                 processed_lidar_range = uneven_median_lidar(lidar, num_points)
-                visualized_range = processed_lidar_range
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'raw':
                 processed_lidar_range = process_lidar_med_filt(lidar, 15)
-                visualized_range = processed_lidar_range
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'avg_w_consensus':
                 processed_lidar_range = avg_lidar_w_consensus(lidar, num_points)
-                visualized_range = processed_lidar_range
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
             case 'forward_reduce':
                 processed_lidar_range = forward_reduce_lidar(lidar)
+        visualized_range = processed_lidar_range
+        scan = create_lidar_msg(lidar, num_points, visualized_range)
         self.processed_publisher.publish(scan)
         state = odom+processed_lidar_range
         return state
@@ -156,11 +140,9 @@ class Controller(Node):
         sim_velocity_msg = Twist()
         sim_velocity_msg.angular.z = float(ang_vel)
         sim_velocity_msg.linear.x = float(lin_vel)
-
         car_velocity_msg.drive.steering_angle = float(steering_angle)
         car_velocity_msg.drive.speed = float(lin_vel)
         
-        # Add a ROS header with a timestamp
         header = Header()
         header.stamp = self.get_clock().now().to_msg() 
         car_velocity_msg.header = header

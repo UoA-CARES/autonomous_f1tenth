@@ -1,11 +1,9 @@
 import os
 from ament_index_python import get_package_share_directory
-import launch_ros
 from launch_ros.actions import Node, SetParameter
 from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
-from launch.substitutions import TextSubstitution
 import yaml
 
 def generate_launch_description():
@@ -19,6 +17,13 @@ def generate_launch_description():
     env = config['sim']['ros__parameters']['environment']
     alg = config['sim']['ros__parameters']['algorithm']
     startStage = config['sim']['ros__parameters']['start_stage']
+    car_name = config['sim']['ros__parameters'].get('car_name', 'f1tenth')
+    track = config['sim']['ros__parameters']['track']
+    path_file_path = config['sim']['ros__parameters']['path_file_path']
+
+    env_launch = PythonLaunchDescriptionSource(os.path.join(pkg_environments, f'{env.lower()}.launch.py'))
+    alg_launch = PythonLaunchDescriptionSource(os.path.join(pkg_controllers, f'{alg}.launch.py'))
+    env_var = SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19])
 
     match alg:
         case 'rl' | 'ftg':
@@ -27,12 +32,12 @@ def generate_launch_description():
             tracking = True
 
     environment =  IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(os.path.join(pkg_environments, f'{env.lower()}.launch.py')),
-        launch_arguments={'track': TextSubstitution(text=str(config['sim']['ros__parameters']['track'])),
-            'car_name': TextSubstitution(text=str(config['sim']['ros__parameters'].get('car_name', 'f1tenth'))),
-            'car_one': TextSubstitution(text=str(config['sim']['ros__parameters'].get('car_name', 'f1tenth'))),
+        env_launch,
+        launch_arguments={'track': track,
+            'car_name': car_name,
+            'car_one': car_name,
             #'car_two': TextSubstitution(text=str(config['sim']['ros__parameters']['ftg_car_name']) if 'ftg_car_name' in config['sim']['ros__parameters'] else 'ftg_car'),
-        }.items() #TODO: this doesn't do anything
+        }.items()
     )
 
     sim = Node(
@@ -41,7 +46,7 @@ def generate_launch_description():
         parameters=[config_path],
         name='sim',
         output='screen',
-        emulate_tty=True, 
+        emulate_tty=True
     )
 
     if tracking:
@@ -50,43 +55,31 @@ def generate_launch_description():
             executable= 'state_machine',
             output='screen',
             emulate_tty=True,
-            parameters = [{'startStage': TextSubstitution(text=str(config['sim']['ros__parameters']['start_stage']))}]
+            parameters = [{'startStage': startStage}]
         )
-
         alg = Node(
             package='controllers',
             executable='track',
             output='screen',
-            parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters'].get('car_name', 'f1tenth')))},
-                {'alg': TextSubstitution(text=str(alg))}, 
-                {'path_file_path': TextSubstitution(text=str(config['sim']['ros__parameters']['path_file_path']))}],
+            parameters=[{'car_name': car_name}, {'alg': alg},  {'path_file_path': path_file_path}]
         )
 
         if startStage == 'track':
-            return LaunchDescription([
-                SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
-                SetParameter(name='use_sim_time', value=True),
-                environment,
-                alg,
-                sim,
-                state_machine,
-            ])
+            return LaunchDescription([env_var, SetParameter(name='use_sim_time', value=True), environment, alg, sim, state_machine])
         else:
-            lidar_to_base_tf_node = launch_ros.actions.Node( 
+            lidar_to_base_tf_node = Node( 
                 package='tf2_ros', 
                 executable='static_transform_publisher', 
                 arguments=['0', '0', '0', '0', '0', '0', "f1tenthbase_link", "f1tenthhokuyo_10lx_lidar_link"], 
                 output='screen'
             )
-            
-            odom_to_base_tf_node = launch_ros.actions.Node(
+            odom_to_base_tf_node = Node(
                 package='robot_localization',
                 executable='ekf_node',
                 name='ekf_filter_node',
                 output='screen',
                 parameters=[os.path.join(pkg_f1tenth_description, 'config/ekf.yaml'), {'use_sim_time': True}]
             )
-
             slam_node = IncludeLaunchDescription(
                 launch_description_source = os.path.join(pkg_slam,f'launch/online_async_launch.py'),
                 launch_arguments = {
@@ -94,16 +87,15 @@ def generate_launch_description():
                     'slam_params_file':"./src/f1tenth/f1tenth_description/config/slam_toolbox.yaml"
                 }.items() 
             )
-
             ftg_node = Node(
                 package='controllers',
                 executable='ftg_policy',
                 output='screen',
-                parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters'].get('car_name', 'f1tenth')))}],
+                parameters=[{'car_name': car_name}]
             )
             
             return LaunchDescription([
-                SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
+                env_var,
                 SetParameter(name='use_sim_time', value=True),
                 environment,
                 alg,
@@ -120,19 +112,10 @@ def generate_launch_description():
             package='controllers',
             executable=f'{alg}_policy',
             output='screen',
-            parameters=[{'car_name': TextSubstitution(text=str(config['sim']['ros__parameters'].get('car_name', 'f1tenth')))}],
+            parameters=[{'car_name': car_name}]
         )
     else:
-        alg = IncludeLaunchDescription(
-            launch_description_source = PythonLaunchDescriptionSource(os.path.join(pkg_controllers, f'{alg}.launch.py')),
-            launch_arguments={'car_name': TextSubstitution(text=str(config['sim']['ros__parameters'].get('car_name', 'f1tenth'))),}.items()
-        )
+        alg = IncludeLaunchDescription(alg_launch, launch_arguments={'car_name': car_name})
 
-    return LaunchDescription([
-        SetEnvironmentVariable(name='GZ_SIM_RESOURCE_PATH', value=pkg_f1tenth_description[:-19]),
-        SetParameter(name='use_sim_time', value=True),
-        environment,
-        alg,
-        sim,
-])
+    return LaunchDescription([env_var, SetParameter(name='use_sim_time', value=True), environment, alg, sim])
 
