@@ -39,11 +39,19 @@ def main():
 
 class FollowTheGapPolicy():
 
+    def __init__(self):
+        self.turn_angle = 0.4667
+        self.min_turn_radius = 0.625
+        self.lidar_angle = 1.396
+        self.min_lidar_range = 0.08
+        self.obstacle_max_val = 4
+
+        # Need to make this read in from config
+        self.lin = 1
+
+
     def calc_func(self):
-        turn_angle = 0.4667
-        min_turn_radius = 0.625
-        lidar_angle=1.396
-        meeting_point= np.sqrt(2*min_turn_radius**2-2*min_turn_radius**2*np.cos(2*lidar_angle))
+        meeting_point= np.sqrt(2*self.min_turn_radius**2-2*self.min_turn_radius**2*np.cos(2*self.lidar_angle))
         return meeting_point
     
     def calc_border_distances(self,range):
@@ -62,27 +70,19 @@ class FollowTheGapPolicy():
         return val
     
     def select_action(self, state):
-        lin = 1
-        turn_angle = 0.4667
-        min_turn_radius = 0.625
-        lidar_angle=1.396
-        min_lidar_range = 0.08
-        max_lidar_range = 10
-        lidar_poss_angles = np.linspace(-lidar_angle, lidar_angle, 10)
+        lidar_poss_angles = np.linspace(-self.lidar_angle, self.lidar_angle, 10)
         meeting_dist = self.calc_func()
-        goal_angle = 0
 
         obstacles_angles = []
         obstacles_ranges = []
-        obstacle_max_val = 4
         for i in range(10):
-            if (state[8+i] > min_lidar_range) & (state[8+i]<obstacle_max_val):
+            if (state[8+i] > self.min_lidar_range) & (state[8+i]<self.obstacle_max_val):
                 obstacles_ranges.append(state[8+i])
                 sample = lidar_poss_angles[i]
                 obstacles_angles.append(sample)
 
         if (len(obstacles_angles) < 1):
-            action = np.asarray([lin, goal_angle])
+            action = np.asarray([self.lin, 0])
             return action
 
         # Add obstacle border values to array
@@ -98,14 +98,14 @@ class FollowTheGapPolicy():
 
         # Calculate nonholonomic edge constraints
         if (border_ranges[-1] < meeting_dist):
-            angle_constraint_l = turn_angle
+            angle_constraint_l = self.turn_angle
         else:
-            angle_constraint_l = lidar_angle
+            angle_constraint_l = self.lidar_angle
 
         if (border_ranges[0] < meeting_dist):
-            angle_constraint_r = turn_angle*-1
+            angle_constraint_r = self.turn_angle*-1
         else:
-            angle_constraint_r = lidar_angle*-1
+            angle_constraint_r = self.lidar_angle*-1
         
         r_del_index = -1 
         for i in range(1, len(border_angles), 2): 
@@ -115,7 +115,7 @@ class FollowTheGapPolicy():
             del border_angles[0:r_del_index]
             del border_ranges[0:r_del_index]
         if (len(border_ranges) < 1):
-            action = np.asarray([lin, goal_angle])
+            action = np.asarray([self.lin, 0])
             return action
         
         l_del_index = len(border_angles)
@@ -129,7 +129,7 @@ class FollowTheGapPolicy():
         dist_constraint_l = border_ranges[-1]*np.cos(angle_constraint_l)
         dist_constraint_r = border_ranges[0]*np.cos(angle_constraint_r)
         if (len(border_ranges) < 1):
-            action = np.asarray([lin, goal_angle])
+            action = np.asarray([self.lin, 0])
             return action
         
         
@@ -153,7 +153,7 @@ class FollowTheGapPolicy():
         G.append(np.abs(angle_entry))
         greatest_gap = max(G)
         if (greatest_gap == 0):
-            action = np.asarray([lin, goal_angle])
+            action = np.asarray([self.lin, 0])
             return action 
         greatest_gap_index = G.index(greatest_gap)
 
@@ -196,7 +196,7 @@ class FollowTheGapPolicy():
         gap_centre_angle = self.constrain_angle(gap_centre_angle)
 
         ang = gap_centre_angle 
-        action = np.asarray([lin, ang])
+        action = np.asarray([self.lin, ang])
         return action
 
 
