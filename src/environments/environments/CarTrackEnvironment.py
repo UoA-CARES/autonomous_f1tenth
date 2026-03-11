@@ -296,6 +296,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         print(f"{full_next_state=}")
         print(f"{len(full_next_state)=}")
+        print(f"{self.OBSERVATION_SIZE=}")
         return full_next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
