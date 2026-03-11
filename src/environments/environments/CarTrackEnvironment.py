@@ -213,7 +213,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.BASE_REWARD_FUNCTION == "progressive":
             self.PROGRESS_NOT_MET_CNT = 0
         info = {}
-        return full_state, info
+        return state, info
 
     def start_eval(self):
         self.EVAL_TRACK_IDX = 0
@@ -294,10 +294,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.IS_EVAL and (terminated or truncated):
             self.EVAL_TRACK_IDX
 
-        print(f"{full_next_state=}")
-        print(f"{len(full_next_state)=}")
+        print(f"{state=}")
+        print(f"{len(state)=}")
         print(f"{self.OBSERVATION_SIZE=}")
-        return full_next_state, reward, terminated, truncated, info
+        return state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
         return has_collided(ranges, self.COLLISION_RANGE) or has_flipped_over(
@@ -368,7 +368,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
             state["lidar"] = lidar_data.tolist()
             full_state = odom + lidar_data.tolist()
         else:
-            full_state = odom[-2:] + processed_lidar_range
+            full_state = odom + processed_lidar_range
+
+        state = odom[-2:] + processed_lidar_range
         return state, full_state, lidar.ranges
 
     def compute_reward(self, state, next_state, raw_lidar_range):
