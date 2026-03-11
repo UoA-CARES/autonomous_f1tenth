@@ -16,7 +16,7 @@ class EnvironmentFactory:
         print(config)
         if name == "CarTrack":
             return CarTrackEnvironment(
-                car_name="car_one",
+                car_name="f1tenth",
                 # config["car_name"],
                 # config["reward_range"],
                 # config["max_steps"],
