@@ -294,9 +294,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.IS_EVAL and (terminated or truncated):
             self.EVAL_TRACK_IDX
 
-        print(f"{next_state=}")
-        print(f"{len(next_state)=}")
-        print(f"{self.OBSERVATION_SIZE=}")
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
@@ -371,7 +368,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             full_state = odom + processed_lidar_range
 
         state = odom[-2:] + processed_lidar_range
-        return state, full_state, lidar.ranges
+        return np.asarray(state), full_state, lidar.ranges
 
     def compute_reward(self, state, next_state, raw_lidar_range):
         reward = 0
