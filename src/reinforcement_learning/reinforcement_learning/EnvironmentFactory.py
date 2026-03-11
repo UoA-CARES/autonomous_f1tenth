@@ -1,14 +1,16 @@
-from environments.CarTrackEnvironment import CarTrackEnvironment
-from environments.CarRaceEnvironment import CarRaceEnvironment
+import rclpy
+
 from environments.CarBeatEnvironment import CarBeatEnvironment
 from environments.CarOvertakeEnvironment import CarOvertakeEnvironment
-from environments.TwoCarEnvironment import TwoCarEnvironment
+from environments.CarRaceEnvironment import CarRaceEnvironment
+from environments.CarTrackEnvironment import CarTrackEnvironment
 from environments.MultiAgentEnvironment import MultiAgentEnvironment
+from environments.TwoCarEnvironment import TwoCarEnvironment
 
 
 class EnvironmentFactory:
     def __init__(self):
-        pass
+        rclpy.init()
 
     def create(self, name, config):
         print(config)
