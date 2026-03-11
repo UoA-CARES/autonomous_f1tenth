@@ -295,7 +295,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.EVAL_TRACK_IDX
 
         print(f"{full_next_state=}")
-        print(f"{full_next_state.shape=}")
+        print(f"{len(full_next_state)=}")
         return full_next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
