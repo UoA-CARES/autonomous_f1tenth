@@ -293,7 +293,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         if self.IS_EVAL and (terminated or truncated):
             self.EVAL_TRACK_IDX
-        return next_state, reward, terminated, truncated, info
+        return full_next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
         return has_collided(ranges, self.COLLISION_RANGE) or has_flipped_over(
