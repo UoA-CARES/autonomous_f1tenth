@@ -368,7 +368,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             state["lidar"] = lidar_data.tolist()
             full_state = odom + lidar_data.tolist()
         else:
-            full_state = odom + processed_lidar_range
+            full_state = odom[-2:] + processed_lidar_range
         return state, full_state, lidar.ranges
 
     def compute_reward(self, state, next_state, raw_lidar_range):
