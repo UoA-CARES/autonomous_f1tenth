@@ -28,13 +28,13 @@ class EnvironmentFactory:
             )
         elif name == "CarRace":
             return CarRaceEnvironment(
-                config["car_name"],
-                config["reward_range"],
-                config["max_steps"],
-                config["collision_range"],
-                config["step_length"],
-                config["track"],
-                config["observation_mode"],
+                car_name="f1tenth",
+                # config["reward_range"],
+                # config["max_steps"],
+                # config["collision_range"],
+                # config["step_length"],
+                # config["track"],
+                # config["observation_mode"],
             )
         elif name == "CarOvertake":
             return CarOvertakeEnvironment(

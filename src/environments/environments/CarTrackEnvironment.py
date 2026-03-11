@@ -213,7 +213,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         if self.BASE_REWARD_FUNCTION == "progressive":
             self.PROGRESS_NOT_MET_CNT = 0
         info = {}
-        return state, info
+        return full_state, info
 
     def start_eval(self):
         self.EVAL_TRACK_IDX = 0
