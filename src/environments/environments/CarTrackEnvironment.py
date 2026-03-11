@@ -369,8 +369,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         state = odom[-2:] + processed_lidar_range
         state = np.asarray(state)
-        print(state.shape)
-        exit()
         return state, full_state, lidar.ranges
 
     def compute_reward(self, state, next_state, raw_lidar_range):
