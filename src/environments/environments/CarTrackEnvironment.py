@@ -1,21 +1,24 @@
 import math
-import numpy as np
 import random
+import time
+from typing import List, Literal, Tuple
+
+import numpy as np
+import scipy
+import torch
+
 from environments.F1tenthEnvironment import F1tenthEnvironment
+
 from .util import (
-    process_ae_lidar,
-    process_odom,
     avg_lidar,
     create_lidar_msg,
-    reconstruct_ae_latent,
+    get_training_stages,
     has_collided,
     has_flipped_over,
-    get_training_stages,
+    process_ae_lidar,
+    process_odom,
+    reconstruct_ae_latent,
 )
-from typing import Literal, List, Tuple
-import torch
-import scipy
-import time
 
 
 class CarTrackEnvironment(F1tenthEnvironment):

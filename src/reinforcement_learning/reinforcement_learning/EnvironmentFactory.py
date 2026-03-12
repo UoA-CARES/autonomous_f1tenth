@@ -89,5 +89,5 @@ class EnvironmentFactory:
                 config["track"],
                 config["observation_mode"],
             )
-        else:
-            raise Exception("EnvironmentFactory: Environment not found")
+
+        raise ValueError("EnvironmentFactory: Environment not found")
