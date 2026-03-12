@@ -305,7 +305,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.STEP_COUNTER += 1
         full_state = self.CURR_STATE
         self.call_step(pause=False)
+
         lin_vel, steering_angle = action
+
         self.set_velocity(lin_vel, steering_angle)
         self.sleep()
 
@@ -345,8 +347,6 @@ class TwoCarEnvironment(F1tenthEnvironment):
         }
         info.update(reward_info)
 
-        if self.IS_EVAL and (terminated or truncated):
-            self.CURR_EVAL_IDX
         if (terminated or truncated) and self.STATUS_LOCK == "off":
             self.change_status_lock("on")
             string = "r_" + str(self.NAME)

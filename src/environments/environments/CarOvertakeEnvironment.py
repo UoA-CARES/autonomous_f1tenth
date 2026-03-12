@@ -196,11 +196,13 @@ class CarOvertakeEnvironment(F1tenthEnvironment):
 
         lin_vel, steering_angle = action
         self.set_velocity(lin_vel, steering_angle)
+
         self.sleep()
+
         next_state, full_next_state, raw_lidar_range = self.get_observation()
         self.call_step(pause=True)
-        self.CURR_STATE = full_next_state
 
+        self.CURR_STATE = full_next_state
         if not self.PREV_CLOSEST_POINT:
             self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(
                 full_state[:2], t_only=True

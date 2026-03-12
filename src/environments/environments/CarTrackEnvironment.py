@@ -1,11 +1,9 @@
 import math
 import random
-import time
 from typing import List, Literal, Tuple
 
 import numpy as np
 import scipy
-import torch
 
 from environments.F1tenthEnvironment import F1tenthEnvironment
 
@@ -128,12 +126,14 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 )
             self.eval_track_idx = 0
 
+        self.step_counter = 0
+
         self.get_logger().info("Environment Setup Complete")
 
         #####################################################################################################################
 
     def reset(self):
-        self.STEP_COUNTER = 0
+        self.step_counter = 0
         self.steps_since_last_goal = 0
         self.GOALS_REACHED = 0
         self.set_velocity(0, 0)
@@ -205,7 +205,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         self.call_step(pause=False)
         state, full_state, _ = self.get_observation()
-        self.CURR_STATE = full_state
+        self.current_state = full_state
         self.call_step(pause=True)
 
         if self.is_multi_track:
@@ -227,42 +227,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.IS_EVAL = False
 
     def step(self, action):
-        self.STEP_COUNTER += 1
-        full_state = self.CURR_STATE
+        self.step_counter += 1
+        full_state = self.current_state
         self.call_step(pause=False)
 
         lin_vel, steering_angle = action
-        if not self.IS_EVAL:
-            time.sleep(
-                0.074
-            )  # 74ms delay to simulate delay between nn output from previous step and action now
+
         self.set_velocity(lin_vel, steering_angle)
-        # action delay based on training stage
-        if self.current_training_stage == 0:
-            action_delay = 0
-            print(f"No action delay  stage: {self.current_training_stage}")
-        elif self.current_training_stage == 1:
-            action_delay = 0.010
-            print(f"10ms action delay  stage: {self.current_training_stage}")
-        elif self.current_training_stage == 2:
-            action_delay = 0.030
-            print(f"30ms action delay  stage: {self.current_training_stage}")
-        elif self.current_training_stage >= 3:
-            action_delay = np.random.uniform(0.073, 0.075)  # 74ms ± 1ms
-            print(
-                f"{action_delay*1000:.1f}ms action delay  stage: {self.current_training_stage}"
-            )
-        time.sleep(action_delay)
+        self.sleep()
+
         next_state, full_next_state, raw_lidar_range = self.get_observation()
         self.call_step(pause=True)
-        # simulate sensor-to-NN delay
-        # if not self.is_evaluating:
-        sensor_delay = np.random.uniform(
-            0.0017, 0.0037
-        )  # 2.7ms ± 1ms needs be remeasured
-        time.sleep(sensor_delay)
 
-        self.CURR_STATE = full_next_state
+        self.current_state = full_next_state
         if not self.PREV_CLOSEST_POINT:
             self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(
                 full_state[:2], t_only=True
@@ -274,9 +251,10 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.STEP_PROGRESS = self.CURR_TRACK_MODEL.get_distance_along_track_parametric(
             self.PREV_CLOSEST_POINT, t2, approximate=True
         )
-        self.center_line_offset = self.CURR_TRACK_MODEL.get_distance_to_spline_point(
-            t2, full_next_state[:2]
-        )
+        # This doesn't show up anywhere?
+        # self.center_line_offset = self.CURR_TRACK_MODEL.get_distance_to_spline_point(
+        #     t2, full_next_state[:2]
+        # )
         self.PREV_CLOSEST_POINT = t2
 
         if abs(self.STEP_PROGRESS) > (full_next_state[6] / 10 * 3):
@@ -295,9 +273,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         }
         info.update(reward_info)
 
-        if self.IS_EVAL and (terminated or truncated):
-            self.eval_track_idx
-
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
@@ -310,12 +285,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
             case "goal_hitting":
                 return (
                     self.steps_since_last_goal >= 20
-                    or self.STEP_COUNTER >= self.MAX_STEPS
+                    or self.step_counter >= self.MAX_STEPS
                 )
             case "progressive":
                 return (
                     self.progress_not_met_cnt >= 5
-                    or self.STEP_COUNTER >= self.MAX_STEPS
+                    or self.step_counter >= self.MAX_STEPS
                 )
             case _:
                 raise Exception("Unknown truncate condition for reward function.")
