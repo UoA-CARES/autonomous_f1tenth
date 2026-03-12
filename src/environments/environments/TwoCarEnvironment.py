@@ -54,9 +54,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
 
         #####################################################################################################################
         # Environment configuration -------------------------------------
-        if self.IS_MULTI_TRACK:
+        if self.is_multi_track:
             self.EVAL_TRACKS_IDX = int(
-                len(self.ALL_TRACK_WAYPOINTS) * self.MULTI_TRACK_TRAIN_EVAL_SPLIT
+                len(self.all_track_waypoints) * self.MULTI_TRACK_TRAIN_EVAL_SPLIT
             )
 
         #####################################################################################################################
@@ -145,9 +145,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
             self.CURR_TRACK = track
             self.GOAL_POS = [goal[0], goal[1]]
             self.SPAWN_INDEX = spawn
-            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            self.CURR_WAYPOINTS = self.all_track_waypoints[self.CURR_TRACK]
             if self.IS_EVAL:
-                eval_track_key_list = list(self.ALL_TRACK_WAYPOINTS.keys())[
+                eval_track_key_list = list(self.all_track_waypoints.keys())[
                     self.EVAL_TRACKS_IDX :
                 ]
                 self.CURR_EVAL_IDX += 1
@@ -170,7 +170,7 @@ class TwoCarEnvironment(F1tenthEnvironment):
         self.call_step(pause=True)
         info = {}
 
-        if self.IS_MULTI_TRACK:
+        if self.is_multi_track:
             self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(
             full_state[:2], t_only=True
@@ -186,9 +186,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
         return state, info
 
     def car_spawn(self):
-        if self.IS_MULTI_TRACK:
+        if self.is_multi_track:
             if self.IS_EVAL:
-                eval_track_key_list = list(self.ALL_TRACK_WAYPOINTS.keys())[
+                eval_track_key_list = list(self.all_track_waypoints.keys())[
                     self.EVAL_TRACKS_IDX :
                 ]
                 self.CURR_TRACK = eval_track_key_list[self.CURR_EVAL_IDX]
@@ -196,9 +196,9 @@ class TwoCarEnvironment(F1tenthEnvironment):
                 self.CURR_EVAL_IDX = self.CURR_EVAL_IDX % len(eval_track_key_list)
             else:
                 self.CURR_TRACK = random.choice(
-                    list(self.ALL_TRACK_WAYPOINTS.keys())[: self.EVAL_TRACKS_IDX]
+                    list(self.all_track_waypoints.keys())[: self.EVAL_TRACKS_IDX]
                 )
-            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            self.CURR_WAYPOINTS = self.all_track_waypoints[self.CURR_TRACK]
         else:
             self.CURR_TRACK = self.TRACK
         if (self.CURR_TRACK[-3:]).isdigit():

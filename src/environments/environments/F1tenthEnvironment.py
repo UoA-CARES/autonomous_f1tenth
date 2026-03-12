@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import rclpy
 import torch
@@ -68,16 +70,16 @@ class F1tenthEnvironment(Node):
 
         #####################################################################################################################
         # Environment params -----------------------------------------
-        self.IS_MULTI_TRACK = (
+        self.is_multi_track = (
             "multi_track" in self.TRACK or self.TRACK == "staged_tracks"
         )
-        if self.IS_MULTI_TRACK:
-            _, self.ALL_TRACK_WAYPOINTS = get_all_goals_and_waypoints_in_multi_tracks(
+        if self.is_multi_track:
+            _, self.all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(
                 self.TRACK
             )
-            self.ALL_TRACK_MODELS = get_track_math_defs(self.ALL_TRACK_WAYPOINTS)
-            self.CURR_TRACK = list(self.ALL_TRACK_WAYPOINTS.keys())[0]
-            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            self.ALL_TRACK_MODELS = get_track_math_defs(self.all_track_waypoints)
+            self.CURR_TRACK = list(self.all_track_waypoints.keys())[0]
+            self.CURR_WAYPOINTS = self.all_track_waypoints[self.CURR_TRACK]
             self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
         else:
             if "test_track" in self.TRACK:

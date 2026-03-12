@@ -85,47 +85,48 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         #####################################################################################################################
         # Reward configuration -----------------------------------------
-        self.BASE_REWARD_FUNCTION: Literal["goal_hitting", "progressive"] = (
+        self.base_reward_function: Literal["goal_hitting", "progressive"] = (
             "progressive"
         )
-        self.EXTRA_REWARD_TERMS: List[Literal["penalize_turn"]] = []
-        self.REWARD_MODIFIERS: List[Tuple[Literal["turn", "wall_proximity"], float]] = [
+        self.extra_reward_terms: List[Literal["penalize_turn"]] = []
+        self.reward_modifiers: List[Tuple[Literal["turn", "wall_proximity"], float]] = [
             ("turn", 0.3),
             ("wall_proximity", 0.7),
         ]
         if track == "narrow_multi_track":
-            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 12 / 15
+            self.multi_track_train_eval_split = 12 / 15
         else:
-            self.MULTI_TRACK_TRAIN_EVAL_SPLIT = 0.5
+            self.multi_track_train_eval_split = 0.5
 
         #####################################################################################################################
         # Staging configuration ----------------------------------------
-        self.IS_STAGED_TRAINING = is_staged_training
-        if self.IS_STAGED_TRAINING:
-            self.TRAINING_STAGES = get_training_stages(track)
-            self.TRAINING_IDX = self.TRAINING_STAGES[self.CURRENT_TRAINING_STAGE][0]
-            self.EVAL_IDX = self.TRAINING_STAGES[self.CURRENT_TRAINING_STAGE][1]
-        self.CURRENT_TRAINING_STAGE = 0
+        self.is_staged_training = is_staged_training
+        self.current_training_stage = 0
+        if self.is_staged_training:
+            self.training_stages = get_training_stages(track)
+            self.training_idx = self.training_stages[self.current_training_stage][0]
+            self.eval_idx = self.training_stages[self.current_training_stage][1]
+
         #####################################################################################################################
         # Environment configuration -------------------------------------
-        if self.BASE_REWARD_FUNCTION == "progressive":
-            self.PROGRESS_NOT_MET_CNT = 0
-        self.STEPS_SINCE_LAST_GOAL = 0
+        if self.base_reward_function == "progressive":
+            self.progress_not_met_cnt = 0
+        self.steps_since_last_goal = 0
 
-        if self.IS_MULTI_TRACK:
-            if self.IS_STAGED_TRAINING:
-                self.CURR_TRACK = list(self.ALL_TRACK_WAYPOINTS.keys())[
-                    self.TRAINING_IDX[0]
+        if self.is_multi_track:
+            if self.is_staged_training:
+                self.current_track = list(self.all_track_waypoints.keys())[
+                    self.training_idx[0]
                 ]
-                self.EVAL_TRACK_BEGIN_IDX = None
+                self.eval_track_begin_idx = None
                 self.get_logger().info(
-                    f"Track '{track}', {self.TRAINING_IDX} training, {self.EVAL_IDX} evaluation"
+                    f"Track '{track}', {self.training_idx} training, {self.eval_idx} evaluation"
                 )
             else:
-                self.EVAL_TRACK_BEGIN_IDX = int(
-                    len(self.ALL_TRACK_WAYPOINTS) * self.MULTI_TRACK_TRAIN_EVAL_SPLIT
+                self.eval_track_begin_idx = int(
+                    len(self.all_track_waypoints) * self.multi_track_train_eval_split
                 )
-            self.EVAL_TRACK_IDX = 0
+            self.eval_track_idx = 0
 
         self.get_logger().info("Environment Setup Complete")
 
@@ -133,51 +134,51 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
     def reset(self):
         self.STEP_COUNTER = 0
-        self.STEPS_SINCE_LAST_GOAL = 0
+        self.steps_since_last_goal = 0
         self.GOALS_REACHED = 0
         self.set_velocity(0, 0)
 
-        if self.IS_MULTI_TRACK:
+        if self.is_multi_track:
             if (
-                self.EVAL_TRACK_BEGIN_IDX is not None
-                and self.EVAL_TRACK_BEGIN_IDX >= len(self.ALL_TRACK_WAYPOINTS)
+                self.eval_track_begin_idx is not None
+                and self.eval_track_begin_idx >= len(self.all_track_waypoints)
             ):
                 if self.IS_EVAL:
-                    all_track_keys = list(self.ALL_TRACK_WAYPOINTS.keys())
-                    self.CURR_TRACK = all_track_keys[self.EVAL_TRACK_IDX]
-                    self.EVAL_TRACK_IDX += 1
-                    self.EVAL_TRACK_IDX = self.EVAL_TRACK_IDX % len(all_track_keys)
+                    all_track_keys = list(self.all_track_waypoints.keys())
+                    self.current_track = all_track_keys[self.eval_track_idx]
+                    self.eval_track_idx += 1
+                    self.eval_track_idx = self.eval_track_idx % len(all_track_keys)
                 else:
-                    self.CURR_TRACK = random.choice(
-                        list(self.ALL_TRACK_WAYPOINTS.keys())
+                    self.current_track = random.choice(
+                        list(self.all_track_waypoints.keys())
                     )
             else:
                 if self.IS_EVAL:
-                    if self.IS_STAGED_TRAINING:
-                        eval_track_key_list = list(self.ALL_TRACK_WAYPOINTS.keys())[
-                            self.EVAL_IDX[0] : self.EVAL_IDX[1] + 1
+                    if self.is_staged_training:
+                        eval_track_key_list = list(self.all_track_waypoints.keys())[
+                            self.eval_idx[0] : self.eval_idx[1] + 1
                         ]
                     else:
-                        eval_track_key_list = list(self.ALL_TRACK_WAYPOINTS.keys())[
-                            self.EVAL_TRACK_BEGIN_IDX :
+                        eval_track_key_list = list(self.all_track_waypoints.keys())[
+                            self.eval_track_begin_idx :
                         ]
-                    self.CURR_TRACK = eval_track_key_list[self.EVAL_TRACK_IDX]
-                    self.EVAL_TRACK_IDX += 1
-                    self.EVAL_TRACK_IDX = self.EVAL_TRACK_IDX % len(eval_track_key_list)
+                    self.current_track = eval_track_key_list[self.eval_track_idx]
+                    self.eval_track_idx += 1
+                    self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
                 else:
-                    if self.IS_STAGED_TRAINING:
-                        self.CURR_TRACK = random.choice(
-                            list(self.ALL_TRACK_WAYPOINTS.keys())[
-                                self.TRAINING_IDX[0] : self.TRAINING_IDX[1] + 1
+                    if self.is_staged_training:
+                        self.current_track = random.choice(
+                            list(self.all_track_waypoints.keys())[
+                                self.training_idx[0] : self.training_idx[1] + 1
                             ]
                         )
                     else:
-                        self.CURR_TRACK = random.choice(
-                            list(self.ALL_TRACK_WAYPOINTS.keys())[
-                                : self.EVAL_TRACK_BEGIN_IDX
+                        self.current_track = random.choice(
+                            list(self.all_track_waypoints.keys())[
+                                : self.eval_track_begin_idx
                             ]
                         )
-            self.CURR_WAYPOINTS = self.ALL_TRACK_WAYPOINTS[self.CURR_TRACK]
+            self.CURR_WAYPOINTS = self.all_track_waypoints[self.current_track]
 
         if self.IS_EVAL:
             car_x, car_y, car_yaw, index = self.CURR_WAYPOINTS[10]
@@ -192,7 +193,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 else 0
             )
         ]  # point toward next goal
-        self.GOAL_POSITION = [x, y]
+        self.goal_position = [x, y]
         self.call_reset_service(
             car_x=car_x,
             car_y=car_y,
@@ -207,19 +208,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.CURR_STATE = full_state
         self.call_step(pause=True)
 
-        if self.IS_MULTI_TRACK:
-            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.CURR_TRACK]
+        if self.is_multi_track:
+            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.current_track]
         self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(
             full_state[:2], t_only=True
         )
 
-        if self.BASE_REWARD_FUNCTION == "progressive":
-            self.PROGRESS_NOT_MET_CNT = 0
+        if self.base_reward_function == "progressive":
+            self.progress_not_met_cnt = 0
         info = {}
         return state, info
 
     def start_eval(self):
-        self.EVAL_TRACK_IDX = 0
+        self.eval_track_idx = 0
         self.IS_EVAL = True
 
     def stop_eval(self):
@@ -237,19 +238,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
             )  # 74ms delay to simulate delay between nn output from previous step and action now
         self.set_velocity(lin_vel, steering_angle)
         # action delay based on training stage
-        if self.CURRENT_TRAINING_STAGE == 0:
+        if self.current_training_stage == 0:
             action_delay = 0
-            print(f"No action delay  stage: {self.CURRENT_TRAINING_STAGE}")
-        elif self.CURRENT_TRAINING_STAGE == 1:
+            print(f"No action delay  stage: {self.current_training_stage}")
+        elif self.current_training_stage == 1:
             action_delay = 0.010
-            print(f"10ms action delay  stage: {self.CURRENT_TRAINING_STAGE}")
-        elif self.CURRENT_TRAINING_STAGE == 2:
+            print(f"10ms action delay  stage: {self.current_training_stage}")
+        elif self.current_training_stage == 2:
             action_delay = 0.030
-            print(f"30ms action delay  stage: {self.CURRENT_TRAINING_STAGE}")
-        elif self.CURRENT_TRAINING_STAGE >= 3:
+            print(f"30ms action delay  stage: {self.current_training_stage}")
+        elif self.current_training_stage >= 3:
             action_delay = np.random.uniform(0.073, 0.075)  # 74ms ± 1ms
             print(
-                f"{action_delay*1000:.1f}ms action delay  stage: {self.CURRENT_TRAINING_STAGE}"
+                f"{action_delay*1000:.1f}ms action delay  stage: {self.current_training_stage}"
             )
         time.sleep(action_delay)
         next_state, full_next_state, raw_lidar_range = self.get_observation()
@@ -295,7 +296,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         info.update(reward_info)
 
         if self.IS_EVAL and (terminated or truncated):
-            self.EVAL_TRACK_IDX
+            self.eval_track_idx
 
         return next_state, reward, terminated, truncated, info
 
@@ -305,15 +306,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
         )
 
     def is_truncated(self):
-        match self.BASE_REWARD_FUNCTION:
+        match self.base_reward_function:
             case "goal_hitting":
                 return (
-                    self.STEPS_SINCE_LAST_GOAL >= 20
+                    self.steps_since_last_goal >= 20
                     or self.STEP_COUNTER >= self.MAX_STEPS
                 )
             case "progressive":
                 return (
-                    self.PROGRESS_NOT_MET_CNT >= 5
+                    self.progress_not_met_cnt >= 5
                     or self.STEP_COUNTER >= self.MAX_STEPS
                 )
             case _:
@@ -378,7 +379,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         reward = 0
         reward_info = {}
 
-        match self.BASE_REWARD_FUNCTION:
+        match self.base_reward_function:
             case "goal_hitting":
                 base_reward, base_reward_info = self.calculate_goal_hitting_reward(
                     state, next_state, raw_lidar_range
@@ -394,14 +395,14 @@ class CarTrackEnvironment(F1tenthEnvironment):
             case _:
                 raise Exception("Unknown reward function. Check environment.")
 
-        for term in self.EXTRA_REWARD_TERMS:
+        for term in self.extra_reward_terms:
             match term:
                 case "penalize_turn":
                     turn_penalty = abs(state[7] - next_state[7]) * 0.12
                     reward -= turn_penalty
                     reward_info.update({"turn_penalty": ("avg", turn_penalty)})
 
-        for modifier_type, weight in self.REWARD_MODIFIERS:
+        for modifier_type, weight in self.reward_modifiers:
             match modifier_type:
                 case "wall_proximity":
                     dist_to_wall = min(raw_lidar_range)
@@ -426,11 +427,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
     def calculate_goal_hitting_reward(self, state, next_state, raw_range):
         reward = 0
-        goal_position = self.GOAL_POSITION
+        goal_position = self.goal_position
         current_distance = math.dist(goal_position, next_state[:2])
         previous_distance = math.dist(goal_position, state[:2])
         reward += previous_distance - current_distance
-        self.STEPS_SINCE_LAST_GOAL += 1
+        self.steps_since_last_goal += 1
 
         if current_distance < self.REWARD_RANGE:
             reward += 2
@@ -438,11 +439,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
             new_x, new_y, _, _ = self.CURR_WAYPOINTS[
                 (self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.CURR_WAYPOINTS)
             ]
-            self.GOAL_POSITION = [new_x, new_y]
+            self.goal_position = [new_x, new_y]
             self.update_goal_service(new_x, new_y)
-            self.STEPS_SINCE_LAST_GOAL = 0
+            self.steps_since_last_goal = 0
 
-        if self.STEPS_SINCE_LAST_GOAL >= 20:
+        if self.steps_since_last_goal >= 20:
             reward -= 10
         if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(
             next_state[2:6]
@@ -454,26 +455,26 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
     def calculate_progressive_reward(self, state, next_state, raw_range):
         reward = 0
-        goal_position = self.GOAL_POSITION
+        goal_position = self.goal_position
         current_distance = math.dist(goal_position, next_state[:2])
 
         if self.STEP_PROGRESS < 0.02:
-            self.PROGRESS_NOT_MET_CNT += 1
+            self.progress_not_met_cnt += 1
         else:
-            self.PROGRESS_NOT_MET_CNT = 0
+            self.progress_not_met_cnt = 0
         reward += self.STEP_PROGRESS
-        self.STEPS_SINCE_LAST_GOAL += 1
+        self.steps_since_last_goal += 1
 
         if current_distance < self.REWARD_RANGE:
             self.GOALS_REACHED += 1
             new_x, new_y, _, _ = self.CURR_WAYPOINTS[
                 (self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.CURR_WAYPOINTS)
             ]
-            self.GOAL_POSITION = [new_x, new_y]
+            self.goal_position = [new_x, new_y]
             self.update_goal_service(new_x, new_y)
-            self.STEPS_SINCE_LAST_GOAL = 0
+            self.steps_since_last_goal = 0
 
-        if self.PROGRESS_NOT_MET_CNT >= 5:
+        if self.progress_not_met_cnt >= 5:
             reward -= 2
         if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(
             next_state[2:6]
@@ -484,34 +485,17 @@ class CarTrackEnvironment(F1tenthEnvironment):
         return reward, info
 
     def increment_stage(self):
-        if not self.IS_STAGED_TRAINING:
+        if not self.is_staged_training:
             return
 
-        if self.CURRENT_TRAINING_STAGE < len(self.TRAINING_STAGES) - 1:
-            self.CURRENT_TRAINING_STAGE += 1
-            self.TRAINING_IDX = self.TRAINING_STAGES[self.CURRENT_TRAINING_STAGE][0]
-            self.EVAL_IDX = self.TRAINING_STAGES[self.CURRENT_TRAINING_STAGE][1]
+        if self.current_training_stage < len(self.training_stages) - 1:
+            self.current_training_stage += 1
+            self.training_idx = self.training_stages[self.current_training_stage][0]
+            self.eval_idx = self.training_stages[self.current_training_stage][1]
             self.get_logger().info(
-                f"Incremented to training stage {self.CURRENT_TRAINING_STAGE}. Training indices: {self.TRAINING_IDX}, Evaluation indices: {self.EVAL_IDX}"
+                f"Incremented to training stage {self.current_training_stage}. Training indices: {self.training_idx}, Evaluation indices: {self.eval_idx}"
             )
         else:
             self.get_logger().info(
                 "Already at the last training stage. No increment performed."
             )
-
-    def train_autoencoder(self, lidar_data):
-        self.AE_LIDAR_MODEL.train()
-        latent_tensor = (
-            torch.tensor(lidar_data, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-        )
-        reconstructed_range = self.AE_LIDAR_MODEL(latent_tensor)
-        loss = self.AE_LOSS_FUNCTION(reconstructed_range, latent_tensor)
-        self.AE_OPTIMIZER.zero_grad()
-        loss.backward()
-        self.AE_OPTIMIZER.step()
-        print(f"Autoencoder Loss: {loss.item()}")
-
-    def set_ae(self, encoder, decoder):
-        self.ENCODER = encoder
-        self.DECODER = decoder
-        print("Environment set with encoder and decoder.")
