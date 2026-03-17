@@ -1,4 +1,9 @@
+import os
+from pathlib import Path
+
 import rclpy
+import yaml
+from ament_index_python.packages import get_package_share_directory
 
 from environments.CarBeatEnvironment import CarBeatEnvironment
 from environments.CarOvertakeEnvironment import CarOvertakeEnvironment
@@ -12,55 +17,56 @@ class EnvironmentFactory:
     def __init__(self):
         rclpy.init()
 
-    def create(self, name, config):
+    def create(self, task, config):
+        # TODO remove hard code to this path, make it more flexible
+        config_path = os.path.join(
+            get_package_share_directory("reinforcement_learning"),
+            "train.yaml",
+        )
+        with open(config_path, "r") as file:
+            config = yaml.safe_load(file)["train"]["ros__parameters"]
+
         print(config)
-        if name == "CarTrack":
+        print(config.keys())
+
+        if task == "CarTrack":
             return CarTrackEnvironment(
-                car_name="f1tenth",
-                # config["car_name"],
-                # config["reward_range"],
-                # config["max_steps"],
-                # config["collision_range"],
-                # config["step_length"],
-                # config["track"],
-                # config["observation_mode"],
-                # config["is_staged_training"],
+                "f1tenth",
+                config["max_steps"],
+                config["track"],
+                config["observation_mode"],
             )
-        elif name == "CarRace":
+        elif task == "CarRace":
             return CarRaceEnvironment(
-                car_name="f1tenth",
-                # config["reward_range"],
-                # config["max_steps"],
-                # config["collision_range"],
-                # config["step_length"],
-                # config["track"],
-                # config["observation_mode"],
+                "f1tenth",
+                config["max_steps"],
+                config["collision_range"],
+                config["step_length"],
+                config["track"],
+                config["observation_mode"],
             )
-        elif name == "CarOvertake":
+        elif task == "CarOvertake":
             return CarOvertakeEnvironment(
                 config["car_name"],
-                config["reward_range"],
                 config["max_steps"],
                 config["collision_range"],
                 config["step_length"],
                 config["track"],
                 config["observation_mode"],
             )
-        elif name == "TwoCar":
+        elif task == "TwoCar":
             return TwoCarEnvironment(
                 config["car_name"],
-                config["reward_range"],
                 config["max_steps"],
                 config["collision_range"],
                 config["step_length"],
                 config["track"],
                 config["observation_mode"],
             )
-        elif name == "CarBeat":
+        elif task == "CarBeat":
             return CarBeatEnvironment(
                 config["car_name"],
                 config["ftg_car_name"],
-                config["reward_range"],
                 config["max_steps"],
                 config["collision_range"],
                 config["step_length"],
@@ -69,20 +75,18 @@ class EnvironmentFactory:
                 config["max_goals"],
                 config["num_lidar_points"],
             )
-        elif name == "MultiAgent":
+        elif task == "MultiAgent":
             return MultiAgentEnvironment(
                 config["car_name"],
-                config["reward_range"],
                 config["max_steps"],
                 config["collision_range"],
                 config["step_length"],
                 config["track"],
                 config["observation_mode"],
             )
-        elif name == "MultiAgent2":
+        elif task == "MultiAgent2":
             return MultiAgentEnvironment(
                 "f2tenth",
-                config["reward_range"],
                 config["max_steps"],
                 config["collision_range"],
                 config["step_length"],

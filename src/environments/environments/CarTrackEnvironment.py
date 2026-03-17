@@ -60,14 +60,13 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def __init__(
         self,
         car_name,
-        reward_range=0.5,
+        reward_range=3,
         max_steps=3000,
         collision_range=0.2,
-        step_length=0.5,
+        step_length=0.1,
         track="track_01",
         observation_mode="lidar_only",
         is_staged_training=False,
-        config_path="/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml",
     ):
         super().__init__(
             "car_track",
