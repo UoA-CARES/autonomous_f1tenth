@@ -146,6 +146,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
         request.cyaw = float(car_Y)
         request.flag = "car"
 
-        future = self.reset_client.call_async(request)
+        future = self.RESET_CLIENT.call_async(request)
         rclpy.spin_until_future_complete(self, future)
         return future.result()

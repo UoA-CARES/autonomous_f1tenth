@@ -11,24 +11,26 @@ from std_srvs.srv import SetBool
 
 class SteppingService(Node):
     def __init__(self):
-        super().__init__('stepping_service')
+        super().__init__("stepping_service")
         srv_cb_group = MutuallyExclusiveCallbackGroup()
-        self.srv = self.create_service(SetBool, 'stepping_service', callback=self.service_callback, callback_group=srv_cb_group)
+        self.srv = self.create_service(
+            SetBool,
+            "stepping_service",
+            callback=self.service_callback,
+            callback_group=srv_cb_group,
+        )
         set_pose_cb_group = MutuallyExclusiveCallbackGroup()
         self.world_control_client = self.create_client(
-            ControlWorld,
-            f'world/empty/control',
-            callback_group=set_pose_cb_group
+            ControlWorld, f"world/empty/control", callback_group=set_pose_cb_group
         )
         while not self.world_control_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('set_pose service not available, waiting again...')
- 
+            self.get_logger().info("set_pose service not available, waiting again...")
 
     def service_callback(self, request, response):
         req = self.create_request(pause=request.data)
         while not self.world_control_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('set_pose service not available, waiting again...')     
-        self.world_control_client.call(req)       
+            self.get_logger().info("set_pose service not available, waiting again...")
+        self.world_control_client.call(req)
         response.success = True
         return response
 
@@ -36,6 +38,7 @@ class SteppingService(Node):
         req = ControlWorld.Request()
         req.world_control.pause = pause
         return req
+
 
 def main():
     rclpy.init()
@@ -47,5 +50,5 @@ def main():
     rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

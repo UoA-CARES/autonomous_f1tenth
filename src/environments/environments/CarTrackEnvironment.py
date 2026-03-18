@@ -1,5 +1,6 @@
 import math
 import random
+import time
 from typing import List, Literal, Tuple
 
 import numpy as np
@@ -10,7 +11,6 @@ from environments.F1tenthEnvironment import F1tenthEnvironment
 from .util import (
     avg_lidar,
     create_lidar_msg,
-    get_training_stages,
     has_collided,
     has_flipped_over,
     process_ae_lidar,
@@ -47,8 +47,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
             It's linear and angular velocity (Twist)
 
         Reward:
-            +2 if it comes within REWARD_RANGE units of a goal
-            -25 if it collides with a wall
+
 
         Termination Conditions:
             When the agent collides with a wall or the Follow The Gap car
@@ -66,7 +65,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         step_length=0.1,
         track="track_01",
         observation_mode="lidar_only",
-        is_staged_training=False,
     ):
         super().__init__(
             "car_track",
@@ -90,19 +88,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
             ("turn", 0.3),
             ("wall_proximity", 0.7),
         ]
+
         if track == "narrow_multi_track":
             self.multi_track_train_eval_split = 12 / 15
         else:
             self.multi_track_train_eval_split = 0.5
-
-        #####################################################################################################################
-        # Staging configuration ----------------------------------------
-        self.is_staged_training = is_staged_training
-        self.current_training_stage = 0
-        if self.is_staged_training:
-            self.training_stages = get_training_stages(track)
-            self.training_idx = self.training_stages[self.current_training_stage][0]
-            self.eval_idx = self.training_stages[self.current_training_stage][1]
 
         #####################################################################################################################
         # Environment configuration -------------------------------------
@@ -111,18 +101,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.steps_since_last_goal = 0
 
         if self.is_multi_track:
-            if self.is_staged_training:
-                self.current_track = list(self.all_track_waypoints.keys())[
-                    self.training_idx[0]
-                ]
-                self.eval_track_begin_idx = None
-                self.get_logger().info(
-                    f"Track '{track}', {self.training_idx} training, {self.eval_idx} evaluation"
-                )
-            else:
-                self.eval_track_begin_idx = int(
-                    len(self.all_track_waypoints) * self.multi_track_train_eval_split
-                )
+            self.eval_track_begin_idx = int(
+                len(self.all_track_waypoints) * self.multi_track_train_eval_split
+            )
             self.eval_track_idx = 0
 
         self.step_counter = 0
@@ -153,30 +134,18 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     )
             else:
                 if self.IS_EVAL:
-                    if self.is_staged_training:
-                        eval_track_key_list = list(self.all_track_waypoints.keys())[
-                            self.eval_idx[0] : self.eval_idx[1] + 1
-                        ]
-                    else:
-                        eval_track_key_list = list(self.all_track_waypoints.keys())[
-                            self.eval_track_begin_idx :
-                        ]
+                    eval_track_key_list = list(self.all_track_waypoints.keys())[
+                        self.eval_track_begin_idx :
+                    ]
                     self.current_track = eval_track_key_list[self.eval_track_idx]
                     self.eval_track_idx += 1
                     self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
                 else:
-                    if self.is_staged_training:
-                        self.current_track = random.choice(
-                            list(self.all_track_waypoints.keys())[
-                                self.training_idx[0] : self.training_idx[1] + 1
-                            ]
-                        )
-                    else:
-                        self.current_track = random.choice(
-                            list(self.all_track_waypoints.keys())[
-                                : self.eval_track_begin_idx
-                            ]
-                        )
+                    self.current_track = random.choice(
+                        list(self.all_track_waypoints.keys())[
+                            : self.eval_track_begin_idx
+                        ]
+                    )
             self.CURR_WAYPOINTS = self.all_track_waypoints[self.current_track]
 
         if self.IS_EVAL:
@@ -228,13 +197,12 @@ class CarTrackEnvironment(F1tenthEnvironment):
     def step(self, action):
         self.step_counter += 1
         full_state = self.current_state
-        self.call_step(pause=False)
-
         lin_vel, steering_angle = action
 
         self.set_velocity(lin_vel, steering_angle)
-        self.sleep()
 
+        self.call_step(pause=False)
+        time.sleep(self.STEP_LENGTH)
         next_state, full_next_state, raw_lidar_range = self.get_observation()
         self.call_step(pause=True)
 
@@ -292,7 +260,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     or self.step_counter >= self.MAX_STEPS
                 )
             case _:
-                raise Exception("Unknown truncate condition for reward function.")
+                raise ValueError("Unknown truncate condition for reward function.")
 
     def get_observation(self):
         odom, lidar = self.get_data()
@@ -367,7 +335,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                 reward += base_reward
                 reward_info.update(base_reward_info)
             case _:
-                raise Exception("Unknown reward function. Check environment.")
+                raise ValueError("Unknown reward function. Check environment.")
 
         for term in self.extra_reward_terms:
             match term:
@@ -457,19 +425,3 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         info = {}
         return reward, info
-
-    def increment_stage(self):
-        if not self.is_staged_training:
-            return
-
-        if self.current_training_stage < len(self.training_stages) - 1:
-            self.current_training_stage += 1
-            self.training_idx = self.training_stages[self.current_training_stage][0]
-            self.eval_idx = self.training_stages[self.current_training_stage][1]
-            self.get_logger().info(
-                f"Incremented to training stage {self.current_training_stage}. Training indices: {self.training_idx}, Evaluation indices: {self.eval_idx}"
-            )
-        else:
-            self.get_logger().info(
-                "Already at the last training stage. No increment performed."
-            )
