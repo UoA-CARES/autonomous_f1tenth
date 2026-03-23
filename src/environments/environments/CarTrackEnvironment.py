@@ -8,15 +8,7 @@ import scipy
 
 from environments.F1tenthEnvironment import F1tenthEnvironment
 
-from .util import (
-    avg_lidar,
-    create_lidar_msg,
-    has_collided,
-    has_flipped_over,
-    process_ae_lidar,
-    process_odom,
-    reconstruct_ae_latent,
-)
+from . import util
 
 
 class CarTrackEnvironment(F1tenthEnvironment):
@@ -96,8 +88,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         #####################################################################################################################
         # Environment configuration -------------------------------------
-        if self.base_reward_function == "progressive":
-            self.progress_not_met_cnt = 0
+        self.progress_not_met_cnt = 0
         self.steps_since_last_goal = 0
 
         if self.is_multi_track:
@@ -106,24 +97,17 @@ class CarTrackEnvironment(F1tenthEnvironment):
             )
             self.eval_track_idx = 0
 
-        self.step_counter = 0
-
         self.get_logger().info("Environment Setup Complete")
 
-        #####################################################################################################################
-
-    def reset(self):
-        self.step_counter = 0
+    def _reset(self, training: bool) -> tuple[np.ndarray, dict]:
         self.steps_since_last_goal = 0
-        self.GOALS_REACHED = 0
-        self.set_velocity(0, 0)
 
         if self.is_multi_track:
             if (
                 self.eval_track_begin_idx is not None
                 and self.eval_track_begin_idx >= len(self.all_track_waypoints)
             ):
-                if self.IS_EVAL:
+                if self.is_eval:
                     all_track_keys = list(self.all_track_waypoints.keys())
                     self.current_track = all_track_keys[self.eval_track_idx]
                     self.eval_track_idx += 1
@@ -133,7 +117,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
                         list(self.all_track_waypoints.keys())
                     )
             else:
-                if self.IS_EVAL:
+                if self.is_eval:
                     eval_track_key_list = list(self.all_track_waypoints.keys())[
                         self.eval_track_begin_idx :
                     ]
@@ -146,29 +130,30 @@ class CarTrackEnvironment(F1tenthEnvironment):
                             : self.eval_track_begin_idx
                         ]
                     )
-            self.CURR_WAYPOINTS = self.all_track_waypoints[self.current_track]
+            self.curr_waypoints = self.all_track_waypoints[self.current_track]
 
-        if self.IS_EVAL:
-            car_x, car_y, car_yaw, index = self.CURR_WAYPOINTS[10]
+        if self.is_eval:
+            car_x, car_y, car_yaw, index = self.curr_waypoints[10]
         else:
-            car_x, car_y, car_yaw, index = random.choice(self.CURR_WAYPOINTS)
+            car_x, car_y, car_yaw, index = random.choice(self.curr_waypoints)
 
-        self.SPAWN_INDEX = index
-        x, y, _, _ = self.CURR_WAYPOINTS[
+        self.spawn_index = index
+        x, y, _, _ = self.curr_waypoints[
             (
-                self.SPAWN_INDEX + 1
-                if self.SPAWN_INDEX + 1 < len(self.CURR_WAYPOINTS)
+                self.spawn_index + 1
+                if self.spawn_index + 1 < len(self.curr_waypoints)
                 else 0
             )
         ]  # point toward next goal
+
         self.goal_position = [x, y]
         self.call_reset_service(
             car_x=car_x,
             car_y=car_y,
-            car_Y=car_yaw,
+            car_yaw=car_yaw,
             goal_x=x,
             goal_y=y,
-            car_name=self.NAME,
+            car_name=self.name,
         )
 
         self.call_step(pause=False)
@@ -177,55 +162,39 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self.call_step(pause=True)
 
         if self.is_multi_track:
-            self.CURR_TRACK_MODEL = self.ALL_TRACK_MODELS[self.current_track]
-        self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(
+            self.curr_track_model = self.all_track_models[self.current_track]
+        self.prev_closest_point = self.curr_track_model.get_closest_point_on_spline(
             full_state[:2], t_only=True
         )
 
         if self.base_reward_function == "progressive":
             self.progress_not_met_cnt = 0
+
         info = {}
         return state, info
 
-    def start_eval(self):
-        self.eval_track_idx = 0
-        self.IS_EVAL = True
+    def _step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, dict]:
 
-    def stop_eval(self):
-        self.IS_EVAL = False
-
-    def step(self, action):
-        self.step_counter += 1
-        full_state = self.current_state
-        lin_vel, steering_angle = action
-
-        self.set_velocity(lin_vel, steering_angle)
-
-        self.call_step(pause=False)
-        time.sleep(self.STEP_LENGTH)
         next_state, full_next_state, raw_lidar_range = self.get_observation()
         self.call_step(pause=True)
 
         self.current_state = full_next_state
-        if not self.PREV_CLOSEST_POINT:
-            self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(
+        if not self.prev_closest_point:
+            self.prev_closest_point = self.curr_track_model.get_closest_point_on_spline(
                 full_state[:2], t_only=True
             )
 
-        t2 = self.CURR_TRACK_MODEL.get_closest_point_on_spline(
+        t2 = self.curr_track_model.get_closest_point_on_spline(
             full_next_state[:2], t_only=True
         )
-        self.STEP_PROGRESS = self.CURR_TRACK_MODEL.get_distance_along_track_parametric(
-            self.PREV_CLOSEST_POINT, t2, approximate=True
+        self.step_progress = self.curr_track_model.get_distance_along_track_parametric(
+            self.prev_closest_point, t2, approximate=True
         )
-        # This doesn't show up anywhere?
-        # self.center_line_offset = self.CURR_TRACK_MODEL.get_distance_to_spline_point(
-        #     t2, full_next_state[:2]
-        # )
-        self.PREV_CLOSEST_POINT = t2
 
-        if abs(self.STEP_PROGRESS) > (full_next_state[6] / 10 * 3):
-            self.STEP_PROGRESS = full_next_state[6] / 10 * 0.8
+        self.prev_closest_point = t2
+
+        if abs(self.step_progress) > (full_next_state[6] / 10 * 3):
+            self.step_progress = full_next_state[6] / 10 * 0.8
 
         reward, reward_info = self.compute_reward(
             full_state, full_next_state, raw_lidar_range
@@ -236,14 +205,14 @@ class CarTrackEnvironment(F1tenthEnvironment):
         info = {
             "linear_velocity": ["avg", full_next_state[6]],
             "angular_velocity_diff": ["avg", abs(full_next_state[7] - full_state[7])],
-            "traveled distance": ["sum", self.STEP_PROGRESS],
+            "traveled distance": ["sum", self.step_progress],
         }
         info.update(reward_info)
 
         return next_state, reward, terminated, truncated, info
 
     def is_terminated(self, state, ranges):
-        return has_collided(ranges, self.COLLISION_RANGE) or has_flipped_over(
+        return util.has_collided(ranges, self.collision_range) or util.has_flipped_over(
             state[2:6]
         )
 
@@ -252,66 +221,45 @@ class CarTrackEnvironment(F1tenthEnvironment):
             case "goal_hitting":
                 return (
                     self.steps_since_last_goal >= 20
-                    or self.step_counter >= self.MAX_STEPS
+                    or self.step_counter >= self.max_steps
                 )
             case "progressive":
                 return (
                     self.progress_not_met_cnt >= 5
-                    or self.step_counter >= self.MAX_STEPS
+                    or self.step_counter >= self.max_steps
                 )
             case _:
                 raise ValueError("Unknown truncate condition for reward function.")
 
     def get_observation(self):
         odom, lidar = self.get_data()
-        odom = process_odom(odom)
-        num_points = self.LIDAR_POINTS
+        odom = util.process_odom(odom)
+        num_points = self.lidar_points
         state = {}
 
-        match (self.ODOM_OBSERVATION_MODE):
+        match (self.observation_mode):
             case "no_position":
                 state["vector"] = odom[2:]
             case "lidar_only":
                 state["vector"] = odom[-2:]
             case _:
                 state["vector"] = odom
-        match self.LIDAR_PROCESSING:
-            case "pretrained_ae":
-                processed_lidar_range = process_ae_lidar(
-                    lidar, self.AE_LIDAR_MODEL, is_latent_only=True
-                )
-                visualized_range = reconstruct_ae_latent(
-                    lidar, self.AE_LIDAR_MODEL, processed_lidar_range
-                )
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
-            case "ae":
-                lidar_data = np.array(lidar.ranges)
-                lidar_data = np.nan_to_num(lidar_data, posinf=-5)
-                if not self.IS_EVAL:
-                    sampled_data = scipy.signal.resample(lidar_data, 512)
-                    self.train_autoencoder(sampled_data)
-                processed_lidar_range = process_ae_lidar(
-                    lidar, self.AE_LIDAR_MODEL, is_latent_only=True
-                )
-                scan = create_lidar_msg(lidar, num_points, processed_lidar_range)
+        match self.lidar_processing:
             case "avg":
-                processed_lidar_range = avg_lidar(lidar, num_points)
+                processed_lidar_range = util.avg_lidar(lidar, num_points)
                 visualized_range = processed_lidar_range
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
+                scan = util.create_lidar_msg(lidar, num_points, visualized_range)
             case "raw":
                 processed_lidar_range = np.array(lidar.ranges.tolist())
                 processed_lidar_range = np.nan_to_num(
                     processed_lidar_range, posinf=-5, nan=-1, neginf=-5
                 ).tolist()
                 visualized_range = processed_lidar_range
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
+                scan = util.create_lidar_msg(lidar, num_points, visualized_range)
 
-        self.PROCESSED_PUBLISHER.publish(scan)
-        if self.LIDAR_PROCESSING == "ae":
-            state["lidar"] = lidar_data.tolist()
-            full_state = odom + lidar_data.tolist()
-        else:
-            full_state = odom + processed_lidar_range
+        self.processed_publisher.publish(scan)
+
+        full_state = odom + processed_lidar_range
 
         state = odom[-2:] + processed_lidar_range
         state = np.asarray(state)
@@ -322,12 +270,6 @@ class CarTrackEnvironment(F1tenthEnvironment):
         reward_info = {}
 
         match self.base_reward_function:
-            case "goal_hitting":
-                base_reward, base_reward_info = self.calculate_goal_hitting_reward(
-                    state, next_state, raw_lidar_range
-                )
-                reward += base_reward
-                reward_info.update(base_reward_info)
             case "progressive":
                 base_reward, base_reward_info = self.calculate_progressive_reward(
                     state, next_state, raw_lidar_range
@@ -367,50 +309,22 @@ class CarTrackEnvironment(F1tenthEnvironment):
                     )
         return reward, reward_info
 
-    def calculate_goal_hitting_reward(self, state, next_state, raw_range):
-        reward = 0
-        goal_position = self.goal_position
-        current_distance = math.dist(goal_position, next_state[:2])
-        previous_distance = math.dist(goal_position, state[:2])
-        reward += previous_distance - current_distance
-        self.steps_since_last_goal += 1
-
-        if current_distance < self.REWARD_RANGE:
-            reward += 2
-            self.GOALS_REACHED += 1
-            new_x, new_y, _, _ = self.CURR_WAYPOINTS[
-                (self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.CURR_WAYPOINTS)
-            ]
-            self.goal_position = [new_x, new_y]
-            self.update_goal_service(new_x, new_y)
-            self.steps_since_last_goal = 0
-
-        if self.steps_since_last_goal >= 20:
-            reward -= 10
-        if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(
-            next_state[2:6]
-        ):
-            reward -= 25
-
-        info = {}
-        return reward, info
-
     def calculate_progressive_reward(self, state, next_state, raw_range):
         reward = 0
         goal_position = self.goal_position
         current_distance = math.dist(goal_position, next_state[:2])
 
-        if self.STEP_PROGRESS < 0.02:
+        if self.step_progress < 0.02:
             self.progress_not_met_cnt += 1
         else:
             self.progress_not_met_cnt = 0
-        reward += self.STEP_PROGRESS
+        reward += self.step_progress
         self.steps_since_last_goal += 1
 
-        if current_distance < self.REWARD_RANGE:
-            self.GOALS_REACHED += 1
-            new_x, new_y, _, _ = self.CURR_WAYPOINTS[
-                (self.SPAWN_INDEX + self.GOALS_REACHED) % len(self.CURR_WAYPOINTS)
+        if current_distance < self.reward_range:
+            self.goals_reached += 1
+            new_x, new_y, _, _ = self.curr_waypoints[
+                (self.spawn_index + self.goals_reached) % len(self.curr_waypoints)
             ]
             self.goal_position = [new_x, new_y]
             self.update_goal_service(new_x, new_y)
@@ -418,7 +332,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         if self.progress_not_met_cnt >= 5:
             reward -= 2
-        if has_collided(raw_range, self.COLLISION_RANGE) or has_flipped_over(
+        if util.has_collided(raw_range, self.collision_range) or util.has_flipped_over(
             next_state[2:6]
         ):
             reward -= 2.5

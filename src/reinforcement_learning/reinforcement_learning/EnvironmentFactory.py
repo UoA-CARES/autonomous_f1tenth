@@ -21,7 +21,7 @@ class EnvironmentFactory:
             get_package_share_directory("reinforcement_learning"),
             "train.yaml",
         )
-        with open(config_path, "r") as file:
+        with open(config_path, "r", encoding="utf-8") as file:
             config = yaml.safe_load(file)["train"]["ros__parameters"]
 
         # Basic Single Agent Environment
@@ -32,42 +32,42 @@ class EnvironmentFactory:
                 config["track"],
                 config["observation_mode"],
             )
-        # Merge CarRace with TwoCar
-        elif task == "CarRace":
-            return CarRaceEnvironment(
-                "f1tenth",
-                config["max_steps"],
-                config["collision_range"],
-                config["step_length"],
-                config["track"],
-                config["observation_mode"],
-            )
-        elif task == "TwoCar":
-            return TwoCarEnvironment(
-                config["car_name"],
-                config["max_steps"],
-                config["collision_range"],
-                config["step_length"],
-                config["track"],
-                config["observation_mode"],
-            )
-        elif task == "MultiAgent":
-            return MultiAgentEnvironment(
-                config["car_name"],
-                config["max_steps"],
-                config["collision_range"],
-                config["step_length"],
-                config["track"],
-                config["observation_mode"],
-            )
-        elif task == "MultiAgent2":
-            return MultiAgentEnvironment(
-                "f2tenth",
-                config["max_steps"],
-                config["collision_range"],
-                config["step_length"],
-                config["track"],
-                config["observation_mode"],
-            )
+        # # Merge CarRace with TwoCar
+        # elif task == "CarRace":
+        #     return CarRaceEnvironment(
+        #         "f1tenth",
+        #         config["max_steps"],
+        #         config["collision_range"],
+        #         config["step_length"],
+        #         config["track"],
+        #         config["observation_mode"],
+        #     )
+        # elif task == "TwoCar":
+        #     return TwoCarEnvironment(
+        #         config["car_name"],
+        #         config["max_steps"],
+        #         config["collision_range"],
+        #         config["step_length"],
+        #         config["track"],
+        #         config["observation_mode"],
+        #     )
+        # elif task == "MultiAgent":
+        #     return MultiAgentEnvironment(
+        #         config["car_name"],
+        #         config["max_steps"],
+        #         config["collision_range"],
+        #         config["step_length"],
+        #         config["track"],
+        #         config["observation_mode"],
+        #     )
+        # elif task == "MultiAgent2":
+        #     return MultiAgentEnvironment(
+        #         "f2tenth",
+        #         config["max_steps"],
+        #         config["collision_range"],
+        #         config["step_length"],
+        #         config["track"],
+        #         config["observation_mode"],
+        #     )
 
-        raise ValueError("EnvironmentFactory: Environment not found")
+        raise ValueError(f"EnvironmentFactory: Environment not found {task}")
