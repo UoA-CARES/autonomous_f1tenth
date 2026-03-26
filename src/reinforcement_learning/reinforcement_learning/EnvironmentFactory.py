@@ -27,10 +27,10 @@ class EnvironmentFactory:
         # Basic Single Agent Environment
         if task == "CarTrack":
             return CarTrackEnvironment(
-                "f1tenth",
-                config["max_steps"],
-                config["track"],
-                config["observation_mode"],
+                car_name="f1tenth",
+                max_steps=config["max_steps"],
+                track=config["track"],
+                observation_mode=config["observation_mode"],
             )
         # # Merge CarRace with TwoCar
         # elif task == "CarRace":

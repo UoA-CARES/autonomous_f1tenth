@@ -6,14 +6,16 @@ Using reinforcement learning techniques to drive the f1tenth vehicle platform.
 | ----------- | ----------- |
 | Gazebo | [Garden](https://gazebosim.org/docs/garden/install_ubuntu_src) |
 | ROS2 | [Humble Hawksbill](https://docs.ros.org/en/humble/Installation.html) |
-| colcon | [ROS2](https://colcon.readthedocs.io/en/released/user/installation.html) |
 | CARES RL | [Link](https://github.com/UoA-CARES/cares_reinforcement_learning) |
-| f1tenth | [Link](https://github.com/UoA-CARES/f1tenth) |
 
 We source build Gazebo Garden, and use a forked `gz-sim`. To use the forked `gz-sim` run the following command before building Gazebo
+
 ```
+cd ~/workspace/src
 rm -rdf gz-sim
 git clone https://github.com/UoA-CARES/gz-sim.git
+cd ~/workspace
+colcon build --merge-install
 ```
 
 If running on the physical car, install additional dependency
@@ -33,6 +35,7 @@ git clone --recurse-submodules https://github.com/UoA-CARES/autonomous_f1tenth.g
 ```
 
 Install dependencies using `rosdep`
+
 ```
 cd autonomous_f1tenth/
 rosdep update -y

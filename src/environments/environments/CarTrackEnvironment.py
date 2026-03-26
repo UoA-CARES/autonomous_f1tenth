@@ -59,15 +59,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
         observation_mode="lidar_only",
     ):
         super().__init__(
-            "car_track",
-            car_name,
-            reward_range,
-            max_steps,
-            collision_range,
-            step_length,
-            10,
-            track,
-            observation_mode,
+            env_name="car_track",
+            car_name=car_name,
+            reward_range=reward_range,
+            max_steps=max_steps,
+            collision_range=collision_range,
+            step_length=step_length,
+            lidar_points=10,
+            track=track,
+            observation_mode=observation_mode,
         )
 
         #####################################################################################################################
@@ -178,10 +178,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
         next_state, full_next_state, raw_lidar_range = self.get_observation()
         self.call_step(pause=True)
 
-        self.current_state = full_next_state
         if not self.prev_closest_point:
             self.prev_closest_point = self.curr_track_model.get_closest_point_on_spline(
-                full_state[:2], t_only=True
+                self.current_state[:2], t_only=True
             )
 
         t2 = self.curr_track_model.get_closest_point_on_spline(
@@ -197,17 +196,19 @@ class CarTrackEnvironment(F1tenthEnvironment):
             self.step_progress = full_next_state[6] / 10 * 0.8
 
         reward, reward_info = self.compute_reward(
-            full_state, full_next_state, raw_lidar_range
+            self.current_state, full_next_state, raw_lidar_range
         )
         terminated = self.is_terminated(full_next_state, raw_lidar_range)
         truncated = self.is_truncated()
 
         info = {
             "linear_velocity": ["avg", full_next_state[6]],
-            "angular_velocity_diff": ["avg", abs(full_next_state[7] - full_state[7])],
+            "angular_velocity_diff": ["avg", abs(full_next_state[7] - self.current_state[7])],
             "traveled distance": ["sum", self.step_progress],
         }
         info.update(reward_info)
+
+        self.current_state = full_next_state
 
         return next_state, reward, terminated, truncated, info
 
@@ -235,15 +236,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
         odom, lidar = self.get_data()
         odom = util.process_odom(odom)
         num_points = self.lidar_points
-        state = {}
+        state = []
 
         match (self.observation_mode):
             case "no_position":
-                state["vector"] = odom[2:]
+                state += odom[2:]
             case "lidar_only":
-                state["vector"] = odom[-2:]
+                state += odom[-2:]
             case _:
-                state["vector"] = odom
+                state += odom
         match self.lidar_processing:
             case "avg":
                 processed_lidar_range = util.avg_lidar(lidar, num_points)
@@ -261,8 +262,9 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         full_state = odom + processed_lidar_range
 
-        state = odom[-2:] + processed_lidar_range
+        state += processed_lidar_range
         state = np.asarray(state)
+
         return state, full_state, lidar.ranges
 
     def compute_reward(self, state, next_state, raw_lidar_range):
@@ -332,6 +334,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
 
         if self.progress_not_met_cnt >= 5:
             reward -= 2
+
         if util.has_collided(raw_range, self.collision_range) or util.has_flipped_over(
             next_state[2:6]
         ):
