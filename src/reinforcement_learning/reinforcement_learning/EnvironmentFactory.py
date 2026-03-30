@@ -15,7 +15,7 @@ class EnvironmentFactory:
     def __init__(self):
         rclpy.init()
 
-    def create(self, task, config):
+    def create(self, task: str, config: dict):
         # TODO remove hard code to this path, make it more flexible
         config_path = os.path.join(
             get_package_share_directory("reinforcement_learning"),

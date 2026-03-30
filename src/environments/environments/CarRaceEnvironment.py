@@ -100,44 +100,6 @@ class CarRaceEnvironment(F1tenthEnvironment):
         info = {}
         return state, info
 
-    def get_observation(self):
-        odom, lidar = self.get_data()
-        odom = process_odom(odom)
-        num_points = self.LIDAR_POINTS
-
-        state = []
-        match (self.ODOM_OBSERVATION_MODE):
-            case "no_position":
-                state += odom[2:]
-            case "lidar_only":
-                state += odom[-2:]
-            case _:
-                state += odom
-        match self.LIDAR_PROCESSING:
-            case "pretrained_ae":
-                processed_lidar_range = process_ae_lidar(
-                    lidar, self.AE_LIDAR_MODEL, is_latent_only=True
-                )
-                visualized_range = reconstruct_ae_latent(
-                    lidar, self.AE_LIDAR_MODEL, processed_lidar_range
-                )
-                scan = create_lidar_msg(lidar, 682, visualized_range)
-            case "avg":
-                processed_lidar_range = avg_lidar(lidar, num_points)
-                visualized_range = processed_lidar_range
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
-            case "raw":
-                processed_lidar_range = np.array(lidar.ranges.tolist())
-                processed_lidar_range = np.nan_to_num(
-                    processed_lidar_range, posinf=-5, nan=-1, neginf=-5
-                ).tolist()
-                visualized_range = processed_lidar_range
-                scan = create_lidar_msg(lidar, num_points, visualized_range)
-        self.PROCESSED_PUBLISHER.publish(scan)
-        state += processed_lidar_range
-        full_state = odom + processed_lidar_range
-        return state, full_state, lidar.ranges
-
     def call_reset_service(self, car_x, car_y, car_Y, car_name):
         request = Reset.Request()
         request.car_name = car_name
