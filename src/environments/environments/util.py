@@ -1,17 +1,18 @@
-import numpy as np
-import random
 import math
-import scipy.signal
-from sensor_msgs.msg import LaserScan
-from nav_msgs.msg import Odometry
-from .goal_positions import goal_positions
-from .waypoints import waypoints
-from .util_track_progress import TrackMathDef
-import torch
-import scipy
-from rclpy.impl import rcutils_logger
+import random
 
-logger = rcutils_logger.RcutilsLogger(name="util_log")
+import numpy as np
+import scipy
+import scipy.signal
+import torch
+from nav_msgs.msg import Odometry
+from rclpy.impl import rcutils_logger
+from scipy.spatial.transform import Rotation
+from sensor_msgs.msg import LaserScan
+
+from .goal_positions import goal_positions
+from .util_track_progress import TrackMathDef
+from .waypoints import waypoints
 
 
 def get_quaternion_from_euler(roll, pitch, yaw):
@@ -31,17 +32,8 @@ def get_quaternion_from_euler(roll, pitch, yaw):
 
 
 def get_euler_from_quarternion(w, x, y, z):
-    sinr_cosp = 2 * (w * x + y * z)
-    cosr_cosp = 1 - 2 * (x * x + y * y)
-    roll = math.atan2(sinr_cosp, cosr_cosp)
-    sinp = 2 * (w * y - z * x)
-    if abs(sinp) >= 1:
-        pitch = math.copysign(math.pi / 2, sinp)
-    else:
-        pitch = math.asin(sinp)
-    siny_cosp = 2 * (w * z + x * y)
-    cosy_cosp = 1 - 2 * (y * y + z * z)
-    yaw = math.atan2(siny_cosp, cosy_cosp)
+    # scipy expects xyzw order
+    roll, pitch, yaw = Rotation.from_quat([x, y, z, w]).as_euler("xyz")
     return roll, pitch, yaw
 
 
@@ -697,9 +689,16 @@ def has_collided(lidar_ranges, collision_range):
     return any(0 < ray < collision_range for ray in lidar_ranges)
 
 
-def has_flipped_over(quaternion):
-    _, x, y, _ = quaternion
-    return abs(x) > 0.5 or abs(y) > 0.5
+def has_flipped_over(
+    quaternion_wxyz: list[float], tilt_limit_rad: float = math.radians(60.0)
+):
+    """
+    Returns True if roll or pitch exceeds tilt_limit_rad.
+    Expects quaternion in [w, x, y, z] order.
+    """
+    _, x, y, _ = quaternion_wxyz
+    up_z = 1.0 - 2.0 * (x * x + y * y)  # z-component of rotated world up vector
+    return up_z < math.cos(tilt_limit_rad)
 
 
 def lateral_translation(spline_location, angle, shift):

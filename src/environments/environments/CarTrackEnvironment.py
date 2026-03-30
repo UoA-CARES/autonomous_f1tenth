@@ -1,8 +1,3 @@
-import random
-from typing import Tuple
-
-import numpy as np
-
 from environments.F1tenthEnvironment import F1tenthEnvironment
 
 

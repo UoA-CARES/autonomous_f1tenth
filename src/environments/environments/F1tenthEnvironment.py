@@ -1,7 +1,7 @@
 import math
 import os
 import random
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Literal
 
 import numpy as np
@@ -19,7 +19,7 @@ from std_srvs.srv import SetBool
 from environment_interfaces.srv import Reset
 
 from . import util
-from .util_track_progress import TrackMathDef
+from .observation_types import Observation, OdomState
 from .waypoints import waypoints
 
 
@@ -32,14 +32,15 @@ class F1tenthEnvironment(Node, ABC):
         reward_range: float = 0.5,
         max_steps: int = 3000,
         collision_range: float = 0.2,
-        step_length: float = 0.5,
-        lidar_points: int = 10,
+        step_sleep_time: float = 0.5,
+        lidar_observation_size: int = 10,
         track: str = "track_1",
         observation_mode: str = "lidar_only",
+        train_eval_split: float = 0.5,
     ):
         super().__init__(f"{env_name}_environment")
 
-        if lidar_points < 1:
+        if lidar_observation_size < 1:
             raise ValueError("Make sure number of lidar points is more than 0")
 
         #####################################################################################################################
@@ -48,9 +49,10 @@ class F1tenthEnvironment(Node, ABC):
         self.reward_range = reward_range
         self.max_steps = max_steps
         self.collision_range = collision_range
-        self.step_length = step_length
-        self.lidar_points = lidar_points
+        self.step_sleep_time = step_sleep_time
+        self.lidar_observation_size = lidar_observation_size
         self.track = track
+        self.track_train_eval_split = train_eval_split
 
         #####################################################################################################################
         # Observation params ---------------------------------------------
@@ -62,46 +64,32 @@ class F1tenthEnvironment(Node, ABC):
                 odom_observation_size = 6
             case _:
                 odom_observation_size = 10
-        self.observation_size = odom_observation_size + self.lidar_points
+        self.observation_size = odom_observation_size + self.lidar_observation_size
 
         self.action_num = 2
 
         #####################################################################################################################
         # Track params -----------------------------------------
-        self.is_multi_track = (
-            "multi_track" in self.track or self.track == "staged_tracks"
+        self.tracks = self._load_tracks(self.track)
+        self.track_models = util.get_track_math_defs(self.tracks)
+        self.track_names = list(self.tracks.keys())
+
+        self.current_track = self.track_names[0]
+        self.current_waypoints = self.tracks[self.current_track]
+        self.current_track_model = self.track_models[self.current_track]
+
+        # Backward-compatible aliases for existing subclasses
+        self.all_track_waypoints = self.tracks
+        self.all_track_models = self.track_models
+
+        self.eval_track_begin_idx: int = int(
+            len(self.track_names) * self.track_train_eval_split
         )
-        if self.is_multi_track:
-            _, self.all_track_waypoints = (
-                util.get_all_goals_and_waypoints_in_multi_tracks(self.track)
-            )
-            self.all_track_models = util.get_track_math_defs(self.all_track_waypoints)
-            self.curr_track = list(self.all_track_waypoints.keys())[0]
-            self.curr_waypoints = self.all_track_waypoints[self.curr_track]
-            self.curr_track_model = self.all_track_models[self.curr_track]
-        else:
-            if "test_track" in self.track:
-                track_key = self.track[:-4]
-            else:
-                track_key = self.track
-
-            self.curr_waypoints = waypoints[track_key]  # from waypoints.py
-            self.curr_track_model = TrackMathDef(np.array(self.curr_waypoints)[:, :2])
-
-        if track == "narrow_multi_track":
-            self.multi_track_train_eval_split = 12 / 15
-        else:
-            self.multi_track_train_eval_split = 0.5
-
-        if self.is_multi_track:
-            self.eval_track_begin_idx = int(
-                len(self.all_track_waypoints) * self.multi_track_train_eval_split
-            )
-            self.eval_track_idx = 0
+        self.eval_track_idx = 0
 
         #####################################################################################################################
         # Vehicle params -------------------------------------------
-        self.lidar_processing: Literal["avg", "raw"] = "avg"
+        self.lidar_reduction_mode: Literal["avg", "raw"] = "avg"
 
         config_path = os.path.join(
             get_package_share_directory("environments"),
@@ -170,14 +158,14 @@ class F1tenthEnvironment(Node, ABC):
 
         #####################################################################################################################
         # Initialise loop vars ---------------------------------------------
-        self._latest_data: tuple[Odometry, LaserScan] | None = None
-        self.current_state: np.ndarray | None = None
+        self.latest_data: tuple[Odometry, LaserScan] | None = None
+        self.current_observation: Observation | None = None
 
         self.step_counter = 0
         self.step_progress = 0
         self.goals_reached = 0
 
-        self.prev_closest_point = None
+        self.previous_closest_point = None
         self.is_eval = False
         self.spawn_index = 0
 
@@ -186,48 +174,55 @@ class F1tenthEnvironment(Node, ABC):
         self.progress_not_met_cnt = 0
         self.steps_since_last_goal = 0
 
-    def _reset(self, training: bool) -> tuple[np.ndarray, dict]:
+    def _load_tracks(self, track_name: str) -> dict:
+        if "multi_track" in track_name or track_name == "staged_tracks":
+            _, all_track_waypoints = util.get_all_goals_and_waypoints_in_multi_tracks(
+                track_name
+            )
+            return all_track_waypoints
 
-        if self.is_multi_track:
-            if (
-                self.eval_track_begin_idx is not None
-                and self.eval_track_begin_idx >= len(self.all_track_waypoints)
-            ):
-                if self.is_eval:
-                    all_track_keys = list(self.all_track_waypoints.keys())
-                    self.current_track = all_track_keys[self.eval_track_idx]
-                    self.eval_track_idx += 1
-                    self.eval_track_idx = self.eval_track_idx % len(all_track_keys)
-                else:
-                    self.current_track = random.choice(
-                        list(self.all_track_waypoints.keys())
-                    )
-            else:
-                if self.is_eval:
-                    eval_track_key_list = list(self.all_track_waypoints.keys())[
-                        self.eval_track_begin_idx :
-                    ]
-                    self.current_track = eval_track_key_list[self.eval_track_idx]
-                    self.eval_track_idx += 1
-                    self.eval_track_idx = self.eval_track_idx % len(eval_track_key_list)
-                else:
-                    self.current_track = random.choice(
-                        list(self.all_track_waypoints.keys())[
-                            : self.eval_track_begin_idx
-                        ]
-                    )
-            self.curr_waypoints = self.all_track_waypoints[self.current_track]
+        track_key = track_name
+        return {track_key: waypoints[track_key]}
+
+    def _get_track_split_keys(self) -> tuple[list[str], list[str]]:
+        split_idx = min(self.eval_track_begin_idx, len(self.track_names))
+        split_idx = max(0, split_idx)
+
+        train_keys = self.track_names[:split_idx]
+        eval_keys = self.track_names[split_idx:]
+
+        if len(train_keys) == 0:
+            train_keys = self.track_names
+        if len(eval_keys) == 0:
+            eval_keys = self.track_names
+
+        return train_keys, eval_keys
+
+    def _select_track_name(self) -> str:
+        train_keys, eval_keys = self._get_track_split_keys()
 
         if self.is_eval:
-            car_x, car_y, car_yaw, index = self.curr_waypoints[10]
+            selected = eval_keys[self.eval_track_idx % len(eval_keys)]
+            self.eval_track_idx = (self.eval_track_idx + 1) % len(eval_keys)
+            return selected
+
+        return random.choice(train_keys)
+
+    def _reset(self, _training: bool) -> tuple[np.ndarray, dict]:
+        self.current_track = self._select_track_name()
+        self.current_waypoints = self.tracks[self.current_track]
+        self.current_track_model = self.track_models[self.current_track]
+
+        if self.is_eval:
+            car_x, car_y, car_yaw, index = self.current_waypoints[10]
         else:
-            car_x, car_y, car_yaw, index = random.choice(self.curr_waypoints)
+            car_x, car_y, car_yaw, index = random.choice(self.current_waypoints)
 
         self.spawn_index = index
-        x, y, _, _ = self.curr_waypoints[
+        x, y, _, _ = self.current_waypoints[
             (
                 self.spawn_index + 1
-                if self.spawn_index + 1 < len(self.curr_waypoints)
+                if self.spawn_index + 1 < len(self.current_waypoints)
                 else 0
             )
         ]
@@ -244,15 +239,15 @@ class F1tenthEnvironment(Node, ABC):
         )
 
         self.call_step(pause=False)
-        state, full_state, _ = self._get_observation()
-        self.current_state = full_state
+        state, observation, _ = self._get_observation()
+        self.current_observation = observation
         self.call_step(pause=True)
 
-        if self.is_multi_track:
-            self.curr_track_model = self.all_track_models[self.current_track]
-
-        self.prev_closest_point = self.curr_track_model.get_closest_point_on_spline(
-            full_state[:2], t_only=True
+        self.previous_closest_point = (
+            self.current_track_model.get_closest_point_on_spline(
+                [observation.odom.x, observation.odom.y],
+                t_only=True,
+            )
         )
 
         info = {}
@@ -270,21 +265,21 @@ class F1tenthEnvironment(Node, ABC):
 
         self.set_velocity(0, 0)
 
-        self.current_state, _ = self._reset(training)
-        return self.current_state
+        state, _ = self._reset(training)
+        return state
 
     def message_filter_callback(self, odom: Odometry, lidar: LaserScan) -> None:
-        self._latest_data = (odom, lidar)
+        self.latest_data = (odom, lidar)
 
     def get_data(self, timeout: float = 5.0) -> tuple[Odometry, LaserScan]:
         # Drain anything stale
-        self._latest_data = None
+        self.latest_data = None
         end_time = self.get_clock().now().nanoseconds + int(timeout * 1e9)
 
         while self.get_clock().now().nanoseconds < end_time:
             rclpy.spin_once(self, timeout_sec=0.01)
-            if self._latest_data is not None:
-                return self._latest_data
+            if self.latest_data is not None:
+                return self.latest_data
 
         raise TimeoutError("No synced data received")
 
@@ -294,57 +289,58 @@ class F1tenthEnvironment(Node, ABC):
         while self.get_clock().now().nanoseconds < end_time:
             rclpy.spin_once(self, timeout_sec=0.01)
 
-    def is_terminated(self, state, ranges):
+    def is_terminated(self, observation: Observation, ranges: list[float]):
+        quaternion = observation.odom.quaternion_wxyz()
         return util.has_collided(ranges, self.collision_range) or util.has_flipped_over(
-            state[2:6]
+            quaternion
         )
 
     def is_truncated(self):
         return self.progress_not_met_cnt >= 5 or self.step_counter >= self.max_steps
 
-    def _get_observation(self):
-        odom, lidar = self.get_data()
-        odom = util.process_odom(odom)
-        num_points = self.lidar_points
-        state = []
+    def _get_observation(self) -> tuple[np.ndarray, Observation, list[float]]:
+        odom_msg, lidar_msg = self.get_data()
 
-        match (self.observation_mode):
-            case "no_position":
-                state += odom[2:]
-            case "lidar_only":
-                state += odom[-2:]
-            case _:
-                state += odom
-        match self.lidar_processing:
+        match self.lidar_reduction_mode:
             case "avg":
-                processed_lidar_range = util.avg_lidar(lidar, num_points)
+                processed_lidar_range = util.avg_lidar(
+                    lidar_msg, self.lidar_observation_size
+                )
                 visualized_range = processed_lidar_range
-                scan = util.create_lidar_msg(lidar, num_points, visualized_range)
+                scan = util.create_lidar_msg(
+                    lidar_msg, self.lidar_observation_size, visualized_range
+                )
             case "raw":
-                processed_lidar_range = np.array(lidar.ranges.tolist())
+                processed_lidar_range = np.array(lidar_msg.ranges.tolist())
                 processed_lidar_range = np.nan_to_num(
                     processed_lidar_range, posinf=-5, nan=-1, neginf=-5
                 ).tolist()
                 visualized_range = processed_lidar_range
-                scan = util.create_lidar_msg(lidar, num_points, visualized_range)
+                scan = util.create_lidar_msg(
+                    lidar_msg, self.lidar_observation_size, visualized_range
+                )
 
         self.processed_publisher.publish(scan)
 
-        full_state = odom + processed_lidar_range
+        observation = Observation(
+            odom=OdomState.from_odometry(odom_msg),
+            lidar=np.asarray(processed_lidar_range, dtype=np.float32),
+        )
+        state = observation.to_policy_array(self.observation_mode)
 
-        state += processed_lidar_range
-        state = np.asarray(state)
-
-        return state, full_state, lidar.ranges
+        return state, observation, lidar_msg.ranges.tolist()
 
     def compute_reward(
-        self, state: np.ndarray, next_state: np.ndarray, raw_lidar_range: LaserScan
+        self,
+        current_observation: Observation,
+        next_observation: Observation,
+        raw_lidar_range: list[float],
     ) -> tuple[float, dict]:
         reward = 0
         reward_info = {}
 
         base_reward, base_reward_info = self.calculate_progressive_reward(
-            state, next_state, raw_lidar_range
+            current_observation, next_observation, raw_lidar_range
         )
         reward += base_reward
         reward_info.update(base_reward_info)
@@ -358,27 +354,30 @@ class F1tenthEnvironment(Node, ABC):
                     )
                     reward -= reward * close_to_wall_penalize_factor * weight
                     reward_info.update({"dist_to_wall": ["avg", dist_to_wall]})
-                    print(
-                        f"--- Wall proximity penalty factor: {weight} * {close_to_wall_penalize_factor}"
-                    )
                 case "turn":
-                    # steering_angle1 = twist_to_ackermann(state[7], state[6], L=0.325)
-                    angular_vel_diff = abs(state[7] - next_state[7])
+                    angular_vel_diff = abs(
+                        current_observation.odom.angular_velocity
+                        - next_observation.odom.angular_velocity
+                    )
                     turning_penalty_factor = 1 - (
                         1 / (1 + np.exp(15 * (angular_vel_diff - 0.5)))
                     )
                     reward -= reward * turning_penalty_factor * weight
-                    print(
-                        f"--- Turning penalty factor: {weight} * {turning_penalty_factor}"
-                    )
+
         return reward, reward_info
 
     def calculate_progressive_reward(
-        self, state: np.ndarray, next_state: np.ndarray, raw_range: LaserScan
+        self,
+        current_observation: Observation,
+        next_observation: Observation,
+        raw_range: list[float],
     ):
         reward = 0
         goal_position = self.goal_position
-        current_distance = math.dist(goal_position, next_state[:2])
+        current_distance = math.dist(
+            goal_position,
+            [next_observation.odom.x, next_observation.odom.y],
+        )
 
         if self.step_progress < 0.02:
             self.progress_not_met_cnt += 1
@@ -390,8 +389,8 @@ class F1tenthEnvironment(Node, ABC):
 
         if current_distance < self.reward_range:
             self.goals_reached += 1
-            new_x, new_y, _, _ = self.curr_waypoints[
-                (self.spawn_index + self.goals_reached) % len(self.curr_waypoints)
+            new_x, new_y, _, _ = self.current_waypoints[
+                (self.spawn_index + self.goals_reached) % len(self.current_waypoints)
             ]
             self.goal_position = [new_x, new_y]
             self.update_goal_service(new_x, new_y)
@@ -400,53 +399,77 @@ class F1tenthEnvironment(Node, ABC):
         if self.progress_not_met_cnt >= 5:
             reward -= 2
 
+        quaternion = next_observation.odom.quaternion_wxyz()
         if util.has_collided(raw_range, self.collision_range) or util.has_flipped_over(
-            next_state[2:6]
+            quaternion
         ):
             reward -= 2.5
 
         info = {}
         return reward, info
 
+    def _clamp_step_progress(self, step_progress: float, linear_speed: float) -> float:
+        """
+        Clamp spline progress to a physically plausible per-step travel distance.
+        Max distance = speed (m/s) * step_length (s). A 1 cm floor handles near-zero
+        speed. Sign is preserved so backward motion is represented correctly.
+        """
+        max_progress = max(abs(linear_speed) * self.step_sleep_time, 0.01)
+        return float(np.clip(step_progress, -max_progress, max_progress))
+
     def _step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict]:
 
-        next_state, full_next_state, raw_lidar_range = self._get_observation()
+        next_state, next_observation, raw_lidar_range = self._get_observation()
         self.call_step(pause=True)
 
-        if not self.prev_closest_point:
-            self.prev_closest_point = self.curr_track_model.get_closest_point_on_spline(
-                self.current_state[:2], t_only=True
+        if self.current_observation is None:
+            raise RuntimeError(
+                "Current observation is not initialized - call reset first"
             )
 
-        t2 = self.curr_track_model.get_closest_point_on_spline(
-            full_next_state[:2], t_only=True
-        )
-        self.step_progress = self.curr_track_model.get_distance_along_track_parametric(
-            self.prev_closest_point, t2, approximate=True
+        if self.previous_closest_point is None:
+            self.previous_closest_point = (
+                self.current_track_model.get_closest_point_on_spline(
+                    [self.current_observation.odom.x, self.current_observation.odom.y],
+                    t_only=True,
+                )
+            )
+
+        current_closest_point = self.current_track_model.get_closest_point_on_spline(
+            [next_observation.odom.x, next_observation.odom.y], t_only=True
         )
 
-        self.prev_closest_point = t2
+        self.step_progress = (
+            self.current_track_model.get_distance_along_track_parametric(
+                self.previous_closest_point, current_closest_point, approximate=True
+            )
+        )
+        self.step_progress = self._clamp_step_progress(
+            self.step_progress, next_observation.odom.linear_velocity
+        )
 
-        if abs(self.step_progress) > (full_next_state[6] / 10 * 3):
-            self.step_progress = full_next_state[6] / 10 * 0.8
+        self.previous_closest_point = current_closest_point
 
         reward, reward_info = self.compute_reward(
-            self.current_state, full_next_state, raw_lidar_range
+            self.current_observation, next_observation, raw_lidar_range
         )
-        terminated = self.is_terminated(full_next_state, raw_lidar_range)
+        terminated = self.is_terminated(next_observation, raw_lidar_range)
         truncated = self.is_truncated()
 
         info = {
-            "linear_velocity": ["avg", full_next_state[6]],
+            "linear_velocity": ["avg", next_observation.odom.linear_velocity],
             "angular_velocity_diff": [
                 "avg",
-                abs(full_next_state[7] - self.current_state[7]),
+                abs(
+                    next_observation.odom.angular_velocity
+                    - self.current_observation.odom.angular_velocity
+                ),
             ],
             "traveled distance": ["sum", self.step_progress],
         }
         info.update(reward_info)
 
-        self.current_state = full_next_state
+        self.current_observation = next_observation
 
         return next_state, reward, terminated, truncated, info
 
@@ -458,15 +481,12 @@ class F1tenthEnvironment(Node, ABC):
 
         self.set_velocity(lin_vel, steering_angle)
 
-        self.sleep(self.step_length)
+        self.sleep(self.step_sleep_time)
 
         next_state, reward, terminated, truncated, info = self._step(action)
 
         self.call_step(pause=True)
 
-        self.current_state = next_state
-
-        info = {}
         return next_state, reward, terminated, truncated, info
 
     def set_velocity(
