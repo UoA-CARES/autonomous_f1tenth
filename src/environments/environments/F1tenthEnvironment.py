@@ -31,10 +31,10 @@ class F1tenthEnvironment(Node, ABC):
         car_name: str,
         reward_range: float = 0.5,
         max_steps: int = 3000,
-        collision_range: float = 0.2,
-        step_sleep_time: float = 0.5,
+        collision_range_m: float = 0.2,
+        step_sleep_time_ms: float = 100,
         lidar_observation_size: int = 10,
-        track: str = "track_1",
+        track: str = "track_01",
         observation_mode: ObservationMode = "lidar_only",
         train_eval_split: float = 0.5,
     ):
@@ -46,8 +46,8 @@ class F1tenthEnvironment(Node, ABC):
         self.car_name = car_name
         self.goal_reach_radius = reward_range
         self.max_steps = max_steps
-        self.collision_range = collision_range
-        self.step_sleep_time = step_sleep_time
+        self.collision_range_m = collision_range_m
+        self.step_sleep_time_ms = step_sleep_time_ms
         self.lidar_observation_size = lidar_observation_size
         self.track_train_eval_split = train_eval_split
 
@@ -265,17 +265,22 @@ class F1tenthEnvironment(Node, ABC):
 
         raise TimeoutError("No synced data received")
 
-    def _sleep(self, duration: float) -> None:
-        end_time = self.get_clock().now().nanoseconds + int(duration * 1e9)
+    def _sleep(self, duration_ms: float) -> None:
+        """
+        Sleep while still processing incoming messages, to allow for callbacks to run.
+
+        Critical that this uses self.get_clock() for timekeeping, to ensure it works properly with simulated time.
+        """
+        end_time = self.get_clock().now().nanoseconds + int(duration_ms * 1e6)
 
         while self.get_clock().now().nanoseconds < end_time:
             rclpy.spin_once(self, timeout_sec=0.01)
 
     def _is_terminated(self, observation: Observation, ranges: list[float]) -> bool:
         quaternion = observation.odom.quaternion_wxyz()
-        return util.has_collided(ranges, self.collision_range) or util.has_flipped_over(
-            quaternion
-        )
+        return util.has_collided(
+            ranges, self.collision_range_m
+        ) or util.has_flipped_over(quaternion)
 
     def _is_truncated(self) -> bool:
         return self.progress_not_met_cnt >= 5 or self.step_counter >= self.max_steps
@@ -390,7 +395,7 @@ class F1tenthEnvironment(Node, ABC):
 
         quaternion = next_observation.odom.quaternion_wxyz()
         if util.has_collided(
-            raw_lidar_range, self.collision_range
+            raw_lidar_range, self.collision_range_m
         ) or util.has_flipped_over(quaternion):
             reward -= 2.5
 
@@ -402,7 +407,8 @@ class F1tenthEnvironment(Node, ABC):
         Max distance = speed (m/s) * step_length (s). A 1 cm floor handles near-zero
         speed. Sign is preserved so backward motion is represented correctly.
         """
-        max_progress = max(abs(linear_speed) * self.step_sleep_time, 0.01)
+        step_duration_s = self.step_sleep_time_ms / 1000.0
+        max_progress = max(abs(linear_speed) * step_duration_s, 0.01)
         return float(np.clip(step_progress, -max_progress, max_progress))
 
     def _step(self) -> tuple[np.ndarray, float, bool, bool, dict]:
@@ -475,7 +481,7 @@ class F1tenthEnvironment(Node, ABC):
 
         self._set_velocity(lin_vel, steering_angle)
 
-        self._sleep(self.step_sleep_time)
+        self._sleep(self.step_sleep_time_ms)
 
         next_state, reward, terminated, truncated, info = self._step()
 

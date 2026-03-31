@@ -1,5 +1,3 @@
-import random
-
 from environments.F1tenthEnvironment import F1tenthEnvironment
 from environments.observation_types import ObservationMode
 
@@ -17,19 +15,19 @@ class CarRaceEnvironment(F1tenthEnvironment):
         car_name: str,
         reward_range: float = 0.5,
         max_steps: int = 3000,
-        collision_range: float = 0.2,
-        step_length: float = 0.5,
-        track: str = "track_1",
+        collision_range_m: float = 0.2,
+        step_sleep_time_ms: float = 100,
+        track: str = "track_01",
         observation_mode: ObservationMode = "lidar_only",
-        opponent_car_name: str = "f1tenth_2",
+        opponent_car_name: str = "f2tenth",
     ):
         super().__init__(
             env_name="car_race",
             car_name=car_name,
             reward_range=reward_range,
             max_steps=max_steps,
-            collision_range=collision_range,
-            step_sleep_time=step_length,
+            collision_range_m=collision_range_m,
+            step_sleep_time_ms=step_sleep_time_ms,
             lidar_observation_size=10,
             track=track,
             observation_mode=observation_mode,
