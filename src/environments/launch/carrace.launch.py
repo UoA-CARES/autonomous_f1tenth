@@ -1,14 +1,15 @@
 import os
+
 from ament_index_python import get_package_share_directory
-from launch_ros.actions import Node
 from launch import LaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import (
-    IncludeLaunchDescription,
     DeclareLaunchArgument,
+    IncludeLaunchDescription,
     OpaqueFunction,
 )
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
 
 def launch(context, *args, **kwargs):
@@ -40,7 +41,7 @@ def launch(context, *args, **kwargs):
             os.path.join(pkg_f1tenth_bringup, "simulation_bringup.launch.py")
         ),
         launch_arguments={
-            "name": "f1tenth_2",
+            "name": "f2tenth",
             "world": "empty",
         }.items(),
     )
@@ -50,7 +51,7 @@ def launch(context, *args, **kwargs):
         executable="ftg_policy",
         output="screen",
         parameters=[
-            {"car_name": "f1tenth_2", "track_name": track},
+            {"car_name": "f2tenth", "track_name": track},
         ],
     )
 

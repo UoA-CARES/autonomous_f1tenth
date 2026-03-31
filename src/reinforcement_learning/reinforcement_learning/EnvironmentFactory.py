@@ -30,42 +30,13 @@ class EnvironmentFactory:
                 track=config["track"],
                 observation_mode=config["observation_mode"],
             )
-        # # Merge CarRace with TwoCar
-        # elif task == "CarRace":
-        #     return CarRaceEnvironment(
-        #         "f1tenth",
-        #         config["max_steps"],
-        #         config["collision_range"],
-        #         config["step_length"],
-        #         config["track"],
-        #         config["observation_mode"],
-        #     )
-        # elif task == "TwoCar":
-        #     return TwoCarEnvironment(
-        #         config["car_name"],
-        #         config["max_steps"],
-        #         config["collision_range"],
-        #         config["step_length"],
-        #         config["track"],
-        #         config["observation_mode"],
-        #     )
-        # elif task == "MultiAgent":
-        #     return MultiAgentEnvironment(
-        #         config["car_name"],
-        #         config["max_steps"],
-        #         config["collision_range"],
-        #         config["step_length"],
-        #         config["track"],
-        #         config["observation_mode"],
-        #     )
-        # elif task == "MultiAgent2":
-        #     return MultiAgentEnvironment(
-        #         "f2tenth",
-        #         config["max_steps"],
-        #         config["collision_range"],
-        #         config["step_length"],
-        #         config["track"],
-        #         config["observation_mode"],
-        #     )
+        elif task == "CarRace":
+            return CarRaceEnvironment(
+                car_name="f1tenth",
+                max_steps=config["max_steps"],
+                track=config["track"],
+                observation_mode=config["observation_mode"],
+                opponent_car_name="f2tenth",
+            )
 
         raise ValueError(f"EnvironmentFactory: Environment not found {task}")

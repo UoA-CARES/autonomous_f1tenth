@@ -10,10 +10,7 @@ from launch_ros.actions import SetParameter
 
 env_launch = {
     "CarTrack": "cartrack",
-    "CarBeat": "carbeat",
-    "CarOvertake": "carovertake",
-    "TwoCar": "twocar",
-    "MultiAgent": "multiagent",
+    "CarRace": "carrace",
 }
 
 
@@ -23,9 +20,6 @@ def generate_launch_description():
 
     config_path = os.path.join(
         get_package_share_directory("reinforcement_learning"), "train.yaml"
-    )
-    car2_config_path = os.path.join(
-        get_package_share_directory("reinforcement_learning"), "train_car2.yaml"
     )
 
     config = yaml.load(open(config_path), Loader=yaml.Loader)
@@ -53,7 +47,7 @@ def generate_launch_description():
                 text=(
                     str(config["train"]["ros__parameters"]["ftg_car_name"])
                     if "ftg_car_name" in config["train"]["ros__parameters"]
-                    else "ftg_car"
+                    else "f2tenth"
                 )
             ),
         }.items(),  # TODO: this doesn't do anything
