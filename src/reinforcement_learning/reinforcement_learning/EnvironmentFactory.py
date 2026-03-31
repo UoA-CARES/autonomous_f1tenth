@@ -7,8 +7,6 @@ from ament_index_python.packages import get_package_share_directory
 
 from environments.CarRaceEnvironment import CarRaceEnvironment
 from environments.CarTrackEnvironment import CarTrackEnvironment
-from environments.MultiAgentEnvironment import MultiAgentEnvironment
-from environments.TwoCarEnvironment import TwoCarEnvironment
 
 
 class EnvironmentFactory:
