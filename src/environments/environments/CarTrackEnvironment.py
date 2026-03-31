@@ -54,8 +54,8 @@ class CarTrackEnvironment(F1tenthEnvironment):
             reward_range=reward_range,
             max_steps=max_steps,
             collision_range=collision_range,
-            step_length=step_length,
-            lidar_points=10,
+            step_sleep_time=step_length,
+            lidar_observation_size=10,
             track=track,
             observation_mode=observation_mode,
         )
