@@ -29,6 +29,7 @@ class EnvironmentFactory:
                 track=config["track"],
                 observation_mode=config["observation_mode"],
             )
+        # Basic Single Agent vs FTG Environment
         elif task == "CarRace":
             return CarRaceEnvironment(
                 car_name="f1tenth",
