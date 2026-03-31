@@ -1,7 +1,7 @@
 train:
   ros__parameters:
-    environment: 'CarTrack'
-    track: 'multi_track' # track_1, track_2, track_3, multi_track, multi_track_testing -> only applies for CarTrack
+    environment: 'CarRace'
+    track: 'multi_track'
     car_name: 'f1tenth'
     observation_mode: 'lidar_only'
     number_eval_episodes: 3

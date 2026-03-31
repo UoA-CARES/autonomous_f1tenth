@@ -1,4 +1,5 @@
 from environments.F1tenthEnvironment import F1tenthEnvironment
+from environments.observation_types import ObservationMode
 
 
 class CarTrackEnvironment(F1tenthEnvironment):
@@ -46,7 +47,7 @@ class CarTrackEnvironment(F1tenthEnvironment):
         collision_range: float = 0.2,
         step_length: float = 0.1,
         track: str = "track_01",
-        observation_mode: str = "lidar_only",
+        observation_mode: ObservationMode = "lidar_only",
     ):
         super().__init__(
             env_name="car_track",

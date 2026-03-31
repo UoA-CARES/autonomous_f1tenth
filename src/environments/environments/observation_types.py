@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Literal
+from typing import Literal
 
 import numpy as np
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import LaserScan
 
 ObservationMode = Literal["lidar_only", "no_position", "full_state"]
-LidarProcessor = Callable[[LaserScan], list[float] | np.ndarray]
 
 
 @dataclass(slots=True)

@@ -1,113 +1,66 @@
-import rclpy
-import numpy as np
 import random
+
 from environments.F1tenthEnvironment import F1tenthEnvironment
-from .util import (
-    process_ae_lidar,
-    process_odom,
-    avg_lidar,
-    create_lidar_msg,
-    reconstruct_ae_latent,
-)
-from environment_interfaces.srv import Reset
+from environments.observation_types import ObservationMode
 
 
 class CarRaceEnvironment(F1tenthEnvironment):
     """
-    CarRace Environment:
-        Currently a test environment only.
+    CarRace environment.
 
-        Task:
-            Agent races an opponent
-
-        Observation:
-            full:
-                Car Position (x, y)
-                Car Orientation (x, y, z, w)
-                Car Velocity
-                Car Angular Velocity
-                Lidar Data
-            no_position:
-                Car Orientation (x, y, z, w)
-                Car Velocity
-                Car Angular Velocity
-                Lidar Data
-            lidar_only:
-                Car Velocity
-                Car Angular Velocity
-                Lidar Data
-
-        Action:
-            Its linear and angular velocity (Twist)
+    This environment behaves like `F1tenthEnvironment`, but also resets a second,
+    externally controlled car whenever the episode is reset.
     """
 
     def __init__(
         self,
-        car_name,
-        reward_range=0.5,
-        max_steps=3000,
-        collision_range=0.2,
-        step_length=0.5,
-        track="track_1",
-        observation_mode="lidar_only",
-        config_path="/home/anyone/autonomous_f1tenth/src/environments/config/config.yaml",
+        car_name: str,
+        reward_range: float = 0.5,
+        max_steps: int = 3000,
+        collision_range: float = 0.2,
+        step_length: float = 0.5,
+        track: str = "track_1",
+        observation_mode: ObservationMode = "lidar_only",
+        opponent_car_name: str = "f1tenth_2",
     ):
         super().__init__(
-            "car_race",
-            car_name,
-            reward_range,
-            max_steps,
-            collision_range,
-            step_length,
-            10,
-            track,
-            observation_mode,
+            env_name="car_race",
+            car_name=car_name,
+            reward_range=reward_range,
+            max_steps=max_steps,
+            collision_range=collision_range,
+            step_sleep_time=step_length,
+            lidar_observation_size=10,
+            track=track,
+            observation_mode=observation_mode,
         )
 
+        self.opponent_car_name = opponent_car_name
         self.get_logger().info("Environment Setup Complete")
 
-        #####################################################################################################################
+    def _get_opponent_spawn_pose(
+        self, primary_spawn_index: int
+    ) -> tuple[float, float, float]:
+        if self.is_eval and len(self.current_waypoints) > 16:
+            opponent_x, opponent_y, opponent_yaw, _ = self.current_waypoints[16]
+            return opponent_x, opponent_y, opponent_yaw
 
-    def reset(self):
-        self.STEP_COUNTER = 0
-        self.set_velocity(0, 0)
+        opponent_index = (primary_spawn_index + 2) % len(self.current_waypoints)
+        opponent_x, opponent_y, opponent_yaw, _ = self.current_waypoints[opponent_index]
+        return opponent_x, opponent_y, opponent_yaw
 
-        if self.IS_EVAL:
-            car_x, car_y, car_yaw, index = self.TRACK_WAYPOINTS[10]
-            car_2_x, car_2_y, car_2_yaw, _ = self.TRACK_WAYPOINTS[16]
-        else:
-            car_x, car_y, car_yaw, index = random.choice(self.TRACK_WAYPOINTS)
-            car_2_x, car_2_y, car_2_yaw, _ = self.TRACK_WAYPOINTS[
-                index + 2 if index + 20 < len(self.TRACK_WAYPOINTS) else 0
-            ]
+    def _reset_positions(self):
+        super()._reset_positions()
 
-        self.SPAWN_INDEX = index
-        self.call_reset_service(
-            car_x=car_x, car_y=car_y, car_Y=car_yaw, car_name=self.NAME
-        )
-        self.call_reset_service(
-            car_x=car_2_x, car_y=car_2_y, car_Y=car_2_yaw, car_name="f1tenth_2"
+        opponent_x, opponent_y, opponent_yaw = self._get_opponent_spawn_pose(
+            self.spawn_index
         )
 
-        self.call_step(pause=False)
-        state, full_state, _ = self.get_observation()
-        self.CURR_STATE = full_state
-        self.call_step(pause=True)
-
-        self.PREV_CLOSEST_POINT = self.CURR_TRACK_MODEL.get_closest_point_on_spline(
-            full_state[:2], t_only=True
+        self._call_reset_service(
+            car_x=opponent_x,
+            car_y=opponent_y,
+            car_yaw=opponent_yaw,
+            goal_x=self.goal_position[0],
+            goal_y=self.goal_position[1],
+            car_name=self.opponent_car_name,
         )
-        info = {}
-        return state, info
-
-    def call_reset_service(self, car_x, car_y, car_Y, car_name):
-        request = Reset.Request()
-        request.car_name = car_name
-        request.cx = float(car_x)
-        request.cy = float(car_y)
-        request.cyaw = float(car_Y)
-        request.flag = "car"
-
-        future = self.RESET_CLIENT.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
-        return future.result()
