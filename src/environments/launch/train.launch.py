@@ -19,10 +19,11 @@ def generate_launch_description():
     pkg_environments = get_package_share_directory("environments")
 
     config_path = os.path.join(
-        get_package_share_directory("reinforcement_learning"), "train.yaml"
+        get_package_share_directory("environments"), "config", "train.yaml"
     )
 
-    config = yaml.load(open(config_path), Loader=yaml.Loader)
+    with open(config_path, "r", encoding="utf-8") as config_file:
+        config = yaml.safe_load(config_file)
     env = config["train"]["ros__parameters"]["environment"]
 
     environment = IncludeLaunchDescription(

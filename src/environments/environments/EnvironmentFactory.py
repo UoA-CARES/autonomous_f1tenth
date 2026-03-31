@@ -15,7 +15,8 @@ class EnvironmentFactory:
     def create(self, task: str, config: dict):
         # TODO remove hard code to this path, make it more flexible
         config_path = os.path.join(
-            get_package_share_directory("reinforcement_learning"),
+            get_package_share_directory("environments"),
+            "config",
             "train.yaml",
         )
         with open(config_path, "r", encoding="utf-8") as file:
