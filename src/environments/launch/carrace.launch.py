@@ -12,13 +12,14 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-def launch(context, *args, **kwargs):
+def launch(context):
     pkg_ros_gz_sim = get_package_share_directory("ros_gz_sim")
     pkg_environments = get_package_share_directory("environments")
     pkg_f1tenth_bringup = get_package_share_directory("f1tenth_bringup")
 
     track = LaunchConfiguration("track").perform(context)
     car_name = LaunchConfiguration("car_name").perform(context)
+    opponent_car_name = LaunchConfiguration("opponent_car_name").perform(context)
 
     gz_sim = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
@@ -41,7 +42,7 @@ def launch(context, *args, **kwargs):
             os.path.join(pkg_f1tenth_bringup, "simulation_bringup.launch.py")
         ),
         launch_arguments={
-            "name": "f2tenth",
+            "name": opponent_car_name,
             "world": "empty",
         }.items(),
     )
@@ -51,7 +52,7 @@ def launch(context, *args, **kwargs):
         executable="ftg_policy",
         output="screen",
         parameters=[
-            {"car_name": "f2tenth", "track_name": track},
+            {"car_name": opponent_car_name, "track_name": track},
         ],
     )
 
@@ -64,19 +65,23 @@ def generate_launch_description():
 
     car_name = DeclareLaunchArgument("car_name", default_value="f1tenth")
 
+    opponent_car_name = DeclareLaunchArgument(
+        "opponent_car_name", default_value="f2tenth"
+    )
+
     service_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
         output="screen",
         arguments=[
-            f"/world/empty/control@ros_gz_interfaces/srv/ControlWorld",
-            f"/world/empty/create@ros_gz_interfaces/srv/SpawnEntity",
-            f"/world/empty/remove@ros_gz_interfaces/srv/DeleteEntity",
-            f"/world/empty/set_pose@ros_gz_interfaces/srv/SetEntityPose",
-            f"/world/empty/clock@rosgraph_msgs/msg/Clock@gz.msgs.Clock",
+            "/world/empty/control@ros_gz_interfaces/srv/ControlWorld",
+            "/world/empty/create@ros_gz_interfaces/srv/SpawnEntity",
+            "/world/empty/remove@ros_gz_interfaces/srv/DeleteEntity",
+            "/world/empty/set_pose@ros_gz_interfaces/srv/SetEntityPose",
+            "/world/empty/clock@rosgraph_msgs/msg/Clock@gz.msgs.Clock",
         ],
         remappings=[
-            (f"/world/empty/clock", f"/clock"),
+            ("/world/empty/clock", "/clock"),
         ],
     )
 
@@ -102,5 +107,6 @@ def generate_launch_description():
             reset,
             stepping_service,
             car_name,
+            opponent_car_name,
         ]
     )

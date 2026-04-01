@@ -12,7 +12,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-def launch(context, *args, **kwargs):
+def launch(context):
     pkg_ros_gz_sim = get_package_share_directory("ros_gz_sim")
     pkg_environments = get_package_share_directory("environments")
     pkg_f1tenth_bringup = get_package_share_directory("f1tenth_bringup")
@@ -50,14 +50,14 @@ def generate_launch_description():
         executable="parameter_bridge",
         output="screen",
         arguments=[
-            f"/world/empty/control@ros_gz_interfaces/srv/ControlWorld",
-            f"/world/empty/create@ros_gz_interfaces/srv/SpawnEntity",
-            f"/world/empty/remove@ros_gz_interfaces/srv/DeleteEntity",
-            f"/world/empty/set_pose@ros_gz_interfaces/srv/SetEntityPose",
-            f"/world/empty/clock@rosgraph_msgs/msg/Clock@gz.msgs.Clock",
+            "/world/empty/control@ros_gz_interfaces/srv/ControlWorld",
+            "/world/empty/create@ros_gz_interfaces/srv/SpawnEntity",
+            "/world/empty/remove@ros_gz_interfaces/srv/DeleteEntity",
+            "/world/empty/set_pose@ros_gz_interfaces/srv/SetEntityPose",
+            "/world/empty/clock@rosgraph_msgs/msg/Clock@gz.msgs.Clock",
         ],
         remappings=[
-            (f"/world/empty/clock", f"/clock"),
+            ("/world/empty/clock", "/clock"),
         ],
     )
 
