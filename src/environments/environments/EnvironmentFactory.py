@@ -37,7 +37,6 @@ class EnvironmentFactory:
                 max_steps=config["max_steps"],
                 track=config["track"],
                 observation_mode=config["observation_mode"],
-                opponent_car_name=config.get("opponent_car_name", "f2tenth"),
             )
 
         raise ValueError(f"EnvironmentFactory: Environment not found {task}")

@@ -25,14 +25,14 @@ def _create_environment_launch(context):
     environment_name = LaunchConfiguration("environment").perform(context)
     track = LaunchConfiguration("track").perform(context)
     car_name = LaunchConfiguration("car_name").perform(context)
-    opponent_car_name = LaunchConfiguration("opponent_car_name").perform(context)
+    num_opponents = LaunchConfiguration("num_opponents").perform(context)
 
     launch_arguments = {
         "track": track,
         "car_name": car_name,
     }
     if environment_name == "CarRace":
-        launch_arguments["opponent_car_name"] = opponent_car_name
+        launch_arguments["num_opponents"] = num_opponents
 
     return [
         IncludeLaunchDescription(
@@ -66,9 +66,9 @@ def generate_launch_description():
         "car_name",
         default_value=str(config_params.get("car_name", "f1tenth")),
     )
-    opponent_car_name_arg = DeclareLaunchArgument(
-        "opponent_car_name",
-        default_value=str(config_params.get("opponent_car_name", "f2tenth")),
+    num_opponents_arg = DeclareLaunchArgument(
+        "num_opponents",
+        default_value=str(config_params.get("num_opponents", 1)),
     )
 
     return LaunchDescription(
@@ -76,7 +76,7 @@ def generate_launch_description():
             environment_arg,
             track_arg,
             car_name_arg,
-            opponent_car_name_arg,
+            num_opponents_arg,
             SetEnvironmentVariable(
                 name="GZ_SIM_RESOURCE_PATH", value=pkg_f1tenth_description[:-19]
             ),

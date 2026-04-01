@@ -19,7 +19,7 @@ def launch(context):
 
     track = LaunchConfiguration("track").perform(context)
     car_name = LaunchConfiguration("car_name").perform(context)
-    opponent_car_name = LaunchConfiguration("opponent_car_name").perform(context)
+    num_opponents = int(LaunchConfiguration("num_opponents").perform(context))
 
     gz_sim = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
@@ -37,26 +37,34 @@ def launch(context):
         launch_arguments={"name": car_name, "world": "empty"}.items(),
     )
 
-    f1tenth_2 = IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            os.path.join(pkg_f1tenth_bringup, "simulation_bringup.launch.py")
-        ),
-        launch_arguments={
-            "name": opponent_car_name,
-            "world": "empty",
-        }.items(),
-    )
+    opponent_entities = []
+    for opponent_index in range(num_opponents):
+        opponent_car_name = f"f{opponent_index + 2}tenth"
+        opponent_entities.extend(
+            [
+                IncludeLaunchDescription(
+                    launch_description_source=PythonLaunchDescriptionSource(
+                        os.path.join(
+                            pkg_f1tenth_bringup, "simulation_bringup.launch.py"
+                        )
+                    ),
+                    launch_arguments={
+                        "name": opponent_car_name,
+                        "world": "empty",
+                    }.items(),
+                ),
+                Node(
+                    package="controllers",
+                    executable="ftg_policy",
+                    output="screen",
+                    parameters=[
+                        {"car_name": opponent_car_name, "track_name": track},
+                    ],
+                ),
+            ]
+        )
 
-    controller_1 = Node(
-        package="controllers",
-        executable="ftg_policy",
-        output="screen",
-        parameters=[
-            {"car_name": opponent_car_name, "track_name": track},
-        ],
-    )
-
-    return [gz_sim, f1tenth, f1tenth_2, controller_1]
+    return [gz_sim, f1tenth, *opponent_entities]
 
 
 def generate_launch_description():
@@ -65,9 +73,7 @@ def generate_launch_description():
 
     car_name = DeclareLaunchArgument("car_name", default_value="f1tenth")
 
-    opponent_car_name = DeclareLaunchArgument(
-        "opponent_car_name", default_value="f2tenth"
-    )
+    num_opponents = DeclareLaunchArgument("num_opponents", default_value="1")
 
     service_bridge = Node(
         package="ros_gz_bridge",
@@ -107,6 +113,6 @@ def generate_launch_description():
             reset,
             stepping_service,
             car_name,
-            opponent_car_name,
+            num_opponents,
         ]
     )
