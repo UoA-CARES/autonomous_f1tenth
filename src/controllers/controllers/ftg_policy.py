@@ -1,8 +1,6 @@
 import rclpy
 import numpy as np
 from .controller import Controller
-import os
-import time
 
 
 def main():
@@ -21,17 +19,12 @@ def main():
     policy = FollowTheGapPolicy()
     policy_id = "ftg"
     state = controller.get_observation(policy_id)
-    file = open("coords.txt", "w")
 
-    while os.path.isfile("stateMap.pgm") == False:
+    while rclpy.ok():
         action = policy.select_action(state)
         state = controller.step(action, policy_id)
-        s = "[" + str(round(state[0], 2)) + ", " + str(round(state[1], 2)) + "], "
-        file.write(s)
-    action = np.asarray([0, 0])
-    file.close()
-    time.sleep(1)
-    state = controller.step(action, policy_id)
+
+    rclpy.shutdown()
 
 
 class FollowTheGapPolicy:
