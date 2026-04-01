@@ -16,7 +16,7 @@ def main():
     params = param_node.get_parameters(["car_name", "track_name"])
     car_name, _ = [param.value for param in params]
 
-    controller = Controller("ftg_policy_", car_name, 100)
+    controller = Controller("ftg_policy_", car_name, 0.1)
     policy = FollowTheGapPolicy()
     policy_id = "ftg"
     state = controller.get_observation(policy_id)
@@ -47,8 +47,8 @@ class FollowTheGapPolicy:
         lidar_angle: float = 1.396,
         min_lidar_range: float = 0.08,
         obstacle_max_val: float = 4.0,
-        min_velocity: float = 0.5,
-        max_velocity: float = 1.5,
+        min_velocity: float = 0.1,
+        max_velocity: float = 3.0,
         odom_offset: int = 8,
     ):
         """

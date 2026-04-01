@@ -28,11 +28,11 @@ from environments.util import (
 class Controller(Node):
     def __init__(
         self,
-        node_name,
-        car_name,
-        step_sleep_time_ms,
-        isCar=False,
-        lidar_points=10,
+        node_name: str,
+        car_name: str,
+        step_sleep_time_ms: float,
+        isCar: bool = False,
+        lidar_points: int = 10,
     ):
         super().__init__(node_name + "controller")
 
