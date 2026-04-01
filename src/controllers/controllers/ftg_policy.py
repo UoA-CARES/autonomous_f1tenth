@@ -24,7 +24,6 @@ def main():
 
     while rclpy.ok():
         action = policy.select_action(state)
-        controller.get_logger().info(f"Selected action: {action}")
         state = controller.step(action, policy_id)
 
     rclpy.shutdown()
@@ -259,8 +258,10 @@ class FollowTheGapPolicyV2:
 
     def select_action(self, state: np.ndarray) -> np.ndarray:
         """Select action using simplified gap-finding logic."""
+        state_array = np.asarray(state, dtype=float).reshape(-1)
+
         # Extract lidar rays from state (all rays after odom_offset)
-        lidar_ranges = state[self.odom_offset :]
+        lidar_ranges = state_array[self.odom_offset :]
         num_rays = len(lidar_ranges)
 
         if num_rays == 0:
@@ -270,7 +271,7 @@ class FollowTheGapPolicyV2:
         angles = np.linspace(-self.lidar_angle, self.lidar_angle, num_rays)
 
         # Identify obstacles (vectorized check)
-        is_obstacle = (lidar_ranges > self.min_lidar_range) and (
+        is_obstacle = (lidar_ranges > self.min_lidar_range) & (
             lidar_ranges < self.obstacle_max_val
         )
         if not np.any(is_obstacle):
