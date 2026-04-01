@@ -48,7 +48,9 @@ def main():
     OBSERVATION_SIZE = 12
     ACTION_NUM = 2
 
-    controller = Controller("rl_policy_", env_config["car_name"], step_length=0.1)
+    controller = Controller(
+        "rl_policy_", env_config["car_name"], step_sleep_time_ms=100
+    )
     policy_id = "rl"
     network_factory = NetworkFactory()
     agent = network_factory.create_network(

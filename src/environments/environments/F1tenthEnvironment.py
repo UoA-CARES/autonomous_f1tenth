@@ -404,7 +404,8 @@ class F1tenthEnvironment(Node, ABC):
     def _clamp_step_progress(self, step_progress: float, linear_speed: float) -> float:
         """
         Clamp spline progress to a physically plausible per-step travel distance.
-        Max distance = speed (m/s) * step_length (s). A 1 cm floor handles near-zero
+        Max distance = speed (m/s) * step_duration (s), where
+        step_duration = step_sleep_time_ms / 1000. A 1 cm floor handles near-zero
         speed. Sign is preserved so backward motion is represented correctly.
         """
         step_duration_s = self.step_sleep_time_ms / 1000.0
