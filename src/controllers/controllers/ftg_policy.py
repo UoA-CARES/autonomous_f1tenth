@@ -23,7 +23,6 @@ def main():
 
     while rclpy.ok():
         action = policy.select_action(state)
-        controller.get_logger().info(f"Selected action: {action}")
         state = controller.step(action, policy_id)
 
     rclpy.shutdown()
