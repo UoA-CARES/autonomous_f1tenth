@@ -31,7 +31,7 @@ Ensure you have installed the dependencies outlined above.
 
 Clone the repository
 ```
-git clone --recurse-submodules https://github.com/UoA-CARES/autonomous_f1tenth.git
+git clone https://github.com/UoA-CARES/autonomous_f1tenth.git
 ```
 
 Install dependencies using `rosdep`
@@ -42,51 +42,10 @@ rosdep update -y
 rosdep install --from-paths src --ignore-src -r -y --rosdistro humble
 ```
 
-### Using Docker (Recommended)
+#
 
-Use this command to run the docker, it will automatically pull the image if not found locally:
 ```
-docker run --rm -it --network host --gpus all -e DISPLAY -e GZ_PARTITION=12 -e ROS_DOMAIN_ID=12 -v "$PWD/rl_logs:/ws/rl_logs" caresrl/autonomous_f1tenth:latest bash
+cares-rl train cli f1tenth --task CarRace SAC
+ros2 launch environments environment_bringup.launch.py environment:=CarRace num_opponents:=3
+gz sim -g
 ```
-**Note: it is important to have a different GZ_PARITION/ROS_DOMAIN_ID for every container you plan on running**
-
-# Runnning the Simulations
-There are several environments that are available. Refer to the wiki for more detailed information.
-
-This repository provides two functions:
-1. **Training** a reinforcement learning agent on a particular _environment_
-2. **Testing** (evaluating) your trained agent on a particular _environment_
-
-To control **aspects** of the **training/testing** – eg. environment, hyperparameters, model paths – edit the `src/reinforcement_learning/config/train.yaml` and `src/reinforcement_learning/config/test.yaml` files respectively.
-
-An example of the yaml that controls training is shown below:
-```
-train:
-  ros__parameters:
-    environment: 'CarBeat' # CarGoal, CarWall, CarBlock, CarTrack, CarBeat
-    max_steps_exploration: 5000
-    track: 'track_2' # track_1, track_2, track_3 -> only applies for CarTrack
-    max_steps_exploration: 1000
-    max_steps_training: 1000000
-    reward_range: 1.0
-    collision_range: 0.2
-    observation_mode: 'no_position'
-    # gamma: 0.95
-    # tau: 0.005
-    # g: 5
-    # batch_size: 32
-    # buffer_size: 1000000
-    # actor_lr: 0.0001
-    # critic_lr: 0.001
-    # max_steps: 10
-    # step_length: 0.25
-    # seed: 123
-```
-
-Once you have configured your desired experiment you can run the following to launch your training/testing:
-```bash
-colcon build
-. install/setup.bash
-ros2 launch reinforcement_learning train.launch.py # or test.launch.py if you were testing your agents
-```
-Refer to this [link](https://docs.ros.org/en/foxy/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html) for more information on `colcon build` in `ros2`
