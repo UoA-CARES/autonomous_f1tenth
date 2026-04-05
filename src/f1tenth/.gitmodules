@@ -1,0 +1,15 @@
+[submodule "hardware_drivers/ackermann_mux"]
+	path = hardware_drivers/ackermann_mux
+	url = https://github.com/f1tenth/ackermann_mux.git
+[submodule "hardware_drivers/transport_drivers"]
+	path = hardware_drivers/transport_drivers
+	url = https://github.com/ros-drivers/transport_drivers.git
+[submodule "simulation_drivers/ros_gz"]
+	path = simulation_drivers/ros_gz
+	url = https://github.com/retinfai/ros_gz.git
+[submodule "hardware_drivers/teleop_tools"]
+	path = hardware_drivers/teleop_tools
+	url = https://github.com/f1tenth/teleop_tools.git
+[submodule "hardware_drivers/vesc"]
+	path = hardware_drivers/vesc
+	url = https://github.com/UoA-CARES/vesc.git
