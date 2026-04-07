@@ -94,6 +94,7 @@ class Controller(Node):
 
     def step(self, action, policy):
         lin_vel, steering_angle = action
+
         self.set_velocity(lin_vel, steering_angle)
         self._sleep(self.step_sleep_time_ms)
         state = self.get_observation(policy)

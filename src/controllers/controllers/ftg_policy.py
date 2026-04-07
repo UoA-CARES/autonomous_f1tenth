@@ -45,8 +45,8 @@ class FollowTheGapPolicy:
         min_turn_radius: float = 0.625,
         lidar_angle: float = 1.396,
         min_lidar_range: float = 0.08,
-        obstacle_max_val: float = 4.0,
-        min_velocity: float = 0.1,
+        obstacle_max_val: float = 2.2,
+        min_velocity: float = 0.2,
         max_velocity: float = 3.0,
         odom_offset: int = 8,
     ):
@@ -194,12 +194,20 @@ class FollowTheGapPolicy:
         # Dynamic speed: reduce near obstacles, increase in open gaps
         min_obs_range = np.min(obs_ranges)
 
-        # Speed decreases as obstacle gets closer or gap narrower
+        # Race-tuned speed model: favor open gap speed while still penalizing close obstacles.
         danger_proximity = 1.0 - np.clip(min_obs_range / self.obstacle_max_val, 0, 1)
         gap_openness = np.clip(gap_width / (2 * self.lidar_angle), 0, 1)
 
-        speed = self.max_velocity * (0.7 * gap_openness + 0.3 * (1 - danger_proximity))
+        # Keep a light proximity term so the policy is faster on standard corridor widths.
+        speed = self.max_velocity * (0.85 * gap_openness + 0.15 * (1 - danger_proximity))
+
+        # Reduce speed during high steering demand to improve cornering stability.
+        turn_factor = 1.0 - np.clip(abs(target_angle) / self.turn_angle, 0, 1)
+        speed *= 0.6 + 0.4 * turn_factor
         speed = np.clip(speed, self.min_velocity, self.max_velocity)
+
+        # Respect steering limits before publishing actions.
+        target_angle = np.clip(target_angle, -self.turn_angle, self.turn_angle)
 
         return np.asarray([speed, target_angle])
 
