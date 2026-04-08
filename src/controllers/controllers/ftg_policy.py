@@ -85,7 +85,9 @@ class FollowTheGapPolicy:
         # FTG behavior toggles (defaults chosen for stable 10-point lidar operation).
         self.use_disparity_extension = False
         self.gap_selection_mode: Literal["widest", "heading_bias"] = "widest"
-        self.speed_mode: Literal["linear_gap_speed", "nonlinear_gap_speed"] = "nonlinear_gap_speed"
+        self.speed_mode: Literal["linear_gap_speed", "nonlinear_gap_speed"] = (
+            "nonlinear_gap_speed"
+        )
         self.fallback_mode: Literal["crawl_straight", "brake_hold"] = "crawl_straight"
         self.use_steering_smoothing = False
         self.steering_smoothing_alpha = 0.6
@@ -135,7 +137,9 @@ class FollowTheGapPolicy:
             if short_range <= safe_radius:
                 extend_rays = len(extended_ranges)
             else:
-                half_width_angle = float(np.arcsin(np.clip(safe_radius / short_range, 0.0, 1.0)))
+                half_width_angle = float(
+                    np.arcsin(np.clip(safe_radius / short_range, 0.0, 1.0))
+                )
                 extend_rays = int(np.ceil(half_width_angle / angle_per_ray))
 
             if extend_rays <= 0:
@@ -220,8 +224,10 @@ class FollowTheGapPolicy:
 
         match self.speed_mode:
             case "nonlinear_gap_speed":
-                speed = self.max_velocity * np.sqrt(gap_openness) * (
-                    1.0 - 0.3 * danger_proximity**2
+                speed = (
+                    self.max_velocity
+                    * np.sqrt(gap_openness)
+                    * (1.0 - 0.3 * danger_proximity**2)
                 )
             case "linear_gap_speed":
                 speed = self.max_velocity * (
