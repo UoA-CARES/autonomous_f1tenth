@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>autonomous_bringup</name>
+  <version>0.0.0</version>
+  <description>Launch orchestration for autonomous_f1tenth</description>
+  <maintainer email="thenickys123@gmail.com">anyone</maintainer>
+  <license>TODO: License declaration</license>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <depend>ament_index_python</depend>
+  <depend>f1tenth_controllers</depend>
+  <depend>f1tenth_environments</depend>
+  <depend>f1tenth_gazebo</depend>
+  <depend>f1tenth_bringup</depend>
+  <depend>f1tenth_description</depend>
+  <depend>launch</depend>
+  <depend>launch_ros</depend>
+  <depend>robot_localization</depend>
+  <depend>ros_gz_bridge</depend>
+  <depend>ros_gz_sim</depend>
+  <depend>slam_toolbox</depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

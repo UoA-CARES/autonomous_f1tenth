@@ -25,22 +25,22 @@ Follow these instructions to run/test this repository on your local machine.
 
 Ensure you have installed the dependencies outlined above.
 
-Clone the automous_f1tenth repository
+Clone the autonomous_f1tenth repository.
 ```
 git clone https://github.com/UoA-CARES/autonomous_f1tenth.git
 ```
 
-Clone f1tenth repo into the src directory. 
+Clone the `f1tenth` repository as a sibling workspace package (outside this repository).
 
 ```
-cd ~/autonomous_f1tenth/src
+cd ~/ros2_ws/src
 git clone --recurse-submodules https://github.com/UoA-CARES/f1tenth.git
 ```
 
 Install dependencies using `rosdep`
 
 ```
-cd ~/autonomous_f1tenth
+cd ~/ros2_ws
 rosdep update -y
 rosdep install --from-paths src --ignore-src -r -y --rosdistro humble
 ```
@@ -48,21 +48,21 @@ rosdep install --from-paths src --ignore-src -r -y --rosdistro humble
 Colcon build the package
 
 ```
-cd ~/autonomous_f1tenth
+cd ~/ros2_ws
 colcon build --symlink-install
-echo "source ~/autonomous_f1tenth/install/setup.bash" >> ~/.bashrc
+echo "source ~/ros2_ws/install/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
 # Run RL Training Example
-To run and view training you need three sperate terminals for each command.
+To run and view training, use three separate terminals (one command per terminal).
 
-First run the f1tenth simulation envrionment with the current task - the example below runs CarRace with three follow the gap opponents. 
+First, run the f1tenth simulation environment with the current task. The example below runs CarRace with three follow-the-gap opponents.
 ```
-ros2 launch environments environment_bringup.launch.py environment:=CarRace num_opponents:=3
+ros2 launch autonomous_bringup environment_bringup.launch.py environment:=CarRace num_opponents:=3
 ```
 
-Run the learning algorithms through the command below - make sure the task matches the envrionment that you ran above.
+Run the learning algorithm using the command below. Ensure the task matches the environment started above.
 ```
 cares-rl train cli f1tenth --task CarRace SAC
 ```

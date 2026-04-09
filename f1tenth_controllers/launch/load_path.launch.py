@@ -1,0 +1,12 @@
+from launch import LaunchDescription
+from launch_ros.actions import Node
+
+
+def generate_launch_description():
+    load_path = Node(
+        package="f1tenth_controllers",
+        executable="load_path",
+        output="screen",
+        parameters=[{"car_name": "f1tenth"}],
+    )
+    return LaunchDescription([load_path])

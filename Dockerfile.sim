@@ -47,7 +47,7 @@ RUN rm -rf cares_reinforcement_learning || true && \
 
 # Install dep
 RUN rosdep update -y && \
-    rosdep install -r --from-paths src -i -y --rosdistro humble
+    rosdep install -r --from-paths . -i -y --rosdistro humble
 
 RUN source /opt/ros/humble/setup.bash && \
     source /gz/install/setup.bash && \

@@ -1,8 +1,0 @@
-train:
-  ros__parameters:
-    track: 'multi_track'
-    car_name: 'f1tenth'
-    opponent_car_name: 'f2tenth'
-    observation_mode: 'lidar_only'
-    number_eval_episodes: 3
-    max_steps: 3000
