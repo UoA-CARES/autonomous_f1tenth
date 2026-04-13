@@ -7,7 +7,7 @@ from scipy.spatial.transform import Rotation
 from sensor_msgs.msg import LaserScan
 
 
-def get_euler_from_quarternion(w, x, y, z):
+def get_euler_from_quaternion(w, x, y, z):
     roll, pitch, yaw = Rotation.from_quat([x, y, z, w]).as_euler("xyz")
     return roll, pitch, yaw
 

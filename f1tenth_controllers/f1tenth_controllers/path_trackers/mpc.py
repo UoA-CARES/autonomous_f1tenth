@@ -2,7 +2,7 @@ import numpy as np
 from casadi import *
 from rclpy.impl import rcutils_logger
 
-from ..runtime_utils import get_euler_from_quarternion
+from ..runtime_utils import get_euler_from_quaternion
 
 
 class MPC:
@@ -76,7 +76,7 @@ class MPC:
         desAngles = np.linspace(
             MIN_ACTIONS[1], MAX_ACTIONS[1], self.options, endpoint=True
         )
-        yawcurr = get_euler_from_quarternion(state[2], state[3], state[4], state[5])[2]
+        yawcurr = get_euler_from_quaternion(state[2], state[3], state[4], state[5])[2]
         lowestCost = np.inf
         distance = goal - state[0:2]
         # Check if car is already at goal location

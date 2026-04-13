@@ -16,9 +16,4 @@ setup(
     maintainer_email="aferetipama@gmail.com",
     description="TODO: Package description",
     license="TODO: License declaration",
-    entry_points={
-        "console_scripts": [
-            "LidarLogger = f1tenth_environments.lidar_logger:main",
-        ],
-    },
 )

@@ -1,7 +1,7 @@
 import numpy as np
 from rclpy.impl import rcutils_logger
 
-from ..runtime_utils import get_euler_from_quarternion
+from ..runtime_utils import get_euler_from_quaternion
 from ..path_utils import turn_to_goal
 import threading
 
@@ -37,7 +37,7 @@ class TurnAndDrive:
 
     def select_action(self, state, goal, nextGoal):
         location = state[0:2]
-        self_angle = get_euler_from_quarternion(state[2], state[3], state[4], state[5])[
+        self_angle = get_euler_from_quaternion(state[2], state[3], state[4], state[5])[
             2
         ]
         ang = turn_to_goal(location, self_angle, goal)

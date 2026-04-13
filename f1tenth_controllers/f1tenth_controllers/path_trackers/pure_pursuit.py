@@ -1,7 +1,7 @@
 import numpy as np
 from rclpy.impl import rcutils_logger
 
-from ..runtime_utils import get_euler_from_quarternion
+from ..runtime_utils import get_euler_from_quaternion
 from ..path_utils import turn_to_goal
 
 
@@ -95,7 +95,7 @@ class PurePursuit:
 
         lin = MAX_ACTIONS[0]
         location = state[0:2]
-        yawcurr = get_euler_from_quarternion(state[2], state[3], state[4], state[5])[2]
+        yawcurr = get_euler_from_quaternion(state[2], state[3], state[4], state[5])[2]
 
         if self.path.shape[0] == 0:
             raise Exception("No path loaded")

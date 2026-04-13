@@ -15,18 +15,8 @@ from ros_gz_interfaces.msg import Entity
 from ros_gz_interfaces.srv import ControlWorld, SetEntityPose, SpawnEntity
 from sensor_msgs.msg import LaserScan
 
-from .geometry_utils import (
-    ackermann_to_twist,
-    get_quaternion_from_euler,
-    has_flipped_over,
-)
-from .lidar_utils import avg_lidar, create_lidar_msg, has_collided
+from . import geometry_utils, lidar_utils, track_utils, waypoints
 from .observation_types import Observation, ObservationMode, OdomState
-from .track_utils import (
-    get_all_goals_and_waypoints_in_multi_tracks,
-    get_track_math_defs,
-)
-from .waypoints import waypoints
 
 
 class F1tenthEnvironment(Node, ABC):
@@ -85,16 +75,12 @@ class F1tenthEnvironment(Node, ABC):
         self.action_num = 2
 
         self.tracks = self._load_tracks(track)
-        self.track_models = get_track_math_defs(self.tracks)
+        self.track_progress_models = track_utils.get_track_progress_models(self.tracks)
         self.track_names = list(self.tracks.keys())
 
         self.current_track = self.track_names[0]
         self.current_waypoints = self.tracks[self.current_track]
-        self.current_track_model = self.track_models[self.current_track]
-
-        # Backward-compatible aliases for existing subclasses
-        self.all_track_waypoints = self.tracks
-        self.all_track_models = self.track_models
+        self.current_track_model = self.track_progress_models[self.current_track]
 
         self.eval_track_begin_idx: int = int(
             len(self.track_names) * self.track_train_eval_split
@@ -126,6 +112,10 @@ class F1tenthEnvironment(Node, ABC):
 
         self.processed_publisher = self.create_publisher(
             LaserScan, f"/{self.car_name}/processed_scan", 1
+        )
+
+        self.processed_publisher_two = self.create_publisher(
+            LaserScan, f"/{self.car_name}/processed_scan_two", 1
         )
 
         self.message_filter = ApproximateTimeSynchronizer(
@@ -178,12 +168,12 @@ class F1tenthEnvironment(Node, ABC):
 
     def _load_tracks(self, track_name: str) -> dict:
         if "multi_track" in track_name or track_name == "staged_tracks":
-            _, all_track_waypoints = get_all_goals_and_waypoints_in_multi_tracks(
-                track_name
+            _, all_track_waypoints = (
+                track_utils.get_all_goals_and_waypoints_in_multi_tracks(track_name)
             )
             return all_track_waypoints
 
-        return {track_name: waypoints[track_name]}
+        return {track_name: waypoints.waypoints[track_name]}
 
     def _get_track_split_keys(self) -> tuple[list[str], list[str]]:
         split_idx = min(self.eval_track_begin_idx, len(self.track_names))
@@ -212,7 +202,7 @@ class F1tenthEnvironment(Node, ABC):
     def _reset_positions(self) -> None:
         self.current_track = self._select_track_name()
         self.current_waypoints = self.tracks[self.current_track]
-        self.current_track_model = self.track_models[self.current_track]
+        self.current_track_model = self.track_progress_models[self.current_track]
 
         if self.is_eval:
             car_x, car_y, car_yaw, index = self.current_waypoints[10]
@@ -243,9 +233,8 @@ class F1tenthEnvironment(Node, ABC):
         self._set_simulation_paused(paused=True)
 
         self.previous_closest_spline_t = (
-            self.current_track_model.get_closest_point_on_spline(
-                [observation.odom.x, observation.odom.y],
-                t_only=True,
+            self.current_track_model.world_coord_to_spline_coord(
+                np.asarray([observation.odom.x, observation.odom.y], dtype=np.float64)
             )
         )
 
@@ -292,47 +281,57 @@ class F1tenthEnvironment(Node, ABC):
 
     def _is_terminated(self, observation: Observation, ranges: list[float]) -> bool:
         quaternion = observation.odom.quaternion_wxyz()
-        return has_collided(ranges, self.collision_range_m) or has_flipped_over(
-            quaternion
-        )
+        return lidar_utils.has_collided(
+            ranges, self.collision_range_m
+        ) or geometry_utils.has_flipped_over(quaternion)
 
     def _is_truncated(self) -> bool:
         return self.progress_not_met_cnt >= 5 or self.step_counter >= self.max_steps
 
-    def _process_lidar_observation(
-        self, lidar_msg: LaserScan
-    ) -> tuple[list[float], LaserScan]:
+    def _process_lidar_observation(self, lidar_msg: LaserScan) -> np.ndarray:
         match self.lidar_reduction_mode:
             case "avg":
-                processed_lidar_range = avg_lidar(
-                    lidar_msg, self.lidar_observation_size
+                # processed_lidar_range_one = lidar_utils.avg_lidar(
+                #     lidar_msg, self.lidar_observation_size
+                # )
+                # visualization_scan_one = lidar_utils.create_lidar_msg(
+                #     lidar_msg, self.lidar_observation_size, processed_lidar_range_one
+                # )
+
+                processed_lidar_range_two = lidar_utils.lidar_to_state(
+                    lidar_msg,
+                    num_points=self.lidar_observation_size,
+                    forward_half_angle=45.0,
                 )
-                visualization_scan = create_lidar_msg(
-                    lidar_msg, self.lidar_observation_size, processed_lidar_range
+                visualization_scan_two = lidar_utils.state_to_laserscan(
+                    processed_lidar_range_two,
+                    lidar_msg,
+                    forward_half_angle=45.0,
                 )
+
+                # self.processed_publisher.publish(visualization_scan_one)
+                self.processed_publisher_two.publish(visualization_scan_two)
+
             case "raw":
-                processed_lidar_range = np.array(lidar_msg.ranges.tolist())
-                processed_lidar_range = np.nan_to_num(
-                    processed_lidar_range, posinf=-5, nan=-1, neginf=-5
+                processed_lidar_range_one = np.array(lidar_msg.ranges.tolist())
+                processed_lidar_range_one = np.nan_to_num(
+                    processed_lidar_range_one, posinf=-5, nan=-1, neginf=-5
                 ).tolist()
-                visualization_scan = create_lidar_msg(
-                    lidar_msg, len(processed_lidar_range), processed_lidar_range
+                visualization_scan_one = lidar_utils.create_lidar_msg(
+                    lidar_msg, len(processed_lidar_range_one), processed_lidar_range_one
                 )
             case _:
                 raise ValueError(
                     f"Unsupported lidar_reduction_mode: {self.lidar_reduction_mode!r}"
                 )
 
-        return processed_lidar_range, visualization_scan
+        # return processed_lidar_range_one
+        return processed_lidar_range_two
 
     def _get_observation(self) -> tuple[np.ndarray, Observation, list[float]]:
         odom_msg, lidar_msg = self._get_data()
 
-        processed_lidar_range, visualization_scan = self._process_lidar_observation(
-            lidar_msg
-        )
-
-        self.processed_publisher.publish(visualization_scan)
+        processed_lidar_range = self._process_lidar_observation(lidar_msg)
 
         observation = Observation(
             odom=OdomState.from_odometry(odom_msg),
@@ -375,9 +374,9 @@ class F1tenthEnvironment(Node, ABC):
             reward -= self.stall_penalty
 
         quaternion = next_observation.odom.quaternion_wxyz()
-        if has_collided(raw_lidar_range, self.collision_range_m) or has_flipped_over(
-            quaternion
-        ):
+        if lidar_utils.has_collided(
+            raw_lidar_range, self.collision_range_m
+        ) or geometry_utils.has_flipped_over(quaternion):
             reward -= self.collision_penalty
 
         return reward
@@ -440,20 +439,26 @@ class F1tenthEnvironment(Node, ABC):
 
         if self.previous_closest_spline_t is None:
             self.previous_closest_spline_t = (
-                self.current_track_model.get_closest_point_on_spline(
-                    [self.current_observation.odom.x, self.current_observation.odom.y],
-                    t_only=True,
+                self.current_track_model.world_coord_to_spline_coord(
+                    np.asarray(
+                        [
+                            self.current_observation.odom.x,
+                            self.current_observation.odom.y,
+                        ],
+                        dtype=np.float64,
+                    )
                 )
             )
 
-        current_closest_spline_t = self.current_track_model.get_closest_point_on_spline(
-            [next_observation.odom.x, next_observation.odom.y], t_only=True
+        current_closest_spline_t = self.current_track_model.world_coord_to_spline_coord(
+            np.asarray(
+                [next_observation.odom.x, next_observation.odom.y], dtype=np.float64
+            )
         )
 
-        step_progress = self.current_track_model.get_distance_along_track_parametric(
+        step_progress = self.current_track_model.linear_distance_between_spline_coords(
             self.previous_closest_spline_t,
             current_closest_spline_t,
-            approximate=True,
         )
         step_progress = self._clamp_step_progress(
             step_progress, next_observation.odom.linear_velocity
@@ -505,7 +510,9 @@ class F1tenthEnvironment(Node, ABC):
         return next_state, reward, terminated, truncated, info
 
     def _set_velocity(self, lin_vel: float, steering_angle: float) -> None:
-        angular = ackermann_to_twist(steering_angle, lin_vel, self.wheelbase_m)
+        angular = geometry_utils.ackermann_to_twist(
+            steering_angle, lin_vel, self.wheelbase_m
+        )
         velocity_msg = Twist()
         velocity_msg.angular.z = float(angular)
         velocity_msg.linear.x = float(lin_vel)
@@ -539,7 +546,7 @@ class F1tenthEnvironment(Node, ABC):
         request.pose.position.y = float(y)
         request.pose.position.z = float(z)
 
-        orientation = get_quaternion_from_euler(roll, pitch, yaw)
+        orientation = geometry_utils.get_quaternion_from_euler(roll, pitch, yaw)
         request.pose.orientation.x = orientation[0]
         request.pose.orientation.y = orientation[1]
         request.pose.orientation.z = orientation[2]

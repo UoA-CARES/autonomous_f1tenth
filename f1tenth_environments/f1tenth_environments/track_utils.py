@@ -1,7 +1,7 @@
 import numpy as np
 
 from .goal_positions import goal_positions
-from .util_track_progress import TrackMathDef
+from .track_progress_model import TrackProgressModel
 from .waypoints import waypoints
 
 
@@ -289,10 +289,10 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
     return all_car_goals, all_car_waypoints
 
 
-def get_track_math_defs(tracks_waypoints: dict) -> dict[str, TrackMathDef]:
-    track_math_models = {}
+def get_track_progress_models(tracks_waypoints: dict) -> dict[str, TrackProgressModel]:
+    track_progress_models = {}
     for track_name in tracks_waypoints.keys():
-        track_math_models[track_name] = TrackMathDef(
+        track_progress_models[track_name] = TrackProgressModel(
             np.array(tracks_waypoints[track_name])[:, :2]
         )
-    return track_math_models
+    return track_progress_models
