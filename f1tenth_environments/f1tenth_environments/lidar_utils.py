@@ -1,56 +1,7 @@
 from typing import Sequence
 
 import numpy as np
-import rclpy
-import scipy
 from sensor_msgs.msg import LaserScan
-
-
-def _validate_positive_count(count: int, name: str) -> None:
-    if count < 1:
-        raise ValueError(f"{name} must be >= 1")
-
-
-def _sanitize_lidar_ranges(
-    lidar: LaserScan,
-    *,
-    nan_to: float,
-    posinf_to: float,
-    neginf_to: float,
-) -> np.ndarray:
-    ranges = np.asarray(lidar.ranges, dtype=np.float64)
-    ranges = np.nan_to_num(ranges, nan=nan_to, posinf=posinf_to, neginf=neginf_to)
-    return ranges
-
-
-def _split_into_non_empty_sectors(
-    ranges: np.ndarray, num_points: int
-) -> list[np.ndarray]:
-    _validate_positive_count(num_points, "num_points")
-    if len(ranges) < num_points:
-        raise ValueError("num_points cannot exceed the number of lidar rays")
-    return [sector for sector in np.array_split(ranges, num_points) if len(sector) > 0]
-
-
-def avg_lidar(lidar: LaserScan, num_points: int) -> list[float]:
-    """Downsample a full scan by averaging contiguous angular sectors.
-
-    Steps:
-    1) Replace NaN and ±Inf in `lidar.ranges` with 10.0 meters.
-    2) Split the scan into `num_points` contiguous sectors.
-    3) Return one value per sector: the arithmetic mean of rays in that sector.
-
-    Returns a list of length `num_points` (unless input is invalid and raises).
-    """
-    ranges = _sanitize_lidar_ranges(
-        lidar,
-        nan_to=10.0,
-        posinf_to=10.0,
-        neginf_to=10.0,
-    )
-
-    sectors = _split_into_non_empty_sectors(ranges, num_points)
-    return [float(np.mean(sector)) for sector in sectors]
 
 
 def create_lidar_msg(
@@ -78,223 +29,230 @@ def has_collided(lidar_ranges: Sequence[float], collision_range: float) -> bool:
     return any(0 < ray < collision_range for ray in lidar_ranges)
 
 
-def _adaptive_k(
-    n_valid_beams: int, fraction: float = 0.15, floor: int = 2, cap: int = 5
-) -> int:
-    return int(np.clip(round(n_valid_beams * fraction), floor, cap))
+class LidarProcessor:
+    """Convert lidar scans to RL state and back using configured sectoring."""
 
+    def __init__(
+        self,
+        num_points: int,
+        forward_half_angle: float | None = None,
+        n_forward: int = 4,
+        k_fraction: float = 0.15,
+        k_floor: int = 2,
+        k_cap: int = 5,
+    ) -> None:
+        if num_points <= 0:
+            raise ValueError(f"num_points must be > 0, got {num_points}")
+        if n_forward <= 0:
+            raise ValueError(f"n_forward must be > 0, got {n_forward}")
+        if n_forward > num_points:
+            raise ValueError(
+                f"n_forward ({n_forward}) cannot exceed num_points ({num_points})"
+            )
+        self.num_points = num_points
+        self.forward_half_angle = forward_half_angle
+        self.n_forward = n_forward
+        self.k_fraction = k_fraction
+        self.k_floor = k_floor
+        self.k_cap = k_cap
 
-def _sector_distance(beams: np.ndarray, k: int) -> float:
-    """
-    Returns robust closest-obstacle distance for a sector.
-
-    Sentinel values:
-      -1.0  no finite returns at all — sensor blind spot or all-NaN
-       otherwise raw distance in the same units as the input beams, caller is responsible for normalisation
-    """
-    finite = beams[np.isfinite(beams)]
-    if len(finite) == 0:
-        return -1.0  # explicitly no data, not "clear"
-    k_actual = min(k, len(finite))
-    return float(np.mean(np.partition(finite, k_actual - 1)[:k_actual]))
-
-
-def lidar_to_state(
-    lidar_scan: LaserScan,
-    num_points: int,
-    forward_half_angle: float | None = None,
-    n_forward: int = 4,
-    k_fraction: float = 0.15,
-    k_floor: int = 2,
-    k_cap: int = 5,
-) -> np.ndarray:
-    """
-    Converts a raw LIDAR scan into a compact normalised state vector for RL.
-
-    Example output for n_sectors=10, n_forward=4, forward_half_angle=20°:
-
-                        FORWARD (0°)
-                            |
-              -20°          |          +20°
-                \     F1 F2 | F3 F4   /
-                 \    |  |  |  |  |  /
-          FL\    |  |  |  |  |  |  |  |   /FR
-              \  |  |  |  |  |  |  |  |  /
-               [ LS  FL  F1  F2  F3  F4  FR  RS ]
-                                                         (n_sectors=8 shown)
-
-    Physical layout (top-down, car facing up):
-
-                         ^ forward
-                         |
-                  ______|||______
-                 |  F1 | | | F4 |    <- 4 narrow forward sectors (~10° each)
-                 |FL   |   |  FR|    <- fore-left / fore-right (~40° each)
-                 |LS   |car|  RS|    <- side-left / side-right (~80° each)
-                 |_____|___|_____|
-
-    Output vector (left to right = left to right physically):
-
-      index:  [ 0      1      2      3      4      5      6      7      8      9  ]
-      region: [ Lside  Lfore  Fwd1   Fwd2   Fwd3   Fwd4   Rfore  Rside         ]
-
-      value:   -1.0    no data at all (blind spot / all-NaN returns)
-               0.0     obstacle at min_range  (right next to sensor)
-               0.5     obstacle at mid-range
-               1.0     clear to max_range
-
-    Robust obstacle detection — each sector value is the mean of the k
-    smallest finite returns, where k = clamp(n_valid_beams * 0.15, 2, 5).
-    Requires k beams to agree before registering a close obstacle,
-    preventing single-beam phantom walls from triggering the agent.
-
-                  raw:   [ 0.45  0.43  7.2   NaN  0.44  8.1  8.0 ]
-                                  ^--- k=3 mean of 3 smallest finite
-                  out:     0.44m  (ignores the outlier 7.2 and NaN)
-    """
-    # --- unpack LaserScan message ---
-    raw_scan = np.array(lidar_scan.ranges, dtype=float)
-    min_range = lidar_scan.range_min
-    max_range = lidar_scan.range_max
-    angle_min_deg = np.degrees(lidar_scan.angle_min)
-    angle_max_deg = np.degrees(lidar_scan.angle_max)
-
-    # derive after unpacking so validation has real values to check against
-    if forward_half_angle is None:
-        forward_half_angle = (angle_max_deg - angle_min_deg) / 2.0
-
-    # --- parameter validation ---
-    if num_points <= 0:
-        raise ValueError(f"num_points must be > 0, got {num_points}")
-    if n_forward <= 0:
-        raise ValueError(f"n_forward must be > 0, got {n_forward}")
-    if n_forward > num_points:
-        raise ValueError(
-            f"n_forward ({n_forward}) cannot exceed num_points ({num_points})"
-        )
-    if forward_half_angle <= 0:
-        raise ValueError(f"forward_half_angle must be > 0, got {forward_half_angle}")
-    if forward_half_angle > (angle_max_deg - angle_min_deg) / 2:
-        raise ValueError(
-            f"forward_half_angle ({forward_half_angle}°) exceeds half the scan FOV "
-            f"({(angle_max_deg - angle_min_deg) / 2}°)"
+    def _adaptive_k(self, n_valid_beams: int) -> int:
+        return int(
+            np.clip(
+                round(n_valid_beams * self.k_fraction),
+                self.k_floor,
+                self.k_cap,
+            )
         )
 
-    # --- mask invalid returns using sensor's own range limits ---
-    scan = raw_scan.copy()
-    scan[(scan < min_range) | (scan > max_range)] = np.nan
+    @staticmethod
+    def _sector_distance(beams: np.ndarray, k: int) -> float:
+        finite = beams[np.isfinite(beams)]
+        if len(finite) == 0:
+            return -1.0
+        k_actual = min(k, len(finite))
+        return float(np.mean(np.partition(finite, k_actual - 1)[:k_actual]))
 
-    # --- sector allocation ---
-    n_beams = len(scan)
-    beam_angles = np.linspace(angle_min_deg, angle_max_deg, n_beams)
+    def _resolved_forward_half_angle(
+        self,
+        angle_min_deg: float,
+        angle_max_deg: float,
+    ) -> float:
+        resolved = (
+            (angle_max_deg - angle_min_deg) / 2.0
+            if self.forward_half_angle is None
+            else self.forward_half_angle
+        )
+        if resolved <= 0:
+            raise ValueError(f"forward_half_angle must be > 0, got {resolved}")
+        if resolved > (angle_max_deg - angle_min_deg) / 2:
+            raise ValueError(
+                f"forward_half_angle ({resolved}°) exceeds half the scan FOV "
+                f"({(angle_max_deg - angle_min_deg) / 2}°)"
+            )
+        return float(resolved)
 
-    n_remaining = num_points - n_forward
-    n_left = n_remaining // 2
-    n_right = n_remaining - n_left
+    def _boundaries(
+        self,
+        angle_min_deg: float,
+        angle_max_deg: float,
+        forward_half_angle: float,
+    ) -> np.ndarray:
+        n_remaining = self.num_points - self.n_forward
+        n_left = n_remaining // 2
+        n_right = n_remaining - n_left
+        eps = 1e-9
 
-    eps = 1e-9
-    boundaries = np.concatenate(
-        [
-            np.linspace(angle_min_deg, -forward_half_angle, n_left + 1),
-            np.linspace(-forward_half_angle, forward_half_angle, n_forward + 1)[1:],
-            np.linspace(forward_half_angle, angle_max_deg + eps, n_right + 1)[1:],
-        ]
-    )
+        full_fov = np.isclose(forward_half_angle, (angle_max_deg - angle_min_deg) / 2.0)
+        if full_fov:
+            return np.linspace(angle_min_deg, angle_max_deg + eps, self.num_points + 1)
 
-    state = []
-    for lo, hi in zip(boundaries[:-1], boundaries[1:]):
-        mask = (beam_angles >= lo) & (beam_angles < hi)
-        sector_beams = scan[mask]
-
-        n_valid = int(np.isfinite(sector_beams).sum())
-        k = _adaptive_k(n_valid, k_fraction, floor=k_floor, cap=k_cap)
-        raw_dist = _sector_distance(sector_beams, k)
-
-        if raw_dist < 0:
-            state.append(-1.0)
-        else:
-            normalised = (raw_dist - min_range) / (max_range - min_range)
-            state.append(float(np.clip(normalised, 0.0, 1.0)))
-
-    return np.array(state, dtype=np.float32)
-
-
-def process_avg_lidar(lidar: LaserScan, num_points: int) -> np.ndarray:
-    return lidar_to_state(
-        lidar_scan=lidar,
-        num_points=num_points,
-        n_forward=num_points,
-        k_fraction=1.0,  # average all beams in sector, no k-filtering
-        k_cap=1000,  # effectively no k cap
-    )
-
-
-def state_to_laserscan(
-    state: np.ndarray,
-    original_scan: LaserScan,
-    forward_half_angle: float = None,
-    n_forward: int = 4,
-) -> LaserScan:
-    num_points = len(state)
-    min_range = original_scan.range_min
-    max_range = original_scan.range_max
-    angle_min_deg = np.degrees(original_scan.angle_min)
-    angle_max_deg = np.degrees(original_scan.angle_max)
-
-    if forward_half_angle is None:
-        forward_half_angle = (angle_max_deg - angle_min_deg) / 2.0
-
-    # --- sector boundaries (mirrors lidar_to_state) ---
-    n_remaining = num_points - n_forward
-    n_left = n_remaining // 2
-    n_right = n_remaining - n_left
-
-    eps = 1e-9
-    full_fov = np.isclose(forward_half_angle, (angle_max_deg - angle_min_deg) / 2.0)
-
-    if full_fov:
-        boundaries = np.linspace(angle_min_deg, angle_max_deg + eps, num_points + 1)
-    else:
-        boundaries = np.concatenate(
+        return np.concatenate(
             [
                 np.linspace(angle_min_deg, -forward_half_angle, n_left + 1),
-                np.linspace(-forward_half_angle, forward_half_angle, n_forward + 1)[1:],
+                np.linspace(
+                    -forward_half_angle, forward_half_angle, self.n_forward + 1
+                )[1:],
                 np.linspace(forward_half_angle, angle_max_deg + eps, n_right + 1)[1:],
             ]
         )
 
-    # --- sector midpoint angles ---
-    midpoints_rad = np.radians((boundaries[:-1] + boundaries[1:]) / 2.0)
+    def lidar_to_state(self, lidar_scan: LaserScan) -> np.ndarray:
+        """
+        Converts a raw LIDAR scan into a compact normalised state vector for RL.
 
-    # --- denormalise state values to metres ---
-    ranges = []
-    for val in state:
-        if val < 0:
-            ranges.append(float(max_range))
-        else:
-            dist = val * (max_range - min_range) + min_range
-            ranges.append(float(np.clip(dist, min_range, max_range)))
+        Sector layout (top-down, car facing up, 10 points / n_forward=4 / fwd=45°):
 
-    # --- intensities — unique per sector for colour banding ---
-    intensities = [float(i) / (num_points - 1) for i in range(num_points)]
+                                ^ forward (0°)
+                                |
+                    -45°        |       +45°
+                        \  F1 F2 F3 F4 /
+                         \ |  |  |  | /
+                    L2 --  |  |  |  | -- R2
+                    /   \  |  |  |  |  /   \
+                L1       \ |  |  |  | /     R1
+                           |__car__|
 
-    # --- build LaserScan message ---
-    msg = LaserScan()
-    msg.header.stamp = rclpy.clock.Clock().now().to_msg()
-    msg.header.frame_id = original_scan.header.frame_id
-    msg.angle_min = float(midpoints_rad[0])
-    msg.angle_max = float(midpoints_rad[-1])
-    msg.angle_increment = float(
-        (midpoints_rad[-1] - midpoints_rad[0]) / (num_points - 1)
-    )
-    msg.range_min = min_range
-    msg.range_max = max_range
-    msg.time_increment = 0.0
-    msg.scan_time = original_scan.scan_time
-    msg.ranges = ranges
-    msg.intensities = intensities
+        Beam angular widths per region (270° FOV example):
+        Left  sectors  (L1, L2):  each ~45°   <- coarse side coverage
+        Forward sectors (F1–F4):  each ~22.5° <- fine forward resolution
+        Right sectors  (R1, R2):  each ~45°   <- coarse side coverage
 
-    return msg
+        Output vector (index 0 = leftmost, index N-1 = rightmost):
+
+        idx:  [  0     1     2     3     4     5     6     7     8     9  ]
+        name: [  L1    L2    F1    F2    F3    F4    R1    R2             ]
+
+        value:  -1.0   no data (blind spot / all-NaN returns in sector)
+                0.0   obstacle at min_range
+                0.5   obstacle at mid-range
+                1.0   clear to max_range
+
+        Robust obstacle detection per sector:
+
+        raw beams:  [ 0.45  0.43  NaN  7.20  0.44  8.10  8.00 ]
+                            ↑ k = clamp(n_valid × 0.15, floor=2, cap=5)
+                            ↑ mean of k-smallest finite values
+        sector out:   0.44m  (phantom 7.2 and NaN discarded — k beams must agree)
+
+        NaN / out-of-range handling:
+        - values outside [range_min, range_max]  →  NaN  (masked before sectoring)
+        - sectors where all returns are NaN      →  -1.0 sentinel (not "clear")
+        - sectors with fewer than k valid beams  →  k shrinks to n_valid gracefully
+
+        Parameters:
+        lidar_scan  raw ROS2 LaserScan message — range limits and angles
+                    taken directly from the message, nothing hardcoded
+
+        Returns:
+            np.ndarray shape (num_points,) dtype float32
+        """
+
+        raw_scan = np.array(lidar_scan.ranges, dtype=float)
+        min_range = lidar_scan.range_min
+        max_range = lidar_scan.range_max
+        angle_min_deg = np.degrees(lidar_scan.angle_min)
+        angle_max_deg = np.degrees(lidar_scan.angle_max)
+        forward_half_angle = self._resolved_forward_half_angle(
+            angle_min_deg,
+            angle_max_deg,
+        )
+
+        scan = raw_scan.copy()
+        scan[(scan < min_range) | (scan > max_range)] = np.nan
+
+        beam_angles = np.linspace(angle_min_deg, angle_max_deg, len(scan))
+        boundaries = self._boundaries(
+            angle_min_deg,
+            angle_max_deg,
+            forward_half_angle,
+        )
+
+        state: list[float] = []
+        for lo, hi in zip(boundaries[:-1], boundaries[1:]):
+            mask = (beam_angles >= lo) & (beam_angles < hi)
+            sector_beams = scan[mask]
+
+            n_valid = int(np.isfinite(sector_beams).sum())
+            k = self._adaptive_k(n_valid)
+            raw_dist = self._sector_distance(sector_beams, k)
+
+            if raw_dist < 0:
+                state.append(-1.0)
+            else:
+                normalised = (raw_dist - min_range) / (max_range - min_range)
+                state.append(float(np.clip(normalised, 0.0, 1.0)))
+
+        return np.array(state, dtype=np.float32)
+
+    def state_to_laserscan(
+        self, state: np.ndarray, original_scan: LaserScan
+    ) -> LaserScan:
+        if len(state) != self.num_points:
+            raise ValueError(
+                f"state length ({len(state)}) must match num_points ({self.num_points})"
+            )
+
+        min_range = original_scan.range_min
+        max_range = original_scan.range_max
+        angle_min_deg = np.degrees(original_scan.angle_min)
+        angle_max_deg = np.degrees(original_scan.angle_max)
+        forward_half_angle = self._resolved_forward_half_angle(
+            angle_min_deg,
+            angle_max_deg,
+        )
+        boundaries = self._boundaries(
+            angle_min_deg,
+            angle_max_deg,
+            forward_half_angle,
+        )
+        midpoints_rad = np.radians((boundaries[:-1] + boundaries[1:]) / 2.0)
+
+        ranges = []
+        for val in state:
+            if val < 0:
+                ranges.append(float(max_range))
+            else:
+                dist = val * (max_range - min_range) + min_range
+                ranges.append(float(np.clip(dist, min_range, max_range)))
+
+        intensities = [float(i) / (self.num_points - 1) for i in range(self.num_points)]
+
+        msg = LaserScan()
+        msg.header.stamp = original_scan.header.stamp
+        msg.header.frame_id = original_scan.header.frame_id
+        msg.angle_min = float(midpoints_rad[0])
+        msg.angle_max = float(midpoints_rad[-1])
+        msg.angle_increment = float(
+            (midpoints_rad[-1] - midpoints_rad[0]) / (self.num_points - 1)
+        )
+        msg.range_min = min_range
+        msg.range_max = max_range
+        msg.time_increment = 0.0
+        msg.scan_time = original_scan.scan_time
+        msg.ranges = ranges
+        msg.intensities = intensities
+        return msg
 
 
 if __name__ == "__main__":
@@ -326,14 +284,14 @@ if __name__ == "__main__":
 
     demo_num_points = 10
     avg_out = avg_lidar(dummy, demo_num_points)
-    proc_out = process_avg_lidar(dummy, demo_num_points)
-    reconstructed_scan = state_to_laserscan(
-        state=proc_out,
-        original_scan=dummy,
-        # Must match process_avg_lidar configuration (all sectors are "forward").
-        forward_half_angle=135.0,
+    processor = LidarProcessor(
+        num_points=demo_num_points,
         n_forward=demo_num_points,
+        k_fraction=1.0,
+        k_cap=1000,
     )
+    proc_out = processor.lidar_to_state(dummy)
+    reconstructed_scan = processor.state_to_laserscan(proc_out, dummy)
 
     print("=== Lidar reducer comparison ===")
     print(f"num_points: {demo_num_points}")

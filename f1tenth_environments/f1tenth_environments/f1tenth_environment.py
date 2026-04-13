@@ -88,6 +88,14 @@ class F1tenthEnvironment(Node, ABC):
         self.eval_track_idx = 0
 
         self.lidar_reduction_mode: Literal["avg", "raw"] = "avg"
+        self.lidar_processor = lidar_utils.LidarProcessor(
+            num_points=self.lidar_observation_size,
+            forward_half_angle=45.0,
+            n_forward=4,
+            k_fraction=0.15,
+            k_floor=2,
+            k_cap=5,
+        )
 
         self.max_actions = np.asarray([max_speed, max_turn])
         self.min_actions = np.asarray([min_speed, min_turn])
@@ -298,21 +306,19 @@ class F1tenthEnvironment(Node, ABC):
                 #     lidar_msg, self.lidar_observation_size, processed_lidar_range_one
                 # )
 
-                processed_lidar_range_two = lidar_utils.lidar_to_state(
-                    lidar_msg,
-                    num_points=self.lidar_observation_size,
-                    forward_half_angle=45.0,
+                processed_lidar_range_two = self.lidar_processor.lidar_to_state(
+                    lidar_msg
                 )
-                visualization_scan_two = lidar_utils.state_to_laserscan(
+                visualization_scan_two = self.lidar_processor.state_to_laserscan(
                     processed_lidar_range_two,
                     lidar_msg,
-                    forward_half_angle=45.0,
                 )
 
                 # self.processed_publisher.publish(visualization_scan_one)
                 self.processed_publisher_two.publish(visualization_scan_two)
 
             case "raw":
+                # TODO make raw a subset of lidar_processor options instead of a separate mode
                 processed_lidar_range_one = np.array(lidar_msg.ranges.tolist())
                 processed_lidar_range_one = np.nan_to_num(
                     processed_lidar_range_one, posinf=-5, nan=-1, neginf=-5
@@ -320,6 +326,7 @@ class F1tenthEnvironment(Node, ABC):
                 visualization_scan_one = lidar_utils.create_lidar_msg(
                     lidar_msg, len(processed_lidar_range_one), processed_lidar_range_one
                 )
+                self.processed_publisher.publish(visualization_scan_one)
             case _:
                 raise ValueError(
                     f"Unsupported lidar_reduction_mode: {self.lidar_reduction_mode!r}"
