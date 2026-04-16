@@ -3,4 +3,4 @@ rl_policy:
     actor_path: 'overtaking_models/350000_actor.pht'
     critic_path: 'overtaking_models/350000_critic.pht'
     algorithm: 'TD3'
-    observation_mode: 'lidar_only'
+    odom_mode: 'velocity_only'

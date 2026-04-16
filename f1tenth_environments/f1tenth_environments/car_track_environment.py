@@ -1,5 +1,5 @@
 from .f1tenth_environment import F1tenthEnvironment
-from .observation_types import ObservationMode
+from .state_builder import LidarMode, OdomMode
 
 
 class CarTrackEnvironment(F1tenthEnvironment):
@@ -12,15 +12,15 @@ class CarTrackEnvironment(F1tenthEnvironment):
         self,
         car_name: str,
         reward_range: float = 3,
-        max_steps: int = 3000,
+        max_steps: int = 1000,
         collision_range_m: float = 0.2,
         step_sleep_time_ms: float = 100,
         track: str = "track_01",
-        observation_mode: ObservationMode = "lidar_only",
+        odom_mode: OdomMode = "velocity_only",
+        lidar_mode: LidarMode = "processed",
         max_speed: float = 5.0,
         max_turn: float = 0.434,
         min_speed: float = 0.5,
-        min_turn: float = -0.434,
     ) -> None:
         super().__init__(
             env_name="car_track",
@@ -29,11 +29,11 @@ class CarTrackEnvironment(F1tenthEnvironment):
             max_steps=max_steps,
             collision_range_m=collision_range_m,
             step_sleep_time_ms=step_sleep_time_ms,
-            lidar_observation_size=10,
+            lidar_state_size=9,
             track=track,
-            observation_mode=observation_mode,
+            odom_mode=odom_mode,
+            lidar_mode=lidar_mode,
             max_speed=max_speed,
             max_turn=max_turn,
             min_speed=min_speed,
-            min_turn=min_turn,
         )

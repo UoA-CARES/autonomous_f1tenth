@@ -56,6 +56,90 @@ class LidarProcessor:
         self.k_floor = k_floor
         self.k_cap = k_cap
 
+    @staticmethod
+    def sanitize_lidar(
+        lidar_scan: LaserScan,
+        invalid_value: float = -1.0,
+    ) -> np.ndarray:
+        """Replace NaN/Inf/out-of-range beams with ``invalid_value``.
+
+        Args:
+            lidar_scan: Input ROS2 laser scan.
+            invalid_value: Value to assign to invalid beams.
+
+        Returns:
+            A float32 numpy array with invalid entries sanitized.
+        """
+        ranges = np.asarray(lidar_scan.ranges, dtype=np.float32).copy()
+        valid_mask = (
+            np.isfinite(ranges)
+            & (ranges >= lidar_scan.range_min)
+            & (ranges <= lidar_scan.range_max)
+        )
+        ranges[~valid_mask] = np.float32(invalid_value)
+        return ranges
+
+    @staticmethod
+    def normalize_lidar(
+        lidar_scan: LaserScan,
+        invalid_value: float = -1.0,
+    ) -> np.ndarray:
+        """Sanitize and normalize a full lidar scan.
+
+        This function performs two steps:
+        1) Sanitize raw ranges with :meth:`sanitize_lidar`.
+           - non-finite values (NaN/Inf) and values outside
+             ``[lidar_scan.range_min, lidar_scan.range_max]`` are replaced with
+             ``invalid_value``.
+        2) Normalize all valid ranges to ``[0.0, 1.0]`` using
+           ``(r - range_min) / (range_max - range_min)``.
+
+        Invalid entries are preserved as ``invalid_value`` in the output.
+
+        Args:
+            lidar_scan: Input ROS2 ``LaserScan`` containing raw ranges and limits.
+            invalid_value: Sentinel used for invalid beams (e.g. ``-1.0`` or ``nan``).
+
+        Returns:
+            ``np.ndarray`` of ``float32`` with the same length as ``lidar_scan.ranges``.
+            Valid entries are normalized to ``[0, 1]`` and invalid entries remain
+            at ``invalid_value``.
+
+        Raises:
+            ValueError: If ``range_max <= range_min``.
+        """
+        min_range = lidar_scan.range_min
+        max_range = lidar_scan.range_max
+        if max_range <= min_range:
+            raise ValueError("max_range must be greater than min_range")
+
+        out = LidarProcessor.sanitize_lidar(
+            lidar_scan,
+            invalid_value=invalid_value,
+        )
+        invalid_mask = (~np.isfinite(out)) | (out == np.float32(invalid_value))
+
+        valid = out[~invalid_mask]
+        out[~invalid_mask] = np.asarray(
+            [
+                LidarProcessor.normalize_distance(float(v), min_range, max_range)
+                for v in valid
+            ],
+            dtype=np.float32,
+        )
+        return out
+
+    @staticmethod
+    def normalize_distance(
+        distance: float, min_range: float, max_range: float
+    ) -> float:
+        """Normalize a single distance value to [0, 1]."""
+        if max_range <= min_range:
+            raise ValueError("max_range must be greater than min_range")
+        return float(
+            np.clip((distance - min_range) / (max_range - min_range), 0.0, 1.0)
+        )
+
     def _adaptive_k(self, n_valid_beams: int) -> int:
         return int(
             np.clip(
@@ -135,7 +219,7 @@ class LidarProcessor:
 
         Beam angular widths per region (270° FOV example):
         Left  sectors  (L1, L2):  each ~45°   <- coarse side coverage
-        Forward sectors (F1–F4):  each ~22.5° <- fine forward resolution
+        Forward sectors (F1-F4):  each ~22.5° <- fine forward resolution
         Right sectors  (R1, R2):  each ~45°   <- coarse side coverage
 
         Output vector (index 0 = leftmost, index N-1 = rightmost):
@@ -151,7 +235,7 @@ class LidarProcessor:
         Robust obstacle detection per sector:
 
         raw beams:  [ 0.45  0.43  NaN  7.20  0.44  8.10  8.00 ]
-                            ↑ k = clamp(n_valid × 0.15, floor=2, cap=5)
+                            ↑ k = clamp(n_valid x 0.15, floor=2, cap=5)
                             ↑ mean of k-smallest finite values
         sector out:   0.44m  (phantom 7.2 and NaN discarded — k beams must agree)
 
@@ -168,7 +252,6 @@ class LidarProcessor:
             np.ndarray shape (num_points,) dtype float32
         """
 
-        raw_scan = np.array(lidar_scan.ranges, dtype=float)
         min_range = lidar_scan.range_min
         max_range = lidar_scan.range_max
         angle_min_deg = np.degrees(lidar_scan.angle_min)
@@ -178,8 +261,7 @@ class LidarProcessor:
             angle_max_deg,
         )
 
-        scan = raw_scan.copy()
-        scan[(scan < min_range) | (scan > max_range)] = np.nan
+        scan = self.sanitize_lidar(lidar_scan, invalid_value=float("nan"))
 
         beam_angles = np.linspace(angle_min_deg, angle_max_deg, len(scan))
         boundaries = self._boundaries(
@@ -200,8 +282,8 @@ class LidarProcessor:
             if raw_dist < 0:
                 state.append(-1.0)
             else:
-                normalised = (raw_dist - min_range) / (max_range - min_range)
-                state.append(float(np.clip(normalised, 0.0, 1.0)))
+                normalised = self.normalize_distance(raw_dist, min_range, max_range)
+                state.append(normalised)
 
         return np.array(state, dtype=np.float32)
 
@@ -253,52 +335,3 @@ class LidarProcessor:
         msg.ranges = ranges
         msg.intensities = intensities
         return msg
-
-
-if __name__ == "__main__":
-    # Basic manual sanity check for comparing the two reducers.
-    dummy = LaserScan()
-    dummy.range_min = 0.0
-    dummy.range_max = 10.0
-    dummy.angle_min = float(np.radians(-135.0))
-    dummy.angle_max = float(np.radians(135.0))
-
-    # Build a synthetic scan with random baseline distances, obstacle pockets,
-    # and a few invalid readings.
-    beam_count = 1080
-    rng = np.random.default_rng(42)
-    base_scan = rng.uniform(0.5, 9.5, size=beam_count).astype(np.float32)
-
-    # Add structured close-obstacle regions.
-    base_scan[180:240] = rng.uniform(0.35, 1.1, size=60).astype(np.float32)
-    base_scan[520:580] = rng.uniform(0.6, 1.8, size=60).astype(np.float32)
-
-    # Inject invalid/anomalous samples.
-    base_scan[120] = np.nan
-    base_scan[121] = np.inf
-    base_scan[122] = -np.inf
-    base_scan[300] = 0.0
-    base_scan[301] = 12.0
-
-    dummy.ranges = base_scan.tolist()
-
-    demo_num_points = 10
-    avg_out = avg_lidar(dummy, demo_num_points)
-    processor = LidarProcessor(
-        num_points=demo_num_points,
-        n_forward=demo_num_points,
-        k_fraction=1.0,
-        k_cap=1000,
-    )
-    proc_out = processor.lidar_to_state(dummy)
-    reconstructed_scan = processor.state_to_laserscan(proc_out, dummy)
-
-    print("=== Lidar reducer comparison ===")
-    print(f"num_points: {demo_num_points}")
-    print(f"avg_lidar (meters):      {np.asarray(avg_out)}")
-    print(f"process_avg_lidar (norm): {proc_out}")
-    print(f"state_to_laserscan (m):   {np.asarray(reconstructed_scan.ranges)}")
-    print(
-        "note: process_avg_lidar output is normalized to [0,1], while avg_lidar"
-        " is in meters"
-    )

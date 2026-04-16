@@ -2,7 +2,7 @@ car:
   ros__parameters:
     tracking: False
     algorithm: 'ftg'
-    observation_mode: 'lidar_only'
+    odom_mode: 'velocity_only'
     max_speed: 2
     min_speed: 0
     max_turn: 0.45

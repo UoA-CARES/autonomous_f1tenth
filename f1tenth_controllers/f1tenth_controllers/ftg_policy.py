@@ -48,7 +48,7 @@ class FollowTheGapPolicy:
         min_lidar_range: float = 0.08,
         obstacle_max_val: float = 2.2,
         min_velocity: float = 0.2,
-        max_velocity: float = 3.0,
+        max_velocity: float = 2.0,
         odom_offset: int = 8,
     ):
         """

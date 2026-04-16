@@ -16,11 +16,11 @@ class EnvironmentFactory:
         car_name = train_config.get("car_name", "f1tenth")
         max_steps = train_config.get("max_steps", 3000)
         track = train_config.get("track", "multi_track")
-        observation_mode = train_config.get("observation_mode", "lidar_only")
+        odom_mode = train_config.get("odom_mode", "velocity_only")
+        lidar_mode = train_config.get("lidar_mode", "processed")
         max_speed = action_config.get("max_speed", 5.0)
         max_turn = action_config.get("max_turn", 0.434)
         min_speed = action_config.get("min_speed", 0.5)
-        min_turn = action_config.get("min_turn", -0.434)
 
         # Basic Single Agent Environment
         if task == "CarTrack":
@@ -28,11 +28,11 @@ class EnvironmentFactory:
                 car_name=car_name,
                 max_steps=max_steps,
                 track=track,
-                observation_mode=observation_mode,
+                odom_mode=odom_mode,
+                lidar_mode=lidar_mode,
                 max_speed=max_speed,
                 max_turn=max_turn,
                 min_speed=min_speed,
-                min_turn=min_turn,
             )
         # Basic Single Agent vs FTG Environment
         elif task == "CarRace":
@@ -40,11 +40,11 @@ class EnvironmentFactory:
                 car_name=car_name,
                 max_steps=max_steps,
                 track=track,
-                observation_mode=observation_mode,
+                odom_mode=odom_mode,
+                lidar_mode=lidar_mode,
                 max_speed=max_speed,
                 max_turn=max_turn,
                 min_speed=min_speed,
-                min_turn=min_turn,
             )
 
         raise ValueError(f"EnvironmentFactory: Environment not found {task}")

@@ -1,7 +1,7 @@
 sim:
   ros__parameters:
     algorithm: 'ftg'
-    observation_mode: 'lidar_only'
+    odom_mode: 'velocity_only'
     environment: 'CarTrack'
     track: 'track_01' 
     start_stage: 'track' # init, plan, track

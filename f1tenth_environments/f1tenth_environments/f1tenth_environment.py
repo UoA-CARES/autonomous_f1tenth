@@ -1,22 +1,24 @@
 import math
 import random
 from abc import ABC
-from typing import Literal
 
 import numpy as np
 import rclpy
-from ament_index_python import get_package_share_directory
-from geometry_msgs.msg import Point, Pose, Twist
+from geometry_msgs.msg import Twist
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
-from ros_gz_interfaces.msg import Entity
-from ros_gz_interfaces.srv import ControlWorld, SetEntityPose, SpawnEntity
+from ros_gz_interfaces.srv import ControlWorld, SetEntityPose
 from sensor_msgs.msg import LaserScan
 
-from . import geometry_utils, lidar_utils, track_utils, waypoints
-from .observation_types import Observation, ObservationMode, OdomState
+from . import geometry_utils, lidar_processor, msg_utils, track_utils, waypoints
+from .state_builder import (
+    LidarMode,
+    OdomMode,
+    StateBuilder,
+    StateData,
+)
 
 
 class F1tenthEnvironment(Node, ABC):
@@ -31,49 +33,52 @@ class F1tenthEnvironment(Node, ABC):
         env_name: str,
         car_name: str,
         reward_range: float = 0.5,
-        max_steps: int = 3000,
+        max_steps: int = 1000,
         collision_range_m: float = 0.2,
         step_sleep_time_ms: float = 100,
-        lidar_observation_size: int = 10,
+        lidar_state_size: int = 9,
         track: str = "track_01",
-        observation_mode: ObservationMode = "lidar_only",
+        odom_mode: OdomMode = "velocity_only",
+        lidar_mode: LidarMode = "processed",
         train_eval_split: float = 0.5,
         max_speed: float = 5.0,
-        max_turn: float = 0.434,
         min_speed: float = 0.5,
-        min_turn: float = -0.434,
+        max_turn: float = 0.434,
     ):
+        """
+        Initialize the F1Tenth RL environment node.
+
+        Args:
+            env_name: Name of the environment instance.
+            car_name: Name of the car model in simulation.
+            reward_range: Radius for goal completion.
+            max_steps: Maximum steps per episode.
+            collision_range_m: Lidar collision threshold (meters).
+            step_sleep_time_ms: Step duration in milliseconds.
+            lidar_state_size: Number of lidar points in state.
+            track: Track name or multi-track specifier.
+            odom_mode: Odometry mode for state builder.
+            lidar_mode: Lidar mode for state builder.
+            train_eval_split: Fraction of tracks for training.
+            max_speed: Maximum allowed speed.
+            min_speed: Minimum allowed speed.
+            max_turn: Maximum allowed steering angle (radians).
+        """
         super().__init__(f"{env_name}_environment")
 
-        if lidar_observation_size < 1:
-            raise ValueError("Make sure number of lidar points is more than 0")
-
         self.car_name = car_name
-        self.goal_reach_radius = reward_range
+        self.goal_reach_radius_m = reward_range
         self.max_steps = max_steps
         self.collision_range_m = collision_range_m
         self.step_sleep_time_ms = step_sleep_time_ms
-        self.lidar_observation_size = lidar_observation_size
-        self.track_train_eval_split = train_eval_split
+        self.train_eval_split = train_eval_split
+
         self.wheelbase_m = 0.325
-        self.progress_min_threshold = 0.02
-        self.stall_penalty = 2.0
-        self.collision_penalty = 2.5
+        self.stall_progress_threshold_m = 0.02
+        self.collision_penalty = 1.0
+        self.stall_limit_steps = 5
 
-        self.observation_mode = observation_mode
-        match observation_mode:
-            case "lidar_only":
-                odom_observation_size = 2
-            case "no_position":
-                odom_observation_size = 6
-            case "full_state":
-                odom_observation_size = 10
-            case _:
-                raise ValueError(f"Unsupported observation_mode: {observation_mode}")
-        self.observation_size = odom_observation_size + self.lidar_observation_size
-
-        self.action_num = 2
-
+        # Setup Tracks and Waypoints for tracking car progress
         self.tracks = self._load_tracks(track)
         self.track_progress_models = track_utils.get_track_progress_models(self.tracks)
         self.track_names = list(self.tracks.keys())
@@ -82,23 +87,14 @@ class F1tenthEnvironment(Node, ABC):
         self.current_waypoints = self.tracks[self.current_track]
         self.current_track_model = self.track_progress_models[self.current_track]
 
-        self.eval_track_begin_idx: int = int(
-            len(self.track_names) * self.track_train_eval_split
+        self.eval_tracks_start_idx: int = int(
+            len(self.track_names) * self.train_eval_split
         )
         self.eval_track_idx = 0
 
-        self.lidar_reduction_mode: Literal["avg", "raw"] = "avg"
-        self.lidar_processor = lidar_utils.LidarProcessor(
-            num_points=self.lidar_observation_size,
-            forward_half_angle=45.0,
-            n_forward=4,
-            k_fraction=0.15,
-            k_floor=2,
-            k_cap=5,
-        )
-
-        self.max_actions = np.asarray([max_speed, max_turn])
-        self.min_actions = np.asarray([min_speed, min_turn])
+        # Setup Publishers and Subscribers
+        self.latest_data: tuple[Odometry, LaserScan] | None = None
+        self.previous_state_data: StateData | None = None
 
         self.cmd_vel_pub = self.create_publisher(Twist, f"/{self.car_name}/cmd_vel", 1)
 
@@ -118,18 +114,15 @@ class F1tenthEnvironment(Node, ABC):
             qos_profile=qos,
         )
 
-        self.processed_publisher = self.create_publisher(
-            LaserScan, f"/{self.car_name}/processed_scan", 1
+        self.state_scan_pub = self.create_publisher(
+            LaserScan, f"/{self.car_name}/state_scan", 1
         )
 
-        self.processed_publisher_two = self.create_publisher(
-            LaserScan, f"/{self.car_name}/processed_scan_two", 1
-        )
-
+        sync_slop_sec = 0.1
         self.message_filter = ApproximateTimeSynchronizer(
             [self.odom_sub, self.lidar_sub],
             sub_depth,
-            0.1,
+            sync_slop_sec,
         )
         self.message_filter.registerCallback(self._message_filter_callback)
 
@@ -141,38 +134,51 @@ class F1tenthEnvironment(Node, ABC):
                 "world control service not available, waiting again..."
             )
 
-        self.goal_name = "goal"
-        self.goal_height_m = 1.0
-        self.entity_type_model = 2
-
         self.set_pose_client = self.create_client(SetEntityPose, "world/empty/set_pose")
         while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info("set_pose service not available, waiting again...")
 
-        self.spawn_client = self.create_client(SpawnEntity, "world/empty/create")
-        while not self.spawn_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info("spawn service not available, waiting again...")
+        # Setup Environment Parameters
+        if lidar_mode == "raw":
+            # Ensure we have received at least one message to get the correct lidar size
+            _, lidar_data = self._get_data()
+            lidar_state_size = len(lidar_data.ranges)
 
-        self._spawn_goal_entity()
+        if lidar_state_size < 1:
+            raise ValueError("Make sure number of lidar points is more than 0")
 
-        self.reward_modifiers: list[tuple[Literal["turn", "wall_proximity"], float]] = [
-            ("turn", 0.3),
-            ("wall_proximity", 0.7),
-        ]
+        max_turn = abs(float(max_turn))
+        self.max_actions = np.asarray([max_speed, max_turn], dtype=np.float32)
+        self.min_actions = np.asarray([min_speed, -max_turn], dtype=np.float32)
 
-        self.latest_data: tuple[Odometry, LaserScan] | None = None
-        self.current_observation: Observation | None = None
+        self.state_builder = StateBuilder(
+            odom_mode=odom_mode,
+            lidar_mode=lidar_mode,
+            lidar_state_size=lidar_state_size,
+            min_speed=min_speed,
+            max_speed=max_speed,
+            max_turn=max_turn,
+            wheelbase_m=self.wheelbase_m,
+        )
 
+        self.observation_size = self.state_builder.policy_state_size
+        self.action_num = 2  # linear and angular velocity
+
+        # Reward Weights as precalculated factors to modify the base reward based on progress,
+        # to encourage desirable behaviour
+        self.wall_proximity_reward_weight = 0.7
+        self.turn_reward_weight = 0.3
+
+        # Loop Parameters
         self.step_counter = 0
         self.goals_reached = 0
 
-        self.previous_closest_spline_t: float | None = None
         self.is_eval = False
         self.spawn_index = 0
 
         self.goal_position: tuple[float, float] = (0.0, 0.0)
 
-        self.progress_not_met_cnt = 0
+        self.stall_counter = 0
 
     def _load_tracks(self, track_name: str) -> dict:
         if "multi_track" in track_name or track_name == "staged_tracks":
@@ -184,7 +190,7 @@ class F1tenthEnvironment(Node, ABC):
         return {track_name: waypoints.waypoints[track_name]}
 
     def _get_track_split_keys(self) -> tuple[list[str], list[str]]:
-        split_idx = min(self.eval_track_begin_idx, len(self.track_names))
+        split_idx = min(self.eval_tracks_start_idx, len(self.track_names))
         split_idx = max(0, split_idx)
 
         train_keys = self.track_names[:split_idx]
@@ -213,7 +219,10 @@ class F1tenthEnvironment(Node, ABC):
         self.current_track_model = self.track_progress_models[self.current_track]
 
         if self.is_eval:
-            car_x, car_y, car_yaw, index = self.current_waypoints[10]
+            eval_spawn_waypoint_idx = 10
+            car_x, car_y, car_yaw, index = self.current_waypoints[
+                eval_spawn_waypoint_idx
+            ]
         else:
             car_x, car_y, car_yaw, index = random.choice(self.current_waypoints)
 
@@ -223,36 +232,29 @@ class F1tenthEnvironment(Node, ABC):
         ]
 
         self.goal_position = (goal_x, goal_y)
-        self._set_reset_poses(
-            car_x=car_x,
-            car_y=car_y,
-            car_yaw=car_yaw,
-            goal_x=goal_x,
-            goal_y=goal_y,
-            car_name=self.car_name,
+        self._set_model_pose(
+            model_name=self.car_name,
+            x=float(car_x),
+            y=float(car_y),
+            z=0.0,
+            yaw=float(car_yaw),
         )
 
     def _reset(self) -> np.ndarray:
         self._reset_positions()
 
         self._set_simulation_paused(paused=False)
-        state, observation, _ = self._get_observation()
-        self.current_observation = observation
+        state_data = self._build_state_data()
+        self.previous_state_data = state_data
         self._set_simulation_paused(paused=True)
 
-        self.previous_closest_spline_t = (
-            self.current_track_model.world_coord_to_spline_coord(
-                np.asarray([observation.odom.x, observation.odom.y], dtype=np.float64)
-            )
-        )
-
-        return state
+        return state_data.state
 
     def reset(self, training: bool = True) -> np.ndarray:
         self.step_counter = 0
         self.goals_reached = 0
 
-        self.progress_not_met_cnt = 0
+        self.stall_counter = 0
 
         self.is_eval = not training
 
@@ -268,9 +270,10 @@ class F1tenthEnvironment(Node, ABC):
         # Drain anything stale
         self.latest_data = None
         end_time = self.get_clock().now().nanoseconds + int(timeout * 1e9)
+        spin_timeout_sec = 0.01
 
         while self.get_clock().now().nanoseconds < end_time:
-            rclpy.spin_once(self, timeout_sec=0.01)
+            rclpy.spin_once(self, timeout_sec=spin_timeout_sec)
             if self.latest_data is not None:
                 return self.latest_data
 
@@ -283,143 +286,140 @@ class F1tenthEnvironment(Node, ABC):
         Critical that this uses self.get_clock() for timekeeping, to ensure it works properly with simulated time.
         """
         end_time = self.get_clock().now().nanoseconds + int(duration_ms * 1e6)
+        spin_timeout_sec = 0.01
 
         while self.get_clock().now().nanoseconds < end_time:
-            rclpy.spin_once(self, timeout_sec=0.01)
+            rclpy.spin_once(self, timeout_sec=spin_timeout_sec)
 
-    def _is_terminated(self, observation: Observation, ranges: list[float]) -> bool:
-        quaternion = observation.odom.quaternion_wxyz()
-        return lidar_utils.has_collided(
-            ranges, self.collision_range_m
+    def _is_terminated(self, state_data: StateData) -> bool:
+        return self._has_collision_or_flip(state_data)
+
+    def _has_collision_or_flip(self, state_data: StateData) -> bool:
+        quaternion = state_data.quaternion_wxyz()
+        return lidar_processor.has_collided(
+            state_data.lidar_sanitised_data, self.collision_range_m
         ) or geometry_utils.has_flipped_over(quaternion)
 
     def _is_truncated(self) -> bool:
-        return self.progress_not_met_cnt >= 5 or self.step_counter >= self.max_steps
-
-    def _process_lidar_observation(self, lidar_msg: LaserScan) -> np.ndarray:
-        match self.lidar_reduction_mode:
-            case "avg":
-                # processed_lidar_range_one = lidar_utils.avg_lidar(
-                #     lidar_msg, self.lidar_observation_size
-                # )
-                # visualization_scan_one = lidar_utils.create_lidar_msg(
-                #     lidar_msg, self.lidar_observation_size, processed_lidar_range_one
-                # )
-
-                processed_lidar_range_two = self.lidar_processor.lidar_to_state(
-                    lidar_msg
-                )
-                visualization_scan_two = self.lidar_processor.state_to_laserscan(
-                    processed_lidar_range_two,
-                    lidar_msg,
-                )
-
-                # self.processed_publisher.publish(visualization_scan_one)
-                self.processed_publisher_two.publish(visualization_scan_two)
-
-            case "raw":
-                # TODO make raw a subset of lidar_processor options instead of a separate mode
-                processed_lidar_range_one = np.array(lidar_msg.ranges.tolist())
-                processed_lidar_range_one = np.nan_to_num(
-                    processed_lidar_range_one, posinf=-5, nan=-1, neginf=-5
-                ).tolist()
-                visualization_scan_one = lidar_utils.create_lidar_msg(
-                    lidar_msg, len(processed_lidar_range_one), processed_lidar_range_one
-                )
-                self.processed_publisher.publish(visualization_scan_one)
-            case _:
-                raise ValueError(
-                    f"Unsupported lidar_reduction_mode: {self.lidar_reduction_mode!r}"
-                )
-
-        # return processed_lidar_range_one
-        return processed_lidar_range_two
-
-    def _get_observation(self) -> tuple[np.ndarray, Observation, list[float]]:
-        odom_msg, lidar_msg = self._get_data()
-
-        processed_lidar_range = self._process_lidar_observation(lidar_msg)
-
-        observation = Observation(
-            odom=OdomState.from_odometry(odom_msg),
-            lidar=np.asarray(processed_lidar_range, dtype=np.float32),
+        return (
+            self.stall_counter >= self.stall_limit_steps
+            or self.step_counter >= self.max_steps
         )
-        state = observation.to_policy_array(self.observation_mode)
 
-        return state, observation, lidar_msg.ranges.tolist()
+    def _build_state_data(self) -> StateData:
+        odom_msg, lidar_msg = self._get_data()
+        state_data = self.state_builder.build_state(odom_msg, lidar_msg)
+        self.state_scan_pub.publish(state_data.lidar_state_scan)
+        return state_data
+
+    def _update_goal_progress(self, next_state_data: StateData) -> None:
+        next_x, next_y = next_state_data.position_xy()
+        distance_to_goal = math.dist(self.goal_position, [next_x, next_y])
+        if distance_to_goal < self.goal_reach_radius_m:
+            self._advance_goal()
 
     def _advance_goal(self) -> None:
-        """Move the target goal to the next waypoint on the track."""
+        """
+        Move the target goal to the next waypoint on the track.
+        """
         self.goals_reached += 1
         new_x, new_y, _, _ = self.current_waypoints[
             (self.spawn_index + self.goals_reached) % len(self.current_waypoints)
         ]
         self.goal_position = (new_x, new_y)
-        self._set_goal_pose(new_x, new_y)
 
-    def _calculate_progressive_reward(
+    def _calculate_progress_reward(
         self,
-        next_observation: Observation,
-        raw_lidar_range: list[float],
         step_progress: float,
     ) -> float:
-        if step_progress < self.progress_min_threshold:
-            self.progress_not_met_cnt += 1
+        """
+        Normalize step progress to [0, 1] for reward calculation.
+
+        Args:
+            step_progress: Track progress in meters.
+        Returns:
+            Normalized progress reward in [0, 1].
+        """
+        if step_progress < self.stall_progress_threshold_m:
+            self.stall_counter += 1
         else:
-            self.progress_not_met_cnt = 0
+            self.stall_counter = 0
 
-        reward = step_progress
-
-        distance_to_goal = math.dist(
-            self.goal_position,
-            [next_observation.odom.x, next_observation.odom.y],
+        # Estimated based on the max speed and step duration,
+        # to give a reward of 1.0 for making maximum possible progress in a step,
+        # and scale down linearly from there.
+        max_progress_per_step_m = float(self.max_actions[0]) * (
+            self.step_sleep_time_ms / 1000.0
         )
-        if distance_to_goal < self.goal_reach_radius:
-            self._advance_goal()
 
-        if self.progress_not_met_cnt >= 5:
-            reward -= self.stall_penalty
+        if max_progress_per_step_m <= 0.0:
+            return 0.0
 
-        quaternion = next_observation.odom.quaternion_wxyz()
-        if lidar_utils.has_collided(
-            raw_lidar_range, self.collision_range_m
-        ) or geometry_utils.has_flipped_over(quaternion):
-            reward -= self.collision_penalty
-
-        return reward
+        normalized_progress = step_progress / max_progress_per_step_m
+        return float(np.clip(normalized_progress, 0.0, 1.0))
 
     def _compute_reward(
         self,
-        current_observation: Observation,
-        next_observation: Observation,
-        raw_lidar_range: list[float],
-        step_progress: float,
+        previous_state_data: StateData,
+        current_state_data: StateData,
     ) -> tuple[float, dict]:
-        reward = self._calculate_progressive_reward(
-            next_observation, raw_lidar_range, step_progress
-        )
-        reward_info = {}
+        """
+        Compute reward and info for the transition from previous_state_data to current_state_data.
 
-        for modifier_type, weight in self.reward_modifiers:
-            match modifier_type:
-                case "wall_proximity":
-                    dist_to_wall = min(raw_lidar_range)
-                    wall_threshold, wall_k = 0.3, 50
-                    close_factor = 1 / (
-                        1 + np.exp(wall_k * (dist_to_wall - wall_threshold))
-                    )
-                    reward -= reward * close_factor * weight
-                    reward_info["dist_to_wall"] = ["avg", dist_to_wall]
-                case "turn":
-                    turn_threshold, turn_k = 0.5, 15
-                    angular_vel_diff = abs(
-                        current_observation.odom.angular_velocity
-                        - next_observation.odom.angular_velocity
-                    )
-                    turn_factor = 1 - (
-                        1 / (1 + np.exp(turn_k * (angular_vel_diff - turn_threshold)))
-                    )
-                    reward -= reward * turn_factor * weight
+        The main reward is a normalized progress value in [0, 1], scaled by wall and turn discounts,
+        and penalized by a fixed collision penalty. The typical reward range is [0, 1] for normal steps,
+        with a minimum of -1.0 if a collision occurs (reward - collision_penalty).
+
+        Args:
+            previous_state_data: State before action.
+            current_state_data: State after action.
+        Returns:
+            reward: Scalar reward value (normalized, usually in [0, 1], can be as low as -1.0 on collision).
+            info: Dict of reward components and diagnostics.
+        """
+        track_progress = self._compute_step_progress(
+            previous_state_data=previous_state_data,
+            current_state_data=current_state_data,
+        )
+
+        progress_reward = self._calculate_progress_reward(track_progress)
+
+        prev_angular_velocity = previous_state_data.angular_velocity()
+        curr_angular_velocity = current_state_data.angular_velocity()
+
+        dist_to_wall = float(np.min(current_state_data.lidar_sanitised_data))
+        angular_velocity_change = abs(prev_angular_velocity - curr_angular_velocity)
+
+        wall_threshold_m = 0.3
+        wall_k = 50.0
+        wall_factor = 1.0 / (1.0 + np.exp(wall_k * (dist_to_wall - wall_threshold_m)))
+
+        turn_threshold_rads = 0.5
+        turn_k = 15.0
+        turn_factor = 1.0 / (
+            1.0 + np.exp(-turn_k * (angular_velocity_change - turn_threshold_rads))
+        )
+
+        wall_discount = 1.0 - (wall_factor * self.wall_proximity_reward_weight)
+        turn_discount = 1.0 - (turn_factor * self.turn_reward_weight)
+
+        reward = progress_reward * wall_discount * turn_discount
+
+        collision = self._has_collision_or_flip(current_state_data)
+        if collision:
+            reward -= self.collision_penalty
+
+        reward_info = {
+            "track_progress": track_progress,
+            "progress_reward": progress_reward,
+            "dist_to_wall": dist_to_wall,
+            "angular_velocity_change": angular_velocity_change,
+            "wall_factor": wall_factor,
+            "turn_factor": turn_factor,
+            "wall_discount": wall_discount,
+            "turn_discount": turn_discount,
+            "collision": float(collision),
+        }
 
         return reward, reward_info
 
@@ -431,90 +431,73 @@ class F1tenthEnvironment(Node, ABC):
         speed. Sign is preserved so backward motion is represented correctly.
         """
         step_duration_s = self.step_sleep_time_ms / 1000.0
-        max_progress = max(abs(linear_speed) * step_duration_s, 0.01)
+        minimum_progress_floor_m = 0.01
+        max_progress = max(
+            abs(linear_speed) * step_duration_s, minimum_progress_floor_m
+        )
         return float(np.clip(step_progress, -max_progress, max_progress))
 
-    def _step(self) -> tuple[np.ndarray, float, bool, bool, dict]:
+    def _compute_step_progress(
+        self,
+        previous_state_data: StateData,
+        current_state_data: StateData,
+    ) -> float:
+        """
+        Compute progress along the track between previous and current state.
 
-        next_state, next_observation, raw_lidar_range = self._get_observation()
-        self._set_simulation_paused(paused=True)
+        Args:
+            previous_state_data: State before action.
+            current_state_data: State after action.
+        Returns:
+            step_progress: Track progress in meters.
+        """
+        prev_x, prev_y = previous_state_data.position_xy()
+        prev_spline_t = self.current_track_model.world_coord_to_spline_coord(
+            np.asarray([prev_x, prev_y], dtype=np.float64)
+        )
 
-        if self.current_observation is None:
-            raise RuntimeError(
-                "Current observation is not initialized - call reset first"
-            )
-
-        if self.previous_closest_spline_t is None:
-            self.previous_closest_spline_t = (
-                self.current_track_model.world_coord_to_spline_coord(
-                    np.asarray(
-                        [
-                            self.current_observation.odom.x,
-                            self.current_observation.odom.y,
-                        ],
-                        dtype=np.float64,
-                    )
-                )
-            )
-
-        current_closest_spline_t = self.current_track_model.world_coord_to_spline_coord(
-            np.asarray(
-                [next_observation.odom.x, next_observation.odom.y], dtype=np.float64
-            )
+        curr_x, curr_y = current_state_data.position_xy()
+        curr_spline_t = self.current_track_model.world_coord_to_spline_coord(
+            np.asarray([curr_x, curr_y], dtype=np.float64)
         )
 
         step_progress = self.current_track_model.linear_distance_between_spline_coords(
-            self.previous_closest_spline_t,
-            current_closest_spline_t,
+            prev_spline_t,
+            curr_spline_t,
         )
         step_progress = self._clamp_step_progress(
-            step_progress, next_observation.odom.linear_velocity
+            step_progress, current_state_data.linear_velocity()
         )
+        return step_progress
 
-        self.previous_closest_spline_t = current_closest_spline_t
+    def _transition(self) -> tuple[np.ndarray, float, bool, bool, dict]:
+        """
+        Perform a transition: step the simulation, compute reward, and update state.
+        Returns:
+            observation: Current state after action.
+            reward: Reward for the transition.
+            terminated: True if episode ended by termination condition.
+            truncated: True if episode ended by truncation (timeout/stall).
+            info: Additional diagnostic info dict.
+        """
+        current_state_data = self._build_state_data()
+        self._set_simulation_paused(paused=True)
 
         reward, reward_info = self._compute_reward(
-            self.current_observation,
-            next_observation,
-            raw_lidar_range,
-            step_progress,
+            previous_state_data=self.previous_state_data,
+            current_state_data=current_state_data,
         )
-        terminated = self._is_terminated(next_observation, raw_lidar_range)
+        self._update_goal_progress(current_state_data)
+
+        terminated = self._is_terminated(current_state_data)
         truncated = self._is_truncated()
 
-        info = {
-            "linear_velocity": ["avg", next_observation.odom.linear_velocity],
-            "angular_velocity_diff": [
-                "avg",
-                abs(
-                    next_observation.odom.angular_velocity
-                    - self.current_observation.odom.angular_velocity
-                ),
-            ],
-            "traveled distance": ["sum", step_progress],
-        }
+        info = {"linear_velocity": current_state_data.linear_velocity()}
         info.update(reward_info)
 
-        self.current_observation = next_observation
+        self.previous_state_data = current_state_data
 
-        return next_state, reward, terminated, truncated, info
-
-    def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict]:
-        self.step_counter += 1
-
-        clipped_action = np.clip(
-            np.asarray(action, dtype=np.float32), self.min_actions, self.max_actions
-        )
-        lin_vel, steering_angle = clipped_action
-        self._set_simulation_paused(paused=False)
-
-        self._set_velocity(lin_vel, steering_angle)
-
-        self._sleep(self.step_sleep_time_ms)
-
-        next_state, reward, terminated, truncated, info = self._step()
-
-        return next_state, reward, terminated, truncated, info
+        return current_state_data.state, reward, terminated, truncated, info
 
     def _set_velocity(self, lin_vel: float, steering_angle: float) -> None:
         angular = geometry_utils.ackermann_to_twist(
@@ -532,44 +515,50 @@ class F1tenthEnvironment(Node, ABC):
         rclpy.spin_until_future_complete(self, future)
         return future.result()
 
-    def _create_set_pose_request(
+    def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict]:
+        """
+        Apply an action and advance the simulation by one step.
+
+        Args:
+            action: [linear_velocity, steering_angle] array.
+        Returns:
+            observation: Next state after action.
+            reward: Reward for the transition.
+            terminated: True if episode ended by termination condition.
+            truncated: True if episode ended by truncation (timeout/stall).
+            info: Additional diagnostic info dict.
+        """
+        self.step_counter += 1
+
+        if self.previous_state_data is None:
+            raise RuntimeError(
+                "Previous state data is not initialized - call reset first"
+            )
+
+        clipped_action = np.clip(
+            np.asarray(action, dtype=np.float32), self.min_actions, self.max_actions
+        )
+        lin_vel, steering_angle = clipped_action
+        self._set_simulation_paused(paused=False)
+
+        self._set_velocity(lin_vel, steering_angle)
+
+        self._sleep(self.step_sleep_time_ms)
+
+        next_state, reward, terminated, truncated, info = self._transition()
+
+        return next_state.state, reward, terminated, truncated, info
+
+    def _set_model_pose(
         self,
-        name: str,
-        x: float = 0.0,
-        y: float = 0.0,
-        z: float = 0.0,
-        roll: float = 0.0,
-        pitch: float = 0.0,
-        yaw: float = 0.0,
-    ) -> SetEntityPose.Request:
-        request = SetEntityPose.Request()
-        request.entity = Entity()
-        request.entity.name = name
-        request.entity.type = self.entity_type_model
-
-        request.pose = Pose()
-        request.pose.position = Point()
-        request.pose.position.x = float(x)
-        request.pose.position.y = float(y)
-        request.pose.position.z = float(z)
-
-        orientation = geometry_utils.get_quaternion_from_euler(roll, pitch, yaw)
-        request.pose.orientation.x = orientation[0]
-        request.pose.orientation.y = orientation[1]
-        request.pose.orientation.z = orientation[2]
-        request.pose.orientation.w = orientation[3]
-        return request
-
-    def _set_entity_pose(
-        self,
-        name: str,
+        model_name: str,
         x: float,
         y: float,
         z: float,
         yaw: float = 0.0,
     ):
-        request = self._create_set_pose_request(
-            name=name,
+        request = msg_utils.build_set_model_pose_request(
+            model_name=model_name,
             x=x,
             y=y,
             z=z,
@@ -579,59 +568,6 @@ class F1tenthEnvironment(Node, ABC):
         rclpy.spin_until_future_complete(self, future)
         return future.result()
 
-    def _spawn_goal_entity(self) -> None:
-        goal_sdf = f"{get_package_share_directory('f1tenth_gazebo')}/sdf/goal.sdf"
-
-        spawn_request = SpawnEntity.Request()
-        spawn_request.entity_factory.name = self.goal_name
-        with open(goal_sdf, encoding="utf-8") as goal_file:
-            spawn_request.entity_factory.sdf = goal_file.read()
-
-        future = self.spawn_client.call_async(spawn_request)
-        rclpy.spin_until_future_complete(self, future, timeout_sec=5.0)
-        response = future.result()
-        if response is None:
-            self.get_logger().warning("Goal spawn request returned no response.")
-            return
-
-        succeeded = bool(getattr(response, "success", False))
-        if succeeded:
-            return
-
-        message = str(getattr(response, "status_message", ""))
-        if "exist" in message.lower():
-            return
-
-        self.get_logger().warning(f"Goal spawn failed: {message}")
-
-    def _set_reset_poses(
-        self,
-        car_x: float,
-        car_y: float,
-        car_yaw: float,
-        goal_x: float,
-        goal_y: float,
-        car_name: str,
-        update_goal: bool = True,
-    ):
-        if update_goal:
-            self._set_goal_pose(goal_x, goal_y)
-        return self._set_entity_pose(
-            name=car_name,
-            x=float(car_x),
-            y=float(car_y),
-            z=0.0,
-            yaw=float(car_yaw),
-        )
-
-    def _set_goal_pose(self, x: float, y: float):
-        return self._set_entity_pose(
-            name=self.goal_name,
-            x=float(x),
-            y=float(y),
-            z=self.goal_height_m,
-            yaw=0.0,
-        )
-
     def set_seed(self, seed: int) -> None:
+        # just a place holder for external code that expects an environment to have a set_seed method
         pass
