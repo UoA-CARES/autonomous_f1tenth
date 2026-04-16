@@ -1,32 +1,43 @@
-# Autonomous F1tenth
-Using reinforcement learning techniques to drive the f1tenth vehicle platform.
+# Autonomous F1tenth Gym v2.0
+Using reinforcement learning techniques to drive the f1tenth vehicle platform - head-to-head and time trial racing!
 
-### Dependencies
-| Dependencies | Version |
-| ----------- | ----------- |
-| Gazebo | [Garden](https://gazebosim.org/docs/garden/install_ubuntu_src) |
-| ROS2 | [Humble Hawksbill](https://docs.ros.org/en/humble/Installation.html) |
-| CARES RL | [Link](https://github.com/UoA-CARES/cares_reinforcement_learning) |
+![F1tenth Car](media/f1tenth-min.png)
 
-We source build Gazebo Garden, and use a forked `gz-sim`. To use the forked `gz-sim` run the following command before building Gazebo
+# Installation Instructions
+Follow these steps to set up the Autonomous F1tenth Gym v2.0 on your system. The instructions below will guide you through installing all required dependencies, cloning the necessary repositories, and building the workspace to get started with simulation and reinforcement learning.
+
+## Dependencies
+Before proceeding, ensure your system meets the following software requirements. These dependencies are essential for running the simulation environment and reinforcement learning workflows. Follow the provided links for installation instructions and version details.
+
+## Gazebo Garden  (source)
+We source build Gazebo Garden, and use a forked `gz-sim` that fixes some issues with Ackermann control in the base version. Follow the instructions for installing Gazebo Garden from source [here](https://gazebosim.org/docs/garden/install_ubuntu_src) then follow the instructions below to replace 'gz-sim' with our custom version.
 
 ```
-cd ~/gz/src
+cd ~/workspace/src
 rm -rdf gz-sim
 git clone https://github.com/UoA-CARES/gz-sim.git
-cd ~/gz
+cd ~/workspace
 colcon build --merge-install
-echo "source ~/gz/install/setup.bash" >> ~/.bashrc
+echo "source ~/workspace/install/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-# Package Installation Instructions
-Follow these instructions to run/test this repository on your local machine.
+## ROS 2.0 Humble
+Follow the instructions to install ROS 2.0 Humble from the main installation instructions: [Humble Hawksbill](https://docs.ros.org/en/humble/Installation.html).
 
-Ensure you have installed the dependencies outlined above.
+## CARES Reinforcement Learning
+The CARES RL package provides the primary set of training algorithms and tools for reinforcement learning with the F1tenth Gym. While the gym environment is compatible with other custom RL frameworks or scripts, CARES RL offers a streamlined interface and ready-to-use implementations for most users. Note that CARES RL is not a strict installation dependency for the gym itself, but is recommended for standard training workflows.
+
+Follow the instructions to install the CARES Reinforcement Learning package from the main installation instructions: [CARES RL v3.1.0](https://github.com/UoA-CARES/cares_reinforcement_learning/tree/V3.1.0).
+
+## Package Installation
+Follow these instructions to run/test this repository on your local machine. Ensure you have installed the dependencies outlined above.
+
+These instructions assumne you are using '~/ros2_ws/src' as your ROS2 workspace. Please adjust those commands as required if you are using a different workspace folder.
 
 Clone the autonomous_f1tenth repository.
 ```
+cd ~/ros2_ws/src
 git clone https://github.com/UoA-CARES/autonomous_f1tenth.git
 ```
 
@@ -54,20 +65,47 @@ echo "source ~/ros2_ws/install/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-# Run RL Training Example
-To run and view training, use three separate terminals (one command per terminal).
+# Quick Start
 
-First, run the f1tenth simulation environment with the current task. The example below runs CarRace with three follow-the-gap opponents.
+To run and view RL training, use up to four separate terminals (one command per terminal):
+
+![Gazebo Viz](media/f1tenth-gz.gif)
+
+**1. Launch the simulation environment:**
+
+This starts the simulation with the selected task and track. Only `environment`, `track`, and `num_opponents` are configurable. The car name is always set to `f1tenth` and does not need to be changed.
+
 ```
 ros2 launch autonomous_bringup environment_bringup.launch.py environment:=CarRace num_opponents:=3
 ```
 
-Run the learning algorithm using the command below. Ensure the task matches the environment started above.
+**2. Start RL training:**
+
+The RL agent (e.g., CARES RL) will instantiate the environment using EnvironmentFactory and pass all RL/environment parameters via the config argument. Only car_name and track must be consistent with the launch file.
+
 ```
 cares-rl train cli f1tenth --task CarRace SAC
 ```
 
-To view the training of the cars run Gazebo.
+**3. (Optional) View simulation in Gazebo:**
+
 ```
 gz sim -g
 ```
+
+**4. (Optional) Visualization with RViz**
+
+To visualize the simulation and topics, launch RViz with the provided configuration:
+
+```bash
+ros2 launch autonomous_bringup rviz.launch.py
+```
+
+The RViz configuration file is located at:
+```
+autonomous_bringup/rviz/f1tenth_default.rviz
+```
+You can customize this file to suit your visualization needs.
+
+
+

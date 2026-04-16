@@ -31,19 +31,23 @@ class F1tenthEnvironment(Node, ABC):
     def __init__(
         self,
         env_name: str,
-        car_name: str,
-        reward_range: float = 0.5,
-        max_steps: int = 1000,
-        collision_range_m: float = 0.2,
-        step_sleep_time_ms: float = 100,
-        lidar_state_size: int = 9,
-        track: str = "track_01",
-        odom_mode: OdomMode = "velocity_only",
-        lidar_mode: LidarMode = "processed",
-        train_eval_split: float = 0.5,
-        max_speed: float = 5.0,
-        min_speed: float = 0.5,
-        max_turn: float = 0.434,
+        goal_reach_radius_m: float,
+        max_steps: int,
+        collision_range_m: float,
+        step_sleep_time_ms: float,
+        lidar_state_size: int,
+        track: str,
+        odom_mode: OdomMode,
+        lidar_mode: LidarMode,
+        train_eval_split: float,
+        max_speed: float,
+        min_speed: float,
+        max_turn: float,
+        wall_proximity_reward_weight: float,
+        turn_reward_weight: float,
+        stall_progress_threshold_m: float,
+        stall_limit_steps: int,
+        collision_penalty: float,
     ):
         """
         Initialize the F1Tenth RL environment node.
@@ -51,7 +55,7 @@ class F1tenthEnvironment(Node, ABC):
         Args:
             env_name: Name of the environment instance.
             car_name: Name of the car model in simulation.
-            reward_range: Radius for goal completion.
+            goal_reach_radius_m: Radius (meters) for goal completion.
             max_steps: Maximum steps per episode.
             collision_range_m: Lidar collision threshold (meters).
             step_sleep_time_ms: Step duration in milliseconds.
@@ -66,17 +70,20 @@ class F1tenthEnvironment(Node, ABC):
         """
         super().__init__(f"{env_name}_environment")
 
-        self.car_name = car_name
-        self.goal_reach_radius_m = reward_range
+        self.car_name = "f1tenth"
+        self.goal_reach_radius_m = goal_reach_radius_m
         self.max_steps = max_steps
         self.collision_range_m = collision_range_m
         self.step_sleep_time_ms = step_sleep_time_ms
         self.train_eval_split = train_eval_split
 
+        self.wall_proximity_reward_weight = wall_proximity_reward_weight
+        self.turn_reward_weight = turn_reward_weight
+        self.stall_progress_threshold_m = stall_progress_threshold_m
+        self.stall_limit_steps = stall_limit_steps
+        self.collision_penalty = collision_penalty
+
         self.wheelbase_m = 0.325
-        self.stall_progress_threshold_m = 0.02
-        self.collision_penalty = 1.0
-        self.stall_limit_steps = 5
 
         # Setup Tracks and Waypoints for tracking car progress
         self.tracks = self._load_tracks(track)
@@ -547,7 +554,7 @@ class F1tenthEnvironment(Node, ABC):
 
         next_state, reward, terminated, truncated, info = self._transition()
 
-        return next_state.state, reward, terminated, truncated, info
+        return next_state, reward, terminated, truncated, info
 
     def _set_model_pose(
         self,

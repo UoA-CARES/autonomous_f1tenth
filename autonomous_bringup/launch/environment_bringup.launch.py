@@ -24,7 +24,7 @@ def _create_environment_launch(context):
 
     environment_name = LaunchConfiguration("environment").perform(context)
     track = LaunchConfiguration("track").perform(context)
-    car_name = LaunchConfiguration("car_name").perform(context)
+    car_name = "f1tenth"  # Hard-coded car name
     num_opponents = LaunchConfiguration("num_opponents").perform(context)
 
     launch_arguments = {
@@ -48,20 +48,16 @@ def generate_launch_description():
     pkg_f1tenth_description = get_package_share_directory("f1tenth_description")
     pkg_bringup = get_package_share_directory("autonomous_bringup")
 
-    config_path = os.path.join(pkg_bringup, "config", "train.yaml")
+    config_path = os.path.join(pkg_bringup, "config", "environment_config.yaml")
 
     with open(config_path, "r", encoding="utf-8") as config_file:
         config = yaml.safe_load(config_file)
-    config_params = config["train"]["ros__parameters"]
+    config_params = config["launch"]
 
     environment_arg = DeclareLaunchArgument("environment")
     track_arg = DeclareLaunchArgument(
         "track",
         default_value=str(config_params.get("track", "multi_track")),
-    )
-    car_name_arg = DeclareLaunchArgument(
-        "car_name",
-        default_value=str(config_params.get("car_name", "f1tenth")),
     )
     num_opponents_arg = DeclareLaunchArgument(
         "num_opponents",
@@ -72,7 +68,6 @@ def generate_launch_description():
         [
             environment_arg,
             track_arg,
-            car_name_arg,
             num_opponents_arg,
             SetEnvironmentVariable(
                 name="GZ_SIM_RESOURCE_PATH", value=pkg_f1tenth_description[:-19]
