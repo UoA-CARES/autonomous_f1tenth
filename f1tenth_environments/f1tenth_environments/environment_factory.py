@@ -12,7 +12,6 @@ class EnvironmentFactory:
         config = config or {}
 
         # Basic Envrionment Setup
-        car_name = config.get("car_name", "f1tenth")
         max_steps = config.get("max_steps", 1000)
         step_sleep_time_ms = config.get("step_sleep_time_ms", 100)
 
@@ -42,7 +41,6 @@ class EnvironmentFactory:
 
         if task == "CarTrack":
             return CarTrackEnvironment(
-                car_name=car_name,
                 lidar_state_size=lidar_state_size,
                 goal_reach_radius_m=goal_reach_radius_m,
                 max_steps=max_steps,
@@ -63,7 +61,6 @@ class EnvironmentFactory:
             )
         elif task == "CarRace":
             return CarRaceEnvironment(
-                car_name=car_name,
                 lidar_state_size=lidar_state_size,
                 goal_reach_radius_m=goal_reach_radius_m,
                 max_steps=max_steps,
