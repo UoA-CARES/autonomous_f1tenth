@@ -76,7 +76,7 @@ To run and view RL training, use up to four separate terminals (one command per 
 This starts the simulation with the selected task and track. Only `environment`, `track`, and `num_opponents` are configurable. The car name is always set to `f1tenth` and does not need to be changed.
 
 ```
-ros2 launch autonomous_bringup environment_bringup.launch.py environment:=CarRace num_opponents:=3
+ros2 launch f1tenth_bringup environment_bringup.launch.py environment:=CarRace num_opponents:=3
 ```
 
 **2. Start RL training:**
@@ -98,12 +98,12 @@ gz sim -g
 To visualize the simulation and topics, launch RViz with the provided configuration:
 
 ```bash
-ros2 launch autonomous_bringup rviz.launch.py
+ros2 launch f1tenth_bringup rviz.launch.py
 ```
 
 The RViz configuration file is located at:
 ```
-autonomous_bringup/rviz/f1tenth_default.rviz
+f1tenth_bringup/rviz/f1tenth_default.rviz
 ```
 You can customize this file to suit your visualization needs.
 

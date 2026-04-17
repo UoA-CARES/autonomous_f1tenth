@@ -8,7 +8,7 @@ Panels:
         - /Status1
         - /LaserScan2
       Splitter Ratio: 0.5
-    Tree Height: 549
+    Tree Height: 363
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -198,5 +198,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 785
-  X: 3044
-  Y: 128
+  X: 3024
+  Y: 105

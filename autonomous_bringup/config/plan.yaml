@@ -1,5 +1,0 @@
-plan:
-  ros__parameters:
-    algorithm: 'astar'
-    map: 'stateMap.pgm'
-    yaml_path: 'stateMap.yaml'

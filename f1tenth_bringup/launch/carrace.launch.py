@@ -30,16 +30,29 @@ def launch(context):
         }.items(),
     )
 
+    # Main car at (3.0, 3.0), default
     f1tenth = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
             os.path.join(pkg_f1tenth_bringup, "simulation_bringup.launch.py")
         ),
-        launch_arguments={"name": car_name, "world": "empty"}.items(),
+        launch_arguments={
+            "name": car_name,
+            "world": "empty",
+            "x": "3.0",
+            "y": "3.0",
+            "z": "3.0",
+            "R": "0.0",
+            "P": "0.0",
+            "Y": "0.0",
+        }.items(),
     )
 
+    # Opponents: spread along x axis
     opponent_entities = []
     for opponent_index in range(num_opponents):
         opponent_car_name = f"f{opponent_index + 2}tenth"
+        x_pos = 3.0 + 2.0 * (opponent_index + 1)  # e.g., 5.0, 7.0, ...
+        y_pos = 3.0
         opponent_entities.extend(
             [
                 IncludeLaunchDescription(
@@ -51,6 +64,12 @@ def launch(context):
                     launch_arguments={
                         "name": opponent_car_name,
                         "world": "empty",
+                        "x": str(x_pos),
+                        "y": str(y_pos),
+                        "z": "3.0",
+                        "R": "0.0",
+                        "P": "0.0",
+                        "Y": "0.0",
                     }.items(),
                 ),
                 Node(

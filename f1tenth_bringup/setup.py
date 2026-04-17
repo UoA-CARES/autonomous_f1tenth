@@ -3,7 +3,7 @@ import os
 
 from setuptools import find_packages, setup
 
-package_name = "autonomous_bringup"
+package_name = "f1tenth_bringup"
 
 setup(
     name=package_name,
@@ -19,6 +19,6 @@ setup(
     zip_safe=True,
     maintainer="anyone",
     maintainer_email="thenickys123@gmail.com",
-    description="Autonomous F1TENTH launch orchestration package",
+    description="F1TENTH launch orchestration package",
     license="TODO: License declaration",
 )

@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>autonomous_bringup</name>
+  <name>f1tenth_bringup</name>
   <version>0.0.0</version>
-  <description>Launch orchestration for autonomous_f1tenth</description>
+  <description>Launch orchestration for f1tenth</description>
   <maintainer email="thenickys123@gmail.com">anyone</maintainer>
   <license>TODO: License declaration</license>
 

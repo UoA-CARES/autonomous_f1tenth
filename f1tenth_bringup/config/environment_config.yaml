@@ -1,4 +1,3 @@
-actions:
 launch:
   track: "multi_track"
   num_opponents: 1

@@ -1,6 +1,0 @@
-rl_policy:
-  ros__parameters:
-    actor_path: 'overtaking_models/350000_actor.pht'
-    critic_path: 'overtaking_models/350000_critic.pht'
-    algorithm: 'TD3'
-    odom_mode: 'velocity_only'

@@ -20,7 +20,7 @@ env_launch = {
 
 
 def _create_environment_launch(context):
-    pkg_bringup = get_package_share_directory("autonomous_bringup")
+    pkg_bringup = get_package_share_directory("f1tenth_bringup")
 
     environment_name = LaunchConfiguration("environment").perform(context)
     track = LaunchConfiguration("track").perform(context)
@@ -46,7 +46,7 @@ def _create_environment_launch(context):
 
 def generate_launch_description():
     pkg_f1tenth_description = get_package_share_directory("f1tenth_description")
-    pkg_bringup = get_package_share_directory("autonomous_bringup")
+    pkg_bringup = get_package_share_directory("f1tenth_bringup")
 
     config_path = os.path.join(pkg_bringup, "config", "environment_config.yaml")
 

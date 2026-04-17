@@ -1,9 +1,0 @@
-sim:
-  ros__parameters:
-    algorithm: 'ftg'
-    odom_mode: 'velocity_only'
-    environment: 'CarTrack'
-    track: 'track_01' 
-    start_stage: 'track' # init, plan, track
-    number_eval_episodes: 100
-    path_file_path: 'newpath.txt'
