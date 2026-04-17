@@ -108,4 +108,13 @@ autonomous_bringup/rviz/f1tenth_default.rviz
 You can customize this file to suit your visualization needs.
 
 
+## Running Multiple Instances in Parallel
 
+To run multiple independent training or simulation instances on the same machine, set unique ROS and Gazebo communication domains for each instance (set of terminals for each run):
+
+```bash
+export ROS_DOMAIN_ID=42   
+export GZ_PARTITION=42
+```
+
+You can use any integer value (e.g., 42, 43, 44, ...) as long as each parallel instance uses a different value. This ensures that ROS 2 and Gazebo messages do not interfere between runs.
