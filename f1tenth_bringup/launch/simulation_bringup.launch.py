@@ -1,22 +1,12 @@
 import os
-
 import xacro
 from ament_index_python import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import (
-    DeclareLaunchArgument,
-    ExecuteProcess,
-    IncludeLaunchDescription,
-    OpaqueFunction,
-    SetEnvironmentVariable,
-)
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.descriptions import ParameterValue
 
 
-# xacro.process_file(xacro_file, mappings={"robot_name": {name}}).toxml()
 def spawn_func(context, *args, **kwargs):
 
     description_pkg_path = os.path.join(
@@ -88,92 +78,50 @@ def spawn_func(context, *args, **kwargs):
             package="ros_gz_bridge",
             executable="parameter_bridge",
             arguments=[
-                f"/model/{name}/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist",
-                f"/{name}/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan",
-                # f'/{name}/camera@sensor_msgs/msg/Image@gz.msgs.Image',
-                # f'/{name}/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo',
-                f"/model/{name}/odometry@nav_msgs/msg/Odometry@gz.msgs.Odometry",
-                f"/model/{name}/odometry_with_covariance@nav_msgs/msg/Odometry@gz.msgs.OdometryWithCovariance",
-                # f'/model/{name}/tf@tf2_msgs/msg/TFMessage@gz.msgs.Pose_V',
-                # f"/world/{world}/model/{name}/joint_state@sensor_msgs/msg/JointState@gz.msgs.Model",
-                f"/model/{name}/pose@geometry_msgs/msg/Pose@gz.msgs.Pose",
-                f"/{name}/imu@sensor_msgs/msg/Imu@gz.msgs.IMU",
+                # Only unidirectional bridges (ros->gz or gz->ros as needed)
+                f"/model/{name}/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist[ros2_to_gz]",
+                f"/{name}/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan[gz_to_ros2]",
+                f"/model/{name}/odometry@nav_msgs/msg/Odometry@gz.msgs.Odometry[gz_to_ros2]",
+                f"/model/{name}/pose@geometry_msgs/msg/Pose@gz.msgs.Pose[gz_to_ros2]",
+                f"/{name}/imu@sensor_msgs/msg/Imu@gz.msgs.IMU[gz_to_ros2]",
             ],
             remappings=[
                 (f"/model/{name}/cmd_vel", f"/{name}/cmd_vel"),
                 (f"/model/{name}/pose", f"/{name}/pose"),
                 (f"/model/{name}/odometry", f"/{name}/odometry"),
-                (
-                    f"/model/{name}/odometry_with_covariance",
-                    f"/{name}/odometry_with_covariance",
-                ),
-                # (f"/world/{world}/model/{name}/joint_state", f"/{name}/joint_states"),
-                # (f'/model/{name}/tf', '/tf'),
             ],
         ),
-        # Node(
-        #     package='robot_localization',
-        #     executable='ekf_node',
-        #     name='ekf_filter_node',
-        #     output='screen',
-        #     parameters=[os.path.join(description_pkg_path, 'config/ekf.yaml'),
-        #                 {"use_sim_time": True}],
-        # ),
-        # Node(
-        #     package='slam_toolbox',
-        #     executable='async_slam_toolbox_node',
-        #     name='slam_toolbox',
-        #     output='screen',
-        #     parameters=[ os.path.join(description_pkg_path, 'config', 'slam_toolbox.yaml'),
-        #                 {"use_sim_time": True}],
-        # )
     ]
 
 
 def generate_launch_description():
-    world_arg = DeclareLaunchArgument(name="world", description="name of world")
-
-    name_arg = DeclareLaunchArgument(name="name", description="name of robot spawned")
-
-    enable_camera = DeclareLaunchArgument(
-        name="enable_camera",
-        description="enable depth camera sensor",
-        default_value="false",
-    )
-
-    x = DeclareLaunchArgument(
-        name="x", description="x position of robot", default_value="3.0"
-    )
-
-    y = DeclareLaunchArgument(
-        name="y", description="y position of robot", default_value="3.0"
-    )
-
-    z = DeclareLaunchArgument(
-        name="z", description="z position of robot", default_value="3.0"
-    )
-
-    R = DeclareLaunchArgument(
-        name="R", description="roll of robot", default_value="0.0"
-    )
-
-    P = DeclareLaunchArgument(
-        name="P", description="pitch of robot", default_value="0.0"
-    )
-
-    Y = DeclareLaunchArgument(name="Y", description="yaw of robot", default_value="0.0")
-
     return LaunchDescription(
         [
-            world_arg,
-            name_arg,
-            enable_camera,
-            x,
-            y,
-            z,
-            R,
-            P,
-            Y,
+            DeclareLaunchArgument(name="world", description="name of world"),
+            DeclareLaunchArgument(name="name", description="name of robot spawned"),
+            DeclareLaunchArgument(
+                name="enable_camera",
+                description="enable depth camera sensor",
+                default_value="false",
+            ),
+            DeclareLaunchArgument(
+                name="x", description="x position of robot", default_value="3.0"
+            ),
+            DeclareLaunchArgument(
+                name="y", description="y position of robot", default_value="3.0"
+            ),
+            DeclareLaunchArgument(
+                name="z", description="z position of robot", default_value="3.0"
+            ),
+            DeclareLaunchArgument(
+                name="R", description="roll of robot", default_value="0.0"
+            ),
+            DeclareLaunchArgument(
+                name="P", description="pitch of robot", default_value="0.0"
+            ),
+            DeclareLaunchArgument(
+                name="Y", description="yaw of robot", default_value="0.0"
+            ),
             OpaqueFunction(function=spawn_func),
         ]
     )
