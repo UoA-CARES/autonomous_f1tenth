@@ -7,26 +7,24 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-def spawn_func(context, *args, **kwargs):
-
+def spawn_car_func(context, *args, **kwargs):
     description_pkg_path = os.path.join(
         get_package_share_directory("f1tenth_description")
     )
     xacro_file = os.path.join(description_pkg_path, "urdf", "robot.urdf.xacro")
 
-    world = LaunchConfiguration("world").perform(context)
     name = LaunchConfiguration("name").perform(context)
+    world = LaunchConfiguration("world").perform(context)
     enable_camera = LaunchConfiguration("enable_camera").perform(context)
-
     x = LaunchConfiguration("x").perform(context)
     y = LaunchConfiguration("y").perform(context)
     z = LaunchConfiguration("z").perform(context)
-
     R = LaunchConfiguration("R").perform(context)
     P = LaunchConfiguration("P").perform(context)
     Y = LaunchConfiguration("Y").perform(context)
+    controller = LaunchConfiguration("controller").perform(context)
 
-    return [
+    nodes = [
         Node(
             package="robot_state_publisher",
             executable="robot_state_publisher",
@@ -78,12 +76,11 @@ def spawn_func(context, *args, **kwargs):
             package="ros_gz_bridge",
             executable="parameter_bridge",
             arguments=[
-                # Only unidirectional bridges (ros->gz or gz->ros as needed)
-                f"/model/{name}/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist[ros2_to_gz]",
-                f"/{name}/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan[gz_to_ros2]",
-                f"/model/{name}/odometry@nav_msgs/msg/Odometry@gz.msgs.Odometry[gz_to_ros2]",
-                f"/model/{name}/pose@geometry_msgs/msg/Pose@gz.msgs.Pose[gz_to_ros2]",
-                f"/{name}/imu@sensor_msgs/msg/Imu@gz.msgs.IMU[gz_to_ros2]",
+                f"/model/{name}/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist",
+                f"/{name}/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan",
+                f"/model/{name}/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry",
+                f"/model/{name}/pose@geometry_msgs/msg/Pose[gz.msgs.Pose",
+                f"/{name}/imu@sensor_msgs/msg/Imu[gz.msgs.IMU",
             ],
             remappings=[
                 (f"/model/{name}/cmd_vel", f"/{name}/cmd_vel"),
@@ -92,13 +89,26 @@ def spawn_func(context, *args, **kwargs):
             ],
         ),
     ]
+    # Launch controller if specified
+    if controller == "ftg":
+        nodes.append(
+            Node(
+                package="f1tenth_controllers",
+                executable="ftg_policy",
+                output="screen",
+                parameters=[{"car_name": name}],
+                namespace=name,
+            )
+        )
+    # Future: add more controller types here
+    return nodes
 
 
 def generate_launch_description():
     return LaunchDescription(
         [
-            DeclareLaunchArgument(name="world", description="name of world"),
             DeclareLaunchArgument(name="name", description="name of robot spawned"),
+            DeclareLaunchArgument(name="world", description="name of world"),
             DeclareLaunchArgument(
                 name="enable_camera",
                 description="enable depth camera sensor",
@@ -122,6 +132,11 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 name="Y", description="yaw of robot", default_value="0.0"
             ),
-            OpaqueFunction(function=spawn_func),
+            DeclareLaunchArgument(
+                name="controller",
+                description="controller type (e.g. ftg, rl, etc.)",
+                default_value="",
+            ),
+            OpaqueFunction(function=spawn_car_func),
         ]
     )

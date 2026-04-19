@@ -73,10 +73,14 @@ To run and view RL training, use up to four separate terminals (one command per 
 
 **1. Launch the simulation environment:**
 
-This starts the simulation with the selected task and track. Only `environment`, `track`, and `num_opponents` are configurable. The car name is always set to `f1tenth` and does not need to be changed.
+This starts the simulation with your chosen track and number of opponents. The main arguments are:
 
+- `track`: The name of the track/world to load (e.g., `multi_track`, `track_1`, etc.)
+- `num_opponents`: The number of opponent cars to spawn (the agent car is always present, so total cars = 1 + num_opponents)
+
+Example (agent car + 2 opponents = 3 cars total):
 ```
-ros2 launch f1tenth_bringup environment_bringup.launch.py environment:=CarRace num_opponents:=3
+ros2 launch f1tenth_bringup sim_environment_bringup.launch.py track:=multi_track num_opponents:=2
 ```
 
 **2. Start RL training:**
@@ -103,7 +107,7 @@ ros2 launch f1tenth_bringup rviz.launch.py
 
 The RViz configuration file is located at:
 ```
-f1tenth_bringup/rviz/f1tenth_default.rviz
+f1tenth_bringup/rviz/f1tenth.rviz
 ```
 You can customize this file to suit your visualization needs.
 

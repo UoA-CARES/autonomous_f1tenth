@@ -16,7 +16,6 @@
   <depend>f1tenth_controllers</depend>
   <depend>f1tenth_environments</depend>
   <depend>f1tenth_gazebo</depend>
-  <depend>f1tenth_bringup</depend>
   <depend>f1tenth_description</depend>
   <depend>launch</depend>
   <depend>launch_ros</depend>
