@@ -1,7 +1,6 @@
 import rclpy
 
-from .car_race_environment import CarRaceEnvironment
-from .car_track_environment import CarTrackEnvironment
+from .f1tenth_environment import F1tenthEnvironment
 
 
 class EnvironmentFactory:
@@ -39,45 +38,26 @@ class EnvironmentFactory:
         stall_progress_threshold_m = config.get("stall_progress_threshold_m", 0.02)
         stall_limit_steps = config.get("stall_limit_steps", 5)
 
-        if task == "CarTrack":
-            return CarTrackEnvironment(
-                lidar_state_size=lidar_state_size,
-                goal_reach_radius_m=goal_reach_radius_m,
-                max_steps=max_steps,
-                collision_range_m=collision_range_m,
-                step_sleep_time_ms=step_sleep_time_ms,
+        if task == "CarRace":
+            return F1tenthEnvironment(
+                env_name=task,
                 track=track,
+                train_eval_split=train_eval_split,
+                max_steps=max_steps,
+                step_sleep_time_ms=step_sleep_time_ms,
                 odom_mode=odom_mode,
                 lidar_mode=lidar_mode,
-                max_speed=max_speed,
-                max_turn=max_turn,
-                min_speed=min_speed,
-                train_eval_split=train_eval_split,
-                wall_proximity_reward_weight=wall_proximity_reward_weight,
-                turn_reward_weight=turn_reward_weight,
-                stall_progress_threshold_m=stall_progress_threshold_m,
-                stall_limit_steps=stall_limit_steps,
-                collision_penalty=collision_penalty,
-            )
-        elif task == "CarRace":
-            return CarRaceEnvironment(
                 lidar_state_size=lidar_state_size,
-                goal_reach_radius_m=goal_reach_radius_m,
-                max_steps=max_steps,
-                collision_range_m=collision_range_m,
-                step_sleep_time_ms=step_sleep_time_ms,
-                track=track,
-                odom_mode=odom_mode,
-                lidar_mode=lidar_mode,
                 max_speed=max_speed,
-                max_turn=max_turn,
                 min_speed=min_speed,
-                train_eval_split=train_eval_split,
+                max_turn=max_turn,
                 wall_proximity_reward_weight=wall_proximity_reward_weight,
                 turn_reward_weight=turn_reward_weight,
+                collision_penalty=collision_penalty,
+                collision_range_m=collision_range_m,
+                goal_reach_radius_m=goal_reach_radius_m,
                 stall_progress_threshold_m=stall_progress_threshold_m,
                 stall_limit_steps=stall_limit_steps,
-                collision_penalty=collision_penalty,
             )
 
         raise ValueError(f"EnvironmentFactory: Environment not found {task}")

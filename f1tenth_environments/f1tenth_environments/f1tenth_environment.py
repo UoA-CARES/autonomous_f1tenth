@@ -1,5 +1,6 @@
 import math
 import random
+import re
 from abc import ABC
 
 import numpy as np
@@ -13,12 +14,7 @@ from ros_gz_interfaces.srv import ControlWorld, SetEntityPose
 from sensor_msgs.msg import LaserScan
 
 from . import geometry_utils, lidar_processor, msg_utils, track_utils, waypoints
-from .state_builder import (
-    LidarMode,
-    OdomMode,
-    StateBuilder,
-    StateData,
-)
+from .state_builder import LidarMode, OdomMode, StateBuilder, StateData
 
 
 class F1tenthEnvironment(Node, ABC):
@@ -54,7 +50,6 @@ class F1tenthEnvironment(Node, ABC):
 
         Args:
             env_name: Name of the environment instance.
-            car_name: Name of the car model in simulation.
             goal_reach_radius_m: Radius (meters) for goal completion.
             max_steps: Maximum steps per episode.
             collision_range_m: Lidar collision threshold (meters).
@@ -67,6 +62,11 @@ class F1tenthEnvironment(Node, ABC):
             max_speed: Maximum allowed speed.
             min_speed: Minimum allowed speed.
             max_turn: Maximum allowed steering angle (radians).
+            wall_proximity_reward_weight: Weight for wall proximity in reward.
+            turn_reward_weight: Weight for turn smoothness in reward.
+            stall_progress_threshold_m: Progress threshold to count as stall (meters).
+            stall_limit_steps: Number of consecutive stall steps before truncation.
+            collision_penalty: Fixed penalty subtracted from reward on collision.
         """
         super().__init__(f"{env_name}_environment")
 
@@ -187,6 +187,35 @@ class F1tenthEnvironment(Node, ABC):
 
         self.stall_counter = 0
 
+        self.opponent_car_names = self._discover_opponent_car_names()
+
+    def _discover_opponent_car_names(self) -> list[str]:
+        """Find opponent cars from active ROS topic namespaces."""
+        discovered_names: set[str] = set()
+        name_pattern = re.compile(r"^f(\d+)tenth$")
+
+        for topic_name, _ in self.get_topic_names_and_types():
+            topic_root = topic_name.strip("/").split("/", 1)[0]
+            if not topic_root:
+                continue
+
+            car_name = topic_root
+            match = name_pattern.match(car_name)
+            if match is None:
+                continue
+
+            car_index = int(match.group(1))
+            if car_name == self.car_name or car_index <= 1:
+                continue
+
+            discovered_names.add(car_name)
+
+        def _car_sort_key(name: str) -> int:
+            match = name_pattern.match(name)
+            return int(match.group(1)) if match else 10_000
+
+        return sorted(discovered_names, key=_car_sort_key)
+
     def _load_tracks(self, track_name: str) -> dict:
         if "multi_track" in track_name or track_name == "staged_tracks":
             _, all_track_waypoints = (
@@ -220,6 +249,21 @@ class F1tenthEnvironment(Node, ABC):
 
         return random.choice(train_keys)
 
+    def _get_opponent_spawn_pose(
+        self, primary_spawn_index: int, opponent_order: int
+    ) -> tuple[float, float, float]:
+        """Return the waypoint-based spawn pose for one opponent."""
+        if self.is_eval and len(self.current_waypoints) > 0:
+            eval_index = (16 + opponent_order) % len(self.current_waypoints)
+            opponent_x, opponent_y, opponent_yaw, _ = self.current_waypoints[eval_index]
+            return opponent_x, opponent_y, opponent_yaw
+
+        opponent_index = (primary_spawn_index + 2 + opponent_order) % len(
+            self.current_waypoints
+        )
+        opponent_x, opponent_y, opponent_yaw, _ = self.current_waypoints[opponent_index]
+        return opponent_x, opponent_y, opponent_yaw
+
     def _reset_positions(self) -> None:
         self.current_track = self._select_track_name()
         self.current_waypoints = self.tracks[self.current_track]
@@ -246,6 +290,20 @@ class F1tenthEnvironment(Node, ABC):
             z=0.0,
             yaw=float(car_yaw),
         )
+
+        for opponent_order, opponent_car_name in enumerate(self.opponent_car_names):
+            opponent_x, opponent_y, opponent_yaw = self._get_opponent_spawn_pose(
+                self.spawn_index,
+                opponent_order,
+            )
+
+            self._set_model_pose(
+                model_name=opponent_car_name,
+                x=float(opponent_x),
+                y=float(opponent_y),
+                z=0.0,
+                yaw=float(opponent_yaw),
+            )
 
     def _reset(self) -> np.ndarray:
         self._reset_positions()
