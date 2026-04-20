@@ -86,7 +86,7 @@ ros2 launch f1tenth_bringup sim_environment_bringup.launch.py track:=multi_track
 
 **2. Start RL training:**
 
-The RL agent (e.g., CARES RL) will instantiate the environment using EnvironmentFactory and pass all RL/environment parameters via the config argument. Only car_name and track must be consistent with the launch file.
+The RL agent (e.g., CARES RL) will instantiate the environment using EnvironmentFactory and pass all RL/environment parameters via the config argument. 
 
 ```
 cares-rl train cli f1tenth --task CarRace SAC
