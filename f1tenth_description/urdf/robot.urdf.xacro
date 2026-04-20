@@ -1,0 +1,27 @@
+<?xml version='1.0'?>
+<robot name="$(arg robot_name)" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:arg name="robot_name" default="f1tenth"/>
+
+    <xacro:arg name="enable_camera" default="false" />
+
+    <!-- Contestants and stuff -->
+    <xacro:include filename="$(find f1tenth_description)/urdf/const.xacro" />
+    <xacro:include filename="$(find f1tenth_description)/urdf/macro.xacro" />
+    <xacro:include filename="$(find f1tenth_description)/gazebo/lidar.gazebo.xacro" />
+    <xacro:include filename="$(find f1tenth_description)/gazebo/imu.gazebo.xacro" />
+    <xacro:if value="$(arg enable_camera)">
+        <xacro:include filename="$(find f1tenth_description)/gazebo/camera.gazebo.xacro" />
+    </xacro:if>
+
+    <!-- links and joints -->
+    <xacro:include filename="$(find f1tenth_description)/urdf/links.xacro" />
+    <xacro:include filename="$(find f1tenth_description)/urdf/joints.xacro" />
+
+    <!-- Gazebo stuff -->
+    <xacro:include filename="$(find f1tenth_description)/gazebo/ackermann.gazebo.xacro" />
+    <xacro:include filename="$(find f1tenth_description)/gazebo/odometry.gazebo.xacro" />
+    <xacro:include filename="$(find f1tenth_description)/gazebo/jsp.gazebo.xacro" />
+    <xacro:include filename="$(find f1tenth_description)/gazebo/pose.gazebo.xacro" />
+
+</robot>
