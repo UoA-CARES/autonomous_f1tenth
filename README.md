@@ -35,10 +35,11 @@ Follow these instructions to run/test this repository on your local machine. Ens
 
 These instructions assumne you are using '~/ros2_ws/src' as your ROS2 workspace. Please adjust those commands as required if you are using a different workspace folder.
 
-Clone the autonomous_f1tenth repository.
+
+Clone the autonomous_f1tenth repository (dev/v2 branch):
 ```
 cd ~/ros2_ws/src
-git clone https://github.com/UoA-CARES/autonomous_f1tenth.git
+git clone --branch dev/v2 https://github.com/UoA-CARES/autonomous_f1tenth.git
 ```
 
 Clone the `f1tenth` repository as a sibling workspace package (outside this repository).
