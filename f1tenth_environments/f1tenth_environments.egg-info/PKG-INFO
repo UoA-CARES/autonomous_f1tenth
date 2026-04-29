@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: f1tenth_environments
+Version: 0.0.0
+Summary: TODO: Package description
+Maintainer: retinfai
+Maintainer-email: aferetipama@gmail.com
+License: TODO: License declaration
+Requires-Dist: setuptools
+Requires-Dist: pettingzoo
+Dynamic: license
+Dynamic: maintainer
+Dynamic: maintainer-email
+Dynamic: requires-dist
+Dynamic: summary
