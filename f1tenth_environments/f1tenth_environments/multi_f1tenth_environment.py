@@ -1,9 +1,11 @@
 import re
+import math
 from f1tenth_environments.f1tenth_environments.f1tenth_environment import F1tenthEnvironment
 import rclpy
 
 from pettingzoo import ParallelEnv
 from geometry_msgs.msg import Twist
+from gymnasium import spaces
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
@@ -78,12 +80,6 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         )
 
         sync_slop_sec = 0.1
-        self.message_filter = ApproximateTimeSynchronizer(
-            [self.odom_sub, self.lidar_sub],
-            sub_depth,
-            sync_slop_sec,
-        )
-        self.message_filter.registerCallback(self._message_filter_callback)
 
         self.world_control_client = self.create_client(
             ControlWorld, "world/empty/control"
@@ -96,10 +92,6 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self.set_pose_client = self.create_client(SetEntityPose, "world/empty/set_pose")
         while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info("set_pose service not available, waiting again...")
-
-        if lidar_mode == "raw":
-            _, lidar_data = self._get_data()
-            lidar_state_size = len(lidar_data.ranges)
 
         if lidar_state_size < 1:
             raise ValueError("Make sure number of lidar points is more than 0")
@@ -138,11 +130,13 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self.stall_counter = 0
 
         # Multi agents specific stuff
-        self.agents = self._discover_opponent_car_names()
+        self.agents = [self.car_name] +  self._discover_opponent_car_names()
         
         self.stall_counters = {agent: 0 for agent in self.agents}
-        self.agent_goals = {agent: (0.0, 0.0) for agent in self.agents}
         self.latest_data = {agent: None for agent in self.agents}
+        self.agent_goals = {agent: (0.0, 0.0) for agent in self.agents}
+        self.previous_state_data = {agent: None for agent in self.agents}
+        self.goals_reached = {agent: 0 for agent in self.agents}
         self.message_filters = {}
         self.cmd_vel_pubs = {}
 
@@ -161,9 +155,22 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
         self.message_filter = ApproximateTimeSynchronizer(all_subs, sub_depth, sync_slop_sec)
         self.message_filter.registerCallback(self._message_filter_callback)
+
+        if lidar_mode == "raw":
+            _, lidar_data = self._get_data(self.car_name)
+            lidar_state_size = len(lidar_data.ranges)
+    
+    def _update_goal_progress(self, agent: str, state_data: StateData) -> None:
+        next_x, next_y = state_data.position_xy()
+        if math.dist(self.agent_goals[agent], [next_x, next_y]) < self.goal_reach_radius_m:
+            self.goals_reached[agent] += 1
+            new_x, new_y, _, _ = self.current_waypoints[
+                (self.spawn_index + self.goals_reached[agent]) % len(self.current_waypoints)
+            ]
+            self.agent_goals[agent] = (new_x, new_y)
     
     def _message_filter_callback(self, *msgs) -> None:
-        for i, agent in self.agents:
+        for i, agent in enumerate(self.agents):
             odom = msgs[i * 2]
             lidar = msgs[i * 2 + 1]
             self.latest_data[agent] = (odom, lidar)
@@ -222,6 +229,26 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             self.previous_state_data[agent] = current_state
 
         return obs, rewards, terminateds, truncateds, infos
+    
+    # override for multi agents
+    def _get_data(self, agent: str, timeout: float = 5.0):
+        self.latest_data[agent] = None
+        end_time = self.get_clock().now().nanoseconds + int(timeout * 1e9)
+        while self.get_clock().now().nanoseconds < end_time:
+            rclpy.spin_once(self, timeout_sec=0.01)
+            if self.latest_data[agent] is not None:
+                return self.latest_data[agent]
+        raise TimeoutError(f"No synced data received for '{agent}'")
+
+    def _build_state_data(self, agent: str) -> StateData:
+        odom_msg, lidar_msg = self._get_data(agent)
+        return self.state_builder.build_state(odom_msg, lidar_msg)
+    
+    def _is_truncated(self, agent: str) -> bool:
+        return (
+            self.stall_counters[agent] >= self.stall_limit_steps
+            or self.step_counter >= self.max_steps
+        )
     
     @property
     def observation_spaces(self) -> dict:
