@@ -5,6 +5,7 @@ from abc import ABC
 
 import numpy as np
 import rclpy
+from gymnasium import spaces
 from geometry_msgs.msg import Twist
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from nav_msgs.msg import Odometry

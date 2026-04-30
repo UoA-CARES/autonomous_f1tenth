@@ -1,6 +1,9 @@
 import re
+from f1tenth_environments.f1tenth_environments.f1tenth_environment import F1tenthEnvironment
+import rclpy
 
 from pettingzoo import ParallelEnv
+from geometry_msgs.msg import Twist
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
@@ -14,7 +17,7 @@ import numpy as np
 from . import geometry_utils, lidar_processor, msg_utils, track_utils, waypoints
 from .state_builder import LidarMode, OdomMode, StateBuilder, StateData
 
-class MultiF1TenthEnvironment(ParallelEnv, Node):
+class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
     """Multi-agent F1Tenth environment using PettingZoo API."""
 
     def __init__(
@@ -67,23 +70,8 @@ class MultiF1TenthEnvironment(ParallelEnv, Node):
         self.current_waypoints = self.tracks[self.current_track]
         self.current_track_model = self.track_progress_models[self.current_track]
 
-        self.cmd_vel_pub = self.create_publisher(Twist, f"/{self.car_name}/cmd_vel", 1)
-
         sub_depth = 3
         qos = QoSProfile(depth=sub_depth)
-        self.odom_sub = Subscriber(
-            self,
-            Odometry,
-            f"/{self.car_name}/odometry",
-            qos_profile=qos,
-        )
-
-        self.lidar_sub = Subscriber(
-            self,
-            LaserScan,
-            f"/{self.car_name}/scan",
-            qos_profile=qos,
-        )
 
         self.state_scan_pub = self.create_publisher(
             LaserScan, f"/{self.car_name}/state_scan", 1
@@ -109,9 +97,7 @@ class MultiF1TenthEnvironment(ParallelEnv, Node):
         while not self.set_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info("set_pose service not available, waiting again...")
 
-        # Setup Environment Parameters
         if lidar_mode == "raw":
-            # Ensure we have received at least one message to get the correct lidar size
             _, lidar_data = self._get_data()
             lidar_state_size = len(lidar_data.ranges)
 
@@ -153,33 +139,107 @@ class MultiF1TenthEnvironment(ParallelEnv, Node):
 
         # Multi agents specific stuff
         self.agents = self._discover_opponent_car_names()
-        self.agent_states
-        self.stall_counters
-        self.agent_goals
-    
-    def _discover_opponent_car_names(self) -> list[str]:
-        """Find opponent cars from active ROS topic namespaces."""
-        discovered_names: set[str] = set()
-        name_pattern = re.compile(r"^f(\d+)tenth$")
-
-        for topic_name, _ in self.get_topic_names_and_types():
-            topic_root = topic_name.strip("/").split("/", 1)[0]
-            if not topic_root:
-                continue
-
-            car_name = topic_root
-            match = name_pattern.match(car_name)
-            if match is None:
-                continue
-
-            car_index = int(match.group(1))
-            if car_name == self.car_name or car_index <= 1:
-                continue
-
-            discovered_names.add(car_name)
         
-        def _car_sort_key(name: str) -> int:
-            match = name_pattern.match(name)
-            return int(match.group(1)) if match else 10_000
+        self.stall_counters = {agent: 0 for agent in self.agents}
+        self.agent_goals = {agent: (0.0, 0.0) for agent in self.agents}
+        self.latest_data = {agent: None for agent in self.agents}
+        self.message_filters = {}
+        self.cmd_vel_pubs = {}
 
-        return sorted(discovered_names, key=_car_sort_key)
+        all_subs = []
+        self.odom_subs = {}
+        self.lidar_subs = {}
+
+        for agent in self.agents:
+            odom_sub = Subscriber(self, Odometry, f"/{agent}/odometry", qos_profile=qos)
+            lidar_sub = Subscriber(self, LaserScan, f"/{agent}/scan", qos_profile=qos)
+            self.odom_subs[agent] = odom_sub
+            self.lidar_subs[agent] = lidar_sub
+            all_subs.append(odom_sub)
+            all_subs.append(lidar_sub)
+            self.cmd_vel_pubs[agent] = self.create_publisher(Twist, f"/{agent}/cmd_vel", 1)
+
+        self.message_filter = ApproximateTimeSynchronizer(all_subs, sub_depth, sync_slop_sec)
+        self.message_filter.registerCallback(self._message_filter_callback)
+    
+    def _message_filter_callback(self, *msgs) -> None:
+        for i, agent in self.agents:
+            odom = msgs[i * 2]
+            lidar = msgs[i * 2 + 1]
+            self.latest_data[agent] = (odom, lidar)
+
+    def reset(self, seed=None, options=None) -> dict:
+        self.step_counter = 0
+        self.is_eval = False
+
+        for agent in self.agents:
+            self.stall_counters[agent] = 0
+            msg = Twist()
+            msg.linear.x = 0.0
+            msg.angular.z = 0.0
+            self.cmd_vel_pubs[agent].publish(msg)
+
+        self._reset_positions()
+
+        self._set_simulation_paused(paused=False)
+        obs = {}
+        for agent in self.agents:
+            state_data = self._build_state_data(agent)
+            self.previous_state_data[agent] = state_data
+            obs[agent] = state_data.state
+        self._set_simulation_paused(paused=True)
+
+        return obs
+
+    def step(self, actions: dict) -> tuple[dict, dict, dict, dict, dict]:
+        self.step_counter += 1
+        self._set_simulation_paused(paused=False)
+
+        for agent, action in actions.items():
+            clipped = np.clip(action, self.min_actions, self.max_actions)
+            lin_vel, steering = clipped
+            angular = geometry_utils.ackermann_to_twist(steering, lin_vel, self.wheelbase_m)
+            msg = Twist()
+            msg.linear.x = float(lin_vel)
+            msg.angular.z = float(angular)
+            self.cmd_vel_pubs[agent].publish(msg)
+
+        self._sleep(self.step_sleep_time_ms)
+
+        obs, rewards, terminateds, truncateds, infos = {}, {}, {}, {}, {}
+        self._set_simulation_paused(paused=True)
+
+        for agent in self.agents:
+            current_state = self._build_state_data(agent)
+            reward, info = self._compute_reward(self.previous_state_data[agent], current_state)
+            self._update_goal_progress(agent, current_state)
+
+            terminateds[agent] = self._is_terminated(current_state)
+            truncateds[agent] = self._is_truncated(agent)
+            obs[agent] = current_state.state
+            rewards[agent] = reward
+            infos[agent] = info
+            self.previous_state_data[agent] = current_state
+
+        return obs, rewards, terminateds, truncateds, infos
+    
+    @property
+    def observation_spaces(self) -> dict:
+        return {
+            agent: spaces.Box(
+                low=-np.inf,
+                high=np.inf,
+                shape=(self.observation_size,),
+                dtype=np.float32
+            ) for agent in self.agents
+        }
+
+    @property
+    def action_spaces(self) -> dict:
+        return {
+            agent: spaces.Box(
+                low=self.min_actions,
+                high=self.max_actions,
+                dtype=np.float32
+            ) for agent in self.agents
+        }
