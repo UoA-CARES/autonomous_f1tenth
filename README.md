@@ -17,7 +17,7 @@ We will create a folder to store the code locally - this way the code is always 
 mkdir -p ~/f1tenth_docker
 ```
 
-Clone the autonomous_f1tenth repository (dev/v2 branch):
+Clone the `autonomous_f1tenth` repository (dev/v2 branch):
 ```bash
 cd ~/f1tenth_docker
 git clone --branch dev/v2 https://github.com/UoA-CARES/autonomous_f1tenth.git
@@ -43,7 +43,7 @@ docker build -t f1tenth:dev \
   .
 ```
 
-You will eed to add below to the `~/.bashrc` to enable screen sharing between Docker and the host.
+You will need to add below to the `~/.bashrc` to enable screen sharing between Docker and the host.
 
 ``` bash
 echo "xhost +local:docker" >> ~/.bashrc
