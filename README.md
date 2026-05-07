@@ -11,7 +11,7 @@ Follow the instructions at the Docker site to install Docker https://docs.docker
 ## Build the Image
 The first step is to pull the code base and build the Docker image to the local computer. 
 
-Clone the autonomous_f1tenth repository (dev/v2 branch):
+We will create a folder to store the code locally - this way the code is always accesible outside of the container.
 
 ```bash
 mkdir -p ~/f1tenth_docker
