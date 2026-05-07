@@ -3,7 +3,110 @@ Using reinforcement learning techniques to drive the f1tenth vehicle platform - 
 
 ![F1tenth Car](media/f1tenth-min.png)
 
-# Installation Instructions
+# Docker Installation (Development)
+These instructions will setup the f1tenth environment inside of a Docker container pre-installing all required dependencies.
+
+Follow the instructions at the Docker site to install Docker https://docs.docker.com/engine/install/ubuntu/
+
+## Build the Image
+The first step is to pull the code base and build the Docker image to the local computer. 
+
+Clone the autonomous_f1tenth repository (dev/v2 branch):
+
+```bash
+mkdir -p ~/f1tenth_docker
+```
+
+Clone the autonomous_f1tenth repository (dev/v2 branch):
+```bash
+cd ~/f1tenth_docker
+git clone --branch dev/v2 https://github.com/UoA-CARES/autonomous_f1tenth.git
+```
+
+Clone the `f1tenth` repository as a sibling workspace package (outside this repository).
+```bash
+cd ~/f1tenth_docker
+git clone --recurse-submodules https://github.com/UoA-CARES/f1tenth.git
+```
+
+The development image in `Dockerfile.sim` will setup all the external dependencies automatically for you. The command below will build the Docker image for you. 
+
+```bash
+cd ~/f1tenth_docker/autonomous_f1tenth
+
+docker build -t f1tenth:dev \
+  -f Dockerfile.sim \
+  --no-cache \
+  --build-arg USER_NAME=anyone \
+  --build-arg USER_ID=$(id -u) \
+  --build-arg GROUP_ID=$(id -g) \
+  .
+```
+
+You will eed to add below to the `~/.bashrc` to enable screen sharing between Docker and the host.
+
+``` bash
+echo "xhost +local:docker" >> ~/.bashrc
+source ~/.bashrc
+```
+
+## Run a Container
+The second step runs a container from the image for you to work in - you can remove and re-create the containers, only need to create the image once. 
+
+To run the Docker image and mount the code effectively run the command below
+
+```bash
+docker run -dit \
+  --name f1_dev \
+  --network host \
+  --gpus all \
+  -e DISPLAY=$DISPLAY \
+  -e QT_X11_NO_MITSHM=1 \
+  --ipc=host \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  -v "$HOME/f1tenth_docker:/home/anyone/ros2_ws/src" \
+  f1tenth:dev
+```
+
+To finalise the installation process you need to do these steps manually (inside the Docker container). To enter the Docker container run this below:
+
+```bash
+docker exec -it f1_dev bash
+```
+
+The command above puts you in an active shell within the Docker container - you are now operating within the container not the host machine.
+
+Install dependencies using `rosdep`
+```bash
+cd ~/ros2_ws
+rosdep update -y
+rosdep install --from-paths src --ignore-src -r -y --rosdistro humble
+```
+
+Colcon build the package
+```bash
+cd ~/ros2_ws
+colcon build --symlink-install
+echo "source ~/ros2_ws/install/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+```
+
+To run the training instances you can use the Quick Start instructions below - from within the Docker container using the command below on the new terminal windows first.
+
+```bash
+docker exec -it f1_dev bash
+```
+
+## Delete Container
+If the container gets broken by installations or other issues
+
+```bash
+docker rm f1_dev -f
+```
+
+Then rebuild the container using the instructions above.
+
+# Source Installation Instructions
 Follow these steps to set up the Autonomous F1tenth Gym v2.0 on your system. The instructions below will guide you through installing all required dependencies, cloning the necessary repositories, and building the workspace to get started with simulation and reinforcement learning.
 
 ## Dependencies
@@ -33,33 +136,35 @@ Follow the instructions to install the CARES Reinforcement Learning package from
 ## Package Installation
 Follow these instructions to run/test this repository on your local machine. Ensure you have installed the dependencies outlined above.
 
-These instructions assumne you are using '~/ros2_ws/src' as your ROS2 workspace. Please adjust those commands as required if you are using a different workspace folder.
+These instructions assume you are using '~/ros2_ws/src' as your ROS2 workspace. Please adjust those commands as required if you are using a different workspace folder.
 
+Make the `~/ros2_ws/src` directory
+
+```bash
+mkdir -p ~/ros2_ws/src
+```
 
 Clone the autonomous_f1tenth repository (dev/v2 branch):
-```
+```bash
 cd ~/ros2_ws/src
 git clone --branch dev/v2 https://github.com/UoA-CARES/autonomous_f1tenth.git
 ```
 
 Clone the `f1tenth` repository as a sibling workspace package (outside this repository).
-
-```
+```bash
 cd ~/ros2_ws/src
 git clone --recurse-submodules https://github.com/UoA-CARES/f1tenth.git
 ```
 
 Install dependencies using `rosdep`
-
-```
+```bash
 cd ~/ros2_ws
 rosdep update -y
 rosdep install --from-paths src --ignore-src -r -y --rosdistro humble
 ```
 
 Colcon build the package
-
-```
+```bash
 cd ~/ros2_ws
 colcon build --symlink-install
 echo "source ~/ros2_ws/install/setup.bash" >> ~/.bashrc
