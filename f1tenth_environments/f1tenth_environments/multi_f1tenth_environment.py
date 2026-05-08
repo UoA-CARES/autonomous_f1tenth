@@ -134,6 +134,8 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self.agent_goals = {agent: (0.0, 0.0) for agent in self.agents}
         self.previous_state_data = {agent: None for agent in self.agents}
         self.goals_reached = {agent: 0 for agent in self.agents}
+        self.overtake_counts = {agent: 0 for agent in self.agents}
+        self.previous_track_positions = {agent: 0 for agent in self.agents}
         self.message_filters = {}
         self.cmd_vel_pubs = {}
 
@@ -169,6 +171,21 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
                 (self.spawn_index + self.goals_reached[agent]) % len(self.current_waypoints)
             ]
             self.agent_goals[agent] = (new_x, new_y)
+
+    def _check_overtakes(self) -> None:
+        for agent in self.agents:
+            for other in self.agents:
+                if agent == other:
+                    continue
+                # Agent has overtaken other if it was behind before and is ahead now
+                was_behind = self.previous_track_positions[agent] <= self.previous_track_positions[other]
+                is_ahead = self.goals_reached[agent] > self.goals_reached[other]
+                if was_behind and is_ahead:
+                    self.overtake_counts[agent] += 1
+
+    def _snapshot_track_positions(self) -> None:
+        for agent in self.agents:
+            self.previous_track_positions[agent] = self.goals_reached[agent]
     
     def _message_filter_callback(self, *msgs) -> None:
         for i, agent in enumerate(self.agents):
@@ -198,6 +215,8 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         obs = {}
         infos = {}
         for agent in self.agents:
+            self.overtake_counts[agent] = 0
+            self.previous_track_positions[agent] = 0
             self.previous_state_data[agent] = all_state_data[agent]
             obs[agent] = all_state_data[agent].state
             infos[agent] = {}
@@ -224,7 +243,10 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
         self._set_simulation_paused(paused=True)
 
+        self._snapshot_track_positions()
+
         obs, rewards, terminateds, truncateds, infos = {}, {}, {}, {}, {}
+
         for agent in self.agents:
             current_state = all_state_data[agent]
             reward, info = self._compute_reward(self.previous_state_data[agent], current_state, agent)
@@ -236,6 +258,11 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             rewards[agent] = reward
             infos[agent] = info
             self.previous_state_data[agent] = current_state
+        
+        self._check_overtakes()
+        for agent in self.agents:
+            infos[agent]["overtakes"] = self.overtake_counts[agent]
+            infos[agent]["goals_reached"] = self.goals_reached[agent]
         
         if any(terminateds.values()):
             terminateds = {agent: True for agent in self.agents}
