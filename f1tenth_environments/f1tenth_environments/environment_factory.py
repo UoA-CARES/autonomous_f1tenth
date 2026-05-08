@@ -3,10 +3,10 @@ import rclpy
 from .f1tenth_environment import F1tenthEnvironment
 from .multi_f1tenth_environment import MultiF1TenthEnvironment
 
-
 class EnvironmentFactory:
     def __init__(self):
-        rclpy.init()
+        if not rclpy.ok():
+            rclpy.init()
 
     def create(self, task: str, config: dict | None = None):
         config = config or {}

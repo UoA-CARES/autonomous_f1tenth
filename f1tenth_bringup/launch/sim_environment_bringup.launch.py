@@ -17,6 +17,7 @@ def spawn_cars(context, *args, **kwargs):
     pkg_bringup = get_package_share_directory("f1tenth_bringup")
 
     num_opponents = int(LaunchConfiguration("num_opponents").perform(context))
+    marl_env = LaunchConfiguration("marl_env").perform(context).lower() == "true"
     num_cars = 1 + num_opponents
 
     car_nodes = []
@@ -25,7 +26,10 @@ def spawn_cars(context, *args, **kwargs):
         x_pos = 3.0 + 2.0 * i
         y_pos = 3.0
         # Agent car (first car) gets no controller, opponents get FTG
-        controller = "" if i == 0 else "ftg"
+        if marl_env:
+            controller = ""
+        else:
+            controller = "" if i == 0 else "ftg"
         car_nodes.append(
             IncludeLaunchDescription(
                 launch_description_source=PythonLaunchDescriptionSource(

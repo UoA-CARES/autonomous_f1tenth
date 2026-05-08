@@ -1,6 +1,6 @@
 import re
 import math
-from f1tenth_environments.f1tenth_environments.f1tenth_environment import F1tenthEnvironment
+from .f1tenth_environment import F1tenthEnvironment
 import rclpy
 
 from pettingzoo import ParallelEnv
@@ -67,6 +67,10 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self.tracks = self._load_tracks(track)
         self.track_progress_models = track_utils.get_track_progress_models(self.tracks)
         self.track_names = list(self.tracks.keys())
+        self.eval_tracks_start_idx: int = int(
+            len(self.track_names) * self.train_eval_split
+        )
+        self.eval_track_idx = 0
 
         self.current_track = self.track_names[0]
         self.current_waypoints = self.tracks[self.current_track]
@@ -110,9 +114,6 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             wheelbase_m=self.wheelbase_m,
         )
 
-        self.observation_size = self.state_builder.policy_state_size
-        self.action_num = 2  # linear and angular velocity
-
         # Reward Weights as precalculated factors to modify the base reward based on progress,
         # to encourage desirable behaviour
         self.wall_proximity_reward_weight = 0.7
@@ -120,17 +121,13 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
         # Loop Parameters
         self.step_counter = 0
-        self.goals_reached = 0
 
-        self.is_eval = False
+        self.is_eval = True
         self.spawn_index = 0
 
-        self.goal_position: tuple[float, float] = (0.0, 0.0)
-
-        self.stall_counter = 0
-
         # Multi agents specific stuff
-        self.agents = [self.car_name] +  self._discover_opponent_car_names()
+        self.agents = [self.car_name] +  self.opponent_car_names
+        self.action_num = {agent: 2 for agent in self.agents}
         
         self.stall_counters = {agent: 0 for agent in self.agents}
         self.latest_data = {agent: None for agent in self.agents}
@@ -140,7 +137,6 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self.message_filters = {}
         self.cmd_vel_pubs = {}
 
-        all_subs = []
         self.odom_subs = {}
         self.lidar_subs = {}
 
@@ -149,17 +145,22 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             lidar_sub = Subscriber(self, LaserScan, f"/{agent}/scan", qos_profile=qos)
             self.odom_subs[agent] = odom_sub
             self.lidar_subs[agent] = lidar_sub
-            all_subs.append(odom_sub)
-            all_subs.append(lidar_sub)
             self.cmd_vel_pubs[agent] = self.create_publisher(Twist, f"/{agent}/cmd_vel", 1)
 
-        self.message_filter = ApproximateTimeSynchronizer(all_subs, sub_depth, sync_slop_sec)
-        self.message_filter.registerCallback(self._message_filter_callback)
+            sync = ApproximateTimeSynchronizer([odom_sub, lidar_sub], sub_depth, sync_slop_sec)
+            sync.registerCallback(self._make_agent_callback(agent))
+            self.message_filters[agent] = sync
 
         if lidar_mode == "raw":
             _, lidar_data = self._get_data(self.car_name)
             lidar_state_size = len(lidar_data.ranges)
     
+    
+    def _make_agent_callback(self, agent: str):
+        def _callback(odom: Odometry, lidar: LaserScan) -> None:
+            self.latest_data[agent] = (odom, lidar)
+        return _callback
+
     def _update_goal_progress(self, agent: str, state_data: StateData) -> None:
         next_x, next_y = state_data.position_xy()
         if math.dist(self.agent_goals[agent], [next_x, next_y]) < self.goal_reach_radius_m:
@@ -187,23 +188,28 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             self.cmd_vel_pubs[agent].publish(msg)
 
         self._reset_positions()
-
         self._set_simulation_paused(paused=False)
-        obs = {}
-        for agent in self.agents:
-            state_data = self._build_state_data(agent)
-            self.previous_state_data[agent] = state_data
-            obs[agent] = state_data.state
+
+        # Collect data for ALL agents in one go while sim is running
+        all_state_data = self._build_all_state_data()
+
         self._set_simulation_paused(paused=True)
 
-        return obs
+        obs = {}
+        infos = {}
+        for agent in self.agents:
+            self.previous_state_data[agent] = all_state_data[agent]
+            obs[agent] = all_state_data[agent].state
+            infos[agent] = {}
+
+        return obs, infos
 
     def step(self, actions: dict) -> tuple[dict, dict, dict, dict, dict]:
         self.step_counter += 1
         self._set_simulation_paused(paused=False)
 
         for agent, action in actions.items():
-            clipped = np.clip(action, self.min_actions, self.max_actions)
+            clipped = np.clip(np.asarray(action, dtype=np.float32), self.min_actions, self.max_actions)
             lin_vel, steering = clipped
             angular = geometry_utils.ackermann_to_twist(steering, lin_vel, self.wheelbase_m)
             msg = Twist()
@@ -213,12 +219,15 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
         self._sleep(self.step_sleep_time_ms)
 
-        obs, rewards, terminateds, truncateds, infos = {}, {}, {}, {}, {}
+        # Collect data for ALL agents before pausing — sim must be running for messages to arrive
+        all_state_data = self._build_all_state_data()
+
         self._set_simulation_paused(paused=True)
 
+        obs, rewards, terminateds, truncateds, infos = {}, {}, {}, {}, {}
         for agent in self.agents:
-            current_state = self._build_state_data(agent)
-            reward, info = self._compute_reward(self.previous_state_data[agent], current_state)
+            current_state = all_state_data[agent]
+            reward, info = self._compute_reward(self.previous_state_data[agent], current_state, agent)
             self._update_goal_progress(agent, current_state)
 
             terminateds[agent] = self._is_terminated(current_state)
@@ -227,28 +236,111 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             rewards[agent] = reward
             infos[agent] = info
             self.previous_state_data[agent] = current_state
+        
+        if any(terminateds.values()):
+            terminateds = {agent: True for agent in self.agents}
 
         return obs, rewards, terminateds, truncateds, infos
     
     # override for multi agents
-    def _get_data(self, agent: str, timeout: float = 5.0):
-        self.latest_data[agent] = None
+    def _get_all_data(self, timeout: float = 5.0) -> dict:
+        """Spin until fresh data has arrived for every agent, in a single spin loop."""
+        for agent in self.agents:
+            self.latest_data[agent] = None
+
         end_time = self.get_clock().now().nanoseconds + int(timeout * 1e9)
         while self.get_clock().now().nanoseconds < end_time:
             rclpy.spin_once(self, timeout_sec=0.01)
-            if self.latest_data[agent] is not None:
-                return self.latest_data[agent]
-        raise TimeoutError(f"No synced data received for '{agent}'")
+            if all(self.latest_data[agent] is not None for agent in self.agents):
+                return dict(self.latest_data)
 
-    def _build_state_data(self, agent: str) -> StateData:
-        odom_msg, lidar_msg = self._get_data(agent)
-        return self.state_builder.build_state(odom_msg, lidar_msg)
+        missing = [a for a in self.agents if self.latest_data[a] is None]
+        raise TimeoutError(f"No synced data received for agents: {missing}")
+
+    def _build_all_state_data(self) -> dict[str, StateData]:
+        """Build state for all agents from a single shared spin."""
+        data = self._get_all_data()
+        return {
+            agent: self.state_builder.build_state(odom, lidar)
+            for agent, (odom, lidar) in data.items()
+        }
     
     def _is_truncated(self, agent: str) -> bool:
         return (
             self.stall_counters[agent] >= self.stall_limit_steps
             or self.step_counter >= self.max_steps
         )
+
+    def _calculate_progress_reward(self, step_progress: float, agent: str) -> float:
+        if step_progress < self.stall_progress_threshold_m:
+            self.stall_counters[agent] += 1
+        else:
+            self.stall_counters[agent] = 0
+
+        max_progress_per_step_m = float(self.max_actions[0]) * (
+            self.step_sleep_time_ms / 1000.0
+        )
+
+        if max_progress_per_step_m <= 0.0:
+            return 0.0
+
+        normalized_progress = step_progress / max_progress_per_step_m
+        return float(np.clip(normalized_progress, 0.0, 1.0))
+    
+    def _compute_reward(
+        self,
+        previous_state_data: StateData,
+        current_state_data: StateData,
+        agent: str,
+    ) -> tuple[float, dict]:
+        track_progress = self._compute_step_progress(previous_state_data, current_state_data)
+        progress_reward = self._calculate_progress_reward(track_progress, agent)
+
+        # rest is identical to base class
+        prev_angular_velocity = previous_state_data.angular_velocity()
+        curr_angular_velocity = current_state_data.angular_velocity()
+        dist_to_wall = float(np.min(current_state_data.lidar_sanitised_data))
+        angular_velocity_change = abs(prev_angular_velocity - curr_angular_velocity)
+
+        wall_threshold_m = 0.3
+        wall_k = 50.0
+        wall_factor = 1.0 / (1.0 + np.exp(wall_k * (dist_to_wall - wall_threshold_m)))
+
+        turn_threshold_rads = 0.5
+        turn_k = 15.0
+        turn_factor = 1.0 / (1.0 + np.exp(-turn_k * (angular_velocity_change - turn_threshold_rads)))
+
+        wall_discount = 1.0 - (wall_factor * self.wall_proximity_reward_weight)
+        turn_discount = 1.0 - (turn_factor * self.turn_reward_weight)
+
+        reward = progress_reward * wall_discount * turn_discount
+
+        collision = self._has_collision_or_flip(current_state_data)
+        if collision:
+            reward -= self.collision_penalty
+
+        return reward, {
+            "track_progress": track_progress,
+            "progress_reward": progress_reward,
+            "dist_to_wall": dist_to_wall,
+            "angular_velocity_change": angular_velocity_change,
+            "wall_factor": wall_factor,
+            "turn_factor": turn_factor,
+            "wall_discount": wall_discount,
+            "turn_discount": turn_discount,
+            "collision": float(collision),
+        }
+    
+    @property
+    def observation_size(self):
+        per_agent_obs_size = int(self.state_builder.policy_state_size)
+        num_agents = len(self.agents)
+        
+        return {
+            "obs": {agent: per_agent_obs_size for agent in self.agents},
+            "state": per_agent_obs_size * num_agents,  # Combined state of all agents
+            "num_agents": num_agents,
+        }
     
     @property
     def observation_spaces(self) -> dict:
@@ -256,7 +348,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             agent: spaces.Box(
                 low=-np.inf,
                 high=np.inf,
-                shape=(self.observation_size,),
+                shape=(self.observation_size["obs"][agent],),
                 dtype=np.float32
             ) for agent in self.agents
         }
