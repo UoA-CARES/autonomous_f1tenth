@@ -1,11 +1,12 @@
 import rclpy
 
 from .f1tenth_environment import F1tenthEnvironment
-
+from .multi_f1tenth_environment import MultiF1TenthEnvironment
 
 class EnvironmentFactory:
     def __init__(self):
-        rclpy.init()
+        if not rclpy.ok():
+            rclpy.init()
 
     def create(self, task: str, config: dict | None = None):
         config = config or {}
@@ -40,6 +41,28 @@ class EnvironmentFactory:
 
         if task == "CarRace":
             return F1tenthEnvironment(
+                env_name=task,
+                track=track,
+                train_eval_split=train_eval_split,
+                max_steps=max_steps,
+                step_sleep_time_ms=step_sleep_time_ms,
+                odom_mode=odom_mode,
+                lidar_mode=lidar_mode,
+                lidar_state_size=lidar_state_size,
+                max_speed=max_speed,
+                min_speed=min_speed,
+                max_turn=max_turn,
+                wall_proximity_reward_weight=wall_proximity_reward_weight,
+                turn_reward_weight=turn_reward_weight,
+                collision_penalty=collision_penalty,
+                collision_range_m=collision_range_m,
+                goal_reach_radius_m=goal_reach_radius_m,
+                stall_progress_threshold_m=stall_progress_threshold_m,
+                stall_limit_steps=stall_limit_steps,
+            )
+
+        elif task == "MultiCarRace":
+            return MultiF1TenthEnvironment(
                 env_name=task,
                 track=track,
                 train_eval_split=train_eval_split,

@@ -22,6 +22,7 @@
   <depend>ros_gz_interfaces</depend>
   <depend>ros_gz_sim</depend>
   <depend>sensor_msgs</depend>
+  <depend>pettingzoo</depend>
 
   <export>
     <build_type>ament_python</build_type>
