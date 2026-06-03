@@ -38,6 +38,7 @@ class EnvironmentFactory:
 
         stall_progress_threshold_m = config.get("stall_progress_threshold_m", 0.02)
         stall_limit_steps = config.get("stall_limit_steps", 5)
+        position_speed_multiplier = config.get("position_speed_multiplier", 1.2)
 
         if task == "CarRace":
             return F1tenthEnvironment(
@@ -58,7 +59,7 @@ class EnvironmentFactory:
                 collision_range_m=collision_range_m,
                 goal_reach_radius_m=goal_reach_radius_m,
                 stall_progress_threshold_m=stall_progress_threshold_m,
-                stall_limit_steps=stall_limit_steps,
+                stall_limit_steps=stall_limit_steps
             )
 
         elif task == "MultiCarRace":
@@ -81,6 +82,7 @@ class EnvironmentFactory:
                 goal_reach_radius_m=goal_reach_radius_m,
                 stall_progress_threshold_m=stall_progress_threshold_m,
                 stall_limit_steps=stall_limit_steps,
+                position_speed_multiplier=position_speed_multiplier
             )
 
         raise ValueError(f"EnvironmentFactory: Environment not found {task}")

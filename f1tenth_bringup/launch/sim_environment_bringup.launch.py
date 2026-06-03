@@ -67,6 +67,11 @@ def generate_launch_description():
         default_value="0",
         description="Number of opponent cars (agent car is always present)",
     )
+    marl_env_arg = DeclareLaunchArgument(
+        "marl_env",
+        default_value="true",
+        description="Whether to use MARL environment (no FTG controllers)",
+    )
 
     def make_gz_sim(context):
         track = LaunchConfiguration("track").perform(context)
@@ -102,6 +107,7 @@ def generate_launch_description():
         [
             track_arg,
             num_opponents_arg,
+            marl_env_arg,
             SetEnvironmentVariable(
                 name="GZ_SIM_RESOURCE_PATH", value=pkg_f1tenth_description[:-19]
             ),
