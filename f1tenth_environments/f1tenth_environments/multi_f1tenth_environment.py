@@ -183,7 +183,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
                     continue
                 # Agent has overtaken other if it was behind before and is ahead now
                 was_behind = self.previous_track_positions[agent] <= self.previous_track_positions[other]
-                is_ahead = self.goals_reached[agent] > self.goals_reached[other]
+                is_ahead = self._get_track_distance(agent) > self._get_track_distance(other)
                 if was_behind and is_ahead:
                     self.overtake_counts[agent] += 1
 
