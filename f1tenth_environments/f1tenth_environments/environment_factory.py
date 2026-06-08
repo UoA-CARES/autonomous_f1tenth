@@ -38,7 +38,7 @@ class EnvironmentFactory:
 
         stall_progress_threshold_m = config.get("stall_progress_threshold_m", 0.02)
         stall_limit_steps = config.get("stall_limit_steps", 5)
-        position_speed_multiplier = config.get("position_speed_multiplier", 1.2)
+        position_speed_multiplier = config.get("position_speed_multiplier", 1.0)
 
         if task == "CarRace":
             return F1tenthEnvironment(

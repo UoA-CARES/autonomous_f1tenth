@@ -22,7 +22,10 @@ def spawn_cars(context, *args, **kwargs):
 
     car_nodes = []
     for i in range(num_cars):
-        car_name = f"f{i+1}tenth"
+        if (i == 0):
+            car_name = "f1tenth"
+        else:
+            car_name = f"opponent_{i}"
         x_pos = 3.0 + 2.0 * i
         y_pos = 3.0
         # Agent car (first car) gets no controller, opponents get FTG
@@ -60,7 +63,7 @@ def generate_launch_description():
     # config_path and config_params are not needed for launch argument defaults
     track_arg = DeclareLaunchArgument(
         "track",
-        default_value="multi_track",
+        default_value="multi_track_01",
     )
     num_opponents_arg = DeclareLaunchArgument(
         "num_opponents",
