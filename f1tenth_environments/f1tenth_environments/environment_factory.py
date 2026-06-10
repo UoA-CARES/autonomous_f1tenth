@@ -16,7 +16,7 @@ class EnvironmentFactory:
         step_sleep_time_ms = config.get("step_sleep_time_ms", 100)
 
         # Which Track will be used for training and evaluation.
-        track = config.get("track", "multi_track")
+        track = config.get("track", "multi_track_01")
         train_eval_split = config.get("train_eval_split", 0.5)
 
         # State Builder Configurations
