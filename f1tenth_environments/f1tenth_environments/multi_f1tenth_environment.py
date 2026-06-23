@@ -139,7 +139,10 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self.previous_state_data = {agent: None for agent in self.agents}
         self.goals_reached = {agent: 0 for agent in self.agents}
         self.overtake_counts = {agent: 0 for agent in self.agents}
-        self.previous_track_positions = {agent: 0 for agent in self.agents}
+        self.total_linear_velocity = {agent: 0.0 for agent in self.agents}
+        self.pole_position_steps = {agent: 0 for agent in self.agents}
+        self.previous_race_positions: dict[str, float] = {}
+        self.race_origin_track_distance = 0.0
         self.message_filters = {}
         self.cmd_vel_pubs = {}
 
@@ -169,28 +172,67 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
     def _update_goal_progress(self, agent: str, state_data: StateData) -> None:
         next_x, next_y = state_data.position_xy()
-        if math.dist(self.agent_goals[agent], [next_x, next_y]) < self.goal_reach_radius_m:
+        if (
+            math.dist(self.agent_goals[agent], [next_x, next_y])
+            < self.goal_reach_radius_m
+        ):
             self.goals_reached[agent] += 1
             new_x, new_y, _, _ = self.current_waypoints[
-                (self.spawn_indices[agent] + self.goals_reached[agent]) % len(self.current_waypoints)
+                (self.spawn_indices[agent] + self.goals_reached[agent] + 1)
+                % len(self.current_waypoints)
             ]
             self.agent_goals[agent] = (new_x, new_y)
 
-    def _check_overtakes(self) -> None:
-        for agent in self.agents:
-            for other in self.agents:
-                if agent == other:
-                    continue
-                # Agent has overtaken other if it was behind before and is ahead now
-                was_behind = self.previous_track_positions[agent] <= self.previous_track_positions[other]
-                is_ahead = self._get_track_distance(agent) > self._get_track_distance(other)
-                if was_behind and is_ahead:
-                    self.overtake_counts[agent] += 1
+    def _get_agent_race_position(self, agent: str, state_data: StateData) -> float:
+        track_distance = self.current_track_model.track_distance_from_world_coord(
+            np.asarray(state_data.position_xy(), dtype=np.float64)
+        )
+        return self.current_track_model.forward_distance_between_track_distances(
+            self.race_origin_track_distance,
+            track_distance,
+        )
 
-    def _snapshot_track_positions(self) -> None:
-        for agent in self.agents:
-            self.previous_track_positions[agent] = self.goals_reached[agent]
-    
+    def _get_race_positions(
+        self,
+        all_state_data: dict[str, StateData],
+    ) -> dict[str, float]:
+        return {
+            agent: self._get_agent_race_position(agent, state_data)
+            for agent, state_data in all_state_data.items()
+            if agent in self.agents
+        }
+
+    def _count_new_agent_overtakes(
+        self,
+        agent: str,
+        previous_positions: dict[str, float],
+        current_positions: dict[str, float],
+    ) -> int:
+        previous_agent_position = previous_positions.get(agent)
+        current_agent_position = current_positions.get(agent)
+        if previous_agent_position is None or current_agent_position is None:
+            return 0
+
+        new_overtakes = 0
+        for other_agent in self.agents:
+            if other_agent == agent:
+                continue
+
+            previous_opponent_position = previous_positions.get(other_agent)
+            current_opponent_position = current_positions.get(other_agent)
+            if (
+                previous_opponent_position is None
+                or current_opponent_position is None
+            ):
+                continue
+
+            was_not_ahead = previous_agent_position <= previous_opponent_position
+            is_ahead = current_agent_position > current_opponent_position
+            if was_not_ahead and is_ahead:
+                new_overtakes += 1
+
+        return new_overtakes
+
     def _message_filter_callback(self, *msgs) -> None:
         for i, agent in enumerate(self.agents):
             odom = msgs[i * 2]
@@ -215,7 +257,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             model_name=self.car_name,
             x=float(car_x),
             y=float(car_y),
-            z=0.0,
+            z=0.5,
             yaw=float(car_yaw),
         )
 
@@ -238,7 +280,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
                 model_name=opponent_car_name,
                 x=float(opponent_x),
                 y=float(opponent_y),
-                z=0.0,
+                z=0.5,
                 yaw=float(opponent_yaw),
             )
 
@@ -250,6 +292,8 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         for agent in self.agents:
             self.stall_counters[agent] = 0
             self.goals_reached[agent] = 0
+            self.total_linear_velocity[agent] = 0.0
+            self.pole_position_steps[agent] = 0
             msg = Twist()
             msg.linear.x = 0.0
             msg.angular.z = 0.0
@@ -279,10 +323,20 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         infos = {}
         for agent in self.agents:
             self.overtake_counts[agent] = 0
-            self.previous_track_positions[agent] = 0
             self.previous_state_data[agent] = all_state_data[agent]
             obs[agent] = all_state_data[agent].state
             infos[agent] = {}
+
+        self.race_origin_track_distance = (
+            self.current_track_model.track_distance_from_world_coord(
+                np.asarray(
+                    all_state_data[self.car_name].position_xy(),
+                    dtype=np.float64,
+                )
+            )
+        )
+        self.previous_race_positions = self._get_race_positions(all_state_data)
+        self._last_track_distances = dict(self.previous_race_positions)
 
         return obs, infos
 
@@ -326,21 +380,105 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
         return float(laps_completed * total_waypoints + waypoints_this_lap + fraction)
 
+    def _get_opponent_distance_info(
+        self,
+        agent: str,
+        race_positions: dict[str, float],
+    ) -> dict[str, float]:
+        agent_position = race_positions.get(agent)
+        if agent_position is None:
+            return {}
+
+        return {
+            other_agent: race_positions[other_agent] - agent_position
+            for other_agent in self.agents
+            if other_agent != agent and other_agent in race_positions
+        }
+
+    def _is_agent_in_pole_position(
+        self,
+        agent: str,
+        race_positions: dict[str, float],
+    ) -> bool:
+        agent_position = race_positions.get(agent)
+        if agent_position is None:
+            return False
+
+        other_positions = [
+            position
+            for other_agent, position in race_positions.items()
+            if other_agent != agent
+        ]
+        return bool(other_positions) and all(
+            agent_position > position for position in other_positions
+        )
+
+    def _build_agent_metric_info(
+        self,
+        agent: str,
+        current_state: StateData,
+        race_positions: dict[str, float],
+        terminated: bool,
+        truncated: bool,
+    ) -> dict:
+        self.total_linear_velocity[agent] += current_state.linear_velocity()
+        avg_linear_velocity = (
+            self.total_linear_velocity[agent] / self.step_counter
+            if self.step_counter > 0
+            else 0.0
+        )
+        distance_to_opponents = self._get_opponent_distance_info(
+            agent, race_positions
+        )
+        if self._is_agent_in_pole_position(agent, race_positions):
+            self.pole_position_steps[agent] += 1
+        episode_done = terminated or truncated
+        live_overtakes = self.overtake_counts[agent]
+
+        info = {
+            "linear_velocity": current_state.linear_velocity(),
+            "avg_linear_velocity": avg_linear_velocity,
+            "average_linear_velocity_per_episode": avg_linear_velocity,
+            "distance_to_opponents": distance_to_opponents,
+            "overtakes_per_episode": (
+                live_overtakes if episode_done else 0
+            ),
+            "number_of_overtakes_per_episode": (
+                live_overtakes if episode_done else 0
+            ),
+            "time_in_pole_position": self.pole_position_steps[agent],
+            "agent_track_position": race_positions.get(agent, 0.0),
+            "overtakes": live_overtakes,
+            "agent_overtakes": live_overtakes,
+            "overtakes_live": live_overtakes,
+            "goals_reached": self.goals_reached[agent],
+        }
+        for other_agent, opponent_distance in distance_to_opponents.items():
+            info[f"distance_to_{other_agent}"] = opponent_distance
+            info[f"{other_agent}_track_position"] = race_positions[other_agent]
+
+        return info
+
     def step(self, actions: dict) -> tuple[dict, dict, dict, dict, dict]:
         self.step_counter += 1
         self._set_simulation_paused(paused=False)
 
-        track_distances = getattr(self, "_last_track_distances", {agent: 0.0 for agent in self.agents})
-
         for agent, action in actions.items():
-            agent_max_speed = self.max_actions[0]
-            other_distances = [track_distances[other] for other in self.agents if other != agent]
-            is_behind = other_distances and track_distances[agent] < max(other_distances)
-            if is_behind:
-                agent_max_speed = self.max_actions[0] * self.position_speed_multiplier
+            agent_max_speed = (
+                self.max_actions[0]
+                if agent == self.car_name
+                else self.max_actions[0] * self.position_speed_multiplier
+            )
 
-            boosted_max_actions = np.array([agent_max_speed, self.max_actions[1]], dtype=np.float32)
-            clipped = np.clip(np.asarray(action, dtype=np.float32), self.min_actions, boosted_max_actions)
+            agent_max_actions = np.array(
+                [agent_max_speed, self.max_actions[1]],
+                dtype=np.float32,
+            )
+            clipped = np.clip(
+                np.asarray(action, dtype=np.float32),
+                self.min_actions,
+                agent_max_actions,
+            )
             lin_vel, steering = clipped
             angular = geometry_utils.ackermann_to_twist(steering, lin_vel, self.wheelbase_m)
             msg = Twist()
@@ -352,30 +490,18 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         all_state_data = self._build_all_state_data()
         self._set_simulation_paused(paused=True)
 
-        self._last_track_distances = {
-            agent: self._get_track_distance_from_state(agent, all_state_data[agent])
-            for agent in self.agents
-        }
-
-        self._snapshot_track_positions()
-
         obs, rewards, terminateds, truncateds, infos = {}, {}, {}, {}, {}
 
         for agent in self.agents:
             current_state = all_state_data[agent]
-            self._update_goal_progress(agent, current_state)
-
-            # use _last_track_distances not goals_reached
-            other_distances = [self._last_track_distances[other] for other in self.agents if other != agent]
-            is_boosted = self._last_track_distances[agent] < max(other_distances) if other_distances else False
 
             reward, info = self._compute_reward(
                 self.previous_state_data[agent],
                 current_state,
                 agent,
-                is_boosted
             )
 
+            self._update_goal_progress(agent, current_state)
             terminateds[agent] = self._is_terminated(current_state)
             truncateds[agent] = self._is_truncated(agent)
             obs[agent] = current_state.state
@@ -383,13 +509,34 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             infos[agent] = info
             self.previous_state_data[agent] = current_state
 
-        self._check_overtakes()
+        wrapped_race_positions = self._get_race_positions(all_state_data)
+        race_positions = self._unwrap_race_positions(
+            self.previous_race_positions,
+            wrapped_race_positions,
+        )
         for agent in self.agents:
-            infos[agent]["overtakes"] = self.overtake_counts[agent]
-            infos[agent]["goals_reached"] = self.goals_reached[agent]
+            self.overtake_counts[agent] += self._count_new_agent_overtakes(
+                agent,
+                self.previous_race_positions,
+                race_positions,
+            )
 
         if any(terminateds.values()):
             terminateds = {agent: True for agent in self.agents}
+
+        for agent in self.agents:
+            infos[agent].update(
+                self._build_agent_metric_info(
+                    agent,
+                    all_state_data[agent],
+                    race_positions,
+                    terminateds[agent],
+                    truncateds[agent],
+                )
+            )
+
+        self.previous_race_positions = race_positions
+        self._last_track_distances = dict(race_positions)
 
         return obs, rewards, terminateds, truncateds, infos
     
@@ -443,10 +590,13 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         previous_state_data: StateData,
         current_state_data: StateData,
         agent: str,
-        is_boosted: bool
     ) -> tuple[float, dict]:
         track_progress = self._compute_step_progress(previous_state_data, current_state_data)
-        effective_max_speed = (self.max_actions[0] * self.position_speed_multiplier) if is_boosted else self.max_actions[0]
+        effective_max_speed = (
+            self.max_actions[0]
+            if agent == self.car_name
+            else self.max_actions[0] * self.position_speed_multiplier
+        )
         progress_reward = self._calculate_progress_reward(track_progress, agent, effective_max_speed)
 
         prev_angular_velocity = previous_state_data.angular_velocity()

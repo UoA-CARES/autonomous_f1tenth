@@ -22,6 +22,20 @@ class TrackProgressModel:
             raise ValueError("At least two points are required to fit a track spline.")
 
         points_arr = np.asarray(points, dtype=np.float64)
+        self.points = points_arr
+        self.next_points = np.roll(points_arr, -1, axis=0)
+        self.segment_vectors = self.next_points - self.points
+        self.segment_lengths = np.linalg.norm(self.segment_vectors, axis=1)
+        self.segment_lengths = np.where(
+            self.segment_lengths > 1e-9,
+            self.segment_lengths,
+            1e-9,
+        )
+        self.cumulative_segment_lengths = np.concatenate(
+            ([0.0], np.cumsum(self.segment_lengths))
+        )
+        self.waypoint_lap_length = float(self.cumulative_segment_lengths[-1])
+
         closed_points = np.append(points_arr, [points_arr[0]], axis=0)
 
         x_points = closed_points[:, 0]
@@ -31,6 +45,61 @@ class TrackProgressModel:
         self.spline_x_tck = interpolate.splrep(spline_param_grid, x_points, k=2)
         self.spline_y_tck = interpolate.splrep(spline_param_grid, y_points, k=2)
         self._lap_length_cache = None
+
+    def track_distance_from_world_coord(self, world_coord_xy: np.ndarray) -> float:
+        """Project a world coordinate onto the waypoint polyline and return arc distance."""
+        point = np.asarray(world_coord_xy, dtype=np.float64)
+        point_vectors = point - self.points
+        segment_length_sq = self.segment_lengths * self.segment_lengths
+        segment_fractions = np.sum(point_vectors * self.segment_vectors, axis=1)
+        segment_fractions = np.clip(segment_fractions / segment_length_sq, 0.0, 1.0)
+        projections = self.points + segment_fractions[:, None] * self.segment_vectors
+        distances_sq = np.sum((projections - point) ** 2, axis=1)
+        segment_index = int(np.argmin(distances_sq))
+        return float(
+            (
+                self.cumulative_segment_lengths[segment_index]
+                + segment_fractions[segment_index] * self.segment_lengths[segment_index]
+            )
+            % self.waypoint_lap_length
+        )
+
+    def forward_distance_between_track_distances(
+        self,
+        from_track_distance: float,
+        to_track_distance: float,
+    ) -> float:
+        """Forward arc distance between wrapped waypoint-arc distances."""
+        return float(
+            (to_track_distance - from_track_distance) % self.waypoint_lap_length
+        )
+
+    def signed_delta_between_track_distances(
+        self,
+        from_track_distance: float,
+        to_track_distance: float,
+    ) -> float:
+        """Shortest signed delta between wrapped waypoint-arc distances."""
+        forward_delta = self.forward_distance_between_track_distances(
+            from_track_distance,
+            to_track_distance,
+        )
+        if forward_delta <= self.waypoint_lap_length / 2.0:
+            return forward_delta
+        return float(forward_delta - self.waypoint_lap_length)
+
+    def signed_delta_between_world_coords(
+        self,
+        from_world_coord_xy: np.ndarray,
+        to_world_coord_xy: np.ndarray,
+    ) -> float:
+        """Project world coordinates to the waypoint arc and return signed progress."""
+        from_track_distance = self.track_distance_from_world_coord(from_world_coord_xy)
+        to_track_distance = self.track_distance_from_world_coord(to_world_coord_xy)
+        return self.signed_delta_between_track_distances(
+            from_track_distance,
+            to_track_distance,
+        )
 
     @staticmethod
     def _normalize_spline_coord(spline_coord: float) -> float:

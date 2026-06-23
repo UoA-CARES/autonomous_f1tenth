@@ -3,7 +3,6 @@ from pathlib import Path
 
 import numpy as np
 import rclpy
-import torch
 from ament_index_python.packages import get_package_share_directory
 from cares_reinforcement_learning.util.helpers import denormalize
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
@@ -57,8 +56,7 @@ def main():
         [
             ("car_name", "f1tenth"),
             ("algorithm", "TD3"),
-            ("actor_path", ""),
-            ("critic_path", ""),
+            ("checkpoint_path", ""),
             ("max_speed", 2.0),
             ("max_turn", 0.45),
             ("min_speed", 0.0),
@@ -71,8 +69,7 @@ def main():
             [
                 "car_name",
                 "algorithm",
-                "actor_path",
-                "critic_path",
+                "checkpoint_path",
                 "max_speed",
                 "max_turn",
                 "min_speed",
@@ -104,22 +101,19 @@ def main():
         OBSERVATION_SIZE, ACTION_NUM, config=network_config
     )
 
-    actor_path = _resolve_path(params["actor_path"], controllers_share)
-    critic_path = _resolve_path(params["critic_path"], controllers_share)
-
-    if actor_path.exists() and critic_path.exists():
-        print("Reading saved models into actor and critic")
-        agent.actor_net.load_state_dict(
-            torch.load(actor_path, map_location=torch.device("cpu"))
-        )
-        agent.critic_net.load_state_dict(
-            torch.load(critic_path, map_location=torch.device("cpu"))
-        )
-        print("Successfully Loaded models")
-    else:
+    checkpoint_path = _resolve_path(params["checkpoint_path"], controllers_share)
+    if not checkpoint_path.is_file():
         raise FileNotFoundError(
-            f"Unable to find actor/critic model files at '{actor_path}' and '{critic_path}'."
+            f"Unable to find model checkpoint at '{checkpoint_path}'."
         )
+
+    checkpoint_name = checkpoint_path.stem
+    if checkpoint_name.endswith("_checkpoint"):
+        checkpoint_name = checkpoint_name.removesuffix("_checkpoint")
+
+    print(f"Reading saved model checkpoint from '{checkpoint_path}'")
+    agent.load_models(str(checkpoint_path.parent), checkpoint_name)
+    print("Successfully loaded model checkpoint")
 
     state = controller.step([0, 0], policy_id)
     state = state[6:]

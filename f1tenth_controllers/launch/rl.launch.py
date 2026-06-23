@@ -7,11 +7,9 @@ from launch_ros.actions import Node
 def generate_launch_description():
     car_name_arg = DeclareLaunchArgument("car_name", default_value="f1tenth")
     algorithm_arg = DeclareLaunchArgument("algorithm", default_value="TD3")
-    actor_path_arg = DeclareLaunchArgument(
-        "actor_path", default_value="overtaking_models/350000_actor.pht"
-    )
-    critic_path_arg = DeclareLaunchArgument(
-        "critic_path", default_value="overtaking_models/350000_critic.pht"
+    checkpoint_path_arg = DeclareLaunchArgument(
+        "checkpoint_path",
+        default_value="overtaking_models/350000_checkpoint.pth",
     )
     max_speed_arg = DeclareLaunchArgument("max_speed", default_value="2")
     max_turn_arg = DeclareLaunchArgument("max_turn", default_value="0.45")
@@ -27,8 +25,7 @@ def generate_launch_description():
             {
                 "car_name": LaunchConfiguration("car_name"),
                 "algorithm": LaunchConfiguration("algorithm"),
-                "actor_path": LaunchConfiguration("actor_path"),
-                "critic_path": LaunchConfiguration("critic_path"),
+                "checkpoint_path": LaunchConfiguration("checkpoint_path"),
                 "max_speed": LaunchConfiguration("max_speed"),
                 "max_turn": LaunchConfiguration("max_turn"),
                 "min_speed": LaunchConfiguration("min_speed"),
@@ -56,8 +53,7 @@ def generate_launch_description():
         [
             car_name_arg,
             algorithm_arg,
-            actor_path_arg,
-            critic_path_arg,
+            checkpoint_path_arg,
             max_speed_arg,
             max_turn_arg,
             min_speed_arg,
