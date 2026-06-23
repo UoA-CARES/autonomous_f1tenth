@@ -35,15 +35,15 @@ ekf_filter_node:
 #         from robot_localization! However, that instance should *not* fuse the global data.
         odom_frame: odom            # Defaults to "odom" if unspecified
         base_link_frame: base_link  # Defaults to "base_link" ifunspecified
+        world_frame: odom
         # map_frame: map
 
-        # INCORRECT, DONT USE
-        odom0: f1tenth/odometry
-        odom0_config: [false, false, false,
-                       true, true, true,
+        odom0: vesc/odom
+        odom0_config: [true, true, false,
+                       false, false, true,
                        true, true, false,
                        false, false, true,
-                       false, false, true]
+                       false, false, false]
 
         
         imu0: sensor/imu/raw
