@@ -6,7 +6,8 @@ import rclpy
 import torch
 from ament_index_python.packages import get_package_share_directory
 from cares_reinforcement_learning.util.helpers import denormalize
-from cares_reinforcement_learning.util.network_factory import NetworkFactory
+from cares_reinforcement_learning.algorithm.algorithm_factory import AlgorithmFactory
+from cares_reinforcement_learning.types.observation import SARLObservation
 
 from .controller import Controller
 
@@ -33,7 +34,7 @@ def _resolve_path(path_value: str, package_share: Path) -> Path:
 
 def _load_network_config(algorithm: str):
     configurations_module = importlib.import_module(
-        "cares_reinforcement_learning.util.configurations"
+        "cares_reinforcement_learning.algorithm.configurations"
     )
     config_class_name = f"{algorithm}Config"
     try:
@@ -96,10 +97,12 @@ def main():
 
     controller = Controller("rl_policy_", params["car_name"], step_sleep_time_ms=100)
     policy_id = "rl"
-    network_factory = NetworkFactory()
+    algorithm_factory = AlgorithmFactory()
     network_config = _load_network_config(params["algorithm"])
-    agent = network_factory.create_network(
-        OBSERVATION_SIZE, ACTION_NUM, config=network_config
+    agent = algorithm_factory.create_network(
+        {"vector": OBSERVATION_SIZE},
+        ACTION_NUM,
+        config=network_config,
     )
 
     checkpoint_path = _resolve_path(params["checkpoint_path"], controllers_share)
@@ -128,7 +131,10 @@ def main():
     MIN_CONFIG_ACTIONS = MIN_ACTIONS
 
     while True:
-        action = agent.select_action_from_policy(state)
+        observation = SARLObservation(
+            vector_state=np.asarray(state, dtype=np.float32)
+        )
+        action = agent.act(observation, evaluation=True).action
         action = denormalize(action, MAX_CONFIG_ACTIONS, MIN_CONFIG_ACTIONS)
         action = np.clip(action, MIN_ACTIONS, MAX_ACTIONS)
         state = controller.step(action, policy_id)
