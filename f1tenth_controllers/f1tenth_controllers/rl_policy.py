@@ -5,11 +5,15 @@ import numpy as np
 import rclpy
 import torch
 from ament_index_python.packages import get_package_share_directory
+from pydantic import BaseModel
 from cares_reinforcement_learning.util.helpers import denormalize
 from cares_reinforcement_learning.algorithm.algorithm_factory import AlgorithmFactory
 from cares_reinforcement_learning.types.observation import SARLObservation
 
 from .controller import Controller
+
+if not hasattr(BaseModel, "model_dump"):
+    BaseModel.model_dump = BaseModel.dict
 
 
 def _resolve_path(path_value: str, package_share: Path) -> Path:
@@ -45,6 +49,42 @@ def _load_network_config(algorithm: str):
         ) from exc
 
     return config_class()
+
+def _configure_actor_from_checkpoint(network_config, actor_state: dict):
+    configurations_module = importlib.import_module(
+        "cares_reinforcement_learning.algorithm.configurations"
+    )
+    linear_weights = [
+        (name, tensor)
+        for name, tensor in actor_state.items()
+        if name.endswith("weight") and getattr(tensor, "ndim", 0) == 2
+    ]
+    if not linear_weights:
+        raise ValueError("Actor checkpoint contains no linear weight tensors.")
+
+    layers = []
+    for index, (_, weight) in enumerate(linear_weights):
+        in_features = int(weight.shape[1])
+        out_features = int(weight.shape[0])
+        is_output_layer = index == len(linear_weights) - 1
+
+        layer_args = {"layer_type": "Linear"}
+        if index > 0:
+            layer_args["in_features"] = in_features
+        if not is_output_layer:
+            layer_args["out_features"] = out_features
+        layers.append(configurations_module.TrainableLayer(**layer_args))
+        layers.append(
+            configurations_module.FunctionLayer(
+                layer_type="Tanh" if is_output_layer else "ReLU"
+            )
+        )
+
+    network_config.actor_config = configurations_module.MLPConfig(layers=layers)
+    observation_size = int(linear_weights[0][1].shape[1])
+    action_num = int(linear_weights[-1][1].shape[0])
+    return observation_size, action_num
+
 
 
 def main():
@@ -92,19 +132,6 @@ def main():
             float(params["min_turn"]),
         ]
     )
-    OBSERVATION_SIZE = 12
-    ACTION_NUM = 2
-
-    controller = Controller("rl_policy_", params["car_name"], step_sleep_time_ms=100)
-    policy_id = "rl"
-    algorithm_factory = AlgorithmFactory()
-    network_config = _load_network_config(params["algorithm"])
-    agent = algorithm_factory.create_network(
-        {"vector": OBSERVATION_SIZE},
-        ACTION_NUM,
-        config=network_config,
-    )
-
     checkpoint_path = _resolve_path(params["checkpoint_path"], controllers_share)
     if not checkpoint_path.is_file():
         raise FileNotFoundError(
@@ -119,10 +146,43 @@ def main():
             "containing an 'actor' state dictionary."
         )
 
+    network_config = _load_network_config(params["algorithm"])
+    observation_size, action_num = _configure_actor_from_checkpoint(
+        network_config, checkpoint["actor"]
+    )
+    if action_num != len(MAX_ACTIONS):
+        raise ValueError(
+            f"Checkpoint actor outputs {action_num} actions, but the controller expects "
+            f"{len(MAX_ACTIONS)}."
+        )
+
+    lidar_points = observation_size - 2
+    if lidar_points < 1:
+        raise ValueError(
+            f"Checkpoint observation size {observation_size} cannot represent "
+            "2 odometry values plus lidar data."
+        )
+
+    controller = Controller(
+        "rl_policy_",
+        params["car_name"],
+        step_sleep_time_ms=100,
+        lidar_points=lidar_points,
+    )
+    policy_id = "rl"
+    agent = AlgorithmFactory().create_network(
+        {"vector": observation_size},
+        action_num,
+        config=network_config,
+    )
+
     agent.actor_net.load_state_dict(checkpoint["actor"])
     if hasattr(agent, "target_actor_net") and "target_actor" in checkpoint:
         agent.target_actor_net.load_state_dict(checkpoint["target_actor"])
-    print("Successfully loaded model checkpoint")
+    print(
+        f"Successfully loaded actor: observation_size={observation_size}, "
+        f"lidar_points={lidar_points}, actions={action_num}"
+    )
 
     state = controller.step([0, 0], policy_id)
     state = state[6:]
