@@ -71,7 +71,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "launch_joy",
-            default_value="false",
+            default_value="true",
             description="Launch joystick teleoperation with the hardware stack.",
         ),
         DeclareLaunchArgument(

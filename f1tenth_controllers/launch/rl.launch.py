@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -7,6 +7,11 @@ from launch_ros.actions import Node
 def generate_launch_description():
     car_name_arg = DeclareLaunchArgument("car_name", default_value="f1tenth")
     algorithm_arg = DeclareLaunchArgument("algorithm", default_value="TD3")
+    rmw_implementation_arg = DeclareLaunchArgument(
+        "rmw_implementation",
+        default_value="rmw_fastrtps_cpp",
+        description="ROS middleware implementation used by all RL nodes.",
+    )
     checkpoint_path_arg = DeclareLaunchArgument(
         "checkpoint_path",
         default_value="overtaking_models/350000_checkpoint.pth",
@@ -53,11 +58,16 @@ def generate_launch_description():
         [
             car_name_arg,
             algorithm_arg,
+            rmw_implementation_arg,
             checkpoint_path_arg,
             max_speed_arg,
             max_turn_arg,
             min_speed_arg,
             min_turn_arg,
+            SetEnvironmentVariable(
+                "RMW_IMPLEMENTATION",
+                LaunchConfiguration("rmw_implementation"),
+            ),
             main,
             vel_recorder,
             lidar_recorder,
