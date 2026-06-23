@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from cares_reinforcement_learning.util.helpers import denormalize
 from cares_reinforcement_learning.algorithm.algorithm_factory import AlgorithmFactory
 from cares_reinforcement_learning.types.observation import SARLObservation
+from f1tenth_environments.state_builder import ODOM_STATE_SIZES, StateBuilder
 
 from .controller import Controller
 
@@ -99,10 +100,15 @@ def main():
             ("car_name", "f1tenth"),
             ("algorithm", "TD3"),
             ("checkpoint_path", ""),
-            ("max_speed", 2.0),
-            ("max_turn", 0.45),
-            ("min_speed", 0.0),
-            ("min_turn", -0.45),
+            ("max_speed", 5.0),
+            ("max_turn", 0.434),
+            ("min_speed", 0.5),
+            ("min_turn", -0.434),
+            ("odom_mode", "velocity_only"),
+            ("lidar_mode", "processed"),
+            ("forward_half_angle", 45.0),
+            ("n_forward", 5),
+            ("wheelbase", 0.325),
         ],
     )
     params = {
@@ -116,6 +122,11 @@ def main():
                 "max_turn",
                 "min_speed",
                 "min_turn",
+                "odom_mode",
+                "lidar_mode",
+                "forward_half_angle",
+                "n_forward",
+                "wheelbase",
             ]
         )
     }
@@ -156,11 +167,35 @@ def main():
             f"{len(MAX_ACTIONS)}."
         )
 
-    lidar_points = observation_size - 2
+    odom_mode = params["odom_mode"]
+    if odom_mode not in ODOM_STATE_SIZES:
+        raise ValueError(
+            f"Unsupported odom_mode '{odom_mode}'. "
+            f"Expected one of {list(ODOM_STATE_SIZES)}."
+        )
+
+    lidar_points = observation_size - ODOM_STATE_SIZES[odom_mode]
     if lidar_points < 1:
         raise ValueError(
             f"Checkpoint observation size {observation_size} cannot represent "
-            "2 odometry values plus lidar data."
+            f"{ODOM_STATE_SIZES[odom_mode]} odometry values plus lidar data."
+        )
+
+    state_builder = StateBuilder(
+        odom_mode=odom_mode,
+        lidar_mode=params["lidar_mode"],
+        lidar_state_size=lidar_points,
+        min_speed=float(params["min_speed"]),
+        max_speed=float(params["max_speed"]),
+        max_turn=float(params["max_turn"]),
+        wheelbase_m=float(params["wheelbase"]),
+        forward_half_angle=float(params["forward_half_angle"]),
+        n_forward=int(params["n_forward"]),
+    )
+    if state_builder.policy_state_size != observation_size:
+        raise ValueError(
+            f"Runtime state size {state_builder.policy_state_size} does not match "
+            f"checkpoint actor input size {observation_size}."
         )
 
     controller = Controller(
@@ -168,6 +203,7 @@ def main():
         params["car_name"],
         step_sleep_time_ms=100,
         lidar_points=lidar_points,
+        state_builder=state_builder,
     )
     policy_id = "rl"
     agent = AlgorithmFactory().create_network(
@@ -185,8 +221,12 @@ def main():
     )
 
     state = controller.step([0, 0], policy_id)
-    state = state[6:]
 
+    if len(state) != observation_size:
+        raise ValueError(
+            f"Initial runtime state has {len(state)} values; checkpoint expects "
+            f"{observation_size}."
+        )
     MAX_CONFIG_ACTIONS = MAX_ACTIONS
     MIN_CONFIG_ACTIONS = MIN_ACTIONS
 
@@ -198,4 +238,8 @@ def main():
         action = denormalize(action, MAX_CONFIG_ACTIONS, MIN_CONFIG_ACTIONS)
         action = np.clip(action, MIN_ACTIONS, MAX_ACTIONS)
         state = controller.step(action, policy_id)
-        state = state[6:]
+        if len(state) != observation_size:
+            raise ValueError(
+                f"Runtime state has {len(state)} values; checkpoint expects "
+                f"{observation_size}."
+            )

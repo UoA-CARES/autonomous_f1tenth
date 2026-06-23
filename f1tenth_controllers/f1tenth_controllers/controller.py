@@ -33,6 +33,7 @@ class Controller(Node):
         step_sleep_time_ms: float,
         isCar: bool = False,
         lidar_points: int = 10,
+        state_builder=None,
     ):
         super().__init__(node_name + "controller")
 
@@ -43,6 +44,7 @@ class Controller(Node):
         self.NAME = car_name
         self.step_sleep_time_ms = step_sleep_time_ms
         self.LIDAR_POINTS = lidar_points
+        self.state_builder = state_builder
         self.LIDAR_PROCESSING: Literal[
             "avg", "median", "avg_w_consensus", "pretrained_ae", "raw"
         ] = "median"
@@ -105,6 +107,11 @@ class Controller(Node):
 
     def get_observation(self, policy):
         odom, lidar = self.get_data()
+        if self.state_builder is not None:
+            state_data = self.state_builder.build_state(odom, lidar)
+            self.processed_publisher.publish(state_data.lidar_state_scan)
+            return state_data.state
+
         odom = process_odom(odom)
         if self.firstOdom:
             self.offset = odom[0:6]

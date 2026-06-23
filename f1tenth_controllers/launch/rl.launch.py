@@ -16,10 +16,18 @@ def generate_launch_description():
         "checkpoint_path",
         default_value="overtaking_models/350000_checkpoint.pth",
     )
-    max_speed_arg = DeclareLaunchArgument("max_speed", default_value="2")
-    max_turn_arg = DeclareLaunchArgument("max_turn", default_value="0.45")
-    min_speed_arg = DeclareLaunchArgument("min_speed", default_value="0")
-    min_turn_arg = DeclareLaunchArgument("min_turn", default_value="-0.45")
+    max_speed_arg = DeclareLaunchArgument("max_speed", default_value="5.0")
+    max_turn_arg = DeclareLaunchArgument("max_turn", default_value="0.434")
+    min_speed_arg = DeclareLaunchArgument("min_speed", default_value="0.5")
+    min_turn_arg = DeclareLaunchArgument("min_turn", default_value="-0.434")
+    odom_mode_arg = DeclareLaunchArgument("odom_mode", default_value="velocity_only")
+    lidar_mode_arg = DeclareLaunchArgument("lidar_mode", default_value="processed")
+    forward_half_angle_arg = DeclareLaunchArgument(
+        "forward_half_angle", default_value="45.0"
+    )
+    n_forward_arg = DeclareLaunchArgument("n_forward", default_value="5")
+    wheelbase_arg = DeclareLaunchArgument("wheelbase", default_value="0.325")
+
 
     main = Node(
         package="f1tenth_controllers",
@@ -35,6 +43,11 @@ def generate_launch_description():
                 "max_turn": LaunchConfiguration("max_turn"),
                 "min_speed": LaunchConfiguration("min_speed"),
                 "min_turn": LaunchConfiguration("min_turn"),
+                "odom_mode": LaunchConfiguration("odom_mode"),
+                "lidar_mode": LaunchConfiguration("lidar_mode"),
+                "forward_half_angle": LaunchConfiguration("forward_half_angle"),
+                "n_forward": LaunchConfiguration("n_forward"),
+                "wheelbase": LaunchConfiguration("wheelbase"),
             }
         ],
     )
@@ -64,6 +77,11 @@ def generate_launch_description():
             max_turn_arg,
             min_speed_arg,
             min_turn_arg,
+            odom_mode_arg,
+            lidar_mode_arg,
+            forward_half_angle_arg,
+            n_forward_arg,
+            wheelbase_arg,
             SetEnvironmentVariable(
                 "RMW_IMPLEMENTATION",
                 LaunchConfiguration("rmw_implementation"),
