@@ -24,6 +24,7 @@
   <depend>joy_teleop</depend>
   <depend>robot_localization</depend>
   <depend>robot_state_publisher</depend>
+  <depend>rmw_fastrtps_cpp</depend>
   <depend>ros_gz_bridge</depend>
   <depend>ros_gz_sim</depend>
   <depend>slam_toolbox</depend>

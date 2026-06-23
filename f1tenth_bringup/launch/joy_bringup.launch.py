@@ -2,7 +2,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -15,6 +15,11 @@ def generate_launch_description():
         "joy_config",
         default_value=default_joy_config,
         description="Joy and joy_teleop parameter file.",
+    )
+    rmw_implementation_arg = DeclareLaunchArgument(
+        "rmw_implementation",
+        default_value="rmw_fastrtps_cpp",
+        description="ROS middleware implementation used by joystick nodes.",
     )
 
     joy_node = Node(
@@ -36,6 +41,11 @@ def generate_launch_description():
     return LaunchDescription(
         [
             joy_config_arg,
+            rmw_implementation_arg,
+            SetEnvironmentVariable(
+                "RMW_IMPLEMENTATION",
+                LaunchConfiguration("rmw_implementation"),
+            ),
             joy_node,
             joy_teleop_node,
         ]

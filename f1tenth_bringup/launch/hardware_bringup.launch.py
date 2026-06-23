@@ -3,7 +3,11 @@ import os
 import xacro
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    SetEnvironmentVariable,
+)
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -27,12 +31,18 @@ def generate_launch_description():
     mux_config = LaunchConfiguration("mux_config")
     ekf_config = LaunchConfiguration("ekf_config")
     joy_config = LaunchConfiguration("joy_config")
+    rmw_implementation = LaunchConfiguration("rmw_implementation")
 
     launch_arguments = [
         DeclareLaunchArgument(
             "car_name",
             default_value="f1tenth",
             description="Robot name used for controller-facing topics.",
+        ),
+        DeclareLaunchArgument(
+            "rmw_implementation",
+            default_value="rmw_fastrtps_cpp",
+            description="ROS middleware implementation used by all launched nodes.",
         ),
         DeclareLaunchArgument(
             "vesc_config",
@@ -61,7 +71,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "launch_joy",
-            default_value="true",
+            default_value="false",
             description="Launch joystick teleoperation with the hardware stack.",
         ),
         DeclareLaunchArgument(
@@ -143,15 +153,22 @@ def generate_launch_description():
 
     joy_bringup = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(bringup_share, "launch", "joy_bringup.launch.py")
+            os.path.join(bringup_share, "joy_bringup.launch.py")
         ),
-        launch_arguments={"joy_config": joy_config}.items(),
+        launch_arguments={
+            "joy_config": joy_config,
+            "rmw_implementation": rmw_implementation,
+        }.items(),
         condition=IfCondition(LaunchConfiguration("launch_joy")),
     )
 
     return LaunchDescription(
         launch_arguments
         + [
+            SetEnvironmentVariable(
+                "RMW_IMPLEMENTATION",
+                rmw_implementation,
+            ),
             robot_state_publisher,
             vesc_driver,
             ackermann_to_vesc,
