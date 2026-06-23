@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import rclpy
+import torch
 from ament_index_python.packages import get_package_share_directory
 from cares_reinforcement_learning.util.helpers import denormalize
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
@@ -107,12 +108,17 @@ def main():
             f"Unable to find model checkpoint at '{checkpoint_path}'."
         )
 
-    checkpoint_name = checkpoint_path.stem
-    if checkpoint_name.endswith("_checkpoint"):
-        checkpoint_name = checkpoint_name.removesuffix("_checkpoint")
-
     print(f"Reading saved model checkpoint from '{checkpoint_path}'")
-    agent.load_models(str(checkpoint_path.parent), checkpoint_name)
+    checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+    if not isinstance(checkpoint, dict) or "actor" not in checkpoint:
+        raise ValueError(
+            f"'{checkpoint_path}' is not a combined CARES RL checkpoint "
+            "containing an 'actor' state dictionary."
+        )
+
+    agent.actor_net.load_state_dict(checkpoint["actor"])
+    if hasattr(agent, "target_actor_net") and "target_actor" in checkpoint:
+        agent.target_actor_net.load_state_dict(checkpoint["target_actor"])
     print("Successfully loaded model checkpoint")
 
     state = controller.step([0, 0], policy_id)
