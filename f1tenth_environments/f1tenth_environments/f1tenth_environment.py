@@ -186,13 +186,14 @@ class F1tenthEnvironment(Node, ABC):
         self.goal_position: tuple[float, float] = (0.0, 0.0)
 
         self.stall_counter = 0
+        self.total_linear_velocity = 0
 
         self.opponent_car_names = self._discover_opponent_car_names()
 
     def _discover_opponent_car_names(self) -> list[str]:
         """Find opponent cars from active ROS topic namespaces."""
         discovered_names: set[str] = set()
-        name_pattern = re.compile(r"^f(\d+)tenth$")
+        name_pattern = re.compile(r"^opponent_(\d+)$")
 
         for topic_name, _ in self.get_topic_names_and_types():
             topic_root = topic_name.strip("/").split("/", 1)[0]
@@ -205,10 +206,11 @@ class F1tenthEnvironment(Node, ABC):
                 continue
 
             car_index = int(match.group(1))
-            if car_name == self.car_name or car_index <= 1:
+            if car_name == self.car_name:
                 continue
 
             discovered_names.add(car_name)
+            # print(f"Discovered opponent car: {car_name} from topic {topic_name}")
 
         def _car_sort_key(name: str) -> int:
             match = name_pattern.match(name)
@@ -258,7 +260,7 @@ class F1tenthEnvironment(Node, ABC):
             opponent_x, opponent_y, opponent_yaw, _ = self.current_waypoints[eval_index]
             return opponent_x, opponent_y, opponent_yaw
 
-        opponent_index = (primary_spawn_index + 2 + opponent_order) % len(
+        opponent_index = (primary_spawn_index + 5 + (opponent_order * 2)) % len(
             self.current_waypoints
         )
         opponent_x, opponent_y, opponent_yaw, _ = self.current_waypoints[opponent_index]
@@ -318,6 +320,7 @@ class F1tenthEnvironment(Node, ABC):
     def reset(self, training: bool = True) -> np.ndarray:
         self.step_counter = 0
         self.goals_reached = 0
+        self.total_linear_velocity = 0
 
         self.stall_counter = 0
 
@@ -517,7 +520,7 @@ class F1tenthEnvironment(Node, ABC):
             step_progress: Track progress in meters.
         """
         prev_x, prev_y = previous_state_data.position_xy()
-        prev_spline_t = self.current_track_model.world_coord_to_spline_coord(
+        prev_spline_t = self.current_track_model.world_coord_to_spline_cooin_dist_to_opponent — closest any rd(
             np.asarray([prev_x, prev_y], dtype=np.float64)
         )
 
@@ -556,8 +559,12 @@ class F1tenthEnvironment(Node, ABC):
 
         terminated = self._is_terminated(current_state_data)
         truncated = self._is_truncated()
+        self.total_linear_velocity += current_state_data.linear_velocity()
 
-        info = {"linear_velocity": current_state_data.linear_velocity()}
+        info = {
+            "linear_velocity": current_state_data.linear_velocity(),
+            "avg_linear_velocity": self.total_linear_velocity / self.step_counter if self.step_counter > 0 else 0,
+        }
         info.update(reward_info)
 
         self.previous_state_data = current_state_data

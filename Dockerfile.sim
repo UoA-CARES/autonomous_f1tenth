@@ -33,6 +33,8 @@ RUN echo "source /opt/ros/humble/setup.bash" >> /home/${USER_NAME}/.bashrc
 USER ${USER_NAME}
 WORKDIR /home/${USER_NAME}/gz
 
+ENV PATH="/home/${USER_NAME}/.local/bin:${PATH}"
+
 RUN mkdir -p src && \
     cd src && \
     wget https://raw.githubusercontent.com/gazebo-tooling/gazebodistro/master/collection-garden.yaml && \

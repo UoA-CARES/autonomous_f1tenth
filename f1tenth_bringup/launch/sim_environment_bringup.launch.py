@@ -22,14 +22,17 @@ def spawn_cars(context, *args, **kwargs):
 
     car_nodes = []
     for i in range(num_cars):
-        car_name = f"f{i+1}tenth"
-        x_pos = 3.0 + 2.0 * i
-        y_pos = 3.0
-        # Agent car (first car) gets no controller, opponents get FTG
-        if marl_env:
+        if i == 0:
+            car_name = "f1tenth"
             controller = ""
         else:
-            controller = "" if i == 0 else "ftg"
+            car_name = f"opponent_{i}"
+            if not marl_env:
+                controller = "ftg"
+        x_pos = 3.0 + 2.0 * i
+        y_pos = 3.0
+        # print(f"Spawning car {car_name} at position ({x_pos}, {y_pos}) with controller '{controller}'")
+
         car_nodes.append(
             IncludeLaunchDescription(
                 launch_description_source=PythonLaunchDescriptionSource(
@@ -40,7 +43,7 @@ def spawn_cars(context, *args, **kwargs):
                     "world": "empty",
                     "x": str(x_pos),
                     "y": str(y_pos),
-                    "z": "3.0",
+                    "z": "1.0",
                     "R": "0.0",
                     "P": "0.0",
                     "Y": "0.0",
@@ -60,12 +63,17 @@ def generate_launch_description():
     # config_path and config_params are not needed for launch argument defaults
     track_arg = DeclareLaunchArgument(
         "track",
-        default_value="multi_track",
+        default_value="multi_track_01",
     )
     num_opponents_arg = DeclareLaunchArgument(
         "num_opponents",
         default_value="0",
         description="Number of opponent cars (agent car is always present)",
+    )
+    marl_env_arg = DeclareLaunchArgument(
+        "marl_env",
+        default_value="false",
+        description="Whether to use MARL environment (no FTG controllers)",
     )
 
     def make_gz_sim(context):
@@ -102,6 +110,7 @@ def generate_launch_description():
         [
             track_arg,
             num_opponents_arg,
+            marl_env_arg,
             SetEnvironmentVariable(
                 name="GZ_SIM_RESOURCE_PATH", value=pkg_f1tenth_description[:-19]
             ),
