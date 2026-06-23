@@ -76,25 +76,41 @@ def avg_lidar_w_consensus(lidar: LaserScan, num_points: int):
 
 
 def uneven_median_lidar(lidar: LaserScan, num_points: int):
-    ranges = lidar.ranges
-    ranges = np.nan_to_num(ranges, nan=float(10), posinf=float(10), neginf=float(10))
-    new_range = []
-    window_size = [121, 70, 60, 50, 40, 40, 50, 60, 70, 122]
+    ranges = np.asarray(lidar.ranges, dtype=float)
+    ranges = np.nan_to_num(
+        ranges,
+        nan=float(10),
+        posinf=float(10),
+        neginf=float(10),
+    )
+    if num_points < 1:
+        raise ValueError("num_points must be at least 1")
+    if len(ranges) < num_points:
+        raise ValueError(
+            f"Lidar scan has {len(ranges)} rays but {num_points} points were requested"
+        )
 
-    if len(ranges) != sum(window_size):
-        raise Exception("Lidar length and window size do not match")
+    if num_points == 10:
+        # Scale the original uneven 683-ray windows to the hardware resolution.
+        reference_windows = np.asarray(
+            [121, 70, 60, 50, 40, 40, 50, 60, 70, 122],
+            dtype=float,
+        )
+        boundaries = np.rint(
+            np.concatenate(([0.0], np.cumsum(reference_windows)))
+            * len(ranges)
+            / reference_windows.sum()
+        ).astype(int)
+        boundaries[0] = 0
+        boundaries[-1] = len(ranges)
+        sectors = [
+            ranges[boundaries[index] : boundaries[index + 1]]
+            for index in range(num_points)
+        ]
+    else:
+        sectors = np.array_split(ranges, num_points)
 
-    if len(window_size) != num_points:
-        raise Exception("Window size length and num_points do not match")
-
-    start = 0
-    for window in window_size:
-        end = start + window
-        window_ranges = ranges[start:end]
-        new_range.append(float(np.median(window_ranges)))
-        start = end
-
-    return new_range
+    return [float(np.median(sector)) for sector in sectors]
 
 
 def process_lidar_med_filt(lidar: LaserScan, window_size: int, nan_to=-5):
