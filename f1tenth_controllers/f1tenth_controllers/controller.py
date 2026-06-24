@@ -1,4 +1,5 @@
 from typing import Literal
+from threading import Thread
 
 import rclpy
 from ackermann_msgs.msg import AckermannDriveStamped
@@ -6,6 +7,7 @@ from geometry_msgs.msg import Twist
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from nav_msgs.msg import Odometry
 from rclpy import Future
+from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import (
     QoSHistoryPolicy,
@@ -57,20 +59,16 @@ class Controller(Node):
         self.deadman_timeout_ns = int(float(deadman_timeout_sec) * 1e9)
         self.deadman_pressed = False
         self.last_joy_time_ns = None
+        self.deadman_node = None
+        self.deadman_executor = None
         self.joy_sub = None
         self.deadman_timer = None
+        self.deadman_thread = None
         if self.deadman_button is not None:
             if self.deadman_button < 0:
                 raise ValueError("deadman_button must be non-negative")
             if self.deadman_timeout_ns <= 0:
                 raise ValueError("deadman_timeout_sec must be greater than zero")
-            self.joy_sub = self.create_subscription(
-                Joy, joy_topic, self._joy_callback, qos_profile_sensor_data
-            )
-            self.deadman_timer = self.create_timer(
-                min(float(deadman_timeout_sec) / 2.0, 0.05),
-                self._deadman_watchdog,
-            )
         self.LIDAR_PROCESSING: Literal[
             "avg", "median", "avg_w_consensus", "pretrained_ae", "raw"
         ] = "median"
@@ -81,6 +79,24 @@ class Controller(Node):
         )
 
         self.cmd_vel_pub = self.create_publisher(Twist, f"/{self.NAME}/cmd_vel", 1)
+        if self.deadman_button is not None:
+            self.deadman_node = Node(self.get_name() + "_deadman")
+            self.joy_sub = self.deadman_node.create_subscription(
+                Joy, joy_topic, self._joy_callback, qos_profile_sensor_data
+            )
+            self.deadman_timer = self.deadman_node.create_timer(
+                min(float(deadman_timeout_sec) / 2.0, 0.05),
+                self._deadman_watchdog,
+            )
+            self.deadman_executor = SingleThreadedExecutor()
+            self.deadman_executor.add_node(self.deadman_node)
+            self.deadman_thread = Thread(
+                target=self.deadman_executor.spin, daemon=True
+            )
+            self.deadman_thread.start()
+            self.get_logger().info(
+                f"RL deadman listening on {joy_topic}, button {self.deadman_button}."
+            )
 
         self.odom_sub = Subscriber(
             self,
@@ -119,6 +135,15 @@ class Controller(Node):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         #####################################################################################################################
+
+    def destroy_node(self):
+        if self.deadman_executor is not None:
+            self.deadman_executor.shutdown(timeout_sec=1.0)
+        if self.deadman_thread is not None:
+            self.deadman_thread.join(timeout=1.0)
+        if self.deadman_node is not None:
+            self.deadman_node.destroy_node()
+        return super().destroy_node()
 
     def step(self, action, policy):
         lin_vel, steering_angle = action
