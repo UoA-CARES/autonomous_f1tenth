@@ -26,14 +26,6 @@ def generate_launch_description():
     )
     n_forward_arg = DeclareLaunchArgument("n_forward", default_value="5")
     wheelbase_arg = DeclareLaunchArgument("wheelbase", default_value="0.325")
-    deadman_button_arg = DeclareLaunchArgument("deadman_button", default_value="5")
-    joy_topic_arg = DeclareLaunchArgument("joy_topic", default_value="/joy")
-    joy_timeout_arg = DeclareLaunchArgument(
-        "joy_timeout_sec", default_value="0.25"
-    )
-    command_timeout_arg = DeclareLaunchArgument(
-        "command_timeout_sec", default_value="0.25"
-    )
 
     main = Node(
         package="f1tenth_controllers",
@@ -58,21 +50,6 @@ def generate_launch_description():
         ],
     )
 
-    deadman = Node(
-        package="f1tenth_controllers",
-        executable="rl_deadman",
-        output="screen",
-        name="rl_deadman",
-        parameters=[
-            {
-                "car_name": LaunchConfiguration("car_name"),
-                "deadman_button": LaunchConfiguration("deadman_button"),
-                "joy_topic": LaunchConfiguration("joy_topic"),
-                "joy_timeout_sec": LaunchConfiguration("joy_timeout_sec"),
-                "command_timeout_sec": LaunchConfiguration("command_timeout_sec"),
-            }
-        ],
-    )
 
     vel_recorder = Node(
         package="f1tenth_recorders",
@@ -104,16 +81,11 @@ def generate_launch_description():
             forward_half_angle_arg,
             n_forward_arg,
             wheelbase_arg,
-            deadman_button_arg,
-            joy_topic_arg,
-            joy_timeout_arg,
-            command_timeout_arg,
             SetEnvironmentVariable(
                 "RMW_IMPLEMENTATION",
                 LaunchConfiguration("rmw_implementation"),
             ),
             main,
-            deadman,
             vel_recorder,
             lidar_recorder,
         ]

@@ -38,7 +38,6 @@ class Controller(Node):
         isCar: bool = False,
         lidar_points: int = 10,
         state_builder=None,
-        drive_topic: str | None = None,
     ):
         super().__init__(node_name + "controller")
 
@@ -50,14 +49,13 @@ class Controller(Node):
         self.step_sleep_time_ms = step_sleep_time_ms
         self.LIDAR_POINTS = lidar_points
         self.state_builder = state_builder
-        self.drive_topic = drive_topic or f"/{self.NAME}/drive"
         self.LIDAR_PROCESSING: Literal[
             "avg", "median", "avg_w_consensus", "pretrained_ae", "raw"
         ] = "median"
 
         # Pub/Sub ----------------------------------------------------
         self.ackerman_pub = self.create_publisher(
-            AckermannDriveStamped, self.drive_topic, 1
+            AckermannDriveStamped, f"/{self.NAME}/drive", 1
         )
 
         self.cmd_vel_pub = self.create_publisher(Twist, f"/{self.NAME}/cmd_vel", 1)
