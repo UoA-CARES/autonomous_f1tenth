@@ -7,7 +7,12 @@ from message_filters import ApproximateTimeSynchronizer, Subscriber
 from nav_msgs.msg import Odometry
 from rclpy import Future
 from rclpy.node import Node
-from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
+from rclpy.qos import (
+    QoSHistoryPolicy,
+    QoSProfile,
+    QoSReliabilityPolicy,
+    qos_profile_sensor_data,
+)
 from sensor_msgs.msg import Joy, LaserScan
 from std_msgs.msg import Header
 from tf2_msgs.msg import TFMessage
@@ -60,7 +65,7 @@ class Controller(Node):
             if self.deadman_timeout_ns <= 0:
                 raise ValueError("deadman_timeout_sec must be greater than zero")
             self.joy_sub = self.create_subscription(
-                Joy, joy_topic, self._joy_callback, 10
+                Joy, joy_topic, self._joy_callback, qos_profile_sensor_data
             )
             self.deadman_timer = self.create_timer(
                 min(float(deadman_timeout_sec) / 2.0, 0.05),
@@ -134,11 +139,17 @@ class Controller(Node):
             and self.deadman_button < len(msg.buttons)
             and msg.buttons[self.deadman_button] == 1
         )
+        if not was_pressed and self.deadman_pressed:
+            self.get_logger().info(
+                f"RL deadman engaged on {self.deadman_button}."
+            )
         if was_pressed and not self.deadman_pressed:
+            self.get_logger().info("RL deadman released; commanding stop.")
             self.set_velocity(0.0, 0.0)
 
     def _deadman_watchdog(self) -> None:
         if self.deadman_pressed and not self._deadman_is_active():
+            self.get_logger().warning("RL deadman input timed out; commanding stop.")
             self.deadman_pressed = False
             self.set_velocity(0.0, 0.0)
 
