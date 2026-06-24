@@ -3,7 +3,6 @@ from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-
 def generate_launch_description():
     car_name_arg = DeclareLaunchArgument("car_name", default_value="f1tenth")
     algorithm_arg = DeclareLaunchArgument("algorithm", default_value="TD3")
@@ -14,9 +13,9 @@ def generate_launch_description():
     )
     checkpoint_path_arg = DeclareLaunchArgument(
         "checkpoint_path",
-        default_value="overtaking_models/TD3_checkpoint.pth",
+        default_value="overtaking_models/SAC_checkpoint.pth",
     )
-    max_speed_arg = DeclareLaunchArgument("max_speed", default_value="5.0")
+    max_speed_arg = DeclareLaunchArgument("max_speed", default_value="3.0")
     max_turn_arg = DeclareLaunchArgument("max_turn", default_value="0.434")
     min_speed_arg = DeclareLaunchArgument("min_speed", default_value="0.5")
     min_turn_arg = DeclareLaunchArgument("min_turn", default_value="-0.434")
@@ -27,7 +26,14 @@ def generate_launch_description():
     )
     n_forward_arg = DeclareLaunchArgument("n_forward", default_value="5")
     wheelbase_arg = DeclareLaunchArgument("wheelbase", default_value="0.325")
-
+    deadman_button_arg = DeclareLaunchArgument("deadman_button", default_value="5")
+    joy_topic_arg = DeclareLaunchArgument("joy_topic", default_value="/joy")
+    joy_timeout_arg = DeclareLaunchArgument(
+        "joy_timeout_sec", default_value="0.25"
+    )
+    command_timeout_arg = DeclareLaunchArgument(
+        "command_timeout_sec", default_value="0.25"
+    )
 
     main = Node(
         package="f1tenth_controllers",
@@ -48,6 +54,22 @@ def generate_launch_description():
                 "forward_half_angle": LaunchConfiguration("forward_half_angle"),
                 "n_forward": LaunchConfiguration("n_forward"),
                 "wheelbase": LaunchConfiguration("wheelbase"),
+            }
+        ],
+    )
+
+    deadman = Node(
+        package="f1tenth_controllers",
+        executable="rl_deadman",
+        output="screen",
+        name="rl_deadman",
+        parameters=[
+            {
+                "car_name": LaunchConfiguration("car_name"),
+                "deadman_button": LaunchConfiguration("deadman_button"),
+                "joy_topic": LaunchConfiguration("joy_topic"),
+                "joy_timeout_sec": LaunchConfiguration("joy_timeout_sec"),
+                "command_timeout_sec": LaunchConfiguration("command_timeout_sec"),
             }
         ],
     )
@@ -82,11 +104,16 @@ def generate_launch_description():
             forward_half_angle_arg,
             n_forward_arg,
             wheelbase_arg,
+            deadman_button_arg,
+            joy_topic_arg,
+            joy_timeout_arg,
+            command_timeout_arg,
             SetEnvironmentVariable(
                 "RMW_IMPLEMENTATION",
                 LaunchConfiguration("rmw_implementation"),
             ),
             main,
+            deadman,
             vel_recorder,
             lidar_recorder,
         ]
