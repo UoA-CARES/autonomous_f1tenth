@@ -134,9 +134,6 @@ def main():
             ("forward_half_angle", 45.0),
             ("n_forward", 5),
             ("wheelbase", 0.325),
-            ("deadman_button", 5),
-            ("deadman_timeout_sec", 0.25),
-            ("joy_topic", "/joy"),
         ],
     )
     params = {
@@ -155,9 +152,6 @@ def main():
                 "forward_half_angle",
                 "n_forward",
                 "wheelbase",
-                "deadman_button",
-                "deadman_timeout_sec",
-                "joy_topic",
             ]
         )
     }
@@ -235,13 +229,6 @@ def main():
         step_sleep_time_ms=100,
         lidar_points=lidar_points,
         state_builder=state_builder,
-        deadman_button=(
-            int(params["deadman_button"])
-            if int(params["deadman_button"]) >= 0
-            else None
-        ),
-        deadman_timeout_sec=float(params["deadman_timeout_sec"]),
-        joy_topic=params["joy_topic"],
     )
     policy_id = "rl"
     agent = AlgorithmFactory().create_network(
