@@ -51,6 +51,28 @@ def _load_network_config(algorithm: str):
 
     return config_class()
 
+def _checkpoint_algorithm(algorithm: str, actor_state: dict) -> str:
+    configured_algorithm = algorithm.upper()
+    has_mean_head = "mean_linear.weight" in actor_state
+    has_log_std_head = "log_std_linear.weight" in actor_state
+
+    if has_mean_head != has_log_std_head:
+        raise ValueError(
+            "Actor checkpoint has only one SAC output head; expected both "
+            "mean_linear.weight and log_std_linear.weight."
+        )
+
+    if has_mean_head:
+        if configured_algorithm != "SAC":
+            print(
+                f"Checkpoint contains SAC actor heads; using SAC instead of "
+                f"configured algorithm '{algorithm}'."
+            )
+        return "SAC"
+
+    return configured_algorithm
+
+
 def _configure_actor_from_checkpoint(
     algorithm: str, network_config, actor_state: dict
 ):
@@ -182,9 +204,12 @@ def main():
             "containing an 'actor' state dictionary."
         )
 
-    network_config = _load_network_config(params["algorithm"])
+    checkpoint_algorithm = _checkpoint_algorithm(
+        params["algorithm"], checkpoint["actor"]
+    )
+    network_config = _load_network_config(checkpoint_algorithm)
     observation_size, action_num = _configure_actor_from_checkpoint(
-        params["algorithm"], network_config, checkpoint["actor"]
+        checkpoint_algorithm, network_config, checkpoint["actor"]
     )
     if action_num != len(MAX_ACTIONS):
         raise ValueError(

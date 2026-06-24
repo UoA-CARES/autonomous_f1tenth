@@ -14,7 +14,7 @@ def generate_launch_description():
     )
     checkpoint_path_arg = DeclareLaunchArgument(
         "checkpoint_path",
-        default_value="overtaking_models/350000_checkpoint.pth",
+        default_value="overtaking_models/TD3_checkpoint.pth",
     )
     max_speed_arg = DeclareLaunchArgument("max_speed", default_value="5.0")
     max_turn_arg = DeclareLaunchArgument("max_turn", default_value="0.434")
