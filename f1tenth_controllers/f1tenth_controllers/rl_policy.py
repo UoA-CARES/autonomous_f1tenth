@@ -51,23 +51,49 @@ def _load_network_config(algorithm: str):
 
     return config_class()
 
-def _configure_actor_from_checkpoint(network_config, actor_state: dict):
+def _configure_actor_from_checkpoint(
+    algorithm: str, network_config, actor_state: dict
+):
     configurations_module = importlib.import_module(
         "cares_reinforcement_learning.algorithm.configurations"
     )
-    linear_weights = [
+
+    trunk_weights = [
         (name, tensor)
         for name, tensor in actor_state.items()
-        if name.endswith("weight") and getattr(tensor, "ndim", 0) == 2
+        if name.startswith("act_net.model.")
+        and name.endswith("weight")
+        and getattr(tensor, "ndim", 0) == 2
     ]
-    if not linear_weights:
-        raise ValueError("Actor checkpoint contains no linear weight tensors.")
+    trunk_weights.sort(key=lambda item: int(item[0].split(".")[2]))
+    if not trunk_weights:
+        raise ValueError("Actor checkpoint contains no act_net linear weights.")
+
+    algorithm = algorithm.upper()
+    is_sac = algorithm in {"SAC", "PERSAC", "LAPSAC", "LA3PSAC"}
+
+    if is_sac:
+        mean_weight = actor_state.get("mean_linear.weight")
+        log_std_weight = actor_state.get("log_std_linear.weight")
+        if mean_weight is None or log_std_weight is None:
+            raise ValueError(
+                f"{algorithm} checkpoint must contain mean_linear and "
+                "log_std_linear actor heads."
+            )
+        if tuple(mean_weight.shape) != tuple(log_std_weight.shape):
+            raise ValueError(
+                "SAC mean and log-std actor head shapes do not match: "
+                f"{tuple(mean_weight.shape)} vs {tuple(log_std_weight.shape)}."
+            )
+        action_num = int(mean_weight.shape[0])
+    else:
+        action_num = int(trunk_weights[-1][1].shape[0])
 
     layers = []
-    for index, (_, weight) in enumerate(linear_weights):
+    for index, (_, weight) in enumerate(trunk_weights):
         in_features = int(weight.shape[1])
         out_features = int(weight.shape[0])
-        is_output_layer = index == len(linear_weights) - 1
+        is_output_layer = not is_sac and index == len(trunk_weights) - 1
 
         layer_args = {"layer_type": "Linear"}
         if index > 0:
@@ -82,8 +108,7 @@ def _configure_actor_from_checkpoint(network_config, actor_state: dict):
         )
 
     network_config.actor_config = configurations_module.MLPConfig(layers=layers)
-    observation_size = int(linear_weights[0][1].shape[1])
-    action_num = int(linear_weights[-1][1].shape[0])
+    observation_size = int(trunk_weights[0][1].shape[1])
     return observation_size, action_num
 
 
@@ -109,6 +134,9 @@ def main():
             ("forward_half_angle", 45.0),
             ("n_forward", 5),
             ("wheelbase", 0.325),
+            ("deadman_button", 5),
+            ("deadman_timeout_sec", 0.25),
+            ("joy_topic", "/joy"),
         ],
     )
     params = {
@@ -127,6 +155,9 @@ def main():
                 "forward_half_angle",
                 "n_forward",
                 "wheelbase",
+                "deadman_button",
+                "deadman_timeout_sec",
+                "joy_topic",
             ]
         )
     }
@@ -159,7 +190,7 @@ def main():
 
     network_config = _load_network_config(params["algorithm"])
     observation_size, action_num = _configure_actor_from_checkpoint(
-        network_config, checkpoint["actor"]
+        params["algorithm"], network_config, checkpoint["actor"]
     )
     if action_num != len(MAX_ACTIONS):
         raise ValueError(
@@ -204,6 +235,13 @@ def main():
         step_sleep_time_ms=100,
         lidar_points=lidar_points,
         state_builder=state_builder,
+        deadman_button=(
+            int(params["deadman_button"])
+            if int(params["deadman_button"]) >= 0
+            else None
+        ),
+        deadman_timeout_sec=float(params["deadman_timeout_sec"]),
+        joy_topic=params["joy_topic"],
     )
     policy_id = "rl"
     agent = AlgorithmFactory().create_network(

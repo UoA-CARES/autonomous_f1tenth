@@ -27,6 +27,17 @@ def generate_launch_description():
     )
     n_forward_arg = DeclareLaunchArgument("n_forward", default_value="5")
     wheelbase_arg = DeclareLaunchArgument("wheelbase", default_value="0.325")
+    deadman_button_arg = DeclareLaunchArgument(
+        "deadman_button",
+        default_value="5",
+        description="Zero-based /joy button index that must be held for RL motion.",
+    )
+    deadman_timeout_arg = DeclareLaunchArgument(
+        "deadman_timeout_sec",
+        default_value="0.25",
+        description="Maximum age of /joy data before RL commands are forced to zero.",
+    )
+    joy_topic_arg = DeclareLaunchArgument("joy_topic", default_value="/joy")
 
 
     main = Node(
@@ -48,6 +59,9 @@ def generate_launch_description():
                 "forward_half_angle": LaunchConfiguration("forward_half_angle"),
                 "n_forward": LaunchConfiguration("n_forward"),
                 "wheelbase": LaunchConfiguration("wheelbase"),
+                "deadman_button": LaunchConfiguration("deadman_button"),
+                "deadman_timeout_sec": LaunchConfiguration("deadman_timeout_sec"),
+                "joy_topic": LaunchConfiguration("joy_topic"),
             }
         ],
     )
@@ -82,6 +96,9 @@ def generate_launch_description():
             forward_half_angle_arg,
             n_forward_arg,
             wheelbase_arg,
+            deadman_button_arg,
+            deadman_timeout_arg,
+            joy_topic_arg,
             SetEnvironmentVariable(
                 "RMW_IMPLEMENTATION",
                 LaunchConfiguration("rmw_implementation"),
