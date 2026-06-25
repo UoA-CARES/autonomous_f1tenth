@@ -6,6 +6,7 @@ from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
     OpaqueFunction,
+    SetEnvironmentVariable,
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -50,6 +51,7 @@ def _create_controller_launch(context):
             ),
             launch_arguments={
                 "car_name": car_name,
+                "rmw_implementation": LaunchConfiguration("rmw_implementation"),
             }.items(),
         )
     ]
@@ -60,12 +62,22 @@ def generate_launch_description():
     algorithm_arg = DeclareLaunchArgument("algorithm", default_value="ftg")
     tracking_arg = DeclareLaunchArgument("tracking", default_value="False")
     car_name_arg = DeclareLaunchArgument("car_name", default_value="f1tenth")
+    rmw_implementation_arg = DeclareLaunchArgument(
+        "rmw_implementation",
+        default_value="rmw_fastrtps_cpp",
+        description="ROS middleware implementation used by the real-car controller.",
+    )
 
     return LaunchDescription(
         [
             algorithm_arg,
             tracking_arg,
             car_name_arg,
+            rmw_implementation_arg,
+            SetEnvironmentVariable(
+                "RMW_IMPLEMENTATION",
+                LaunchConfiguration("rmw_implementation"),
+            ),
             OpaqueFunction(function=_create_controller_launch),
         ]
     )
