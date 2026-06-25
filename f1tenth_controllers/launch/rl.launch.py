@@ -28,13 +28,11 @@ def generate_launch_description():
     )
     n_forward_arg = DeclareLaunchArgument("n_forward", default_value="5")
     wheelbase_arg = DeclareLaunchArgument("wheelbase", default_value="0.325")
-    deadman_button_arg = DeclareLaunchArgument("deadman_button", default_value="5")
     deadman_topic_arg = DeclareLaunchArgument(
         "deadman_topic", default_value="/rl_deadman"
     )
-    joy_topic_arg = DeclareLaunchArgument("joy_topic", default_value="/joy")
-    joy_timeout_arg = DeclareLaunchArgument(
-        "joy_timeout_sec", default_value="0.25"
+    deadman_timeout_arg = DeclareLaunchArgument(
+        "deadman_timeout_sec", default_value="0.25"
     )
     command_timeout_arg = DeclareLaunchArgument(
         "command_timeout_sec", default_value="0.25"
@@ -72,10 +70,8 @@ def generate_launch_description():
         parameters=[
             {
                 "car_name": LaunchConfiguration("car_name"),
-                "deadman_button": LaunchConfiguration("deadman_button"),
                 "deadman_topic": LaunchConfiguration("deadman_topic"),
-                "joy_topic": LaunchConfiguration("joy_topic"),
-                "joy_timeout_sec": LaunchConfiguration("joy_timeout_sec"),
+                "deadman_timeout_sec": LaunchConfiguration("deadman_timeout_sec"),
                 "command_timeout_sec": LaunchConfiguration("command_timeout_sec"),
             }
         ],
@@ -111,10 +107,8 @@ def generate_launch_description():
             forward_half_angle_arg,
             n_forward_arg,
             wheelbase_arg,
-            deadman_button_arg,
             deadman_topic_arg,
-            joy_topic_arg,
-            joy_timeout_arg,
+            deadman_timeout_arg,
             command_timeout_arg,
             SetEnvironmentVariable(
                 "RMW_IMPLEMENTATION",
