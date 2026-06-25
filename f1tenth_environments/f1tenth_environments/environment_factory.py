@@ -14,6 +14,7 @@ class EnvironmentFactory:
         # Basic Envrionment Setup
         max_steps = config.get("max_steps", 1000)
         step_sleep_time_ms = config.get("step_sleep_time_ms", 100)
+        command_latency_ms = config.get("command_latency_ms", 30)
 
         # Which Track will be used for training and evaluation.
         track = config.get("track", "multi_track_01")
@@ -47,6 +48,7 @@ class EnvironmentFactory:
                 train_eval_split=train_eval_split,
                 max_steps=max_steps,
                 step_sleep_time_ms=step_sleep_time_ms,
+                command_latency_ms=command_latency_ms,
                 odom_mode=odom_mode,
                 lidar_mode=lidar_mode,
                 lidar_state_size=lidar_state_size,
@@ -69,6 +71,7 @@ class EnvironmentFactory:
                 train_eval_split=train_eval_split,
                 max_steps=max_steps,
                 step_sleep_time_ms=step_sleep_time_ms,
+                command_latency_ms=command_latency_ms,
                 odom_mode=odom_mode,
                 lidar_mode=lidar_mode,
                 lidar_state_size=lidar_state_size,

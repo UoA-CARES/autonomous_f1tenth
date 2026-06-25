@@ -43,6 +43,7 @@ class F1tenthEnvironment(Node, ABC):
         stall_progress_threshold_m: float,
         stall_limit_steps: int,
         collision_penalty: float,
+        command_latency_ms: float = 0.0,
     ):
         """
         Initialize the F1Tenth RL environment node.
@@ -53,6 +54,7 @@ class F1tenthEnvironment(Node, ABC):
             max_steps: Maximum steps per episode.
             collision_range_m: Lidar collision threshold (meters).
             step_sleep_time_ms: Step duration in milliseconds.
+            command_latency_ms: Delay before each new command reaches the simulated car.
             lidar_state_size: Number of lidar points in state.
             track: Track name or multi-track specifier.
             odom_mode: Odometry mode for state builder.
@@ -74,6 +76,11 @@ class F1tenthEnvironment(Node, ABC):
         self.max_steps = max_steps
         self.collision_range_m = collision_range_m
         self.step_sleep_time_ms = step_sleep_time_ms
+        self.command_latency_ms = float(command_latency_ms)
+        if not 0.0 <= self.command_latency_ms <= self.step_sleep_time_ms:
+            raise ValueError(
+                "command_latency_ms must be between 0 and step_sleep_time_ms"
+            )
         self.train_eval_split = train_eval_split
 
         self.wall_proximity_reward_weight = wall_proximity_reward_weight
@@ -784,10 +791,13 @@ class F1tenthEnvironment(Node, ABC):
         )
         lin_vel, steering_angle = clipped_action
         self._set_simulation_paused(paused=False)
-
+        if self.command_latency_ms > 0.0:
+            self._sleep(self.command_latency_ms)
         self._set_velocity(lin_vel, steering_angle)
 
-        self._sleep(self.step_sleep_time_ms)
+        remaining_step_ms = self.step_sleep_time_ms - self.command_latency_ms
+        if remaining_step_ms > 0.0:
+            self._sleep(remaining_step_ms)
 
         next_state, reward, terminated, truncated, info = self._transition()
 

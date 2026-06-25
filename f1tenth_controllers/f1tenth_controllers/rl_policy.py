@@ -254,6 +254,7 @@ def main():
         step_sleep_time_ms=100,
         lidar_points=lidar_points,
         state_builder=state_builder,
+        drive_topic=f"/{params['car_name']}/rl_drive",
     )
     policy_id = "rl"
     agent = AlgorithmFactory().create_network(

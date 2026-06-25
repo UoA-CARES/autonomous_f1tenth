@@ -49,11 +49,18 @@ joy_teleop:
           axis: 0
           scale: 0.45
           offset: 0.0
-    autonomous_control:
+    autonomous_disabled:
       type: topic
       interface_type: std_msgs/msg/Int8
-      topic_name: /dev/null
-      deadman_buttons: [ 5 ]
+      topic_name: /rl_deadman
       message_value:
         data:
           value: 0
+    autonomous_control:
+      type: topic
+      interface_type: std_msgs/msg/Int8
+      topic_name: /rl_deadman
+      deadman_buttons: [ 5 ]
+      message_value:
+        data:
+          value: 1

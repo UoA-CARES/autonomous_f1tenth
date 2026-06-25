@@ -44,6 +44,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         stall_limit_steps: int,
         collision_penalty: float,
         position_speed_multiplier: float,
+        command_latency_ms: float = 0.0,
     ):
         # Intialize ROS2 node
         Node.__init__(self, f"{env_name}_multi_environment")
@@ -54,6 +55,11 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self.max_steps = max_steps
         self.collision_range_m = collision_range_m
         self.step_sleep_time_ms = step_sleep_time_ms
+        self.command_latency_ms = float(command_latency_ms)
+        if not 0.0 <= self.command_latency_ms <= self.step_sleep_time_ms:
+            raise ValueError(
+                "command_latency_ms must be between 0 and step_sleep_time_ms"
+            )
         self.train_eval_split = train_eval_split
         self.position_speed_multiplier = position_speed_multiplier
 
@@ -462,6 +468,8 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
     def step(self, actions: dict) -> tuple[dict, dict, dict, dict, dict]:
         self.step_counter += 1
         self._set_simulation_paused(paused=False)
+        if self.command_latency_ms > 0.0:
+            self._sleep(self.command_latency_ms)
 
         for agent, action in actions.items():
             agent_max_speed = (
@@ -486,7 +494,9 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             msg.angular.z = float(angular)
             self.cmd_vel_pubs[agent].publish(msg)
 
-        self._sleep(self.step_sleep_time_ms)
+        remaining_step_ms = self.step_sleep_time_ms - self.command_latency_ms
+        if remaining_step_ms > 0.0:
+            self._sleep(remaining_step_ms)
         all_state_data = self._build_all_state_data()
         self._set_simulation_paused(paused=True)
 
