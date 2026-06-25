@@ -37,8 +37,6 @@ class RLDeadman(Node):
         self.last_deadman_time_ns = None
         self.last_command_time_ns = None
         self.enabled_last_cycle = False
-        self.last_status_log_ns = 0
-        self.last_input_speed = 0.0
 
         reliable_qos = QoSProfile(
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -102,7 +100,6 @@ class RLDeadman(Node):
     def _command_callback(self, message: AckermannDriveStamped) -> None:
         now_ns = self._now_ns()
         self.last_command_time_ns = now_ns
-        self.last_input_speed = float(message.drive.speed)
         if self._is_enabled(now_ns):
             message.header.stamp = self.get_clock().now().to_msg()
             self.drive_publisher.publish(message)
@@ -118,32 +115,8 @@ class RLDeadman(Node):
                 "RL deadman heartbeat timed out; commanding stop."
             )
 
-        if not enabled:
-            self._log_waiting_reason(now_ns)
         if not enabled or not self._command_is_fresh(now_ns):
             self._publish_stop()
-
-    def _log_waiting_reason(self, now_ns: int) -> None:
-        if now_ns - self.last_status_log_ns < int(1e9):
-            return
-        self.last_status_log_ns = now_ns
-        deadman_age_ms = (
-            None
-            if self.last_deadman_time_ns is None
-            else (now_ns - self.last_deadman_time_ns) / 1e6
-        )
-        command_age_ms = (
-            None
-            if self.last_command_time_ns is None
-            else (now_ns - self.last_command_time_ns) / 1e6
-        )
-        self.get_logger().warning(
-            "RL gate closed: "
-            f"deadman_enabled={self.deadman_enabled}, "
-            f"deadman_age_ms={deadman_age_ms}, "
-            f"command_age_ms={command_age_ms}, "
-            f"last_input_speed={self.last_input_speed:.3f}"
-        )
 
     def _publish_stop(self) -> None:
         stop = AckermannDriveStamped()

@@ -53,16 +53,14 @@ joy_teleop:
       type: topic
       interface_type: std_msgs/msg/Int8
       topic_name: /rl_deadman
-      autorepeat: true
-      message_value:
+      axis_mappings:
         data:
           value: 0
     autonomous_control:
       type: topic
       interface_type: std_msgs/msg/Int8
       topic_name: /rl_deadman
-      deadman_buttons: [ 5 ]
-      autorepeat: true
-      message_value:
+      deadman_buttons: [5]
+      axis_mappings:
         data:
           value: 1
