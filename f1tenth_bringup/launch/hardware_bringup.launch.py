@@ -10,7 +10,7 @@ from launch.actions import (
 )
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 
 
@@ -32,6 +32,7 @@ def generate_launch_description():
     ekf_config = LaunchConfiguration("ekf_config")
     joy_config = LaunchConfiguration("joy_config")
     rmw_implementation = LaunchConfiguration("rmw_implementation")
+    ros_domain_id = LaunchConfiguration("ros_domain_id")
 
     launch_arguments = [
         DeclareLaunchArgument(
@@ -43,6 +44,11 @@ def generate_launch_description():
             "rmw_implementation",
             default_value="rmw_fastrtps_cpp",
             description="ROS middleware implementation used by all launched nodes.",
+        ),
+        DeclareLaunchArgument(
+            "ros_domain_id",
+            default_value=EnvironmentVariable("ROS_DOMAIN_ID", default_value="0"),
+            description="ROS domain ID used by all launched nodes.",
         ),
         DeclareLaunchArgument(
             "vesc_config",
@@ -158,6 +164,7 @@ def generate_launch_description():
         launch_arguments={
             "joy_config": joy_config,
             "rmw_implementation": rmw_implementation,
+            "ros_domain_id": ros_domain_id,
         }.items(),
         condition=IfCondition(LaunchConfiguration("launch_joy")),
     )
@@ -165,6 +172,10 @@ def generate_launch_description():
     return LaunchDescription(
         launch_arguments
         + [
+            SetEnvironmentVariable(
+                "ROS_DOMAIN_ID",
+                ros_domain_id,
+            ),
             SetEnvironmentVariable(
                 "RMW_IMPLEMENTATION",
                 rmw_implementation,
