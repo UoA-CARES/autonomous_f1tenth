@@ -186,7 +186,7 @@ This starts the simulation with your chosen track and number of opponents. The m
 
 Example (agent car + 2 opponents = 3 cars total):
 ```
-ros2 launch f1tenth_bringup sim_environment_bringup.launch.py track:=multi_track num_opponents:=2
+ros2 launch f1tenth_bringup sim_environment_bringup.launch.py track:=multi_track num_opponents:=2 marl_env:=false
 ```
 
 **2. Start RL training:**
