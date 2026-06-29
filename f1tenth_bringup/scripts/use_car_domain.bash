@@ -1,11 +1,18 @@
 # Source this in a shell before using ros2 CLI tools with a car domain.
-# Usage: source /home/anyone/ros2_ws/install/f1tenth_bringup/share/f1tenth_bringup/scripts/use_car_domain.bash 2
+# Usage: source /home/anyone/ros2_ws/src/autonomous_f1tenth/f1tenth_bringup/scripts/use_car_domain.bash 2
 
 _domain="${1:-${ROS_DOMAIN_ID:-0}}"
-_rmw="${2:-rmw_cyclonedds_cpp}"
+_requested_rmw="${2:-rmw_fastrtps_cpp}"
 
 if [ -f /home/anyone/ros2_ws/install/setup.bash ]; then
   source /home/anyone/ros2_ws/install/setup.bash
+fi
+
+if ros2 pkg prefix "${_requested_rmw}" >/dev/null 2>&1; then
+  _rmw="${_requested_rmw}"
+else
+  printf 'Requested RMW %s is not available; falling back to rmw_fastrtps_cpp\n' "${_requested_rmw}"
+  _rmw="rmw_fastrtps_cpp"
 fi
 
 export ROS_DOMAIN_ID="${_domain}"

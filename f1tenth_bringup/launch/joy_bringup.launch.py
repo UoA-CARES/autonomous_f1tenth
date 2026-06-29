@@ -26,7 +26,7 @@ def generate_launch_description():
     )
     rmw_implementation_arg = DeclareLaunchArgument(
         "rmw_implementation",
-        default_value="rmw_cyclonedds_cpp",
+        default_value="rmw_fastrtps_cpp",
         description="ROS middleware implementation used by joystick nodes.",
     )
     ros_localhost_only_arg = DeclareLaunchArgument(
