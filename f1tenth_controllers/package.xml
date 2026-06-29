@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>f1tenth_controllers</name>
+  <version>0.0.0</version>
+  <description>TODO: Package description</description>
+  <maintainer email="thenickys123@gmail.com">anyone</maintainer>
+  <license>TODO: License declaration</license>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <depend>ackermann_msgs</depend>
+  <depend>ament_index_python</depend>
+  <depend>geometry_msgs</depend>
+  <depend>launch</depend>
+  <depend>launch_ros</depend>
+  <depend>message_filters</depend>
+  <depend>nav_msgs</depend>
+  <depend>rclpy</depend>
+  <depend>rmw_fastrtps_cpp</depend>
+  <depend>robot_localization</depend>
+  <depend>sensor_msgs</depend>
+  <depend>slam_toolbox</depend>
+  <depend>std_msgs</depend>
+  <depend>tf2_msgs</depend>
+  <depend>tf2_ros</depend>
+
+  <depend>f1tenth_environments</depend>
+  <exec_depend>f1tenth_recorders</exec_depend>
+  
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

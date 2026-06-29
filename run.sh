@@ -22,7 +22,12 @@ docker run --rm -it \
     -v "$PWD/data:/ws/data" \
     -v "$PWD/models:/ws/models" \
     -v "$PWD/figures:/ws/figures" \
-    -v "$PWD/src:/ws/src" \
+    -v "$PWD/autonomous_bringup:/ws/autonomous_bringup" \
+    -v "$PWD/f1tenth_controllers:/ws/f1tenth_controllers" \
+    -v "$PWD/f1tenth_interfaces:/ws/f1tenth_interfaces" \
+    -v "$PWD/f1tenth_environments:/ws/f1tenth_environments" \
+    -v "$PWD/f1tenth_gazebo:/ws/f1tenth_gazebo" \
+    -v "$PWD/f1tenth_recorders:/ws/f1tenth_recorders" \
     autonomous_f1tenth:latest \
     bash
  

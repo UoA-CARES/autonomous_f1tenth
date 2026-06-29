@@ -1,0 +1,19 @@
+{
+    "sensors": [
+      {
+        "type": "lidar",
+        "name": "Hyuko_10xl"
+      },
+      {
+        "type": "camera",
+        "name": "Zed2i"
+      }
+    ],
+    "car": {
+      "wheel_diameter": 10.3,
+      "wheel_base_width": 13.1,
+      "wheel_base_length": 15.7,
+      "max_steering_angle": 0.93,
+      "max_speed": 10.0
+    }
+  }

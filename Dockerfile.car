@@ -13,7 +13,7 @@ RUN apt-get install -y ros-humble-urg-node
 
 # Install dep
 RUN rosdep update -y && \
-    rosdep install --from-paths src --ignore-src -i -r -y --rosdistro humble
+    rosdep install --from-paths . --ignore-src -i -r -y --rosdistro humble
 
 # Build and install
 RUN . /opt/ros/humble/setup.bash && \

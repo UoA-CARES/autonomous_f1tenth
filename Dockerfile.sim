@@ -1,21 +1,39 @@
 FROM osrf/ros:humble-desktop
 
-SHELL ["/bin/bash", "-c"]
+# Define user argument with default value
+ARG USER_NAME=myuser1
+ARG USER_ID=1000
+ARG GROUP_ID=1000
 
-RUN sudo apt-get update -y && \
-    sudo apt install -y python3-pip wget lsb-release gnupg curl
+# Install necessary packages before adding user
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y git nano gedit python3 python3-pip sudo wget lsb-release gnupg curl
 
-RUN sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
+# Setting up Gazebo repository and ROS 2 repository
+RUN wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null && \
-    sudo apt-get update -y && \
-    sudo apt-get upgrade -y
+    apt-get update -y
 
 RUN sudo sh -c 'echo "deb http://packages.ros.org/ros2/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros2-latest.list' && \
     curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add - && \
     sudo apt-get update -y && \
     sudo apt-get install -y python3-vcstool python3-colcon-common-extensions
 
-WORKDIR /gz
+# Create a non-root user
+RUN useradd --create-home --shell /bin/bash ${USER_NAME} && \
+    echo "${USER_NAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    mkdir -p /home/${USER_NAME}/workspace && \
+    mkdir -p /home/${USER_NAME}/gz && \
+    chown -R ${USER_NAME}:${USER_NAME} /home/${USER_NAME}
+
+RUN echo "source /opt/ros/humble/setup.bash" >> /home/${USER_NAME}/.bashrc
+
+# Switch to the new user
+USER ${USER_NAME}
+WORKDIR /home/${USER_NAME}/gz
+
+ENV PATH="/home/${USER_NAME}/.local/bin:${PATH}"
 
 RUN mkdir -p src && \
     cd src && \
@@ -25,35 +43,32 @@ RUN mkdir -p src && \
     sudo apt -y install \
     $(sort -u $(find . -iname 'packages-'`lsb_release -cs`'.apt' -o -iname 'packages.apt' | grep -v '/\.git/') | sed '/gz\|sdf/d' | tr '\n' ' ')
 
-RUN cd src && \
+RUN cd /home/${USER_NAME}/gz/src && \
     rm -rdf gz-sim || true && \
-    git clone https://github.com/UoA-CARES/gz-sim.git
+    git clone https://github.com/UoA-CARES/gz-sim.git && \
+    cd /home/${USER_NAME}/gz && \
+    colcon build --merge-install
 
-RUN colcon build --merge-install --cmake-args -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+RUN echo "source /home/${USER_NAME}/gz/install/setup.bash" >> /home/${USER_NAME}/.bashrc
 
-RUN echo ". /gz/install/setup.bash" >> /etc/bash.bashrc
+WORKDIR /home/${USER_NAME}/workspace
 
-SHELL [ "/bin/bash", "-c" ]
-WORKDIR /ws
-COPY . .
+# Install the CARES Reinforcement Learning package and its dependencies
+RUN python3 -m pip install --user --upgrade pip setuptools wheel
 
-RUN rm -rf cares_reinforcement_learning || true && \
-    git clone https://github.com/UoA-CARES/cares_reinforcement_learning.git && \
-    cd cares_reinforcement_learning && \
-    git checkout 2631a58 && \
-    pip3 install --upgrade pip setuptools wheel && \
-    pip3 install --ignore-installed sympy -r requirements.txt && \
-    pip3 install --editable .
+RUN git clone https://github.com/UoA-CARES/cares_reinforcement_learning.git /home/${USER_NAME}/workspace/cares_reinforcement_learning && \
+    cd /home/${USER_NAME}/workspace/cares_reinforcement_learning && \
+    python3 -m pip install --user -e ".[gym]"
 
-# Install dep
-RUN rosdep update -y && \
-    rosdep install -r --from-paths src -i -y --rosdistro humble
+RUN mkdir -p /home/${USER_NAME}/ros2_ws/src && \
+    cd /home/${USER_NAME}/ros2_ws && \ 
+    rosdep update -y
 
-RUN source /opt/ros/humble/setup.bash && \
-    source /gz/install/setup.bash && \
-    colcon build --symlink-install
+# Downgrade setuptools to avoid compatibility issues with some ROS 2 packages
+RUN python3 -m pip install --user "setuptools<69"
 
-RUN echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && \
-    echo 'source install/setup.bash' >> ~/.bashrc
+# Set working directory
+WORKDIR /home/${USER_NAME}
 
-WORKDIR ${PROJECT_WORKSPACE_DIR}
+ENTRYPOINT ["/bin/bash", "-i"]
+
