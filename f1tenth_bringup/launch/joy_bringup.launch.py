@@ -29,6 +29,11 @@ def generate_launch_description():
         default_value="rmw_cyclonedds_cpp",
         description="ROS middleware implementation used by joystick nodes.",
     )
+    ros_localhost_only_arg = DeclareLaunchArgument(
+        "ros_localhost_only",
+        default_value="0",
+        description="Set ROS_LOCALHOST_ONLY for joystick nodes; use 0 for multi-machine control.",
+    )
     joy_topic_arg = DeclareLaunchArgument(
         "joy_topic",
         default_value="joy",
@@ -72,11 +77,16 @@ def generate_launch_description():
             joy_config_arg,
             ros_domain_id_arg,
             rmw_implementation_arg,
+            ros_localhost_only_arg,
             joy_topic_arg,
             teleop_topic_arg,
             SetEnvironmentVariable(
                 "ROS_DOMAIN_ID",
                 LaunchConfiguration("ros_domain_id"),
+            ),
+            SetEnvironmentVariable(
+                "ROS_LOCALHOST_ONLY",
+                LaunchConfiguration("ros_localhost_only"),
             ),
             SetEnvironmentVariable(
                 "RMW_IMPLEMENTATION",

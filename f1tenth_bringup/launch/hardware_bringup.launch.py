@@ -33,6 +33,7 @@ def generate_launch_description():
     joy_config = LaunchConfiguration("joy_config")
     rmw_implementation = LaunchConfiguration("rmw_implementation")
     ros_domain_id = LaunchConfiguration("ros_domain_id")
+    ros_localhost_only = LaunchConfiguration("ros_localhost_only")
 
     launch_arguments = [
         DeclareLaunchArgument(
@@ -42,13 +43,18 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "rmw_implementation",
-            default_value="rmw_fastrtps_cpp",
+            default_value="rmw_cyclonedds_cpp",
             description="ROS middleware implementation used by all launched nodes.",
         ),
         DeclareLaunchArgument(
             "ros_domain_id",
             default_value=EnvironmentVariable("ROS_DOMAIN_ID", default_value="0"),
             description="ROS domain ID used by all launched nodes.",
+        ),
+        DeclareLaunchArgument(
+            "ros_localhost_only",
+            default_value="0",
+            description="Set ROS_LOCALHOST_ONLY for launched nodes; use 0 for multi-machine control.",
         ),
         DeclareLaunchArgument(
             "vesc_config",
@@ -165,6 +171,7 @@ def generate_launch_description():
             "joy_config": joy_config,
             "rmw_implementation": rmw_implementation,
             "ros_domain_id": ros_domain_id,
+            "ros_localhost_only": ros_localhost_only,
         }.items(),
         condition=IfCondition(LaunchConfiguration("launch_joy")),
     )
@@ -175,6 +182,10 @@ def generate_launch_description():
             SetEnvironmentVariable(
                 "ROS_DOMAIN_ID",
                 ros_domain_id,
+            ),
+            SetEnvironmentVariable(
+                "ROS_LOCALHOST_ONLY",
+                ros_localhost_only,
             ),
             SetEnvironmentVariable(
                 "RMW_IMPLEMENTATION",
