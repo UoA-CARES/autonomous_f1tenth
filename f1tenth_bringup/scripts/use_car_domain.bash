@@ -1,12 +1,27 @@
 # Source this in a shell before using ros2 CLI tools with a car domain.
-# Usage: source /home/anyone/ros2_ws/src/autonomous_f1tenth/f1tenth_bringup/scripts/use_car_domain.bash 2
+# Usage: source ~/autonomous_f1tenth/f1tenth_bringup/scripts/use_car_domain.bash 2
 
 _domain="${1:-${ROS_DOMAIN_ID:-0}}"
 _requested_rmw="${2:-rmw_fastrtps_cpp}"
+_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ -f /home/anyone/ros2_ws/install/setup.bash ]; then
-  source /home/anyone/ros2_ws/install/setup.bash
-fi
+case "${_requested_rmw}" in
+  fastrcps|fastrcps_cpp|rmw_fastrcps|rmw_fastrcps_cpp|fastdds|fastdds_cpp|fastrtps|fastrtps_cpp)
+    _requested_rmw="rmw_fastrtps_cpp"
+    ;;
+  cyclone|cyclone_cpp|cyclonedds|cyclonedds_cpp)
+    _requested_rmw="rmw_cyclonedds_cpp"
+    ;;
+esac
+
+_find_setup_dir="${_script_dir}"
+while [ "${_find_setup_dir}" != "/" ]; do
+  if [ -f "${_find_setup_dir}/install/setup.bash" ]; then
+    source "${_find_setup_dir}/install/setup.bash"
+    break
+  fi
+  _find_setup_dir="$(dirname "${_find_setup_dir}")"
+done
 
 if ros2 pkg prefix "${_requested_rmw}" >/dev/null 2>&1; then
   _rmw="${_requested_rmw}"
