@@ -17,7 +17,19 @@ esac
 _find_setup_dir="${_script_dir}"
 while [ "${_find_setup_dir}" != "/" ]; do
   if [ -f "${_find_setup_dir}/install/setup.bash" ]; then
+    _restore_nounset=0
+    case "$-" in
+      *u*)
+        _restore_nounset=1
+        set +u
+        ;;
+    esac
+
     source "${_find_setup_dir}/install/setup.bash"
+
+    if [ "${_restore_nounset}" = "1" ]; then
+      set -u
+    fi
     break
   fi
   _find_setup_dir="$(dirname "${_find_setup_dir}")"
