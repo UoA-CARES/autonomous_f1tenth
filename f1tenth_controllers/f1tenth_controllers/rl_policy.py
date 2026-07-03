@@ -9,6 +9,19 @@ from ament_index_python.packages import get_package_share_directory
 from pydantic import BaseModel
 
 
+def _has_cares_package(path: Path) -> bool:
+    package_root = path / "cares_reinforcement_learning"
+    return (package_root / "util").is_dir() and (package_root / "algorithm").is_dir()
+
+
+def _clear_partial_cares_imports() -> None:
+    for module_name in list(sys.modules):
+        if module_name == "cares_reinforcement_learning" or module_name.startswith(
+            "cares_reinforcement_learning."
+        ):
+            del sys.modules[module_name]
+
+
 def _ensure_cares_import_path() -> None:
     roots = [Path.cwd(), Path(__file__).resolve()]
     candidates = []
@@ -16,8 +29,10 @@ def _ensure_cares_import_path() -> None:
         for parent in [root, *root.parents]:
             candidates.append(parent)
             candidates.append(parent / "cares")
+            candidates.append(parent / "cares_reinforcement_learning")
 
     candidates.append(Path.home() / "workspace")
+    candidates.append(Path.home() / "workspace" / "cares_reinforcement_learning")
 
     seen = set()
     for candidate in candidates:
@@ -25,7 +40,7 @@ def _ensure_cares_import_path() -> None:
         if candidate in seen:
             continue
         seen.add(candidate)
-        if (candidate / "cares_reinforcement_learning").is_dir():
+        if _has_cares_package(candidate):
             sys.path.insert(0, str(candidate))
             return
 
@@ -35,8 +50,9 @@ try:
     from cares_reinforcement_learning.algorithm.algorithm_factory import AlgorithmFactory
     from cares_reinforcement_learning.types.observation import SARLObservation
 except ModuleNotFoundError as exc:
-    if exc.name != "cares_reinforcement_learning":
+    if not exc.name.startswith("cares_reinforcement_learning"):
         raise
+    _clear_partial_cares_imports()
     _ensure_cares_import_path()
     try:
         from cares_reinforcement_learning.util.helpers import denormalize
