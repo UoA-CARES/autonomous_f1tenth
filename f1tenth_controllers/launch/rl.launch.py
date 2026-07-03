@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction, SetEnvironmentVariable
 from launch.substitutions import LaunchConfiguration
@@ -6,11 +8,28 @@ from launch_ros.actions import Node
 algorithm = "TD3"
 
 
+def _prepend_pythonpath(path: Path) -> str:
+    existing = __import__("os").environ.get("PYTHONPATH", "")
+    return f"{path}:{existing}" if existing else str(path)
+
+
 def _set_optional_discovery_server(context):
     discovery_server = LaunchConfiguration("ros_discovery_server").perform(context)
     if not discovery_server:
         return []
     return [SetEnvironmentVariable("ROS_DISCOVERY_SERVER", discovery_server)]
+
+
+def _set_cares_pythonpath(context):
+    cares_python_path = LaunchConfiguration("cares_python_path").perform(context)
+    if not cares_python_path:
+        return []
+    return [
+        SetEnvironmentVariable(
+            "PYTHONPATH",
+            _prepend_pythonpath(Path(cares_python_path).expanduser()),
+        )
+    ]
 
 
 def generate_launch_description():
@@ -30,6 +49,11 @@ def generate_launch_description():
         "ros_discovery_server",
         default_value="",
         description="Optional Fast DDS discovery server, for example 172.22.1.87:11811.",
+    )
+    cares_python_path_arg = DeclareLaunchArgument(
+        "cares_python_path",
+        default_value="cares",
+        description="Path to the CARES RL checkout to add to PYTHONPATH.",
     )
     checkpoint_path_arg = DeclareLaunchArgument(
         "checkpoint_path",
@@ -117,6 +141,7 @@ def generate_launch_description():
             rmw_implementation_arg,
             ros_domain_id_arg,
             ros_discovery_server_arg,
+            cares_python_path_arg,
             checkpoint_path_arg,
             max_speed_arg,
             max_turn_arg,
@@ -139,6 +164,7 @@ def generate_launch_description():
                 LaunchConfiguration("ros_domain_id"),
             ),
             OpaqueFunction(function=_set_optional_discovery_server),
+            OpaqueFunction(function=_set_cares_pythonpath),
             main,
             deadman,
             vel_recorder,

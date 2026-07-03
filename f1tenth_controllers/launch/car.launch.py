@@ -83,6 +83,7 @@ def _create_controller_launch(context):
                 "ros_domain_id": LaunchConfiguration("ros_domain_id"),
                 "ros_discovery_server": LaunchConfiguration("ros_discovery_server"),
                 "deadman_topic": LaunchConfiguration("deadman_topic"),
+                "cares_python_path": LaunchConfiguration("cares_python_path"),
                 "deadman_timeout_sec": LaunchConfiguration("deadman_timeout_sec"),
                 "command_timeout_sec": LaunchConfiguration("command_timeout_sec"),
             }.items(),
@@ -110,6 +111,11 @@ def generate_launch_description():
         default_value="",
         description="Optional Fast DDS discovery server, for example 172.22.1.87:11811.",
     )
+    cares_python_path_arg = DeclareLaunchArgument(
+        "cares_python_path",
+        default_value="cares",
+        description="Path to the CARES RL checkout to add to PYTHONPATH for algorithm:=rl.",
+    )
     deadman_topic_arg = DeclareLaunchArgument(
         "deadman_topic",
         default_value="/rl_deadman",
@@ -131,6 +137,7 @@ def generate_launch_description():
             rmw_implementation_arg,
             ros_domain_id_arg,
             ros_discovery_server_arg,
+            cares_python_path_arg,
             deadman_topic_arg,
             deadman_timeout_arg,
             command_timeout_arg,

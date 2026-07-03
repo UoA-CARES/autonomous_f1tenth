@@ -7,5 +7,5 @@ ackermann_mux:
         priority: 10
       joystick:
         topic   : /teleop
-        timeout : 0.0
+        timeout : 0.25
         priority: 100

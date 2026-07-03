@@ -10,9 +10,19 @@ from pydantic import BaseModel
 
 
 def _ensure_cares_import_path() -> None:
-    candidate = Path.home() / "workspace" / "cares_reinforcement_learning"
-    if candidate.exists():
-        sys.path.insert(0, str(candidate))
+    roots = [Path.cwd(), Path(__file__).resolve()]
+    candidates = []
+    for root in roots:
+        for parent in [root, *root.parents]:
+            candidates.append(parent / "cares")
+
+    candidates.append(Path.home() / "workspace" / "cares_reinforcement_learning")
+
+    for candidate in candidates:
+        candidate = candidate.expanduser().resolve()
+        if (candidate / "cares_reinforcement_learning").is_dir():
+            sys.path.insert(0, str(candidate))
+            return
 
 
 try:
@@ -30,7 +40,7 @@ except ModuleNotFoundError as exc:
     except ModuleNotFoundError as retry_exc:
         raise ModuleNotFoundError(
             "Could not import cares_reinforcement_learning. Install it with "
-            "`python3 -m pip install -e ~/workspace/cares_reinforcement_learning` "
+            "`python3 -m pip install -e cares` "
             "or put that checkout on PYTHONPATH before launching rl_policy."
         ) from retry_exc
 
