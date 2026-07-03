@@ -1,9 +1,17 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, SetEnvironmentVariable
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 algorithm = "TD3"
+
+
+def _set_optional_discovery_server(context):
+    discovery_server = LaunchConfiguration("ros_discovery_server").perform(context)
+    if not discovery_server:
+        return []
+    return [SetEnvironmentVariable("ROS_DISCOVERY_SERVER", discovery_server)]
+
 
 def generate_launch_description():
     car_name_arg = DeclareLaunchArgument("car_name", default_value="f1tenth")
@@ -12,6 +20,16 @@ def generate_launch_description():
         "rmw_implementation",
         default_value="rmw_fastrtps_cpp",
         description="ROS middleware implementation used by all RL nodes.",
+    )
+    ros_domain_id_arg = DeclareLaunchArgument(
+        "ros_domain_id",
+        default_value="0",
+        description="ROS domain used by all RL nodes.",
+    )
+    ros_discovery_server_arg = DeclareLaunchArgument(
+        "ros_discovery_server",
+        default_value="",
+        description="Optional Fast DDS discovery server, for example 172.22.1.87:11811.",
     )
     checkpoint_path_arg = DeclareLaunchArgument(
         "checkpoint_path",
@@ -97,6 +115,8 @@ def generate_launch_description():
             car_name_arg,
             algorithm_arg,
             rmw_implementation_arg,
+            ros_domain_id_arg,
+            ros_discovery_server_arg,
             checkpoint_path_arg,
             max_speed_arg,
             max_turn_arg,
@@ -114,6 +134,11 @@ def generate_launch_description():
                 "RMW_IMPLEMENTATION",
                 LaunchConfiguration("rmw_implementation"),
             ),
+            SetEnvironmentVariable(
+                "ROS_DOMAIN_ID",
+                LaunchConfiguration("ros_domain_id"),
+            ),
+            OpaqueFunction(function=_set_optional_discovery_server),
             main,
             deadman,
             vel_recorder,

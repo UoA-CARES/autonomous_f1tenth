@@ -12,12 +12,14 @@ def main():
         [
             ("car_name", "ftg_car"),
             ("track_name", "multi_track"),
+            ("drive_topic", ""),
         ],
     )
-    params = param_node.get_parameters(["car_name", "track_name"])
-    car_name, _ = [param.value for param in params]
+    params = param_node.get_parameters(["car_name", "track_name", "drive_topic"])
+    car_name, _, drive_topic = [param.value for param in params]
+    drive_topic = str(drive_topic) or None
 
-    controller = Controller("ftg_policy_", car_name, 0.1)
+    controller = Controller("ftg_policy_", car_name, 0.1, drive_topic=drive_topic)
     policy = FollowTheGapPolicy()
     policy_id = "ftg"
     state = controller.get_observation(policy_id)

@@ -13,6 +13,13 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
+def _set_optional_discovery_server(context):
+    discovery_server = LaunchConfiguration("ros_discovery_server").perform(context)
+    if not discovery_server:
+        return []
+    return [SetEnvironmentVariable("ROS_DISCOVERY_SERVER", discovery_server)]
+
+
 def _create_controller_launch(context):
     pkg_controllers = get_package_share_directory("f1tenth_controllers")
 
@@ -40,8 +47,29 @@ def _create_controller_launch(context):
                 package="f1tenth_controllers",
                 executable=f"{algorithm}_policy",
                 output="screen",
-                parameters=[{"car_name": car_name}],
-            )
+                parameters=[
+                    {"car_name": car_name},
+                    {"drive_topic": f"/{car_name}/rl_drive"},
+                ],
+            ),
+            Node(
+                package="f1tenth_controllers",
+                executable="rl_deadman",
+                output="screen",
+                name="rl_deadman",
+                parameters=[
+                    {
+                        "car_name": car_name,
+                        "deadman_topic": LaunchConfiguration("deadman_topic"),
+                        "deadman_timeout_sec": LaunchConfiguration(
+                            "deadman_timeout_sec"
+                        ),
+                        "command_timeout_sec": LaunchConfiguration(
+                            "command_timeout_sec"
+                        ),
+                    }
+                ],
+            ),
         ]
 
     return [
@@ -52,6 +80,11 @@ def _create_controller_launch(context):
             launch_arguments={
                 "car_name": car_name,
                 "rmw_implementation": LaunchConfiguration("rmw_implementation"),
+                "ros_domain_id": LaunchConfiguration("ros_domain_id"),
+                "ros_discovery_server": LaunchConfiguration("ros_discovery_server"),
+                "deadman_topic": LaunchConfiguration("deadman_topic"),
+                "deadman_timeout_sec": LaunchConfiguration("deadman_timeout_sec"),
+                "command_timeout_sec": LaunchConfiguration("command_timeout_sec"),
             }.items(),
         )
     ]
@@ -67,6 +100,28 @@ def generate_launch_description():
         default_value="rmw_fastrtps_cpp",
         description="ROS middleware implementation used by the real-car controller.",
     )
+    ros_domain_id_arg = DeclareLaunchArgument(
+        "ros_domain_id",
+        default_value="0",
+        description="ROS domain used by the real-car controller.",
+    )
+    ros_discovery_server_arg = DeclareLaunchArgument(
+        "ros_discovery_server",
+        default_value="",
+        description="Optional Fast DDS discovery server, for example 172.22.1.87:11811.",
+    )
+    deadman_topic_arg = DeclareLaunchArgument(
+        "deadman_topic",
+        default_value="/rl_deadman",
+    )
+    deadman_timeout_arg = DeclareLaunchArgument(
+        "deadman_timeout_sec",
+        default_value="0.25",
+    )
+    command_timeout_arg = DeclareLaunchArgument(
+        "command_timeout_sec",
+        default_value="0.25",
+    )
 
     return LaunchDescription(
         [
@@ -74,10 +129,20 @@ def generate_launch_description():
             tracking_arg,
             car_name_arg,
             rmw_implementation_arg,
+            ros_domain_id_arg,
+            ros_discovery_server_arg,
+            deadman_topic_arg,
+            deadman_timeout_arg,
+            command_timeout_arg,
             SetEnvironmentVariable(
                 "RMW_IMPLEMENTATION",
                 LaunchConfiguration("rmw_implementation"),
             ),
+            SetEnvironmentVariable(
+                "ROS_DOMAIN_ID",
+                LaunchConfiguration("ros_domain_id"),
+            ),
+            OpaqueFunction(function=_set_optional_discovery_server),
             OpaqueFunction(function=_create_controller_launch),
         ]
     )

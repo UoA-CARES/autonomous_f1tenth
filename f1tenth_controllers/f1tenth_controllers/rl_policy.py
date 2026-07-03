@@ -1,4 +1,5 @@
 import importlib
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -6,9 +7,33 @@ import rclpy
 import torch
 from ament_index_python.packages import get_package_share_directory
 from pydantic import BaseModel
-from cares_reinforcement_learning.util.helpers import denormalize
-from cares_reinforcement_learning.algorithm.algorithm_factory import AlgorithmFactory
-from cares_reinforcement_learning.types.observation import SARLObservation
+
+
+def _ensure_cares_import_path() -> None:
+    candidate = Path.home() / "workspace" / "cares_reinforcement_learning"
+    if candidate.exists():
+        sys.path.insert(0, str(candidate))
+
+
+try:
+    from cares_reinforcement_learning.util.helpers import denormalize
+    from cares_reinforcement_learning.algorithm.algorithm_factory import AlgorithmFactory
+    from cares_reinforcement_learning.types.observation import SARLObservation
+except ModuleNotFoundError as exc:
+    if exc.name != "cares_reinforcement_learning":
+        raise
+    _ensure_cares_import_path()
+    try:
+        from cares_reinforcement_learning.util.helpers import denormalize
+        from cares_reinforcement_learning.algorithm.algorithm_factory import AlgorithmFactory
+        from cares_reinforcement_learning.types.observation import SARLObservation
+    except ModuleNotFoundError as retry_exc:
+        raise ModuleNotFoundError(
+            "Could not import cares_reinforcement_learning. Install it with "
+            "`python3 -m pip install -e ~/workspace/cares_reinforcement_learning` "
+            "or put that checkout on PYTHONPATH before launching rl_policy."
+        ) from retry_exc
+
 from f1tenth_environments.state_builder import ODOM_STATE_SIZES, StateBuilder
 
 from .controller import Controller
