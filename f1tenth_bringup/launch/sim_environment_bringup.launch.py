@@ -27,8 +27,7 @@ def spawn_cars(context, *args, **kwargs):
             controller = ""
         else:
             car_name = f"opponent_{i}"
-            if not marl_env:
-                controller = "ftg"
+            controller = "" if marl_env else "ftg"
         x_pos = 3.0 + 2.0 * i
         y_pos = 3.0
         # print(f"Spawning car {car_name} at position ({x_pos}, {y_pos}) with controller '{controller}'")
@@ -43,7 +42,7 @@ def spawn_cars(context, *args, **kwargs):
                     "world": "empty",
                     "x": str(x_pos),
                     "y": str(y_pos),
-                    "z": "1.0",
+                    "z": "0.0",
                     "R": "0.0",
                     "P": "0.0",
                     "Y": "0.0",

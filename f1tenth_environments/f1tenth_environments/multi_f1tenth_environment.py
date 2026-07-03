@@ -1,17 +1,17 @@
-import re
 import math
+import os
 import random
+import re
+import time
 from .f1tenth_environment import F1tenthEnvironment
 import rclpy
 
 from pettingzoo import ParallelEnv
 from geometry_msgs.msg import Twist
 from gymnasium import spaces
-from message_filters import ApproximateTimeSynchronizer, Subscriber
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
-from geometry_msgs.msg import Twist
-from rclpy.qos import QoSProfile
+from rclpy.qos import QoSProfile, qos_profile_sensor_data
 from ros_gz_interfaces.srv import ControlWorld, SetEntityPose
 from sensor_msgs.msg import LaserScan
 
@@ -69,30 +69,31 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self.stall_limit_steps = stall_limit_steps
         self.collision_penalty = collision_penalty
 
-        self.opponent_car_names = self._discover_opponent_car_names()
+        configured_num_opponents = self._get_configured_num_opponents()
+        self.opponent_car_names = self._discover_opponent_car_names(
+            configured_num_opponents
+        )
         self.wheelbase_m = 0.325
         
         # Setup Tracks and Waypoints for tracking car progress
         self.tracks = self._load_tracks(track)
         self.track_progress_models = track_utils.get_track_progress_models(self.tracks)
         self.track_names = list(self.tracks.keys())
+        self.fixed_track_name = self._get_fixed_track_name(track)
         self.eval_tracks_start_idx: int = int(
             len(self.track_names) * self.train_eval_split
         )
         self.eval_track_idx = 0
 
-        self.current_track = self.track_names[0]
+        self.current_track = self.fixed_track_name or self.track_names[0]
         self.current_waypoints = self.tracks[self.current_track]
         self.current_track_model = self.track_progress_models[self.current_track]
 
-        sub_depth = 3
-        qos = QoSProfile(depth=sub_depth)
+        qos = QoSProfile(depth=3)
 
         self.state_scan_pub = self.create_publisher(
             LaserScan, f"/{self.car_name}/state_scan", 1
         )
-
-        sync_slop_sec = 0.1
 
         self.world_control_client = self.create_client(
             ControlWorld, "world/empty/control"
@@ -135,7 +136,8 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self.spawn_index = 0
 
         # Multi agents specific stuff
-        self.agents = [self.car_name] +  self.opponent_car_names
+        self.agents = [self.car_name] + self.opponent_car_names
+
         self.spawn_indices = {agent: 0 for agent in self.agents}
         self.action_num = {agent: 2 for agent in self.agents}
         
@@ -149,32 +151,132 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self.pole_position_steps = {agent: 0 for agent in self.agents}
         self.previous_race_positions: dict[str, float] = {}
         self.race_origin_track_distance = 0.0
-        self.message_filters = {}
         self.cmd_vel_pubs = {}
 
         self.odom_subs = {}
         self.lidar_subs = {}
+        self.latest_odoms = {agent: None for agent in self.agents}
+        self.latest_lidars = {agent: None for agent in self.agents}
 
         for agent in self.agents:
-            odom_sub = Subscriber(self, Odometry, f"/{agent}/odometry", qos_profile=qos)
-            lidar_sub = Subscriber(self, LaserScan, f"/{agent}/scan", qos_profile=qos)
-            self.odom_subs[agent] = odom_sub
-            self.lidar_subs[agent] = lidar_sub
+            self.odom_subs[agent] = self.create_subscription(
+                Odometry,
+                f"/{agent}/odometry",
+                self._make_odom_callback(agent),
+                qos,
+            )
+            self.lidar_subs[agent] = self.create_subscription(
+                LaserScan,
+                f"/{agent}/scan",
+                self._make_lidar_callback(agent),
+                qos_profile_sensor_data,
+            )
             self.cmd_vel_pubs[agent] = self.create_publisher(Twist, f"/{agent}/cmd_vel", 1)
-
-            sync = ApproximateTimeSynchronizer([odom_sub, lidar_sub], sub_depth, sync_slop_sec)
-            sync.registerCallback(self._make_agent_callback(agent))
-            self.message_filters[agent] = sync
 
         if lidar_mode == "raw":
             _, lidar_data = self._get_data(self.car_name)
             lidar_state_size = len(lidar_data.ranges)
     
     
-    def _make_agent_callback(self, agent: str):
-        def _callback(odom: Odometry, lidar: LaserScan) -> None:
-            self.latest_data[agent] = (odom, lidar)
+    def _get_configured_num_opponents(self) -> int | None:
+        env_value = os.environ.get("F1TENTH_NUM_OPPONENTS")
+        default_value = -1
+        if env_value is not None:
+            try:
+                default_value = int(env_value)
+            except ValueError:
+                self.get_logger().warning(
+                    f"Ignoring invalid F1TENTH_NUM_OPPONENTS={env_value!r}"
+                )
+
+        self.declare_parameter("num_opponents", default_value)
+        param_value = int(self.get_parameter("num_opponents").value)
+        return param_value if param_value >= 0 else None
+
+    def _get_fixed_track_name(self, configured_track: str) -> str | None:
+        requested_track = os.environ.get("F1TENTH_ACTIVE_TRACK")
+        if not requested_track:
+            return None
+
+        if requested_track in self.tracks:
+            self.get_logger().info(
+                f"MARL reset fixed to track {requested_track!r} from {configured_track!r}."
+            )
+            return requested_track
+
+        self.get_logger().warning(
+            f"Ignoring unknown F1TENTH_ACTIVE_TRACK={requested_track!r}; "
+            f"available tracks: {list(self.tracks.keys())}"
+        )
+        return None
+
+    def _select_track_name(self) -> str:
+        if self.fixed_track_name is not None:
+            return self.fixed_track_name
+
+        if self.is_eval:
+            selected = self.track_names[self.eval_track_idx % len(self.track_names)]
+            self.eval_track_idx = (self.eval_track_idx + 1) % len(self.track_names)
+            return selected
+
+        return random.choice(self.track_names)
+
+    def _discover_opponent_car_names(
+        self,
+        expected_count: int | None = None,
+        timeout_sec: float = 5.0,
+        stable_sec: float = 2.0,
+    ) -> list[str]:
+        if expected_count is not None:
+            return [f"opponent_{index}" for index in range(1, expected_count + 1)]
+
+        discovered_names: set[str] = set()
+        stable_since = time.monotonic()
+        deadline = time.monotonic() + timeout_sec
+
+        while time.monotonic() < deadline:
+            rclpy.spin_once(self, timeout_sec=0.1)
+            current_names = self._discover_opponent_car_names_once()
+            if current_names != discovered_names:
+                discovered_names = current_names
+                stable_since = time.monotonic()
+            if discovered_names and time.monotonic() - stable_since >= stable_sec:
+                break
+
+        def _car_sort_key(name: str) -> int:
+            match = re.match(r"^opponent_(\d+)$", name)
+            return int(match.group(1)) if match else 10_000
+
+        return sorted(discovered_names, key=_car_sort_key)
+
+    def _discover_opponent_car_names_once(self) -> set[str]:
+        discovered_names: set[str] = set()
+        name_pattern = re.compile(r"^opponent_(\d+)$")
+
+        for topic_name, _ in self.get_topic_names_and_types():
+            topic_root = topic_name.strip("/").split("/", 1)[0]
+            if name_pattern.match(topic_root):
+                discovered_names.add(topic_root)
+
+        return discovered_names
+
+    def _make_odom_callback(self, agent: str):
+        def _callback(odom: Odometry) -> None:
+            self.latest_odoms[agent] = odom
+            self._update_latest_data(agent)
         return _callback
+
+    def _make_lidar_callback(self, agent: str):
+        def _callback(lidar: LaserScan) -> None:
+            self.latest_lidars[agent] = lidar
+            self._update_latest_data(agent)
+        return _callback
+
+    def _update_latest_data(self, agent: str) -> None:
+        odom = self.latest_odoms[agent]
+        lidar = self.latest_lidars[agent]
+        if odom is not None and lidar is not None:
+            self.latest_data[agent] = (odom, lidar)
 
     def _update_goal_progress(self, agent: str, state_data: StateData) -> None:
         next_x, next_y = state_data.position_xy()
@@ -188,6 +290,30 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
                 % len(self.current_waypoints)
             ]
             self.agent_goals[agent] = (new_x, new_y)
+
+    def _get_opponent_spawn_index(
+        self, primary_spawn_index: int, opponent_order: int
+    ) -> int:
+        waypoint_count = len(self.current_waypoints)
+        if waypoint_count == 0:
+            return 0
+
+        start_gap = max(1, int(os.environ.get("F1TENTH_OPPONENT_START_GAP", "8")))
+        gap = max(1, int(os.environ.get("F1TENTH_OPPONENT_GAP", "4")))
+        return (primary_spawn_index + start_gap + opponent_order * gap) % waypoint_count
+
+    def _get_opponent_spawn_pose(
+        self, primary_spawn_index: int, opponent_order: int
+    ) -> tuple[float, float, float]:
+        """Return a MARL opponent spawn pose just ahead of the agent car."""
+        if not self.current_waypoints:
+            return 0.0, 0.0, 0.0
+
+        opponent_index = self._get_opponent_spawn_index(
+            primary_spawn_index, opponent_order
+        )
+        opponent_x, opponent_y, opponent_yaw, _ = self.current_waypoints[opponent_index]
+        return opponent_x, opponent_y, opponent_yaw
 
     def _get_agent_race_position(self, agent: str, state_data: StateData) -> float:
         track_distance = self.current_track_model.track_distance_from_world_coord(
@@ -239,12 +365,6 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
         return new_overtakes
 
-    def _message_filter_callback(self, *msgs) -> None:
-        for i, agent in enumerate(self.agents):
-            odom = msgs[i * 2]
-            lidar = msgs[i * 2 + 1]
-            self.latest_data[agent] = (odom, lidar)
-
     def _reset_positions(self) -> None:
         self.current_track = self._select_track_name()
         self.current_waypoints = self.tracks[self.current_track]
@@ -252,9 +372,10 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
         # Spawn main car
         if self.is_eval:
-            car_x, car_y, car_yaw, index = self.current_waypoints[10]
+            index = min(10, len(self.current_waypoints) - 1)
         else:
-            car_x, car_y, car_yaw, index = random.choice(self.current_waypoints)
+            index = random.randrange(len(self.current_waypoints))
+        car_x, car_y, car_yaw, _ = self.current_waypoints[index]
 
         self.spawn_index = index  # keep for base class compatibility
         self.spawn_indices = {self.car_name: index}
@@ -263,22 +384,17 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             model_name=self.car_name,
             x=float(car_x),
             y=float(car_y),
-            z=0.5,
+            z=0.0,
             yaw=float(car_yaw),
         )
 
         # Spawn opponents
         for opponent_order, opponent_car_name in enumerate(self.opponent_car_names):
-            opponent_x, opponent_y, opponent_yaw = self._get_opponent_spawn_pose(
+            opponent_index = self._get_opponent_spawn_index(
                 self.spawn_index, opponent_order
             )
-            # Find the waypoint index closest to the opponent spawn position
-            opponent_index = min(
-                range(len(self.current_waypoints)),
-                key=lambda i: math.dist(
-                    (opponent_x, opponent_y),
-                    (self.current_waypoints[i][0], self.current_waypoints[i][1])
-                )
+            opponent_x, opponent_y, opponent_yaw = self._get_opponent_spawn_pose(
+                self.spawn_index, opponent_order
             )
             self.spawn_indices[opponent_car_name] = opponent_index
 
@@ -286,7 +402,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
                 model_name=opponent_car_name,
                 x=float(opponent_x),
                 y=float(opponent_y),
-                z=0.5,
+                z=0.0,
                 yaw=float(opponent_yaw),
             )
 
@@ -294,6 +410,8 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self.step_counter = 0
         self.is_eval = False
         self._last_track_distances = {agent: 0.0 for agent in self.agents}
+
+        self._set_simulation_paused(paused=True)
 
         for agent in self.agents:
             self.stall_counters[agent] = 0
@@ -320,8 +438,9 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
                 range(len(self.current_waypoints)),
                 key=lambda i: math.dist((x, y), (self.current_waypoints[i][0], self.current_waypoints[i][1]))
             )
+            self.spawn_indices[agent] = nearest_idx
             wx, wy, _, _ = self.current_waypoints[
-                (self.spawn_indices[agent] + 1) % len(self.current_waypoints)
+                (nearest_idx + 1) % len(self.current_waypoints)
             ]
             self.agent_goals[agent] = (wx, wy)
 
@@ -552,9 +671,11 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
     
     # override for multi agents
     def _get_all_data(self, timeout: float = 5.0) -> dict:
-        """Spin until fresh data has arrived for every agent, in a single spin loop."""
+        """Spin until fresh odometry and lidar have arrived for every agent."""
         for agent in self.agents:
             self.latest_data[agent] = None
+            self.latest_odoms[agent] = None
+            self.latest_lidars[agent] = None
 
         end_time = self.get_clock().now().nanoseconds + int(timeout * 1e9)
         while self.get_clock().now().nanoseconds < end_time:
@@ -563,7 +684,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
                 return dict(self.latest_data)
 
         missing = [a for a in self.agents if self.latest_data[a] is None]
-        raise TimeoutError(f"No synced data received for agents: {missing}")
+        raise TimeoutError(f"No fresh odometry/lidar received for agents: {missing}")
 
     def _build_all_state_data(self) -> dict[str, StateData]:
         """Build state for all agents from a single shared spin."""
@@ -647,11 +768,16 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
     def observation_size(self):
         per_agent_obs_size = int(self.state_builder.policy_state_size)
         num_agents = len(self.agents)
+        teams: dict[str, list[str]] = {}
+        for agent in self.agents:
+            team = agent.rsplit("_", 1)[0]
+            teams.setdefault(team, []).append(agent)
         
         return {
             "obs": {agent: per_agent_obs_size for agent in self.agents},
             "state": per_agent_obs_size * num_agents,
             "num_agents": num_agents,
+            "teams": teams,
         }
     
     @property
