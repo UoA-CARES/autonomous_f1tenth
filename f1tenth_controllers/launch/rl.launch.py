@@ -52,8 +52,8 @@ def generate_launch_description():
     )
     cares_python_path_arg = DeclareLaunchArgument(
         "cares_python_path",
-        default_value="cares",
-        description="Path to the CARES RL checkout to add to PYTHONPATH.",
+        default_value=".",
+        description="Path containing the cares_reinforcement_learning package to add to PYTHONPATH.",
     )
     checkpoint_path_arg = DeclareLaunchArgument(
         "checkpoint_path",

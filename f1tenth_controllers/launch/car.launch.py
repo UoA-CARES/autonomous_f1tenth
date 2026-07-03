@@ -50,6 +50,8 @@ def _create_controller_launch(context):
                 parameters=[
                     {"car_name": car_name},
                     {"drive_topic": f"/{car_name}/rl_drive"},
+                    {"min_velocity": LaunchConfiguration("ftg_min_velocity")},
+                    {"max_velocity": LaunchConfiguration("ftg_max_velocity")},
                 ],
             ),
             Node(
@@ -113,8 +115,18 @@ def generate_launch_description():
     )
     cares_python_path_arg = DeclareLaunchArgument(
         "cares_python_path",
-        default_value="cares",
-        description="Path to the CARES RL checkout to add to PYTHONPATH for algorithm:=rl.",
+        default_value=".",
+        description="Path containing the cares_reinforcement_learning package to add to PYTHONPATH for algorithm:=rl.",
+    )
+    ftg_min_velocity_arg = DeclareLaunchArgument(
+        "ftg_min_velocity",
+        default_value="0.3",
+        description="Minimum FTG speed in m/s for algorithm:=ftg.",
+    )
+    ftg_max_velocity_arg = DeclareLaunchArgument(
+        "ftg_max_velocity",
+        default_value="1.0",
+        description="Maximum FTG speed in m/s for algorithm:=ftg.",
     )
     deadman_topic_arg = DeclareLaunchArgument(
         "deadman_topic",
@@ -138,6 +150,8 @@ def generate_launch_description():
             ros_domain_id_arg,
             ros_discovery_server_arg,
             cares_python_path_arg,
+            ftg_min_velocity_arg,
+            ftg_max_velocity_arg,
             deadman_topic_arg,
             deadman_timeout_arg,
             command_timeout_arg,

@@ -13,14 +13,23 @@ def main():
             ("car_name", "ftg_car"),
             ("track_name", "multi_track"),
             ("drive_topic", ""),
+            ("min_velocity", 0.3),
+            ("max_velocity", 1.0),
         ],
     )
-    params = param_node.get_parameters(["car_name", "track_name", "drive_topic"])
-    car_name, _, drive_topic = [param.value for param in params]
+    params = param_node.get_parameters(
+        ["car_name", "track_name", "drive_topic", "min_velocity", "max_velocity"]
+    )
+    car_name, _, drive_topic, min_velocity, max_velocity = [
+        param.value for param in params
+    ]
     drive_topic = str(drive_topic) or None
 
     controller = Controller("ftg_policy_", car_name, 0.1, drive_topic=drive_topic)
-    policy = FollowTheGapPolicy()
+    policy = FollowTheGapPolicy(
+        min_velocity=float(min_velocity),
+        max_velocity=float(max_velocity),
+    )
     policy_id = "ftg"
     state = controller.get_observation(policy_id)
 
@@ -49,8 +58,8 @@ class FollowTheGapPolicy:
         lidar_angle: float = 1.396,
         min_lidar_range: float = 0.08,
         obstacle_max_val: float = 3.0,
-        min_velocity: float = 0.5,
-        max_velocity: float = 4.5, ### 0.9 * 5.0
+        min_velocity: float = 0.3,
+        max_velocity: float = 1.0,
         odom_offset: int = 8,
     ):
         """

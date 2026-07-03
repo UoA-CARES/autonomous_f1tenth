@@ -14,12 +14,17 @@ def _ensure_cares_import_path() -> None:
     candidates = []
     for root in roots:
         for parent in [root, *root.parents]:
+            candidates.append(parent)
             candidates.append(parent / "cares")
 
-    candidates.append(Path.home() / "workspace" / "cares_reinforcement_learning")
+    candidates.append(Path.home() / "workspace")
 
+    seen = set()
     for candidate in candidates:
         candidate = candidate.expanduser().resolve()
+        if candidate in seen:
+            continue
+        seen.add(candidate)
         if (candidate / "cares_reinforcement_learning").is_dir():
             sys.path.insert(0, str(candidate))
             return
@@ -39,9 +44,9 @@ except ModuleNotFoundError as exc:
         from cares_reinforcement_learning.types.observation import SARLObservation
     except ModuleNotFoundError as retry_exc:
         raise ModuleNotFoundError(
-            "Could not import cares_reinforcement_learning. Install it with "
-            "`python3 -m pip install -e cares` "
-            "or put that checkout on PYTHONPATH before launching rl_policy."
+            "Could not import cares_reinforcement_learning. Launch from the workspace root "
+            "that contains the cares_reinforcement_learning package, or pass "
+            "`cares_python_path:=/path/to/that/root`."
         ) from retry_exc
 
 from f1tenth_environments.state_builder import ODOM_STATE_SIZES, StateBuilder
