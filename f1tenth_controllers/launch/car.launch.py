@@ -86,6 +86,14 @@ def _create_controller_launch(context):
                 "ros_discovery_server": LaunchConfiguration("ros_discovery_server"),
                 "deadman_topic": LaunchConfiguration("deadman_topic"),
                 "cares_python_path": LaunchConfiguration("cares_python_path"),
+                "controlled_agent_id": LaunchConfiguration("controlled_agent_id"),
+                "marl_agent_ids": LaunchConfiguration("marl_agent_ids"),
+                "marl_teams": LaunchConfiguration("marl_teams"),
+                "marl_parameter_sharing_scope": LaunchConfiguration(
+                    "marl_parameter_sharing_scope"
+                ),
+                "marl_use_agent_id": LaunchConfiguration("marl_use_agent_id"),
+                "marl_use_team_id": LaunchConfiguration("marl_use_team_id"),
                 "deadman_timeout_sec": LaunchConfiguration("deadman_timeout_sec"),
                 "command_timeout_sec": LaunchConfiguration("command_timeout_sec"),
             }.items(),
@@ -118,6 +126,36 @@ def generate_launch_description():
         default_value=".",
         description="Path containing the cares_reinforcement_learning package to add to PYTHONPATH for algorithm:=rl.",
     )
+    controlled_agent_id_arg = DeclareLaunchArgument(
+        "controlled_agent_id",
+        default_value="",
+        description="MARL agent id whose actor controls the physical car. Defaults to car_name.",
+    )
+    marl_agent_ids_arg = DeclareLaunchArgument(
+        "marl_agent_ids",
+        default_value="",
+        description="Comma-separated MARL agent ids used during training. Defaults to controlled_agent_id.",
+    )
+    marl_teams_arg = DeclareLaunchArgument(
+        "marl_teams",
+        default_value="",
+        description="Semicolon-separated teams, e.g. ego:f1tenth;opp:opponent_1,opponent_2.",
+    )
+    marl_parameter_sharing_scope_arg = DeclareLaunchArgument(
+        "marl_parameter_sharing_scope",
+        default_value="",
+        description="Optional MARL sharing scope, e.g. individual, shared, team_critic, team_all.",
+    )
+    marl_use_agent_id_arg = DeclareLaunchArgument(
+        "marl_use_agent_id",
+        default_value="",
+        description="Optional independent-MARL identity conditioning flag from training.",
+    )
+    marl_use_team_id_arg = DeclareLaunchArgument(
+        "marl_use_team_id",
+        default_value="",
+        description="Optional independent-MARL team identity conditioning flag from training.",
+    )
     ftg_min_velocity_arg = DeclareLaunchArgument(
         "ftg_min_velocity",
         default_value="0.3",
@@ -134,11 +172,11 @@ def generate_launch_description():
     )
     deadman_timeout_arg = DeclareLaunchArgument(
         "deadman_timeout_sec",
-        default_value="0.25",
+        default_value="0.1",
     )
     command_timeout_arg = DeclareLaunchArgument(
         "command_timeout_sec",
-        default_value="0.25",
+        default_value="0.1",
     )
 
     return LaunchDescription(
@@ -150,6 +188,12 @@ def generate_launch_description():
             ros_domain_id_arg,
             ros_discovery_server_arg,
             cares_python_path_arg,
+            controlled_agent_id_arg,
+            marl_agent_ids_arg,
+            marl_teams_arg,
+            marl_parameter_sharing_scope_arg,
+            marl_use_agent_id_arg,
+            marl_use_team_id_arg,
             ftg_min_velocity_arg,
             ftg_max_velocity_arg,
             deadman_topic_arg,

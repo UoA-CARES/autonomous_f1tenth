@@ -19,8 +19,8 @@ class RLDeadman(Node):
 
         self.declare_parameter("car_name", "f1tenth")
         self.declare_parameter("deadman_topic", "/rl_deadman")
-        self.declare_parameter("deadman_timeout_sec", 0.25)
-        self.declare_parameter("command_timeout_sec", 0.25)
+        self.declare_parameter("deadman_timeout_sec", 0.1)
+        self.declare_parameter("command_timeout_sec", 0.1)
 
         car_name = str(self.get_parameter("car_name").value)
         deadman_topic = str(self.get_parameter("deadman_topic").value)
@@ -56,7 +56,7 @@ class RLDeadman(Node):
         self.deadman_subscription = self.create_subscription(
             Int8, deadman_topic, self._deadman_callback, reliable_qos
         )
-        self.watchdog_timer = self.create_timer(0.05, self._watchdog_callback)
+        self.watchdog_timer = self.create_timer(0.02, self._watchdog_callback)
 
         self.get_logger().info(
             f"RL deadman waiting for a fresh {deadman_topic}=1 heartbeat."

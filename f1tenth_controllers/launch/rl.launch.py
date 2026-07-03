@@ -59,6 +59,36 @@ def generate_launch_description():
         "checkpoint_path",
         default_value="overtaking_models/" + algorithm + "_checkpoint.pth",
     )
+    controlled_agent_id_arg = DeclareLaunchArgument(
+        "controlled_agent_id",
+        default_value="",
+        description="MARL agent id whose actor controls the physical car. Defaults to car_name.",
+    )
+    marl_agent_ids_arg = DeclareLaunchArgument(
+        "marl_agent_ids",
+        default_value="",
+        description="Comma-separated MARL agent ids used during training. Defaults to controlled_agent_id.",
+    )
+    marl_teams_arg = DeclareLaunchArgument(
+        "marl_teams",
+        default_value="",
+        description="Semicolon-separated teams, e.g. ego:f1tenth;opp:opponent_1,opponent_2.",
+    )
+    marl_parameter_sharing_scope_arg = DeclareLaunchArgument(
+        "marl_parameter_sharing_scope",
+        default_value="",
+        description="Optional MARL sharing scope, e.g. individual, shared, team_critic, team_all.",
+    )
+    marl_use_agent_id_arg = DeclareLaunchArgument(
+        "marl_use_agent_id",
+        default_value="",
+        description="Optional independent-MARL identity conditioning flag from training.",
+    )
+    marl_use_team_id_arg = DeclareLaunchArgument(
+        "marl_use_team_id",
+        default_value="",
+        description="Optional independent-MARL team identity conditioning flag from training.",
+    )
     max_speed_arg = DeclareLaunchArgument("max_speed", default_value="3.0")
     max_turn_arg = DeclareLaunchArgument("max_turn", default_value="0.434")
     min_speed_arg = DeclareLaunchArgument("min_speed", default_value="0.5")
@@ -74,10 +104,10 @@ def generate_launch_description():
         "deadman_topic", default_value="/rl_deadman"
     )
     deadman_timeout_arg = DeclareLaunchArgument(
-        "deadman_timeout_sec", default_value="0.25"
+        "deadman_timeout_sec", default_value="0.1"
     )
     command_timeout_arg = DeclareLaunchArgument(
-        "command_timeout_sec", default_value="0.25"
+        "command_timeout_sec", default_value="0.1"
     )
 
     main = Node(
@@ -90,6 +120,14 @@ def generate_launch_description():
                 "car_name": LaunchConfiguration("car_name"),
                 "algorithm": LaunchConfiguration("algorithm"),
                 "checkpoint_path": LaunchConfiguration("checkpoint_path"),
+                "controlled_agent_id": LaunchConfiguration("controlled_agent_id"),
+                "marl_agent_ids": LaunchConfiguration("marl_agent_ids"),
+                "marl_teams": LaunchConfiguration("marl_teams"),
+                "marl_parameter_sharing_scope": LaunchConfiguration(
+                    "marl_parameter_sharing_scope"
+                ),
+                "marl_use_agent_id": LaunchConfiguration("marl_use_agent_id"),
+                "marl_use_team_id": LaunchConfiguration("marl_use_team_id"),
                 "max_speed": LaunchConfiguration("max_speed"),
                 "max_turn": LaunchConfiguration("max_turn"),
                 "min_speed": LaunchConfiguration("min_speed"),
@@ -143,6 +181,12 @@ def generate_launch_description():
             ros_discovery_server_arg,
             cares_python_path_arg,
             checkpoint_path_arg,
+            controlled_agent_id_arg,
+            marl_agent_ids_arg,
+            marl_teams_arg,
+            marl_parameter_sharing_scope_arg,
+            marl_use_agent_id_arg,
+            marl_use_team_id_arg,
             max_speed_arg,
             max_turn_arg,
             min_speed_arg,
