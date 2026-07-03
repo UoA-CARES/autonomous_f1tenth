@@ -22,6 +22,16 @@ joy_teleop:
           axis: 0
           scale: 0.45
           offset: 0.0
+    stop_when_released:
+      type: topic
+      interface_type: ackermann_msgs/msg/AckermannDriveStamped
+      topic_name: teleop
+      message_value:
+        drive-speed:
+          value: 0.0
+        drive-steering_angle:
+          value: 0.0
+
     autonomous_disabled:
       type: topic
       interface_type: std_msgs/msg/Int8

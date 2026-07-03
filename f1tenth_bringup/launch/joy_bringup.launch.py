@@ -5,6 +5,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -13,6 +14,7 @@ def generate_launch_description():
 
     joy_topic = LaunchConfiguration("joy_topic")
     teleop_topic = LaunchConfiguration("teleop_topic")
+    device_id = LaunchConfiguration("device_id")
 
     joy_config_arg = DeclareLaunchArgument(
         "joy_config",
@@ -39,6 +41,11 @@ def generate_launch_description():
         default_value=EnvironmentVariable("ROS_DISCOVERY_SERVER", default_value=""),
         description="Fast DDS discovery server address, for example 192.168.1.10:11811.",
     )
+    device_id_arg = DeclareLaunchArgument(
+        "device_id",
+        default_value="0",
+        description="Joystick device id passed to joy_node, for example 0 or 1.",
+    )
     joy_topic_arg = DeclareLaunchArgument(
         "joy_topic",
         default_value="joy",
@@ -56,7 +63,10 @@ def generate_launch_description():
         name="joy",
         output="screen",
         emulate_tty=True,
-        parameters=[LaunchConfiguration("joy_config")],
+        parameters=[
+            LaunchConfiguration("joy_config"),
+            {"device_id": ParameterValue(device_id, value_type=int)},
+        ],
         remappings=[("joy", joy_topic)],
         respawn=True,
         respawn_delay=2.0,
@@ -84,6 +94,7 @@ def generate_launch_description():
             rmw_implementation_arg,
             ros_localhost_only_arg,
             ros_discovery_server_arg,
+            device_id_arg,
             joy_topic_arg,
             teleop_topic_arg,
             SetEnvironmentVariable(

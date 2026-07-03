@@ -31,6 +31,7 @@ def generate_launch_description():
     mux_config = LaunchConfiguration("mux_config")
     ekf_config = LaunchConfiguration("ekf_config")
     joy_config = LaunchConfiguration("joy_config")
+    device_id = LaunchConfiguration("device_id")
     rmw_implementation = LaunchConfiguration("rmw_implementation")
     ros_domain_id = LaunchConfiguration("ros_domain_id")
     ros_localhost_only = LaunchConfiguration("ros_localhost_only")
@@ -86,6 +87,11 @@ def generate_launch_description():
             "joy_config",
             default_value=default_joy_config,
             description="Joy and joy_teleop parameter file.",
+        ),
+        DeclareLaunchArgument(
+            "device_id",
+            default_value="0",
+            description="Joystick device id passed to joy_node when launch_joy is true.",
         ),
         DeclareLaunchArgument(
             "launch_joy",
@@ -175,6 +181,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "joy_config": joy_config,
+            "device_id": device_id,
             "rmw_implementation": rmw_implementation,
             "ros_domain_id": ros_domain_id,
             "ros_localhost_only": ros_localhost_only,
