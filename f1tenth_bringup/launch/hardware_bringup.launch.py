@@ -34,6 +34,7 @@ def generate_launch_description():
     rmw_implementation = LaunchConfiguration("rmw_implementation")
     ros_domain_id = LaunchConfiguration("ros_domain_id")
     ros_localhost_only = LaunchConfiguration("ros_localhost_only")
+    ros_discovery_server = LaunchConfiguration("ros_discovery_server")
 
     launch_arguments = [
         DeclareLaunchArgument(
@@ -55,6 +56,11 @@ def generate_launch_description():
             "ros_localhost_only",
             default_value="0",
             description="Set ROS_LOCALHOST_ONLY for launched nodes; use 0 for multi-machine control.",
+        ),
+        DeclareLaunchArgument(
+            "ros_discovery_server",
+            default_value=EnvironmentVariable("ROS_DISCOVERY_SERVER", default_value=""),
+            description="Fast DDS discovery server address, for example 192.168.1.10:11811.",
         ),
         DeclareLaunchArgument(
             "vesc_config",
@@ -172,6 +178,7 @@ def generate_launch_description():
             "rmw_implementation": rmw_implementation,
             "ros_domain_id": ros_domain_id,
             "ros_localhost_only": ros_localhost_only,
+            "ros_discovery_server": ros_discovery_server,
         }.items(),
         condition=IfCondition(LaunchConfiguration("launch_joy")),
     )
@@ -190,6 +197,10 @@ def generate_launch_description():
             SetEnvironmentVariable(
                 "RMW_IMPLEMENTATION",
                 rmw_implementation,
+            ),
+            SetEnvironmentVariable(
+                "ROS_DISCOVERY_SERVER",
+                ros_discovery_server,
             ),
             robot_state_publisher,
             vesc_driver,

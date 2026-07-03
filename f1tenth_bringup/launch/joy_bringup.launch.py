@@ -34,6 +34,11 @@ def generate_launch_description():
         default_value="0",
         description="Set ROS_LOCALHOST_ONLY for joystick nodes; use 0 for multi-machine control.",
     )
+    ros_discovery_server_arg = DeclareLaunchArgument(
+        "ros_discovery_server",
+        default_value=EnvironmentVariable("ROS_DISCOVERY_SERVER", default_value=""),
+        description="Fast DDS discovery server address, for example 192.168.1.10:11811.",
+    )
     joy_topic_arg = DeclareLaunchArgument(
         "joy_topic",
         default_value="joy",
@@ -78,6 +83,7 @@ def generate_launch_description():
             ros_domain_id_arg,
             rmw_implementation_arg,
             ros_localhost_only_arg,
+            ros_discovery_server_arg,
             joy_topic_arg,
             teleop_topic_arg,
             SetEnvironmentVariable(
@@ -91,6 +97,10 @@ def generate_launch_description():
             SetEnvironmentVariable(
                 "RMW_IMPLEMENTATION",
                 LaunchConfiguration("rmw_implementation"),
+            ),
+            SetEnvironmentVariable(
+                "ROS_DISCOVERY_SERVER",
+                LaunchConfiguration("ros_discovery_server"),
             ),
             joy_node,
             joy_teleop_node,

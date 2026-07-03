@@ -32,6 +32,7 @@ echo "Workspace setup: ${_setup_dir}/install/setup.bash"
 echo "ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-unset}"
 echo "RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-unset}"
 echo "ROS_LOCALHOST_ONLY=${ROS_LOCALHOST_ONLY:-unset}"
+echo "ROS_DISCOVERY_SERVER=${ROS_DISCOVERY_SERVER:-unset}"
 echo
 
 echo "Nodes:"
