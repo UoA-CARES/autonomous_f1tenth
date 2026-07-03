@@ -63,14 +63,7 @@ def generate_launch_description():
         name="joy_teleop",
         output="screen",
         emulate_tty=True,
-        parameters=[
-            LaunchConfiguration("joy_config"),
-            {
-                "default": {"topic_name": "_unused_teleop_default"},
-                "boost": {"topic_name": "_unused_teleop_boost"},
-                "human_control": {"topic_name": "teleop"},
-            },
-        ],
+        parameters=[LaunchConfiguration("joy_config")],
         remappings=[
             ("joy", joy_topic),
             ("teleop", teleop_topic),
