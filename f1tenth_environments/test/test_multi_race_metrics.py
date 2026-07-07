@@ -49,6 +49,7 @@ def _install_ros_stubs() -> None:
         (),
         {"__init__": _noop},
     )
+    rclpy.qos.qos_profile_sensor_data = object()
 
     ros_gz_interfaces = _install_module("ros_gz_interfaces")
     ros_gz_interfaces.msg = _install_module("ros_gz_interfaces.msg")

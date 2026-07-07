@@ -670,6 +670,37 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         return obs, rewards, terminateds, truncateds, infos
     
     # override for multi agents
+    def _get_required_data_topic_names(self) -> list[str]:
+        topic_names = []
+        for agent in self.agents:
+            topic_names.extend((f"/{agent}/odometry", f"/{agent}/scan"))
+        return topic_names
+
+    def _get_visible_data_topic_names(self) -> set[str]:
+        return {
+            topic_name
+            for topic_name, _ in self.get_topic_names_and_types()
+            if topic_name in self._get_required_data_topic_names()
+        }
+
+    def _format_data_timeout_message(self, missing: list[str]) -> str:
+        required_topics = self._get_required_data_topic_names()
+        visible_topics = sorted(self._get_visible_data_topic_names())
+        absent_topics = sorted(set(required_topics) - set(visible_topics))
+
+        message_parts = [
+            f"No fresh odometry/lidar received for agents: {missing}.",
+            f"Required topics: {required_topics}.",
+            f"Visible required topics: {visible_topics}.",
+        ]
+        if absent_topics:
+            message_parts.append(f"Absent required topics: {absent_topics}.")
+        message_parts.append(
+            "Check that the Gazebo launch num_opponents matches "
+            "F1TENTH_NUM_OPPONENTS and that only one world named 'empty' is running."
+        )
+        return " ".join(message_parts)
+
     def _get_all_data(self, timeout: float = 5.0) -> dict:
         """Spin until fresh odometry and lidar have arrived for every agent."""
         for agent in self.agents:
@@ -677,14 +708,14 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             self.latest_odoms[agent] = None
             self.latest_lidars[agent] = None
 
-        end_time = self.get_clock().now().nanoseconds + int(timeout * 1e9)
-        while self.get_clock().now().nanoseconds < end_time:
+        end_time = time.monotonic() + timeout
+        while time.monotonic() < end_time:
             rclpy.spin_once(self, timeout_sec=0.01)
             if all(self.latest_data[agent] is not None for agent in self.agents):
                 return dict(self.latest_data)
 
         missing = [a for a in self.agents if self.latest_data[a] is None]
-        raise TimeoutError(f"No fresh odometry/lidar received for agents: {missing}")
+        raise TimeoutError(self._format_data_timeout_message(missing))
 
     def _build_all_state_data(self) -> dict[str, StateData]:
         """Build state for all agents from a single shared spin."""
