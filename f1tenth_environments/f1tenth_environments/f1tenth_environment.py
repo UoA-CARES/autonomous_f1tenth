@@ -332,6 +332,8 @@ class F1tenthEnvironment(Node, ABC):
     def _reset(self) -> np.ndarray:
         self._reset_positions()
 
+        self.latest_data = None
+        self._next_build_clear_existing = False
         self._set_simulation_paused(paused=False)
         state_data = self._build_state_data()
         self.previous_state_data = state_data
@@ -371,9 +373,12 @@ class F1tenthEnvironment(Node, ABC):
     def _message_filter_callback(self, odom: Odometry, lidar: LaserScan) -> None:
         self.latest_data = (odom, lidar)
 
-    def _get_data(self, timeout: float = 5.0) -> tuple[Odometry, LaserScan]:
+    def _get_data(
+        self, timeout: float = 5.0, clear_existing: bool = True
+    ) -> tuple[Odometry, LaserScan]:
         # Drain anything stale
-        self.latest_data = None
+        if clear_existing:
+            self.latest_data = None
         end_time = self.get_clock().now().nanoseconds + int(timeout * 1e9)
         spin_timeout_sec = 0.01
 
@@ -411,8 +416,11 @@ class F1tenthEnvironment(Node, ABC):
             or self.step_counter >= self.max_steps
         )
 
-    def _build_state_data(self) -> StateData:
-        odom_msg, lidar_msg = self._get_data()
+    def _build_state_data(self, clear_existing: bool | None = None) -> StateData:
+        if clear_existing is None:
+            clear_existing = getattr(self, "_next_build_clear_existing", True)
+            self._next_build_clear_existing = True
+        odom_msg, lidar_msg = self._get_data(clear_existing=clear_existing)
         state_data = self.state_builder.build_state(odom_msg, lidar_msg)
         self.state_scan_pub.publish(state_data.lidar_state_scan)
         return state_data
@@ -790,6 +798,8 @@ class F1tenthEnvironment(Node, ABC):
             np.asarray(action, dtype=np.float32), self.min_actions, self.max_actions
         )
         lin_vel, steering_angle = clipped_action
+        self.latest_data = None
+        self._next_build_clear_existing = False
         self._set_simulation_paused(paused=False)
         if self.command_latency_ms > 0.0:
             self._sleep(self.command_latency_ms)

@@ -418,16 +418,15 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             self.goals_reached[agent] = 0
             self.total_linear_velocity[agent] = 0.0
             self.pole_position_steps[agent] = 0
-            msg = Twist()
-            msg.linear.x = 0.0
-            msg.angular.z = 0.0
-            self.cmd_vel_pubs[agent].publish(msg)
+        self._stop_all_agents()
 
         self._reset_positions()
+        self._stop_all_agents()
+        self._clear_all_data()
         self._set_simulation_paused(paused=False)
 
         # Collect data for ALL agents in one go while sim is running
-        all_state_data = self._build_all_state_data()
+        all_state_data = self._build_all_state_data(clear_existing=False)
 
         self._set_simulation_paused(paused=True)
 
@@ -586,6 +585,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
     def step(self, actions: dict) -> tuple[dict, dict, dict, dict, dict]:
         self.step_counter += 1
+        self._clear_all_data()
         self._set_simulation_paused(paused=False)
         if self.command_latency_ms > 0.0:
             self._sleep(self.command_latency_ms)
@@ -616,7 +616,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         remaining_step_ms = self.step_sleep_time_ms - self.command_latency_ms
         if remaining_step_ms > 0.0:
             self._sleep(remaining_step_ms)
-        all_state_data = self._build_all_state_data()
+        all_state_data = self._build_all_state_data(clear_existing=False)
         self._set_simulation_paused(paused=True)
 
         obs, rewards, terminateds, truncateds, infos = {}, {}, {}, {}, {}
@@ -701,12 +701,23 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         )
         return " ".join(message_parts)
 
-    def _get_all_data(self, timeout: float = 5.0) -> dict:
-        """Spin until fresh odometry and lidar have arrived for every agent."""
+    def _stop_all_agents(self) -> None:
+        msg = Twist()
+        msg.linear.x = 0.0
+        msg.angular.z = 0.0
+        for agent in self.agents:
+            self.cmd_vel_pubs[agent].publish(msg)
+
+    def _clear_all_data(self) -> None:
         for agent in self.agents:
             self.latest_data[agent] = None
             self.latest_odoms[agent] = None
             self.latest_lidars[agent] = None
+
+    def _get_all_data(self, timeout: float = 5.0, clear_existing: bool = True) -> dict:
+        """Spin until fresh odometry and lidar have arrived for every agent."""
+        if clear_existing:
+            self._clear_all_data()
 
         end_time = time.monotonic() + timeout
         while time.monotonic() < end_time:
@@ -717,9 +728,9 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         missing = [a for a in self.agents if self.latest_data[a] is None]
         raise TimeoutError(self._format_data_timeout_message(missing))
 
-    def _build_all_state_data(self) -> dict[str, StateData]:
+    def _build_all_state_data(self, clear_existing: bool = True) -> dict[str, StateData]:
         """Build state for all agents from a single shared spin."""
-        data = self._get_all_data()
+        data = self._get_all_data(clear_existing=clear_existing)
         return {
             agent: self.state_builder.build_state(odom, lidar)
             for agent, (odom, lidar) in data.items()
