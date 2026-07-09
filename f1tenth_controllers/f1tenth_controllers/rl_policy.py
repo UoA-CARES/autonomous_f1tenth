@@ -350,12 +350,59 @@ def _build_marl_observation_size(
     }, raw_observation_size
 
 
-def _learning_unit_for_agent(agent, agent_id: str):
+def _has_actor_network(value) -> bool:
+    return hasattr(value, "actor_net")
+
+
+def _iter_actor_units(value, prefix: str = "agent", depth: int = 0, seen=None):
+    if seen is None:
+        seen = set()
+    if value is None or id(value) in seen or depth > 4:
+        return
+    seen.add(id(value))
+
+    if _has_actor_network(value):
+        yield prefix, value
+        return
+
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield from _iter_actor_units(item, str(key), depth + 1, seen)
+        return
+
+    if isinstance(value, (list, tuple)):
+        for index, item in enumerate(value):
+            yield from _iter_actor_units(item, f"{prefix}_{index}", depth + 1, seen)
+        return
+
+    try:
+        attributes = vars(value)
+    except TypeError:
+        return
+
+    for name, item in attributes.items():
+        if name.startswith("__"):
+            continue
+        yield from _iter_actor_units(item, name, depth + 1, seen)
+
+
+def _learning_units_for_agent(agent) -> dict:
     learning_units = getattr(agent, "learning_units", None)
-    if learning_units is None:
-        if hasattr(agent, "actor_net"):
-            return agent_id, agent
-        raise TypeError("MARL agent does not expose learning_units or actor_net.")
+    if isinstance(learning_units, dict):
+        return learning_units
+    return dict(_iter_actor_units(agent))
+
+
+def _learning_unit_for_agent(agent, agent_id: str):
+    learning_units = _learning_units_for_agent(agent)
+    if not learning_units:
+        available_attrs = sorted(
+            name for name in dir(agent) if not name.startswith("__")
+        )[:80]
+        raise TypeError(
+            "Unable to find an actor network inside MARL agent "
+            f"{type(agent).__name__}. available_attrs={available_attrs}."
+        )
 
     for mapping_name in (
         "agent_id_to_actor_id",
@@ -414,7 +461,7 @@ def _load_marl_actor_weights(agent, checkpoint_path: Path, controlled_agent_id: 
     controlled_unit_id, controlled_unit = _learning_unit_for_agent(agent, controlled_agent_id)
     loaded_units = set()
 
-    for unit_id, learning_unit in getattr(agent, "learning_units", {}).items():
+    for unit_id, learning_unit in _learning_units_for_agent(agent).items():
         try:
             actor_checkpoint_path = _find_actor_checkpoint(checkpoint_path, unit_id)
         except FileNotFoundError:
