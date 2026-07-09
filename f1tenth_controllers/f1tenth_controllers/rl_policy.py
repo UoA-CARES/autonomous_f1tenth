@@ -351,13 +351,56 @@ def _build_marl_observation_size(
 
 
 def _learning_unit_for_agent(agent, agent_id: str):
-    if hasattr(agent, "agent_id_to_actor_id"):
-        unit_id = agent.agent_id_to_actor_id[agent_id]
-    elif hasattr(agent, "agent_id_to_learning_unit_id"):
-        unit_id = agent.agent_id_to_learning_unit_id[agent_id]
-    else:
-        raise TypeError("MARL agent does not expose a known agent-to-actor mapping.")
-    return unit_id, agent.learning_units[unit_id]
+    learning_units = getattr(agent, "learning_units", None)
+    if learning_units is None:
+        if hasattr(agent, "actor_net"):
+            return agent_id, agent
+        raise TypeError("MARL agent does not expose learning_units or actor_net.")
+
+    for mapping_name in (
+        "agent_id_to_actor_id",
+        "agent_id_to_learning_unit_id",
+        "agent_id_to_policy_id",
+    ):
+        mapping = getattr(agent, mapping_name, None)
+        if mapping is not None and agent_id in mapping:
+            unit_id = mapping[agent_id]
+            return unit_id, learning_units[unit_id]
+
+    for reverse_mapping_name in ("actor_id_to_agent_ids", "policy_id_to_agent_ids"):
+        reverse_mapping = getattr(agent, reverse_mapping_name, None)
+        if reverse_mapping is None:
+            continue
+        for unit_id, agent_ids in reverse_mapping.items():
+            if agent_id in agent_ids:
+                return unit_id, learning_units[unit_id]
+
+    if agent_id in learning_units:
+        return agent_id, learning_units[agent_id]
+
+    if len(learning_units) == 1:
+        unit_id, learning_unit = next(iter(learning_units.items()))
+        return unit_id, learning_unit
+
+    available_attrs = [
+        name
+        for name in (
+            "agent_id_to_actor_id",
+            "agent_id_to_learning_unit_id",
+            "agent_id_to_policy_id",
+            "actor_id_to_agent_ids",
+            "policy_id_to_agent_ids",
+            "controlled_agent_ids",
+            "all_agent_ids",
+        )
+        if hasattr(agent, name)
+    ]
+    raise TypeError(
+        "Unable to map MARL agent id "
+        f"{agent_id!r} to a learning unit. "
+        f"learning_units={list(learning_units.keys())}, "
+        f"available_mapping_attrs={available_attrs}."
+    )
 
 
 def _load_actor_state_into_unit(learning_unit, actor_checkpoint_path: Path) -> None:
