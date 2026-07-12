@@ -20,6 +20,7 @@
   <depend>message_filters</depend>
   <depend>nav_msgs</depend>
   <depend>rclpy</depend>
+  <depend>rmw_fastrtps_cpp</depend>
   <depend>robot_localization</depend>
   <depend>sensor_msgs</depend>
   <depend>slam_toolbox</depend>

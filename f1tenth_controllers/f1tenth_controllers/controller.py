@@ -7,7 +7,11 @@ from message_filters import ApproximateTimeSynchronizer, Subscriber
 from nav_msgs.msg import Odometry
 from rclpy import Future
 from rclpy.node import Node
-from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
+from rclpy.qos import (
+    QoSHistoryPolicy,
+    QoSProfile,
+    QoSReliabilityPolicy,
+)
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Header
 from tf2_msgs.msg import TFMessage
@@ -33,6 +37,8 @@ class Controller(Node):
         step_sleep_time_ms: float,
         isCar: bool = False,
         lidar_points: int = 10,
+        state_builder=None,
+        drive_topic: str | None = None,
     ):
         super().__init__(node_name + "controller")
 
@@ -43,13 +49,15 @@ class Controller(Node):
         self.NAME = car_name
         self.step_sleep_time_ms = step_sleep_time_ms
         self.LIDAR_POINTS = lidar_points
+        self.state_builder = state_builder
+        self.drive_topic = drive_topic or f"/{self.NAME}/drive"
         self.LIDAR_PROCESSING: Literal[
             "avg", "median", "avg_w_consensus", "pretrained_ae", "raw"
         ] = "median"
 
         # Pub/Sub ----------------------------------------------------
         self.ackerman_pub = self.create_publisher(
-            AckermannDriveStamped, f"/{self.NAME}/drive", 1
+            AckermannDriveStamped, self.drive_topic, 1
         )
 
         self.cmd_vel_pub = self.create_publisher(Twist, f"/{self.NAME}/cmd_vel", 1)
@@ -105,6 +113,11 @@ class Controller(Node):
 
     def get_observation(self, policy):
         odom, lidar = self.get_data()
+        if self.state_builder is not None:
+            state_data = self.state_builder.build_state(odom, lidar)
+            self.processed_publisher.publish(state_data.lidar_state_scan)
+            return state_data.state
+
         odom = process_odom(odom)
         if self.firstOdom:
             self.offset = odom[0:6]

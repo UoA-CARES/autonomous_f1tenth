@@ -1,3 +1,5 @@
+import os
+
 import rclpy
 
 from .f1tenth_environment import F1tenthEnvironment
@@ -14,9 +16,10 @@ class EnvironmentFactory:
         # Basic Envrionment Setup
         max_steps = config.get("max_steps", 1000)
         step_sleep_time_ms = config.get("step_sleep_time_ms", 100)
+        command_latency_ms = config.get("command_latency_ms", 30)
 
         # Which Track will be used for training and evaluation.
-        track = config.get("track", "multi_track_01")
+        track = config.get("track", os.environ.get("F1TENTH_TRACK", "multi_track_01"))
         train_eval_split = config.get("train_eval_split", 0.5)
 
         # State Builder Configurations
@@ -38,7 +41,7 @@ class EnvironmentFactory:
 
         stall_progress_threshold_m = config.get("stall_progress_threshold_m", 0.02)
         stall_limit_steps = config.get("stall_limit_steps", 5)
-        position_speed_multiplier = config.get("position_speed_multiplier", 1.0)
+        position_speed_multiplier = config.get("position_speed_multiplier", 0.9)
 
         if task == "CarRace":
             return F1tenthEnvironment(
@@ -47,6 +50,7 @@ class EnvironmentFactory:
                 train_eval_split=train_eval_split,
                 max_steps=max_steps,
                 step_sleep_time_ms=step_sleep_time_ms,
+                command_latency_ms=command_latency_ms,
                 odom_mode=odom_mode,
                 lidar_mode=lidar_mode,
                 lidar_state_size=lidar_state_size,
@@ -69,6 +73,7 @@ class EnvironmentFactory:
                 train_eval_split=train_eval_split,
                 max_steps=max_steps,
                 step_sleep_time_ms=step_sleep_time_ms,
+                command_latency_ms=command_latency_ms,
                 odom_mode=odom_mode,
                 lidar_mode=lidar_mode,
                 lidar_state_size=lidar_state_size,

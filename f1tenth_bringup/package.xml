@@ -13,16 +13,27 @@
   <test_depend>python3-pytest</test_depend>
 
   <depend>ament_index_python</depend>
+  <depend>ackermann_mux</depend>
+  <depend>ackermann_msgs</depend>
   <depend>f1tenth_controllers</depend>
   <depend>f1tenth_environments</depend>
   <depend>f1tenth_gazebo</depend>
   <depend>f1tenth_description</depend>
   <depend>launch</depend>
   <depend>launch_ros</depend>
+  <depend>joy</depend>
+  <depend>joy_teleop</depend>
   <depend>robot_localization</depend>
+  <depend>robot_state_publisher</depend>
+  <depend>rmw_cyclonedds_cpp</depend>
+  <depend>rmw_fastrtps_cpp</depend>
   <depend>ros_gz_bridge</depend>
   <depend>ros_gz_sim</depend>
   <depend>slam_toolbox</depend>
+  <depend>urg_node</depend>
+  <depend>vesc_ackermann</depend>
+  <depend>vesc_driver</depend>
+  <depend>xacro</depend>
 
   <export>
     <build_type>ament_python</build_type>

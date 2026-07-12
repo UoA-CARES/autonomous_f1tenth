@@ -23,6 +23,7 @@ setup(
         "console_scripts": [
             "ftg_policy = f1tenth_controllers.ftg_policy:main",
             "rl_policy = f1tenth_controllers.rl_policy:main",
+            "rl_deadman = f1tenth_controllers.rl_deadman:main",
             "sim = f1tenth_controllers.sim:main",
             "track = f1tenth_controllers.track:main",
             "load_path = f1tenth_controllers.load_path:main",

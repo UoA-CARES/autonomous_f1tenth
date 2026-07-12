@@ -119,26 +119,47 @@ def get_all_goals_and_waypoints_in_multi_tracks(track_name):
             "track_06": track_06_wp,
         }
     elif track_name == "multi_track_01":
-        widths = [150, 200, 250, 300, 350]
-        tracks = [
-            "track_01",
-            "track_02",
-            "track_03",
-            "track_04",
-            "track_05",
-            "track_06",
+        track_offsets = [
+            ("track_01_150", 0),
+            ("track_01_200", 30),
+            ("track_01_250", 60),
+            ("track_01_300", 90),
+            ("track_01_350", 120),
+            ("track_02_150", 150),
+            ("track_02_200", 180),
+            ("track_02_250", 210),
+            ("track_02_300", 240),
+            ("track_02_350", 270),
+            ("track_03_150", 300),
+            ("track_03_200", 330),
+            ("track_03_250", 360),
+            ("track_03_300", 390),
+            ("track_03_350", 420),
+            ("track_04_150", 450),
+            ("track_04_200", 480),
+            ("track_04_300", 540),
+            ("track_04_350", 570),
+            ("track_04_250", 660),
+            ("track_05_150", 750),
+            ("track_05_200", 780),
+            ("track_05_250", 810),
+            ("track_05_300", 840),
+            ("track_05_350", 870),
+            ("track_06_150", 900),
+            ("track_06_200", 930),
+            ("track_06_250", 960),
+            ("track_06_300", 990),
+            ("track_06_350", 1020),
         ]
         all_car_goals = None
         all_car_waypoints = {}
-        i = 0
-        for track in tracks:
-            for width in widths:
-                resolved_track_name = f"{track}_{str(width)}"
-                global_wp = [
-                    (x + i * 30, y, yaw, index) for x, y, yaw, index in waypoints[track]
-                ]
-                all_car_waypoints.update({resolved_track_name: global_wp})
-                i += 1
+        for resolved_track_name, x_offset in track_offsets:
+            source_waypoints = waypoints[resolved_track_name]
+            global_wp = [
+                (x + x_offset, y, yaw, index)
+                for x, y, yaw, index in source_waypoints
+            ]
+            all_car_waypoints.update({resolved_track_name: global_wp})
     elif track_name == "multi_track_02":
         widths = [350]
         tracks = [

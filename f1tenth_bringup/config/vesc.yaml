@@ -32,7 +32,8 @@ vesc_to_odom_node:
     odom_frame: odom
     base_frame: base_link
     # publish odom to base link tf
-    publish_tf: true
+    # The EKF publishes odom -> base_link. Keep this false to avoid duplicate TF.
+    publish_tf: false
     use_servo_cmd_to_calc_angular_velocity: true
 
     # car wheelbase is about 32.5cm

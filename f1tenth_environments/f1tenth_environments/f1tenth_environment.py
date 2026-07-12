@@ -1,4 +1,3 @@
-import math
 import random
 import re
 from abc import ABC
@@ -44,6 +43,7 @@ class F1tenthEnvironment(Node, ABC):
         stall_progress_threshold_m: float,
         stall_limit_steps: int,
         collision_penalty: float,
+        command_latency_ms: float = 0.0,
     ):
         """
         Initialize the F1Tenth RL environment node.
@@ -54,6 +54,7 @@ class F1tenthEnvironment(Node, ABC):
             max_steps: Maximum steps per episode.
             collision_range_m: Lidar collision threshold (meters).
             step_sleep_time_ms: Step duration in milliseconds.
+            command_latency_ms: Delay before each new command reaches the simulated car.
             lidar_state_size: Number of lidar points in state.
             track: Track name or multi-track specifier.
             odom_mode: Odometry mode for state builder.
@@ -75,6 +76,11 @@ class F1tenthEnvironment(Node, ABC):
         self.max_steps = max_steps
         self.collision_range_m = collision_range_m
         self.step_sleep_time_ms = step_sleep_time_ms
+        self.command_latency_ms = float(command_latency_ms)
+        if not 0.0 <= self.command_latency_ms <= self.step_sleep_time_ms:
+            raise ValueError(
+                "command_latency_ms must be between 0 and step_sleep_time_ms"
+            )
         self.train_eval_split = train_eval_split
 
         self.wall_proximity_reward_weight = wall_proximity_reward_weight
@@ -178,17 +184,33 @@ class F1tenthEnvironment(Node, ABC):
 
         # Loop Parameters
         self.step_counter = 0
-        self.goals_reached = 0
-
         self.is_eval = False
         self.spawn_index = 0
-
-        self.goal_position: tuple[float, float] = (0.0, 0.0)
-
         self.stall_counter = 0
-        self.total_linear_velocity = 0
+        self.total_linear_velocity = 0.0
 
         self.opponent_car_names = self._discover_opponent_car_names()
+        self.latest_opponent_odometries: dict[str, Odometry | None] = {
+            name: None for name in self.opponent_car_names
+        }
+        self.opponent_odom_subs = {
+            name: self.create_subscription(
+                Odometry,
+                f"/{name}/odometry",
+                self._make_opponent_odom_callback(name),
+                qos,
+            )
+            for name in self.opponent_car_names
+        }
+        self.previous_race_positions: dict[str, float] = {}
+        self.race_origin_spline_coord = 0.0
+        self.race_origin_track_distance = 0.0
+        self.overtake_rear_margin_m = 0.25
+        self.overtake_front_margin_m = 0.25
+        self.overtake_eligible_opponents: set[str] = set()
+        self.overtaken_opponents: set[str] = set()
+        self.overtakes_per_episode = 0
+        self.pole_position_steps = 0
 
     def _discover_opponent_car_names(self) -> list[str]:
         """Find opponent cars from active ROS topic namespaces."""
@@ -217,6 +239,12 @@ class F1tenthEnvironment(Node, ABC):
             return int(match.group(1)) if match else 10_000
 
         return sorted(discovered_names, key=_car_sort_key)
+
+    def _make_opponent_odom_callback(self, opponent_car_name: str):
+        def _callback(odom: Odometry) -> None:
+            self.latest_opponent_odometries[opponent_car_name] = odom
+
+        return _callback
 
     def _load_tracks(self, track_name: str) -> dict:
         if "multi_track" in track_name or track_name == "staged_tracks":
@@ -280,11 +308,6 @@ class F1tenthEnvironment(Node, ABC):
             car_x, car_y, car_yaw, index = random.choice(self.current_waypoints)
 
         self.spawn_index = index
-        goal_x, goal_y, _, _ = self.current_waypoints[
-            (self.spawn_index + 1) % len(self.current_waypoints)
-        ]
-
-        self.goal_position = (goal_x, goal_y)
         self._set_model_pose(
             model_name=self.car_name,
             x=float(car_x),
@@ -298,7 +321,6 @@ class F1tenthEnvironment(Node, ABC):
                 self.spawn_index,
                 opponent_order,
             )
-
             self._set_model_pose(
                 model_name=opponent_car_name,
                 x=float(opponent_x),
@@ -310,17 +332,29 @@ class F1tenthEnvironment(Node, ABC):
     def _reset(self) -> np.ndarray:
         self._reset_positions()
 
+        self.latest_data = None
+        self._next_build_clear_existing = False
         self._set_simulation_paused(paused=False)
         state_data = self._build_state_data()
         self.previous_state_data = state_data
+        self.race_origin_track_distance = self._track_distance_from_position(
+            state_data.position_xy()
+        )
         self._set_simulation_paused(paused=True)
 
         return state_data.state
 
     def reset(self, training: bool = True) -> np.ndarray:
         self.step_counter = 0
-        self.goals_reached = 0
-        self.total_linear_velocity = 0
+        self.total_linear_velocity = 0.0
+        self.overtakes_per_episode = 0
+        self.overtake_eligible_opponents = set()
+        self.overtaken_opponents = set()
+        self.pole_position_steps = 0
+        self.previous_race_positions = {}
+        self.latest_opponent_odometries = {
+            name: None for name in self.opponent_car_names
+        }
 
         self.stall_counter = 0
 
@@ -329,14 +363,22 @@ class F1tenthEnvironment(Node, ABC):
         self._set_velocity(0, 0)
 
         state = self._reset()
+        if self.previous_state_data is not None:
+            self.previous_race_positions = self._get_race_positions(
+                self.previous_state_data
+            )
+            self._reset_overtake_tracking(self.previous_race_positions)
         return state
 
     def _message_filter_callback(self, odom: Odometry, lidar: LaserScan) -> None:
         self.latest_data = (odom, lidar)
 
-    def _get_data(self, timeout: float = 5.0) -> tuple[Odometry, LaserScan]:
+    def _get_data(
+        self, timeout: float = 5.0, clear_existing: bool = True
+    ) -> tuple[Odometry, LaserScan]:
         # Drain anything stale
-        self.latest_data = None
+        if clear_existing:
+            self.latest_data = None
         end_time = self.get_clock().now().nanoseconds + int(timeout * 1e9)
         spin_timeout_sec = 0.01
 
@@ -374,27 +416,146 @@ class F1tenthEnvironment(Node, ABC):
             or self.step_counter >= self.max_steps
         )
 
-    def _build_state_data(self) -> StateData:
-        odom_msg, lidar_msg = self._get_data()
+    def _build_state_data(self, clear_existing: bool | None = None) -> StateData:
+        if clear_existing is None:
+            clear_existing = getattr(self, "_next_build_clear_existing", True)
+            self._next_build_clear_existing = True
+        odom_msg, lidar_msg = self._get_data(clear_existing=clear_existing)
         state_data = self.state_builder.build_state(odom_msg, lidar_msg)
         self.state_scan_pub.publish(state_data.lidar_state_scan)
         return state_data
 
-    def _update_goal_progress(self, next_state_data: StateData) -> None:
-        next_x, next_y = next_state_data.position_xy()
-        distance_to_goal = math.dist(self.goal_position, [next_x, next_y])
-        if distance_to_goal < self.goal_reach_radius_m:
-            self._advance_goal()
+    def _spline_coord_from_position(self, position_xy: tuple[float, float]) -> float:
+        return self.current_track_model.world_coord_to_spline_coord(
+            np.asarray(position_xy, dtype=np.float64)
+        )
 
-    def _advance_goal(self) -> None:
-        """
-        Move the target goal to the next waypoint on the track.
-        """
-        self.goals_reached += 1
-        new_x, new_y, _, _ = self.current_waypoints[
-            (self.spawn_index + self.goals_reached) % len(self.current_waypoints)
+    def _track_distance_from_position(self, position_xy: tuple[float, float]) -> float:
+        return self.current_track_model.track_distance_from_world_coord(
+            np.asarray(position_xy, dtype=np.float64)
+        )
+
+    def _race_progress_from_position(self, position_xy: tuple[float, float]) -> float:
+        track_distance = self._track_distance_from_position(position_xy)
+        return self.current_track_model.forward_distance_between_track_distances(
+            self.race_origin_track_distance,
+            track_distance,
+        )
+
+    def _unwrap_race_positions(
+        self,
+        previous_positions: dict[str, float],
+        current_wrapped_positions: dict[str, float],
+    ) -> dict[str, float]:
+        lap_length = self.current_track_model.waypoint_lap_length
+        unwrapped_positions = {}
+        for name, current_wrapped in current_wrapped_positions.items():
+            previous_position = previous_positions.get(name)
+            if previous_position is None:
+                unwrapped_positions[name] = current_wrapped
+                continue
+
+            previous_wrapped = previous_position % lap_length
+            delta = self.current_track_model.signed_delta_between_track_distances(
+                previous_wrapped,
+                current_wrapped,
+            )
+            unwrapped_positions[name] = previous_position + delta
+        return unwrapped_positions
+
+    def _get_agent_race_position(self, state_data: StateData) -> float:
+        return self._race_progress_from_position(state_data.position_xy())
+
+    def _get_opponent_race_position(self, opponent_car_name: str) -> float | None:
+        odom = self.latest_opponent_odometries.get(opponent_car_name)
+        if odom is None:
+            return None
+
+        return self._race_progress_from_position(
+            (odom.pose.pose.position.x, odom.pose.pose.position.y)
+        )
+
+    def _get_race_positions(self, state_data: StateData) -> dict[str, float]:
+        positions = {self.car_name: self._get_agent_race_position(state_data)}
+        for opponent_car_name in self.opponent_car_names:
+            opponent_position = self._get_opponent_race_position(opponent_car_name)
+            if opponent_position is not None:
+                positions[opponent_car_name] = opponent_position
+        return positions
+
+    def _reset_overtake_tracking(self, race_positions: dict[str, float]) -> None:
+        self.overtaken_opponents = set()
+        self.overtake_eligible_opponents = set(self.opponent_car_names)
+
+        agent_position = race_positions.get(self.car_name)
+        if agent_position is None:
+            return
+
+        for opponent_car_name in self.opponent_car_names:
+            opponent_position = race_positions.get(opponent_car_name)
+            if opponent_position is None:
+                continue
+            if agent_position > opponent_position - self.overtake_rear_margin_m:
+                self.overtake_eligible_opponents.discard(opponent_car_name)
+
+    def _count_new_agent_overtakes(
+        self,
+        previous_positions: dict[str, float],
+        current_positions: dict[str, float],
+    ) -> int:
+        current_agent_position = current_positions.get(self.car_name)
+        if current_agent_position is None:
+            return 0
+
+        new_overtakes = 0
+        for opponent_car_name in self.opponent_car_names:
+            current_opponent_position = current_positions.get(opponent_car_name)
+            if current_opponent_position is None:
+                continue
+            if opponent_car_name in self.overtaken_opponents:
+                continue
+
+            current_gap = current_agent_position - current_opponent_position
+            if current_gap <= -self.overtake_rear_margin_m:
+                self.overtake_eligible_opponents.add(opponent_car_name)
+                continue
+
+            if (
+                opponent_car_name in self.overtake_eligible_opponents
+                and current_gap >= self.overtake_front_margin_m
+            ):
+                self.overtaken_opponents.add(opponent_car_name)
+                self.overtake_eligible_opponents.discard(opponent_car_name)
+                new_overtakes += 1
+
+        return new_overtakes
+
+    def _is_agent_in_pole_position(self, race_positions: dict[str, float]) -> bool:
+        agent_position = race_positions.get(self.car_name)
+        if agent_position is None:
+            return False
+
+        opponent_positions = [
+            position
+            for name, position in race_positions.items()
+            if name != self.car_name
         ]
-        self.goal_position = (new_x, new_y)
+        return bool(opponent_positions) and all(
+            agent_position > position for position in opponent_positions
+        )
+
+    def _get_opponent_distance_info(
+        self, race_positions: dict[str, float]
+    ) -> dict[str, float]:
+        agent_position = race_positions.get(self.car_name)
+        if agent_position is None:
+            return {}
+
+        return {
+            opponent_car_name: race_positions[opponent_car_name] - agent_position
+            for opponent_car_name in self.opponent_car_names
+            if opponent_car_name in race_positions
+        }
 
     def _calculate_progress_reward(
         self,
@@ -520,18 +681,11 @@ class F1tenthEnvironment(Node, ABC):
             step_progress: Track progress in meters.
         """
         prev_x, prev_y = previous_state_data.position_xy()
-        prev_spline_t = self.current_track_model.world_coord_to_spline_cooin_dist_to_opponent — closest any rd(
-            np.asarray([prev_x, prev_y], dtype=np.float64)
-        )
-
         curr_x, curr_y = current_state_data.position_xy()
-        curr_spline_t = self.current_track_model.world_coord_to_spline_coord(
-            np.asarray([curr_x, curr_y], dtype=np.float64)
-        )
 
-        step_progress = self.current_track_model.linear_distance_between_spline_coords(
-            prev_spline_t,
-            curr_spline_t,
+        step_progress = self.current_track_model.signed_delta_between_world_coords(
+            np.asarray([prev_x, prev_y], dtype=np.float64),
+            np.asarray([curr_x, curr_y], dtype=np.float64),
         )
         step_progress = self._clamp_step_progress(
             step_progress, current_state_data.linear_velocity()
@@ -555,19 +709,52 @@ class F1tenthEnvironment(Node, ABC):
             previous_state_data=self.previous_state_data,
             current_state_data=current_state_data,
         )
-        self._update_goal_progress(current_state_data)
+        wrapped_race_positions = self._get_race_positions(current_state_data)
+        race_positions = self._unwrap_race_positions(
+            self.previous_race_positions,
+            wrapped_race_positions,
+        )
+        self.overtakes_per_episode += self._count_new_agent_overtakes(
+            self.previous_race_positions,
+            race_positions,
+        )
+        if self._is_agent_in_pole_position(race_positions):
+            self.pole_position_steps += 1
 
         terminated = self._is_terminated(current_state_data)
         truncated = self._is_truncated()
         self.total_linear_velocity += current_state_data.linear_velocity()
+        avg_linear_velocity = (
+            self.total_linear_velocity / self.step_counter
+            if self.step_counter > 0
+            else 0.0
+        )
+        distance_to_opponents = self._get_opponent_distance_info(race_positions)
+        episode_done = terminated or truncated
+        episode_overtakes = self.overtakes_per_episode
+        agent_track_position = race_positions.get(self.car_name, 0.0)
 
         info = {
             "linear_velocity": current_state_data.linear_velocity(),
-            "avg_linear_velocity": self.total_linear_velocity / self.step_counter if self.step_counter > 0 else 0,
+            "avg_linear_velocity": avg_linear_velocity,
+            "average_linear_velocity_per_episode": avg_linear_velocity,
+            "distance_to_opponents": distance_to_opponents,
+            "overtakes_per_episode": (
+                episode_overtakes if episode_done else 0
+            ),
+            "time_in_pole_position": self.pole_position_steps,
+            "agent_track_position": agent_track_position,
+            "agent_track_position_m": agent_track_position,
         }
+        for opponent_car_name, opponent_distance in distance_to_opponents.items():
+            info[f"distance_to_{opponent_car_name}"] = opponent_distance
+            opponent_track_position = race_positions[opponent_car_name]
+            info[f"{opponent_car_name}_track_position"] = opponent_track_position
+            info[f"{opponent_car_name}_track_position_m"] = opponent_track_position
         info.update(reward_info)
 
         self.previous_state_data = current_state_data
+        self.previous_race_positions = race_positions
 
         return current_state_data.state, reward, terminated, truncated, info
 
@@ -611,11 +798,16 @@ class F1tenthEnvironment(Node, ABC):
             np.asarray(action, dtype=np.float32), self.min_actions, self.max_actions
         )
         lin_vel, steering_angle = clipped_action
+        self.latest_data = None
+        self._next_build_clear_existing = False
         self._set_simulation_paused(paused=False)
-
+        if self.command_latency_ms > 0.0:
+            self._sleep(self.command_latency_ms)
         self._set_velocity(lin_vel, steering_angle)
 
-        self._sleep(self.step_sleep_time_ms)
+        remaining_step_ms = self.step_sleep_time_ms - self.command_latency_ms
+        if remaining_step_ms > 0.0:
+            self._sleep(remaining_step_ms)
 
         next_state, reward, terminated, truncated, info = self._transition()
 
