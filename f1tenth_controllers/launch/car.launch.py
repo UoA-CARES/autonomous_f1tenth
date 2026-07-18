@@ -86,6 +86,8 @@ def _create_controller_launch(context):
                 "ros_discovery_server": LaunchConfiguration("ros_discovery_server"),
                 "deadman_topic": LaunchConfiguration("deadman_topic"),
                 "cares_python_path": LaunchConfiguration("cares_python_path"),
+                "algorithm": LaunchConfiguration("rl_algorithm"),
+                "checkpoint_path": LaunchConfiguration("checkpoint_path"),
                 "controlled_agent_id": LaunchConfiguration("controlled_agent_id"),
                 "marl_agent_ids": LaunchConfiguration("marl_agent_ids"),
                 "marl_teams": LaunchConfiguration("marl_teams"),
@@ -94,6 +96,10 @@ def _create_controller_launch(context):
                 ),
                 "marl_use_agent_id": LaunchConfiguration("marl_use_agent_id"),
                 "marl_use_team_id": LaunchConfiguration("marl_use_team_id"),
+                "max_speed": LaunchConfiguration("max_speed"),
+                "max_turn": LaunchConfiguration("max_turn"),
+                "min_speed": LaunchConfiguration("min_speed"),
+                "min_turn": LaunchConfiguration("min_turn"),
                 "deadman_timeout_sec": LaunchConfiguration("deadman_timeout_sec"),
                 "command_timeout_sec": LaunchConfiguration("command_timeout_sec"),
             }.items(),
@@ -125,6 +131,16 @@ def generate_launch_description():
         "cares_python_path",
         default_value=".",
         description="Path containing the cares_reinforcement_learning package to add to PYTHONPATH for algorithm:=rl.",
+    )
+    rl_algorithm_arg = DeclareLaunchArgument(
+        "rl_algorithm",
+        default_value="TD3",
+        description="RL/MARL algorithm loaded by rl_policy when algorithm:=rl.",
+    )
+    checkpoint_path_arg = DeclareLaunchArgument(
+        "checkpoint_path",
+        default_value="overtaking_models/TD3_checkpoint.pth",
+        description="Checkpoint path passed to rl_policy when algorithm:=rl.",
     )
     controlled_agent_id_arg = DeclareLaunchArgument(
         "controlled_agent_id",
@@ -166,6 +182,26 @@ def generate_launch_description():
         default_value="1.0",
         description="Maximum FTG speed in m/s for algorithm:=ftg.",
     )
+    max_speed_arg = DeclareLaunchArgument(
+        "max_speed",
+        default_value="3.0",
+        description="Maximum RL speed in m/s for algorithm:=rl.",
+    )
+    max_turn_arg = DeclareLaunchArgument(
+        "max_turn",
+        default_value="0.434",
+        description="Maximum RL steering angle in radians for algorithm:=rl.",
+    )
+    min_speed_arg = DeclareLaunchArgument(
+        "min_speed",
+        default_value="0.5",
+        description="Minimum RL speed in m/s for algorithm:=rl.",
+    )
+    min_turn_arg = DeclareLaunchArgument(
+        "min_turn",
+        default_value="-0.434",
+        description="Minimum RL steering angle in radians for algorithm:=rl.",
+    )
     deadman_topic_arg = DeclareLaunchArgument(
         "deadman_topic",
         default_value="/rl_deadman",
@@ -188,6 +224,8 @@ def generate_launch_description():
             ros_domain_id_arg,
             ros_discovery_server_arg,
             cares_python_path_arg,
+            rl_algorithm_arg,
+            checkpoint_path_arg,
             controlled_agent_id_arg,
             marl_agent_ids_arg,
             marl_teams_arg,
@@ -196,6 +234,10 @@ def generate_launch_description():
             marl_use_team_id_arg,
             ftg_min_velocity_arg,
             ftg_max_velocity_arg,
+            max_speed_arg,
+            max_turn_arg,
+            min_speed_arg,
+            min_turn_arg,
             deadman_topic_arg,
             deadman_timeout_arg,
             command_timeout_arg,
