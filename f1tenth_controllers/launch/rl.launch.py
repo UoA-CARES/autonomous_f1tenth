@@ -6,6 +6,10 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 algorithm = "TD3"
+DEFAULT_MAX_SPEED = "3.0"
+DEFAULT_MIN_SPEED = "0.5"
+DEFAULT_MAX_TURN = "0.434"
+DEFAULT_MIN_TURN = "-0.434"
 
 
 def _prepend_pythonpath(path: Path) -> str:
@@ -89,10 +93,10 @@ def generate_launch_description():
         default_value="",
         description="Optional independent-MARL team identity conditioning flag from training.",
     )
-    max_speed_arg = DeclareLaunchArgument("max_speed", default_value="3.0")
-    max_turn_arg = DeclareLaunchArgument("max_turn", default_value="0.434")
-    min_speed_arg = DeclareLaunchArgument("min_speed", default_value="0.5")
-    min_turn_arg = DeclareLaunchArgument("min_turn", default_value="-0.434")
+    max_speed_arg = DeclareLaunchArgument("max_speed", default_value=DEFAULT_MAX_SPEED)
+    max_turn_arg = DeclareLaunchArgument("max_turn", default_value=DEFAULT_MAX_TURN)
+    min_speed_arg = DeclareLaunchArgument("min_speed", default_value=DEFAULT_MIN_SPEED)
+    min_turn_arg = DeclareLaunchArgument("min_turn", default_value=DEFAULT_MIN_TURN)
     odom_mode_arg = DeclareLaunchArgument("odom_mode", default_value="velocity_only")
     lidar_mode_arg = DeclareLaunchArgument("lidar_mode", default_value="processed")
     forward_half_angle_arg = DeclareLaunchArgument(

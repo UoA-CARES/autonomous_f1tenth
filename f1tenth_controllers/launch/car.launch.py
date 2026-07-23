@@ -12,6 +12,13 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
+DEFAULT_RL_ALGORITHM = "TD3"
+DEFAULT_RL_CHECKPOINT_PATH = "overtaking_models/TD3_checkpoint.pth"
+DEFAULT_RL_MAX_SPEED = "3.0"
+DEFAULT_RL_MIN_SPEED = "0.5"
+DEFAULT_RL_MAX_TURN = "0.434"
+DEFAULT_RL_MIN_TURN = "-0.434"
+
 
 def _set_optional_discovery_server(context):
     discovery_server = LaunchConfiguration("ros_discovery_server").perform(context)
@@ -134,12 +141,12 @@ def generate_launch_description():
     )
     rl_algorithm_arg = DeclareLaunchArgument(
         "rl_algorithm",
-        default_value="TD3",
+        default_value=DEFAULT_RL_ALGORITHM,
         description="RL/MARL algorithm loaded by rl_policy when algorithm:=rl.",
     )
     checkpoint_path_arg = DeclareLaunchArgument(
         "checkpoint_path",
-        default_value="overtaking_models/TD3_checkpoint.pth",
+        default_value=DEFAULT_RL_CHECKPOINT_PATH,
         description="Checkpoint path passed to rl_policy when algorithm:=rl.",
     )
     controlled_agent_id_arg = DeclareLaunchArgument(
@@ -184,22 +191,22 @@ def generate_launch_description():
     )
     max_speed_arg = DeclareLaunchArgument(
         "max_speed",
-        default_value="3.0",
+        default_value=DEFAULT_RL_MAX_SPEED,
         description="Maximum RL speed in m/s for algorithm:=rl.",
     )
     max_turn_arg = DeclareLaunchArgument(
         "max_turn",
-        default_value="0.434",
+        default_value=DEFAULT_RL_MAX_TURN,
         description="Maximum RL steering angle in radians for algorithm:=rl.",
     )
     min_speed_arg = DeclareLaunchArgument(
         "min_speed",
-        default_value="0.5",
+        default_value=DEFAULT_RL_MIN_SPEED,
         description="Minimum RL speed in m/s for algorithm:=rl.",
     )
     min_turn_arg = DeclareLaunchArgument(
         "min_turn",
-        default_value="-0.434",
+        default_value=DEFAULT_RL_MIN_TURN,
         description="Minimum RL steering angle in radians for algorithm:=rl.",
     )
     deadman_topic_arg = DeclareLaunchArgument(
