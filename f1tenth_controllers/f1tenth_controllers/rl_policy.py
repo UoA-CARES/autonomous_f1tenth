@@ -205,6 +205,33 @@ MARL_ALGORITHMS = {
 INDEPENDENT_MARL_ALGORITHMS = {"IDDPG", "ITD3", "ISAC", "IPPO"}
 
 
+def _resolve_algorithm_name(configured_algorithm: str) -> tuple[str, str]:
+    checkpoint_name = str(configured_algorithm).strip()
+    algorithm_name = checkpoint_name.upper()
+    known_algorithms = sorted(MARL_ALGORITHMS | {
+        "CTD4",
+        "DDPG",
+        "DQN",
+        "LA3PSAC",
+        "LAPSAC",
+        "PERSAC",
+        "PPO",
+        "REDQ",
+        "SAC",
+        "TD3",
+    }, key=len, reverse=True)
+
+    for known_algorithm in known_algorithms:
+        if algorithm_name == known_algorithm or algorithm_name.startswith(f"{known_algorithm}_"):
+            return known_algorithm, checkpoint_name
+
+    return algorithm_name, checkpoint_name
+
+
+def _default_checkpoint_path(checkpoint_name: str) -> str:
+    return f"overtaking_models/{checkpoint_name}_checkpoint.pth"
+
+
 def _parse_csv(value: str) -> list[str]:
     return [item.strip() for item in str(value).split(",") if item.strip()]
 
@@ -542,7 +569,8 @@ def main():
         for parameter in param_node.get_parameters(parameter_names)
     }
 
-    algorithm = str(params["algorithm"]).upper()
+    configured_algorithm = str(params["algorithm"])
+    algorithm, checkpoint_name = _resolve_algorithm_name(configured_algorithm)
     is_marl = algorithm in MARL_ALGORITHMS
     controlled_agent_id = str(params["controlled_agent_id"] or params["car_name"])
 
@@ -558,9 +586,15 @@ def main():
             float(params["min_turn"]),
         ]
     )
-    checkpoint_path = _resolve_path(params["checkpoint_path"], controllers_share)
+    checkpoint_path_value = str(params["checkpoint_path"] or "")
+    if not checkpoint_path_value:
+        checkpoint_path_value = _default_checkpoint_path(checkpoint_name)
+    checkpoint_path = _resolve_path(checkpoint_path_value, controllers_share)
 
-    print(f"Reading saved model checkpoint from '{checkpoint_path}'")
+    print(
+        f"Configured algorithm={algorithm} from {configured_algorithm!r}; "
+        f"reading saved model checkpoint from '{checkpoint_path}'"
+    )
 
     network_config = _load_network_config(algorithm)
     _set_optional_config(

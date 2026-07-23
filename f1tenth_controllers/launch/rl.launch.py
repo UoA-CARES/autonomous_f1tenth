@@ -61,7 +61,7 @@ def generate_launch_description():
     )
     checkpoint_path_arg = DeclareLaunchArgument(
         "checkpoint_path",
-        default_value="overtaking_models/" + algorithm + "_checkpoint.pth",
+        default_value="",
     )
     controlled_agent_id_arg = DeclareLaunchArgument(
         "controlled_agent_id",

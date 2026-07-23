@@ -13,7 +13,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 DEFAULT_RL_ALGORITHM = "TD3"
-DEFAULT_RL_CHECKPOINT_PATH = "overtaking_models/TD3_checkpoint.pth"
+DEFAULT_RL_CHECKPOINT_PATH = ""
 DEFAULT_RL_MAX_SPEED = "3.0"
 DEFAULT_RL_MIN_SPEED = "0.5"
 DEFAULT_RL_MAX_TURN = "0.434"
