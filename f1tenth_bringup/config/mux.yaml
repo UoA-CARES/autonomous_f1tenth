@@ -3,7 +3,7 @@ ackermann_mux:
     topics:
       navigation:
         topic   : /f1tenth/drive
-        timeout : 0.1
+        timeout : 0.25
         priority: 10
       joystick:
         topic   : /teleop

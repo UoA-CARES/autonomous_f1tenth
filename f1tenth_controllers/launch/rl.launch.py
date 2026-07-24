@@ -94,6 +94,9 @@ def generate_launch_description():
         description="Optional independent-MARL team identity conditioning flag from training.",
     )
     max_speed_arg = DeclareLaunchArgument("max_speed", default_value=DEFAULT_MAX_SPEED)
+    training_max_speed_arg = DeclareLaunchArgument(
+        "training_max_speed", default_value="5.0"
+    )
     max_turn_arg = DeclareLaunchArgument("max_turn", default_value=DEFAULT_MAX_TURN)
     min_speed_arg = DeclareLaunchArgument("min_speed", default_value=DEFAULT_MIN_SPEED)
     min_turn_arg = DeclareLaunchArgument("min_turn", default_value=DEFAULT_MIN_TURN)
@@ -111,7 +114,7 @@ def generate_launch_description():
         "deadman_timeout_sec", default_value="0.1"
     )
     command_timeout_arg = DeclareLaunchArgument(
-        "command_timeout_sec", default_value="0.1"
+        "command_timeout_sec", default_value="0.25"
     )
 
     main = Node(
@@ -133,6 +136,7 @@ def generate_launch_description():
                 "marl_use_agent_id": LaunchConfiguration("marl_use_agent_id"),
                 "marl_use_team_id": LaunchConfiguration("marl_use_team_id"),
                 "max_speed": LaunchConfiguration("max_speed"),
+                "training_max_speed": LaunchConfiguration("training_max_speed"),
                 "max_turn": LaunchConfiguration("max_turn"),
                 "min_speed": LaunchConfiguration("min_speed"),
                 "min_turn": LaunchConfiguration("min_turn"),
@@ -192,6 +196,7 @@ def generate_launch_description():
             marl_use_agent_id_arg,
             marl_use_team_id_arg,
             max_speed_arg,
+            training_max_speed_arg,
             max_turn_arg,
             min_speed_arg,
             min_turn_arg,

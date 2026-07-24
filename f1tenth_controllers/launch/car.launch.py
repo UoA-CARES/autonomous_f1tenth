@@ -104,6 +104,7 @@ def _create_controller_launch(context):
                 "marl_use_agent_id": LaunchConfiguration("marl_use_agent_id"),
                 "marl_use_team_id": LaunchConfiguration("marl_use_team_id"),
                 "max_speed": LaunchConfiguration("max_speed"),
+                "training_max_speed": LaunchConfiguration("training_max_speed"),
                 "max_turn": LaunchConfiguration("max_turn"),
                 "min_speed": LaunchConfiguration("min_speed"),
                 "min_turn": LaunchConfiguration("min_turn"),
@@ -194,6 +195,11 @@ def generate_launch_description():
         default_value=DEFAULT_RL_MAX_SPEED,
         description="Maximum RL speed in m/s for algorithm:=rl.",
     )
+    training_max_speed_arg = DeclareLaunchArgument(
+        "training_max_speed",
+        default_value="5.0",
+        description="Maximum speed used to scale observations and actions during training.",
+    )
     max_turn_arg = DeclareLaunchArgument(
         "max_turn",
         default_value=DEFAULT_RL_MAX_TURN,
@@ -219,7 +225,7 @@ def generate_launch_description():
     )
     command_timeout_arg = DeclareLaunchArgument(
         "command_timeout_sec",
-        default_value="0.1",
+        default_value="0.25",
     )
 
     return LaunchDescription(
@@ -242,6 +248,7 @@ def generate_launch_description():
             ftg_min_velocity_arg,
             ftg_max_velocity_arg,
             max_speed_arg,
+            training_max_speed_arg,
             max_turn_arg,
             min_speed_arg,
             min_turn_arg,

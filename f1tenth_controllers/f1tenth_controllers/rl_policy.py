@@ -515,6 +515,41 @@ def _marl_action(agent, agent_id: str, state: np.ndarray):
     return learning_unit.act(SARLObservation(vector_state=obs), evaluation=True).action
 
 
+def _filter_sac_family_steering(
+    action: np.ndarray,
+    previous_steering: float,
+    smoothing: float = 0.35,
+    max_step: float = 0.08,
+) -> np.ndarray:
+    """Smooth MASAC steering without changing speed or other algorithms."""
+    target = float(action[1])
+    filtered = previous_steering + smoothing * (target - previous_steering)
+    filtered = float(
+        np.clip(filtered, previous_steering - max_step, previous_steering + max_step)
+    )
+    filtered_action = action.copy()
+    filtered_action[1] = filtered
+    return filtered_action
+
+
+def _apply_masac_corner_speed(
+    action: np.ndarray,
+    max_speed: float,
+    min_corner_speed: float,
+    max_turn: float,
+    steering_deadband: float = 0.15,
+) -> np.ndarray:
+    """Reduce MASAC speed only once meaningful cornering begins."""
+    steering_range = max(abs(max_turn) - steering_deadband, 1e-6)
+    steering_ratio = float(
+        np.clip((abs(action[1]) - steering_deadband) / steering_range, 0.0, 1.0)
+    )
+    corner_speed_cap = max_speed + (min_corner_speed - max_speed) * steering_ratio
+    limited_action = action.copy()
+    limited_action[0] = min(limited_action[0], corner_speed_cap)
+    return limited_action
+
+
 def main():
     rclpy.init()
     param_node = rclpy.create_node("rl_policy_params")
@@ -534,6 +569,8 @@ def main():
             ("marl_use_agent_id", ""),
             ("marl_use_team_id", ""),
             ("max_speed", 5.0),
+            ("training_max_speed", 5.0),
+            ("masac_min_corner_speed", 0.75),
             ("max_turn", 0.434),
             ("min_speed", 0.5),
             ("min_turn", -0.434),
@@ -555,6 +592,8 @@ def main():
         "marl_use_agent_id",
         "marl_use_team_id",
         "max_speed",
+        "training_max_speed",
+        "masac_min_corner_speed",
         "max_turn",
         "min_speed",
         "min_turn",
@@ -574,18 +613,31 @@ def main():
     is_marl = algorithm in MARL_ALGORITHMS
     controlled_agent_id = str(params["controlled_agent_id"] or params["car_name"])
 
+    deployment_max_speed = float(params["max_speed"])
+    training_max_speed = float(params["training_max_speed"])
+    min_speed = float(params["min_speed"])
+    if not min_speed < deployment_max_speed <= training_max_speed:
+        raise ValueError(
+            "Expected min_speed < max_speed <= training_max_speed, got "
+            f"{min_speed} < {deployment_max_speed} <= {training_max_speed}."
+        )
+
     MAX_ACTIONS = np.asarray(
-        [
-            float(params["max_speed"]),
-            float(params["max_turn"]),
-        ]
+        [deployment_max_speed, float(params["max_turn"])]
     )
     MIN_ACTIONS = np.asarray(
-        [
-            float(params["min_speed"]),
-            float(params["min_turn"]),
-        ]
+        [min_speed, float(params["min_turn"])]
     )
+    POLICY_MAX_ACTIONS = np.asarray(
+        [training_max_speed, float(params["max_turn"])]
+    )
+    masac_min_corner_speed = float(params["masac_min_corner_speed"])
+    if algorithm == "MASAC" and not (
+        min_speed <= masac_min_corner_speed <= deployment_max_speed
+    ):
+        raise ValueError(
+            "masac_min_corner_speed must be between min_speed and max_speed."
+        )
     checkpoint_path_value = str(params["checkpoint_path"] or "")
     if not checkpoint_path_value:
         checkpoint_path_value = _default_checkpoint_path(checkpoint_name)
@@ -674,7 +726,7 @@ def main():
         lidar_mode=params["lidar_mode"],
         lidar_state_size=lidar_points,
         min_speed=float(params["min_speed"]),
-        max_speed=float(params["max_speed"]),
+        max_speed=training_max_speed,
         max_turn=float(params["max_turn"]),
         wheelbase_m=float(params["wheelbase"]),
         forward_half_angle=float(params["forward_half_angle"]),
@@ -726,8 +778,9 @@ def main():
             f"Initial runtime state has {len(state)} values; checkpoint expects "
             f"{raw_observation_size}."
         )
-    MAX_CONFIG_ACTIONS = MAX_ACTIONS
+    MAX_CONFIG_ACTIONS = POLICY_MAX_ACTIONS
     MIN_CONFIG_ACTIONS = MIN_ACTIONS
+    previous_sac_steering = 0.0
 
     while True:
         if is_marl:
@@ -742,6 +795,15 @@ def main():
             )
             action = agent.act(observation, evaluation=True).action
         action = denormalize(action, MAX_CONFIG_ACTIONS, MIN_CONFIG_ACTIONS)
+        if algorithm == "MASAC":
+            action = _filter_sac_family_steering(action, previous_sac_steering)
+            previous_sac_steering = float(action[1])
+            action = _apply_masac_corner_speed(
+                action,
+                max_speed=deployment_max_speed,
+                min_corner_speed=masac_min_corner_speed,
+                max_turn=float(params["max_turn"]),
+            )
         action = np.clip(action, MIN_ACTIONS, MAX_ACTIONS)
         state = controller.step(action, policy_id)
         if len(state) != raw_observation_size:

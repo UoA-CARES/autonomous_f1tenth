@@ -20,7 +20,7 @@ class RLDeadman(Node):
         self.declare_parameter("car_name", "f1tenth")
         self.declare_parameter("deadman_topic", "/rl_deadman")
         self.declare_parameter("deadman_timeout_sec", 0.1)
-        self.declare_parameter("command_timeout_sec", 0.1)
+        self.declare_parameter("command_timeout_sec", 0.25)
 
         car_name = str(self.get_parameter("car_name").value)
         deadman_topic = str(self.get_parameter("deadman_topic").value)
