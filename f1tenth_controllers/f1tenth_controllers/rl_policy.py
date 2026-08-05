@@ -227,11 +227,6 @@ def _resolve_algorithm_name(configured_algorithm: str) -> tuple[str, str]:
 
     return algorithm_name, checkpoint_name
 
-
-def _default_checkpoint_path(checkpoint_name: str) -> str:
-    return f"overtaking_models/{checkpoint_name}_checkpoint.pth"
-
-
 def _parse_csv(value: str) -> list[str]:
     return [item.strip() for item in str(value).split(",") if item.strip()]
 
@@ -272,6 +267,20 @@ def _set_optional_config(config, name: str, value):
         setattr(config, name, str(value))
 
 
+def _extract_actor_state(checkpoint) -> dict | None:
+    """Extract actor state_dict whether wrapped in a dict or saved directly."""
+    if not isinstance(checkpoint, dict):
+        return None
+    # Check common dictionary wrapper keys
+    for key in ("actor", "policy", "agent", "actor_net"):
+        if isinstance(checkpoint.get(key), dict):
+            return checkpoint[key]
+    # Check if the checkpoint itself is directly a state_dict
+    if any(isinstance(k, str) and k.endswith(".weight") for k in checkpoint.keys()):
+        return checkpoint
+    return None
+
+
 def _checkpoint_has_actor(path: Path) -> bool:
     if not path.is_file() or path.suffix not in {".pth", ".pht", ".pt"}:
         return False
@@ -279,14 +288,22 @@ def _checkpoint_has_actor(path: Path) -> bool:
         checkpoint = torch.load(path, map_location=torch.device("cpu"))
     except Exception:
         return False
-    return isinstance(checkpoint, dict) and isinstance(checkpoint.get("actor"), dict)
+    return _extract_actor_state(checkpoint) is not None
 
 
 def _load_actor_checkpoint(path: Path) -> dict:
     checkpoint = torch.load(path, map_location=torch.device("cpu"))
-    if not isinstance(checkpoint, dict) or not isinstance(checkpoint.get("actor"), dict):
-        raise ValueError(f"'{path}' does not contain an actor checkpoint.")
-    return checkpoint
+    actor_state = _extract_actor_state(checkpoint)
+    if actor_state is None:
+        raise ValueError(f"'{path}' does not contain a valid actor state dict.")
+    return {"actor": actor_state, "raw": checkpoint}
+
+
+def _default_checkpoint_path(checkpoint_name: str) -> str:
+    # Retain exact filename if user passes full filename with extension
+    if checkpoint_name.endswith((".pth", ".pt")):
+        return f"overtaking_models/{checkpoint_name}"
+    return f"overtaking_models/{checkpoint_name}_checkpoint.pth"
 
 
 def _find_actor_checkpoint(checkpoint_path: Path, learning_unit_id: str | None = None) -> Path:
@@ -307,7 +324,8 @@ def _find_actor_checkpoint(checkpoint_path: Path, learning_unit_id: str | None =
 
     seen = set()
     for root in search_roots:
-        for candidate in sorted(root.rglob("*checkpoint*.pth")):
+        # Search all PyTorch checkpoints regardless of "checkpoint" in the filename
+        for candidate in sorted(root.rglob("*.pth")):
             if candidate in seen:
                 continue
             seen.add(candidate)
@@ -316,15 +334,77 @@ def _find_actor_checkpoint(checkpoint_path: Path, learning_unit_id: str | None =
             if _checkpoint_has_actor(candidate):
                 return candidate
 
-    for candidate in sorted(checkpoint_path.rglob("*.pth")):
-        if _checkpoint_has_actor(candidate):
-            return candidate
-
     raise FileNotFoundError(
         f"No actor checkpoint found under '{checkpoint_path}'"
         + (f" for learning unit '{learning_unit_id}'." if learning_unit_id else ".")
     )
 
+
+def _configure_actor_from_checkpoint(
+    algorithm: str, network_config, actor_state: dict
+):
+    configurations_module = importlib.import_module(
+        "cares_reinforcement_learning.algorithm.configurations"
+    )
+
+    # Primary check for cares_rl naming scheme
+    trunk_weights = [
+        (name, tensor)
+        for name, tensor in actor_state.items()
+        if "act_net.model." in name
+        and name.endswith("weight")
+        and getattr(tensor, "ndim", 0) == 2
+    ]
+    
+    # Fallback search for general PyTorch weight keys
+    if not trunk_weights:
+        trunk_weights = [
+            (name, tensor)
+            for name, tensor in actor_state.items()
+            if name.endswith("weight")
+            and getattr(tensor, "ndim", 0) == 2
+            and not name.startswith(("mean_linear", "log_std_linear"))
+        ]
+
+    trunk_weights.sort(key=lambda item: item[0])
+    if not trunk_weights:
+        raise ValueError("Actor checkpoint contains no recognizable linear weights.")
+
+    algorithm = algorithm.upper()
+    is_sac = algorithm in {"SAC", "PERSAC", "LAPSAC", "LA3PSAC"}
+
+    if is_sac:
+        mean_weight = actor_state.get("mean_linear.weight")
+        log_std_weight = actor_state.get("log_std_linear.weight")
+        if mean_weight is None or log_std_weight is None:
+            raise ValueError(
+                f"{algorithm} checkpoint must contain mean_linear and log_std_linear actor heads."
+            )
+        action_num = int(mean_weight.shape[0])
+    else:
+        action_num = int(trunk_weights[-1][1].shape[0])
+
+    layers = []
+    for index, (_, weight) in enumerate(trunk_weights):
+        in_features = int(weight.shape[1])
+        out_features = int(weight.shape[0])
+        is_output_layer = not is_sac and index == len(trunk_weights) - 1
+
+        layer_args = {"layer_type": "Linear"}
+        if index > 0:
+            layer_args["in_features"] = in_features
+        if not is_output_layer:
+            layer_args["out_features"] = out_features
+        layers.append(configurations_module.TrainableLayer(**layer_args))
+        layers.append(
+            configurations_module.FunctionLayer(
+                layer_type="Tanh" if is_output_layer else "ReLU"
+            )
+        )
+
+    network_config.actor_config = configurations_module.MLPConfig(layers=layers)
+    observation_size = int(trunk_weights[0][1].shape[1])
+    return observation_size, action_num
 
 def _configure_actor_from_any_checkpoint(
     algorithm: str,
@@ -340,7 +420,6 @@ def _configure_actor_from_any_checkpoint(
         actor_state,
     )
     return observation_size, action_num, actor_checkpoint_path
-
 
 def _identity_extra_size(config, agent_ids: list[str], teams: dict[str, list[str]]) -> int:
     if len(agent_ids) <= 1:
