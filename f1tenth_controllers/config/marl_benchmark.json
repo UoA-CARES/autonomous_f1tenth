@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "experiment_name": "f1tenth_marl_benchmark",
+  "track": {
+    "world": "test_track_02_350",
+    "identifier": "test_track_02_350",
+    "direction": "counter_clockwise",
+    "start_waypoint_index": 10,
+    "lateral_offset_m": 0.3
+  },
+  "environment": {
+    "max_steps": 6000,
+    "timeout_sim_seconds": 600.0,
+    "step_sleep_time_ms": 100,
+    "command_latency_ms": 30,
+    "odom_mode": "velocity_only",
+    "lidar_mode": "processed",
+    "lidar_state_size": 9,
+    "max_speed": 5.0,
+    "min_speed": 0.5,
+    "max_turn": 0.434,
+    "collision_range_m": 0.2,
+    "stall_progress_threshold_m": 0.02,
+    "stall_limit_steps": 5,
+    "position_speed_multiplier": 1.0,
+    "action_pipeline": "training_raw_policy_output_direct_to_environment_clip",
+    "simulator_seed_supported": false
+  },
+  "lap_monitor": {
+    "sector_fractions": [0.25, 0.5, 0.75],
+    "max_projection_jump_m": 1.0
+  },
+  "race": {
+    "tie_tolerance_s": 0.001,
+    "crash_event_window_s": 0.1,
+    "possible_contact_distance_m": 0.5,
+    "rear_end_closing_speed_mps": 0.2,
+    "seeds": [42, 100]
+  },
+  "time_trials": {
+    "trials_per_algorithm": 10,
+    "seeds": [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009]
+  },
+  "checkpoints": {
+    "MATD3": {
+      "filename": "MATD3_f1tenth_checkpoint_Seed_100.pth",
+      "sha256": "79a5343e89335889d127922e4b2458515c98e41890409dc482d37280926aaaaa",
+      "size_bytes": 3689429,
+      "actor_id": "f1tenth"
+    },
+    "MAPPO": {
+      "filename": "MAPPO_f1tenth_checkpoint_Seed_42.pth",
+      "sha256": "00532b0cb5a8c78ee0360a5ab4c9ce4e07a84834632f1fbf5dbfcf79b4622a97",
+      "size_bytes": 1782314,
+      "actor_id": "f1tenth"
+    },
+    "MASAC": {
+      "filename": "MASAC_f1tenth_checkpoint_Seed_42.pth",
+      "sha256": "db2f3196a2a5d8d52809f6813700edf95e09b17da79f78097314f85cea7b6eed",
+      "size_bytes": 3418311,
+      "actor_id": "f1tenth"
+    },
+    "ITD3": {
+      "filename": "ITD3_agent_f1tenth_checkpoint_Seed_100.pth",
+      "sha256": "36bec3d3ceed269a0d1e80f3c9ab3388fe107fb708c07b20408bb266f800878c",
+      "size_bytes": 3370421,
+      "actor_id": "f1tenth"
+    },
+    "IPPO": {
+      "filename": "IPPO_agent_f1tenth_checkpoint_Seed_42.pth",
+      "sha256": "37cd21e3a3ecd6ae21fd2ee0e76099c8c375b9e07784c40f61926ba49691db1d",
+      "size_bytes": 1681243,
+      "actor_id": "f1tenth"
+    },
+    "ISAC": {
+      "filename": "ISAC_agent_f1tenth_checkpoint_Seed_456.pth",
+      "sha256": "9e92347bf5825e0339aae0587b2feb22da16932fb422faca6b726d0b7e0137a1",
+      "size_bytes": 3100235,
+      "actor_id": "f1tenth"
+    }
+  }
+}
