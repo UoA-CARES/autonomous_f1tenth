@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -61,6 +62,10 @@ class ScriptedEnvironment:
     car_name = "f1tenth"
     collision_range_m = 0.2
     stall_limit_steps = 5
+
+    @staticmethod
+    def get_clock():
+        return SimpleNamespace(ros_time_is_active=True)
 
     def __init__(self, agents, *, crash_step=None, crash_agents=()) -> None:
         self.agents = list(agents)
@@ -220,6 +225,10 @@ def test_race_uses_one_observation_snapshot_and_reports_along_track_lead(
     assert environment.reset_options["spawn_poses"]["f1tenth"][
         "lateral_offset_m"
     ] == pytest.approx(0.3)
+    event = (
+        tmp_path / "events.jsonl"
+    ).read_text(encoding="utf-8").splitlines()[-1]
+    assert '"monitor_evidence"' in event
 
 
 def test_single_isolated_crash_produces_crash_win_with_attribution(

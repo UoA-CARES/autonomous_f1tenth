@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 import rclpy
 from ament_index_python.packages import get_package_share_directory
+from rclpy.parameter import Parameter
 
 import cares_reinforcement_learning
 from f1tenth_environments import EnvironmentFactory
@@ -171,6 +172,18 @@ def environment_factory_config(config: dict) -> dict:
         **{key: values[key] for key in factory_keys},
         "track": config["track"]["world"],
     }
+
+
+def enable_simulator_time(environment) -> None:
+    """Make the externally launched evaluation node consume Gazebo /clock."""
+    results = environment.set_parameters(
+        [Parameter("use_sim_time", Parameter.Type.BOOL, True)]
+    )
+    if not results or not all(result.successful for result in results):
+        reasons = [result.reason for result in results]
+        raise RuntimeError(
+            f"Could not enable ROS simulator time: {reasons}"
+        )
 
 
 def validate_environment(
@@ -431,6 +444,7 @@ def main(argv=None) -> None:
             "MultiCarRace",
             config=environment_factory_config(config),
         )
+        enable_simulator_time(environment)
         validate_environment(
             environment,
             config,
@@ -487,7 +501,8 @@ def main(argv=None) -> None:
         )
     finally:
         if environment is not None:
-            environment._stop_all_agents()
+            if rclpy.ok():
+                environment._stop_all_agents()
             environment.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

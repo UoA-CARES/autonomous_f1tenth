@@ -7,6 +7,7 @@ import pytest
 from f1tenth_controllers.benchmark.cli import (
     build_heat_schedule,
     build_trial_schedule,
+    enable_simulator_time,
     environment_factory_config,
     pilot_heats,
     pilot_trials,
@@ -122,3 +123,34 @@ def test_runtime_fidelity_validation_rejects_competition_disadvantage() -> None:
             policies(),
             expected_agent_count=2,
         )
+
+
+class FakeClock:
+    ros_time_is_active = True
+
+    @staticmethod
+    def now():
+        return SimpleNamespace(nanoseconds=42_000_000_000)
+
+
+class FakeSimulatorTimeNode:
+    def __init__(self) -> None:
+        self.parameter = None
+
+    def set_parameters(self, parameters):
+        self.parameter = parameters[0]
+        return [SimpleNamespace(successful=True, reason="")]
+
+    @staticmethod
+    def get_clock():
+        return FakeClock()
+
+
+def test_simulator_time_is_explicitly_enabled(monkeypatch) -> None:
+    node = FakeSimulatorTimeNode()
+    monkeypatch.setattr("rclpy.spin_once", lambda *_args, **_kwargs: None)
+
+    enable_simulator_time(node)
+
+    assert node.parameter.name == "use_sim_time"
+    assert node.parameter.value is True

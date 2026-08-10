@@ -144,10 +144,19 @@ class BenchmarkRunner:
         )
 
     def _sim_times(self) -> tuple[float, float]:
+        if not self.environment.get_clock().ros_time_is_active:
+            raise RuntimeError(
+                "Environment clock is not using ROS simulator time"
+            )
         command_time = self.environment.last_command_sim_time_s
         observation_time = self.environment.last_observation_sim_time_s
         if command_time is None or observation_time is None:
             raise RuntimeError("Environment did not expose simulator timestamps")
+        if command_time < 0.0 or observation_time < command_time:
+            raise RuntimeError(
+                "Invalid simulator timestamp pair: "
+                f"command={command_time}, observation={observation_time}"
+            )
         return float(command_time), float(observation_time)
 
     def run_time_trial(
@@ -578,6 +587,18 @@ class BenchmarkRunner:
                 "sim_time": outcome_time,
                 "outcome_type": outcome_type,
                 "winner": winner_algorithm,
+                "monitor_evidence": {
+                    algorithms_by_agent[agent]: {
+                        "accepted": update.accepted,
+                        "reason": update.reason,
+                        "previous_progress_m": (
+                            update.previous_unwrapped_progress_m
+                        ),
+                        "progress_m": update.unwrapped_progress_m,
+                        "signed_step_m": update.signed_step_m,
+                    }
+                    for agent, update in final_updates.items()
+                },
                 "manifest_id": self.manifest_id,
             }
         )
