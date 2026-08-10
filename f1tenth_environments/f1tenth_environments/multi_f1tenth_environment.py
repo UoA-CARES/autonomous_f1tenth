@@ -152,6 +152,9 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self.previous_race_positions: dict[str, float] = {}
         self.race_origin_track_distance = 0.0
         self.cmd_vel_pubs = {}
+        self.last_reset_seed: int | None = None
+        self.last_command_sim_time_s: float | None = None
+        self.last_observation_sim_time_s: float | None = None
 
         self.odom_subs = {}
         self.lidar_subs = {}
@@ -365,10 +368,53 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
         return new_overtakes
 
-    def _reset_positions(self) -> None:
-        self.current_track = self._select_track_name()
+    def _reset_positions(self, options: dict | None = None) -> None:
+        options = options or {}
+        requested_track = options.get("track_name")
+        if requested_track is not None and requested_track not in self.tracks:
+            raise ValueError(
+                f"Unknown evaluation track {requested_track!r}; "
+                f"available tracks: {list(self.tracks)}"
+            )
+
+        self.current_track = requested_track or self._select_track_name()
         self.current_waypoints = self.tracks[self.current_track]
         self.current_track_model = self.track_progress_models[self.current_track]
+
+        spawn_poses = options.get("spawn_poses")
+        if spawn_poses is not None:
+            expected_agents = set(self.agents)
+            supplied_agents = set(spawn_poses)
+            if supplied_agents != expected_agents:
+                raise ValueError(
+                    "Evaluation spawn_poses must match environment agents; "
+                    f"expected={sorted(expected_agents)}, "
+                    f"supplied={sorted(supplied_agents)}"
+                )
+
+            self.spawn_indices = {}
+            for agent in self.agents:
+                pose = spawn_poses[agent]
+                missing_fields = {
+                    field for field in ("x", "y", "yaw") if field not in pose
+                }
+                if missing_fields:
+                    raise ValueError(
+                        f"Evaluation pose for {agent!r} is missing "
+                        f"{sorted(missing_fields)}"
+                    )
+                self.spawn_indices[agent] = int(
+                    pose.get("waypoint_index", 0)
+                )
+                self._set_model_pose(
+                    model_name=agent,
+                    x=float(pose["x"]),
+                    y=float(pose["y"]),
+                    z=float(pose.get("z", 0.0)),
+                    yaw=float(pose["yaw"]),
+                )
+            self.spawn_index = self.spawn_indices[self.car_name]
+            return
 
         # Spawn main car
         if self.is_eval:
@@ -407,8 +453,12 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             )
 
     def reset(self, seed=None, options=None) -> dict:
+        reset_options = dict(options or {})
         self.step_counter = 0
-        self.is_eval = False
+        self.is_eval = bool(reset_options.get("evaluation", False))
+        self.last_reset_seed = seed
+        self.last_command_sim_time_s = None
+        self.last_observation_sim_time_s = None
         self._last_track_distances = {agent: 0.0 for agent in self.agents}
 
         self._set_simulation_paused(paused=True)
@@ -420,7 +470,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             self.pole_position_steps[agent] = 0
         self._stop_all_agents()
 
-        self._reset_positions()
+        self._reset_positions(options=reset_options)
         self._stop_all_agents()
         self._clear_all_data()
         self._set_simulation_paused(paused=False)
@@ -429,6 +479,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         all_state_data = self._build_all_state_data(clear_existing=False)
 
         self._set_simulation_paused(paused=True)
+        self.last_observation_sim_time_s = self._sim_time_seconds()
 
         # Initialise each agent's goal to the next waypoint from their spawn position
         for agent in self.agents:
@@ -590,6 +641,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         if self.command_latency_ms > 0.0:
             self._sleep(self.command_latency_ms)
 
+        self.last_command_sim_time_s = self._sim_time_seconds()
         for agent, action in actions.items():
             agent_max_speed = (
                 self.max_actions[0]
@@ -618,6 +670,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             self._sleep(remaining_step_ms)
         all_state_data = self._build_all_state_data(clear_existing=False)
         self._set_simulation_paused(paused=True)
+        self.last_observation_sim_time_s = self._sim_time_seconds()
 
         obs, rewards, terminateds, truncateds, infos = {}, {}, {}, {}, {}
 
@@ -668,6 +721,10 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self._last_track_distances = dict(race_positions)
 
         return obs, rewards, terminateds, truncateds, infos
+
+    def _sim_time_seconds(self) -> float:
+        """Return the active ROS/Gazebo clock without changing simulation state."""
+        return self.get_clock().now().nanoseconds / 1e9
     
     # override for multi agents
     def _get_required_data_topic_names(self) -> list[str]:
