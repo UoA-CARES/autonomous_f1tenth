@@ -765,6 +765,15 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         for agent in self.agents:
             self.cmd_vel_pubs[agent].publish(msg)
 
+    def stop_agent(self, agent: str) -> None:
+        """Publish one zero command for an evaluation car that has DNFed."""
+        if agent not in self.cmd_vel_pubs:
+            raise ValueError(f"Unknown agent {agent!r}")
+        msg = Twist()
+        msg.linear.x = 0.0
+        msg.angular.z = 0.0
+        self.cmd_vel_pubs[agent].publish(msg)
+
     def _clear_all_data(self) -> None:
         for agent in self.agents:
             self.latest_data[agent] = None
