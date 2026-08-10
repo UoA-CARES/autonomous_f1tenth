@@ -36,6 +36,7 @@ setup(
             "load_path = f1tenth_controllers.load_path:main",
             "planner = f1tenth_controllers.planner:main",
             "state_machine = f1tenth_controllers.state_machine:main",
+            "marl_benchmark = f1tenth_controllers.benchmark.cli:main",
         ],
     },
 )

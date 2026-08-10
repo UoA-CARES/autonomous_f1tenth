@@ -93,8 +93,31 @@ def test_manifest_is_stable_and_cannot_be_replaced(tmp_path: Path) -> None:
     assert writer.write_manifest(
         {"config_id": "abc", "checkpoints": {"MATD3": "hash"}}
     ) == manifest
+    reopened = writer.write_manifest(
+        {
+            "created_at": "later",
+            "config_id": "abc",
+            "checkpoints": {"MATD3": "hash"},
+        }
+    )
+    assert reopened == manifest
 
     with pytest.raises(ValueError, match="different manifest"):
         writer.write_manifest(
             {"config_id": "different", "checkpoints": {"MATD3": "hash"}}
         )
+
+
+def test_result_writer_reports_existing_ids_after_reopen(
+    tmp_path: Path,
+) -> None:
+    writer = ResultWriter(tmp_path)
+    writer.write_time_trial({"trial_id": "trial_1"})
+    writer.write_head_to_head({"heat_id": "heat_1"})
+
+    reopened = ResultWriter(tmp_path)
+
+    assert reopened.has_time_trial("trial_1")
+    assert reopened.has_head_to_head("heat_1")
+    assert not reopened.has_time_trial("trial_missing")
+    assert not reopened.has_head_to_head("heat_missing")

@@ -252,6 +252,7 @@ def test_single_isolated_crash_produces_crash_win_with_attribution(
     assert row["crash_participants"] == ["SLOW"]
     assert row["responsible_car"] == "SLOW"
     assert row["attribution_confidence"] == "medium"
+    assert row["dnf_reasons"] == {"SLOW": "collision"}
 
 
 def test_same_step_two_car_crash_is_double_crash_and_conservative(
@@ -283,3 +284,7 @@ def test_same_step_two_car_crash_is_double_crash_and_conservative(
     assert set(row["crash_participants"]) == {"FAST", "SLOW"}
     assert row["responsible_car"] == "indeterminate"
     assert row["attribution_confidence"] == "low"
+    assert row["dnf_reasons"] == {
+        "FAST": "collision",
+        "SLOW": "collision",
+    }

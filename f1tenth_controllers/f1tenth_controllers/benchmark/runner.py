@@ -22,6 +22,28 @@ from .policy import PolicyAdapter
 from .results import ResultWriter, stable_id
 
 
+def build_trial_id(
+    *,
+    algorithm: str,
+    checkpoint_sha256: str,
+    track: str,
+    seed: int,
+    repetition: int,
+    config_id: str,
+) -> str:
+    return stable_id(
+        "trial",
+        {
+            "algorithm": algorithm,
+            "checkpoint_sha256": checkpoint_sha256,
+            "track": track,
+            "seed": int(seed),
+            "repetition": int(repetition),
+            "config_id": config_id,
+        },
+    )
+
+
 def _state_flags(environment, agent: str) -> dict[str, bool]:
     state_data = environment.previous_state_data[agent]
     collision = lidar_processor.has_collided(
@@ -213,16 +235,15 @@ class BenchmarkRunner:
                 break
 
         completed = finish_time is not None
-        trial_payload = {
-            "algorithm": algorithm,
-            "checkpoint_sha256": policy.spec.sha256,
-            "track": self.track_name,
-            "seed": int(seed),
-            "repetition": int(repetition),
-            "config_id": self.config_id,
-        }
         row = {
-            "trial_id": stable_id("trial", trial_payload),
+            "trial_id": build_trial_id(
+                algorithm=algorithm,
+                checkpoint_sha256=policy.spec.sha256,
+                track=self.track_name,
+                seed=seed,
+                repetition=repetition,
+                config_id=self.config_id,
+            ),
             "algorithm": algorithm,
             "checkpoint_filename": policy.spec.filename,
             "checkpoint_sha256": policy.spec.sha256,
@@ -394,6 +415,13 @@ class BenchmarkRunner:
                 if flags[agent]["crash"]
             }
             if crashers:
+                for agent in crashers:
+                    dnf_reasons[agent] = _dnf_reason(
+                        collision=flags[agent]["collision"],
+                        flip=flags[agent]["flip"],
+                        stall=False,
+                        timeout=False,
+                    ) or "crash"
                 positions = {
                     agent: np.asarray(
                         self.environment.previous_state_data[

@@ -146,7 +146,7 @@ class ResultWriter:
         if target.exists():
             with target.open(encoding="utf-8") as manifest_file:
                 existing = json.load(manifest_file)
-            if existing != resolved_manifest:
+            if existing.get("manifest_id") != resolved_manifest["manifest_id"]:
                 raise ValueError(
                     "Result directory already contains a different manifest"
                 )
@@ -160,6 +160,12 @@ class ResultWriter:
             )
             manifest_file.write("\n")
         return resolved_manifest
+
+    def has_time_trial(self, trial_id: str) -> bool:
+        return trial_id in self._time_trial_ids
+
+    def has_head_to_head(self, heat_id: str) -> bool:
+        return heat_id in self._heat_ids
 
     def write_time_trial(self, row: dict) -> None:
         trial_id = str(row["trial_id"])
