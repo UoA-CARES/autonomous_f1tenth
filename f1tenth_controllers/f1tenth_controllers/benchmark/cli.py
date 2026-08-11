@@ -147,6 +147,18 @@ def pilot_heats(heats: list) -> list:
     return list(selected.values())
 
 
+def declared_campaign_schedules(
+    trials: list[TrialSpec],
+    heats: list,
+    *,
+    pilot: bool,
+) -> tuple[list[TrialSpec], list]:
+    """Return the complete schedule represented by one run manifest."""
+    if pilot:
+        return pilot_trials(trials), pilot_heats(heats)
+    return trials, heats
+
+
 def environment_factory_config(config: dict) -> dict:
     values = config["environment"]
     factory_keys = {
@@ -471,6 +483,11 @@ def main(argv=None) -> None:
         )
         all_trials = build_trial_schedule(config, policies)
         all_heats = build_heat_schedule(config, policies)
+        declared_trials, declared_heats = declared_campaign_schedules(
+            all_trials,
+            all_heats,
+            pilot=arguments.pilot,
+        )
         centre_pose, side_poses = _resolved_geometry(environment, config)
         repository_states = _repository_states(arguments.checkpoint_dir)
         track_model = environment.track_progress_models[
@@ -481,8 +498,8 @@ def main(argv=None) -> None:
             policies=policies,
             repository_states=repository_states,
             lap_length_m=track_model.waypoint_lap_length,
-            time_trial_ids=[trial.trial_id for trial in all_trials],
-            heat_ids=[heat.heat_id for heat in all_heats],
+            time_trial_ids=[trial.trial_id for trial in declared_trials],
+            heat_ids=[heat.heat_id for heat in declared_heats],
             centreline_start_pose=centre_pose,
             side_by_side_start_poses=side_poses,
         )

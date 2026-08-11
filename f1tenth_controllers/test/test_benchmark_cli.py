@@ -7,6 +7,7 @@ import pytest
 from f1tenth_controllers.benchmark.cli import (
     build_heat_schedule,
     build_trial_schedule,
+    declared_campaign_schedules,
     enable_simulator_time,
     environment_factory_config,
     pilot_heats,
@@ -55,6 +56,22 @@ def test_full_and_pilot_campaign_sizes_are_explicit() -> None:
     assert len(heats) == 120
     assert len({heat.heat_id for heat in heats}) == 120
     assert len(pilot_heats(heats)) == 15
+
+    declared_trials, declared_heats = declared_campaign_schedules(
+        trials,
+        heats,
+        pilot=True,
+    )
+    assert len(declared_trials) == 6
+    assert len(declared_heats) == 15
+
+    full_trials, full_heats = declared_campaign_schedules(
+        trials,
+        heats,
+        pilot=False,
+    )
+    assert full_trials is trials
+    assert full_heats is heats
 
 
 def test_pilot_timeout_has_distinct_configuration_identity() -> None:
