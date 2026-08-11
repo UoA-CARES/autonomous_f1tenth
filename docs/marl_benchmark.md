@@ -159,8 +159,9 @@ samples.
 
 A valid lap must pass 25%, 50%, and 75% virtual sectors in order, accumulate
 a full forward lap, cross in the correct direction, and avoid projection
-jumps over 1.0 m. Backward crossings and repeated finish crossings are not
-accepted.
+jumps above the declared 1.0 m projection slack plus the 5.0 m/s training
+physical speed limit multiplied by the actual simulator-time sample delta.
+Backward crossings and repeated finish crossings are not accepted.
 
 Race actions are computed sequentially in one process from the same
 observation dictionary, then passed together to one environment step.

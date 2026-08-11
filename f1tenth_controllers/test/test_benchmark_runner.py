@@ -141,6 +141,7 @@ def benchmark_config() -> dict:
         "lap_monitor": {
             "sector_fractions": [0.25, 0.5, 0.75],
             "max_projection_jump_m": 1.0,
+            "max_projection_speed_mps": 5.0,
         },
         "environment": {
             "max_steps": 20,

@@ -73,6 +73,15 @@ def load_experiment_config(path: Path) -> dict:
             "Head-to-head position_speed_multiplier must be 1.0"
         )
 
+    lap_monitor = config.get("lap_monitor", {})
+    if lap_monitor.get("max_projection_speed_mps") != environment.get(
+        "max_speed"
+    ):
+        raise ValueError(
+            "lap_monitor.max_projection_speed_mps must match the "
+            "training environment max_speed"
+        )
+
     runtime = config.get("runtime")
     if not isinstance(runtime, dict):
         raise ValueError("Benchmark config must contain runtime settings")

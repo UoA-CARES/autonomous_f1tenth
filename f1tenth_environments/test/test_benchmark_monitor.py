@@ -75,6 +75,41 @@ def test_projection_teleport_invalidates_monitor() -> None:
     assert not monitor.valid
 
 
+def test_projection_limit_scales_with_actual_simulator_time() -> None:
+    monitor = LapMonitor(
+        LapMonitorConfig(
+            lap_length_m=40.0,
+            max_projection_jump_m=1.0,
+            max_projection_speed_mps=2.0,
+        ),
+        start_track_distance_m=0.0,
+        start_sim_time=0.0,
+    )
+
+    accepted = monitor.update(3.0, 1.0)
+
+    assert accepted.accepted
+    assert accepted.max_allowed_step_m == pytest.approx(3.0)
+
+
+def test_projection_limit_rejects_motion_above_physical_bound() -> None:
+    monitor = LapMonitor(
+        LapMonitorConfig(
+            lap_length_m=40.0,
+            max_projection_jump_m=1.0,
+            max_projection_speed_mps=2.0,
+        ),
+        start_track_distance_m=0.0,
+        start_sim_time=0.0,
+    )
+
+    rejected = monitor.update(3.1, 1.0)
+
+    assert not rejected.accepted
+    assert rejected.reason == "projection_jump"
+    assert rejected.max_allowed_step_m == pytest.approx(3.0)
+
+
 def test_multiple_finish_crossings_emit_only_one_finish_event() -> None:
     monitor = _monitor()
     monitor.update(10.0, 1.0)

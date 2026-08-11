@@ -81,6 +81,20 @@ def _dnf_reason(
     return None
 
 
+def _monitor_evidence(update) -> dict:
+    return {
+        "accepted": update.accepted,
+        "reason": update.reason,
+        "previous_sim_time": update.previous_sim_time,
+        "sim_time": update.sim_time,
+        "sim_delta_s": update.sim_time - update.previous_sim_time,
+        "previous_progress_m": update.previous_unwrapped_progress_m,
+        "progress_m": update.unwrapped_progress_m,
+        "signed_step_m": update.signed_step_m,
+        "max_allowed_step_m": update.max_allowed_step_m,
+    }
+
+
 class BenchmarkRunner:
     """Run policies through one existing synchronous multi-car environment."""
 
@@ -131,6 +145,9 @@ class BenchmarkRunner:
                 ),
                 max_projection_jump_m=float(
                     monitor_config["max_projection_jump_m"]
+                ),
+                max_projection_speed_mps=float(
+                    monitor_config["max_projection_speed_mps"]
                 ),
             ),
             start_track_distance_m=start_track_distance_m,
@@ -290,6 +307,7 @@ class BenchmarkRunner:
                 "trial_id": row["trial_id"],
                 "sim_time": finish_time or observation_time,
                 "reason": row["dnf_reason"],
+                "monitor_evidence": _monitor_evidence(update),
                 "manifest_id": self.manifest_id,
             }
         )
@@ -584,15 +602,7 @@ class BenchmarkRunner:
                 "outcome_type": outcome_type,
                 "winner": winner_algorithm,
                 "monitor_evidence": {
-                    algorithms_by_agent[agent]: {
-                        "accepted": update.accepted,
-                        "reason": update.reason,
-                        "previous_progress_m": (
-                            update.previous_unwrapped_progress_m
-                        ),
-                        "progress_m": update.unwrapped_progress_m,
-                        "signed_step_m": update.signed_step_m,
-                    }
+                    algorithms_by_agent[agent]: _monitor_evidence(update)
                     for agent, update in final_updates.items()
                 },
                 "manifest_id": self.manifest_id,

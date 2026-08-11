@@ -12,12 +12,15 @@ class LapMonitorConfig:
     lap_length_m: float
     sector_fractions: tuple[float, ...] = (0.25, 0.5, 0.75)
     max_projection_jump_m: float = 1.0
+    max_projection_speed_mps: float = 0.0
 
     def __post_init__(self) -> None:
         if self.lap_length_m <= 0.0:
             raise ValueError("lap_length_m must be positive")
         if self.max_projection_jump_m <= 0.0:
             raise ValueError("max_projection_jump_m must be positive")
+        if self.max_projection_speed_mps < 0.0:
+            raise ValueError("max_projection_speed_mps must be nonnegative")
         if any(
             not 0.0 < fraction < 1.0 for fraction in self.sector_fractions
         ):
@@ -62,6 +65,7 @@ class LapUpdate:
     previous_unwrapped_progress_m: float
     unwrapped_progress_m: float
     signed_step_m: float
+    max_allowed_step_m: float = 0.0
     passed_sector_indices: tuple[int, ...] = ()
     finish_crossed: bool = False
     finish_sim_time: float | None = None
@@ -111,6 +115,7 @@ class LapMonitor:
         track_distance_m: float,
         sim_time: float,
         signed_step_m: float,
+        max_allowed_step_m: float,
     ) -> LapUpdate:
         previous_time = self.last_sim_time
         previous_progress = self.unwrapped_progress_m
@@ -127,6 +132,7 @@ class LapMonitor:
             previous_unwrapped_progress_m=previous_progress,
             unwrapped_progress_m=previous_progress,
             signed_step_m=signed_step_m,
+            max_allowed_step_m=max_allowed_step_m,
         )
 
     def update(self, track_distance_m: float, sim_time: float) -> LapUpdate:
@@ -138,7 +144,14 @@ class LapMonitor:
                 track_distance_m=track_distance_m,
                 sim_time=sim_time,
                 signed_step_m=0.0,
+                max_allowed_step_m=self.config.max_projection_jump_m,
             )
+
+        simulator_delta_s = sim_time - self.last_sim_time
+        max_allowed_step_m = (
+            self.config.max_projection_jump_m
+            + self.config.max_projection_speed_mps * simulator_delta_s
+        )
 
         if not self.valid:
             return LapUpdate(
@@ -149,6 +162,7 @@ class LapMonitor:
                 previous_unwrapped_progress_m=self.unwrapped_progress_m,
                 unwrapped_progress_m=self.unwrapped_progress_m,
                 signed_step_m=0.0,
+                max_allowed_step_m=max_allowed_step_m,
             )
 
         if self.finished:
@@ -160,16 +174,18 @@ class LapMonitor:
                 previous_unwrapped_progress_m=self.unwrapped_progress_m,
                 unwrapped_progress_m=self.unwrapped_progress_m,
                 signed_step_m=0.0,
+                max_allowed_step_m=max_allowed_step_m,
                 finish_sim_time=self.finish_sim_time,
             )
 
         signed_step = self._signed_step(track_distance_m)
-        if abs(signed_step) > self.config.max_projection_jump_m:
+        if abs(signed_step) > max_allowed_step_m:
             return self._invalid_update(
                 reason="projection_jump",
                 track_distance_m=track_distance_m,
                 sim_time=sim_time,
                 signed_step_m=signed_step,
+                max_allowed_step_m=max_allowed_step_m,
             )
 
         previous_time = self.last_sim_time
@@ -192,6 +208,7 @@ class LapMonitor:
                         track_distance_m=track_distance_m,
                         sim_time=sim_time,
                         signed_step_m=signed_step,
+                        max_allowed_step_m=max_allowed_step_m,
                     )
                 passed_sectors.append(gate_index)
 
@@ -222,6 +239,7 @@ class LapMonitor:
             previous_unwrapped_progress_m=previous_progress,
             unwrapped_progress_m=current_progress,
             signed_step_m=signed_step,
+            max_allowed_step_m=max_allowed_step_m,
             passed_sector_indices=tuple(passed_sectors),
             finish_crossed=finish_crossed,
             finish_sim_time=finish_time,
