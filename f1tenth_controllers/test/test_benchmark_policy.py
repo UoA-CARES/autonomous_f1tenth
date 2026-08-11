@@ -53,6 +53,17 @@ def test_checkpoint_mapping_rejects_historical_paths(tmp_path: Path) -> None:
         resolve_checkpoint_specs(loaded)
 
 
+def test_runtime_settings_must_be_positive_and_finite(tmp_path: Path) -> None:
+    with CONFIG_PATH.open(encoding="utf-8") as config_file:
+        config = json.load(config_file)
+    config["runtime"]["evaluation_service_timeout_wall_seconds"] = 0
+    path = tmp_path / "invalid.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="positive and finite"):
+        load_experiment_config(path)
+
+
 @pytest.mark.skipif(
     not CHECKPOINT_ROOT.is_dir(),
     reason="authoritative local checkpoints are not installed",

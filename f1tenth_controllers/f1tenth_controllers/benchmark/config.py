@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
@@ -70,6 +71,24 @@ def load_experiment_config(path: Path) -> dict:
     if environment.get("position_speed_multiplier") != 1.0:
         raise ValueError(
             "Head-to-head position_speed_multiplier must be 1.0"
+        )
+
+    runtime = config.get("runtime")
+    if not isinstance(runtime, dict):
+        raise ValueError("Benchmark config must contain runtime settings")
+    try:
+        ros_domain_id = int(runtime["ros_domain_id"])
+        service_timeout = float(
+            runtime["evaluation_service_timeout_wall_seconds"]
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("Invalid benchmark runtime settings") from error
+    if not 0 <= ros_domain_id <= 232:
+        raise ValueError("runtime.ros_domain_id must be between 0 and 232")
+    if not math.isfinite(service_timeout) or service_timeout <= 0.0:
+        raise ValueError(
+            "runtime.evaluation_service_timeout_wall_seconds must be "
+            "positive and finite"
         )
 
     config["config_sha256"] = _canonical_sha256(config)

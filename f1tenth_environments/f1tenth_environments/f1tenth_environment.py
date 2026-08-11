@@ -771,8 +771,29 @@ class F1tenthEnvironment(Node, ABC):
         request = ControlWorld.Request()
         request.world_control.pause = paused
         future = self.world_control_client.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
+        self._wait_for_evaluation_service(
+            future,
+            operation="world control",
+        )
         return future.result()
+
+    def _wait_for_evaluation_service(self, future, *, operation: str) -> None:
+        timeout_s = getattr(
+            self,
+            "evaluation_service_timeout_s",
+            None,
+        )
+        rclpy.spin_until_future_complete(
+            self,
+            future,
+            timeout_sec=timeout_s,
+        )
+        if timeout_s is not None and not future.done():
+            future.cancel()
+            raise TimeoutError(
+                f"Gazebo {operation} service did not respond within "
+                f"{timeout_s:.1f} wall seconds"
+            )
 
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict]:
         """
@@ -829,7 +850,10 @@ class F1tenthEnvironment(Node, ABC):
             yaw=yaw,
         )
         future = self.set_pose_client.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
+        self._wait_for_evaluation_service(
+            future,
+            operation=f"set pose for {model_name}",
+        )
         return future.result()
 
     def set_seed(self, seed: int) -> None:

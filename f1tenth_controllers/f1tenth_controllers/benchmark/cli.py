@@ -175,6 +175,16 @@ def environment_factory_config(config: dict) -> dict:
     }
 
 
+def validate_runtime_environment(config: dict) -> None:
+    expected_domain = int(config["runtime"]["ros_domain_id"])
+    actual_domain = int(os.environ.get("ROS_DOMAIN_ID", "0"))
+    if actual_domain != expected_domain:
+        raise ValueError(
+            f"Benchmark requires ROS_DOMAIN_ID={expected_domain}; "
+            f"current value is {actual_domain}"
+        )
+
+
 def enable_simulator_time(environment) -> None:
     """Make the externally launched evaluation node consume Gazebo /clock."""
     results = environment.set_parameters(
@@ -439,12 +449,18 @@ def main(argv=None) -> None:
         parser.error("--result-dir is required for simulator runs")
 
     config = resolve_runtime_config(config, pilot=arguments.pilot)
+    validate_runtime_environment(config)
     expected_agents = 1 if arguments.mode == "time-trials" else 2
     environment = None
     try:
         environment = EnvironmentFactory().create(
             "MultiCarRace",
             config=environment_factory_config(config),
+        )
+        environment.evaluation_service_timeout_s = float(
+            config["runtime"][
+                "evaluation_service_timeout_wall_seconds"
+            ]
         )
         enable_simulator_time(environment)
         validate_environment(

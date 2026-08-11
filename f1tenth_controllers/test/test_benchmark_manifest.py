@@ -29,6 +29,9 @@ def test_manifest_records_provenance_schedule_and_fidelity_differences() -> None
             "max_steps": 6000,
             "timeout_sim_seconds": 600.0,
         },
+        "runtime": {
+            "evaluation_service_timeout_wall_seconds": 5.0,
+        },
     }
     repositories = {
         "autonomous_f1tenth": {
@@ -74,6 +77,7 @@ def test_manifest_records_provenance_schedule_and_fidelity_differences() -> None
         "fixed_test_track_and_exact_spawn_poses",
         "position_speed_multiplier",
         "episode_limit",
+        "evaluation_service_timeout_wall_seconds",
     }
 
 

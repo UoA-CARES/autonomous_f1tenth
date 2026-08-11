@@ -46,6 +46,10 @@
   "pilot": {
     "timeout_sim_seconds": 30.0
   },
+  "runtime": {
+    "ros_domain_id": 77,
+    "evaluation_service_timeout_wall_seconds": 5.0
+  },
   "time_trials": {
     "trials_per_algorithm": 10,
     "seeds": [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009]

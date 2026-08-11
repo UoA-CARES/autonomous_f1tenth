@@ -107,6 +107,17 @@ def build_run_manifest(
                         "action pipeline"
                     ),
                 },
+                {
+                    "setting": "evaluation_service_timeout_wall_seconds",
+                    "training_default": None,
+                    "benchmark_value": config["runtime"][
+                        "evaluation_service_timeout_wall_seconds"
+                    ],
+                    "reason": (
+                        "fail a benchmark instead of hanging when Gazebo "
+                        "transport is unavailable"
+                    ),
+                },
             ],
             "collision_evidence_limitation": (
                 "The training LiDAR collision threshold does not identify a "

@@ -1,5 +1,6 @@
 import pytest
 
+from f1tenth_environments import multi_f1tenth_environment as environment_module
 from f1tenth_environments.multi_f1tenth_environment import (
     MultiF1TenthEnvironment,
 )
@@ -13,7 +14,14 @@ class FakePublisher:
         self.messages.append(message)
 
 
-def test_stop_agent_publishes_one_zero_twist() -> None:
+class FakeTwist:
+    def __init__(self) -> None:
+        self.linear = type("Vector", (), {"x": None})()
+        self.angular = type("Vector", (), {"z": None})()
+
+
+def test_stop_agent_publishes_one_zero_twist(monkeypatch) -> None:
+    monkeypatch.setattr(environment_module, "Twist", FakeTwist)
     environment = MultiF1TenthEnvironment.__new__(
         MultiF1TenthEnvironment
     )

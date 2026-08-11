@@ -12,6 +12,7 @@ from f1tenth_controllers.benchmark.cli import (
     pilot_heats,
     pilot_trials,
     validate_environment,
+    validate_runtime_environment,
 )
 from f1tenth_controllers.benchmark.config import (
     load_experiment_config,
@@ -78,6 +79,18 @@ def test_factory_config_uses_selected_world_and_fair_multiplier() -> None:
     assert factory_config["command_latency_ms"] == 30
     assert factory_config["lidar_state_size"] == 9
     assert "timeout_sim_seconds" not in factory_config
+
+
+def test_runtime_environment_requires_declared_ros_domain(
+    monkeypatch,
+) -> None:
+    config = load_experiment_config(CONFIG_PATH)
+    monkeypatch.setenv("ROS_DOMAIN_ID", "77")
+    validate_runtime_environment(config)
+
+    monkeypatch.setenv("ROS_DOMAIN_ID", "0")
+    with pytest.raises(ValueError, match="ROS_DOMAIN_ID=77"):
+        validate_runtime_environment(config)
 
 
 def fake_environment(config: dict):

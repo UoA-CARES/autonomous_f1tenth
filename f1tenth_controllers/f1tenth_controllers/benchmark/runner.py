@@ -497,10 +497,6 @@ class BenchmarkRunner:
                     self.environment.stall_counters[agent]
                     >= self.environment.stall_limit_steps
                 )
-                timeout = (
-                    self.environment.step_counter
-                    >= self.config["environment"]["max_steps"]
-                )
                 dnf_reasons[agent] = "stall" if stall else "timeout"
                 self.environment.stop_agent(agent)
                 active_agents.remove(agent)
