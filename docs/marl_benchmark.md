@@ -146,6 +146,68 @@ in `train_weights/`. If `--result-dir` is omitted, identical manifests resolve
 to the same default directory; if it is supplied, pass the same directory to
 both commands. With only one uploaded checkpoint, run the time-trial workflow only.
 
+## Docker: make results visible on the host PC
+
+When the benchmark runs inside Docker or a VS Code Dev Container, `~` and
+`Path.home()` refer to the container home. The default path is therefore
+`/home/anyone/f1tenth_benchmark_results` inside the container; it is not a
+hidden Ubuntu folder and it will not appear in the host Files application
+unless that path is bind-mounted. A folder is hidden on Ubuntu only when its
+name starts with a dot.
+
+Before adding a bind mount, copy any existing container-only results to the
+host. Run these commands in a desktop host terminal, not the VS Code container
+terminal:
+
+```bash
+docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Image}}"
+mkdir -p "$HOME/f1tenth_benchmark_results"
+docker cp <container_name>:/home/anyone/f1tenth_benchmark_results/. \
+  "$HOME/f1tenth_benchmark_results/"
+```
+
+Replace `<container_name>` with the F1TENTH/VS Code container name shown by
+`docker ps`. Copy existing results before mounting because a bind mount hides
+the old container directory while the mount is active.
+
+For future runs, bind the host folder to the benchmark default container path.
+For Docker Compose, add this entry under the F1TENTH service `volumes` section:
+
+```yaml
+services:
+  <f1tenth-service>:
+    volumes:
+      - ${HOME}/f1tenth_benchmark_results:/home/anyone/f1tenth_benchmark_results
+```
+
+For `.devcontainer/devcontainer.json`, add or extend `mounts`:
+
+```json
+{
+  "mounts": [
+    "source=${localEnv:HOME}/f1tenth_benchmark_results,target=/home/anyone/f1tenth_benchmark_results,type=bind"
+  ]
+}
+```
+
+For a direct `docker run`, include:
+
+```bash
+--mount type=bind,source="$HOME/f1tenth_benchmark_results",target=/home/anyone/f1tenth_benchmark_results
+```
+
+Create the host directory before rebuilding or restarting the container. Once
+the mount is active, the normal benchmark command needs no `--result-dir`; its
+manifest-specific directory will appear directly under the host
+`~/f1tenth_benchmark_results`. Confirm from the host with:
+
+```bash
+ls -lah "$HOME/f1tenth_benchmark_results"
+```
+
+If a different mounted container path is preferred, point the benchmark to it
+with `F1TENTH_BENCHMARK_RESULTS_DIR` or `--result-dir`.
+
 ## ROS and Gazebo isolation
 
 Use `ROS_DOMAIN_ID=77` for both the simulator launch and benchmark command.
