@@ -13,7 +13,10 @@ from f1tenth_controllers.benchmark.cli import (
     pilot_trials,
     validate_environment,
 )
-from f1tenth_controllers.benchmark.config import load_experiment_config
+from f1tenth_controllers.benchmark.config import (
+    load_experiment_config,
+    resolve_runtime_config,
+)
 
 
 CONFIG_PATH = (
@@ -51,6 +54,17 @@ def test_full_and_pilot_campaign_sizes_are_explicit() -> None:
     assert len(heats) == 120
     assert len({heat.heat_id for heat in heats}) == 120
     assert len(pilot_heats(heats)) == 15
+
+
+def test_pilot_timeout_has_distinct_configuration_identity() -> None:
+    full = load_experiment_config(CONFIG_PATH)
+    pilot = resolve_runtime_config(full, pilot=True)
+
+    assert full["environment"]["timeout_sim_seconds"] == 600.0
+    assert pilot["environment"]["timeout_sim_seconds"] == 30.0
+    assert pilot["campaign_mode"] == "pilot"
+    assert pilot["config_sha256"] != full["config_sha256"]
+    assert resolve_runtime_config(full, pilot=False) is full
 
 
 def test_factory_config_uses_selected_world_and_fair_multiplier() -> None:

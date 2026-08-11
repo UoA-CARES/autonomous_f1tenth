@@ -26,6 +26,7 @@ from .config import (
     EXPECTED_ALGORITHMS,
     load_experiment_config,
     resolve_checkpoint_specs,
+    resolve_runtime_config,
 )
 from .manifest import (
     build_run_manifest,
@@ -437,6 +438,7 @@ def main(argv=None) -> None:
     if arguments.result_dir is None:
         parser.error("--result-dir is required for simulator runs")
 
+    config = resolve_runtime_config(config, pilot=arguments.pilot)
     expected_agents = 1 if arguments.mode == "time-trials" else 2
     environment = None
     try:

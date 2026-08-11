@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -73,6 +74,28 @@ def load_experiment_config(path: Path) -> dict:
 
     config["config_sha256"] = _canonical_sha256(config)
     return config
+
+
+def resolve_runtime_config(config: dict, *, pilot: bool) -> dict:
+    """Resolve a pilot without allowing its rows into the full campaign."""
+    if not pilot:
+        return config
+
+    resolved = deepcopy(config)
+    resolved.pop("config_sha256", None)
+    pilot_timeout = float(resolved["pilot"]["timeout_sim_seconds"])
+    if pilot_timeout <= 0.0:
+        raise ValueError("pilot.timeout_sim_seconds must be positive")
+    if pilot_timeout >= float(
+        resolved["environment"]["timeout_sim_seconds"]
+    ):
+        raise ValueError(
+            "Pilot timeout must be shorter than the full timeout"
+        )
+    resolved["environment"]["timeout_sim_seconds"] = pilot_timeout
+    resolved["campaign_mode"] = "pilot"
+    resolved["config_sha256"] = _canonical_sha256(resolved)
+    return resolved
 
 
 def resolve_checkpoint_specs(config: dict) -> list[CheckpointSpec]:
