@@ -12,6 +12,7 @@ from .monitor import LapUpdate
 
 @dataclass(frozen=True, slots=True)
 class CheckpointRef:
+    checkpoint_id: str
     algorithm: str
     filename: str
     sha256: str
@@ -22,15 +23,21 @@ class HeatSpec:
     """One balanced head-to-head assignment."""
 
     heat_id: str
+    checkpoint_id_a: str
     algorithm_a: str
     checkpoint_a: str
     checkpoint_sha256_a: str
+    checkpoint_id_b: str
     algorithm_b: str
     checkpoint_b: str
     checkpoint_sha256_b: str
-    left_algorithm: str
-    right_algorithm: str
+    lead_checkpoint_id: str
+    lead_algorithm: str
+    chaser_checkpoint_id: str
+    chaser_algorithm: str
+    primary_checkpoint_id: str
     primary_algorithm: str
+    opponent_checkpoint_id: str
     opponent_algorithm: str
     seed: int
     track: str
@@ -50,21 +57,23 @@ def build_balanced_heats(
     track: str,
     direction: str,
 ) -> list[HeatSpec]:
-    """Build all unordered pairings with full side/slot counterbalancing."""
-    if len({item.algorithm for item in checkpoints}) != len(checkpoints):
-        raise ValueError("checkpoint algorithms must be unique")
+    """Build all checkpoint pairings with lead/chaser and slot balance."""
+    if len({item.checkpoint_id for item in checkpoints}) != len(checkpoints):
+        raise ValueError("checkpoint identities must be unique")
     if not seeds:
         raise ValueError("at least one seed is required")
 
-    ordered_checkpoints = sorted(checkpoints, key=lambda item: item.algorithm)
+    ordered_checkpoints = sorted(
+        checkpoints, key=lambda item: item.checkpoint_id
+    )
     heats: list[HeatSpec] = []
     checkpoint_pairs = itertools.combinations(ordered_checkpoints, 2)
     for checkpoint_a, checkpoint_b in checkpoint_pairs:
         for seed in seeds:
-            for a_on_left in (True, False):
+            for a_leads in (True, False):
                 for a_in_primary_slot in (True, False):
-                    left = checkpoint_a if a_on_left else checkpoint_b
-                    right = checkpoint_b if a_on_left else checkpoint_a
+                    lead = checkpoint_a if a_leads else checkpoint_b
+                    chaser = checkpoint_b if a_leads else checkpoint_a
                     primary = (
                         checkpoint_a if a_in_primary_slot else checkpoint_b
                     )
@@ -72,15 +81,21 @@ def build_balanced_heats(
                         checkpoint_b if a_in_primary_slot else checkpoint_a
                     )
                     payload = {
+                        "checkpoint_id_a": checkpoint_a.checkpoint_id,
                         "algorithm_a": checkpoint_a.algorithm,
                         "checkpoint_a": checkpoint_a.filename,
                         "checkpoint_sha256_a": checkpoint_a.sha256,
+                        "checkpoint_id_b": checkpoint_b.checkpoint_id,
                         "algorithm_b": checkpoint_b.algorithm,
                         "checkpoint_b": checkpoint_b.filename,
                         "checkpoint_sha256_b": checkpoint_b.sha256,
-                        "left_algorithm": left.algorithm,
-                        "right_algorithm": right.algorithm,
+                        "lead_checkpoint_id": lead.checkpoint_id,
+                        "lead_algorithm": lead.algorithm,
+                        "chaser_checkpoint_id": chaser.checkpoint_id,
+                        "chaser_algorithm": chaser.algorithm,
+                        "primary_checkpoint_id": primary.checkpoint_id,
                         "primary_algorithm": primary.algorithm,
+                        "opponent_checkpoint_id": opponent.checkpoint_id,
                         "opponent_algorithm": opponent.algorithm,
                         "seed": int(seed),
                         "track": track,

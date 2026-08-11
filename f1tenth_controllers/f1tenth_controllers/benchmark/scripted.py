@@ -22,6 +22,7 @@ from f1tenth_controllers.path_trackers.pure_pursuit import PurePursuit
 
 from .cli import (
     _default_checkpoint_root,
+    _default_result_root,
     _repository_states,
     _source_config_path,
     enable_simulator_time,
@@ -31,12 +32,14 @@ from .cli import (
 )
 from .config import load_experiment_config
 from .manifest import git_revisions
-from .results import ResultWriter
+from .results import ResultWriter, manifest_id
 from .runner import BenchmarkRunner
 
 
 @dataclass(frozen=True, slots=True)
 class ScriptedSpec:
+    checkpoint_id: str
+    algorithm: str
     filename: str
     sha256: str
     actor_id: str
@@ -71,6 +74,7 @@ class PurePursuitAdapter:
         waypoints: list,
         speed_mps: float,
         lateral_offset_m: float,
+        checkpoint_id: str,
     ) -> None:
         self.environment = environment
         self.agent = agent
@@ -79,6 +83,8 @@ class PurePursuitAdapter:
             path=_offset_path(waypoints, lateral_offset_m),
         )
         self.spec = ScriptedSpec(
+            checkpoint_id=checkpoint_id,
+            algorithm=checkpoint_id,
             filename="f1tenth_controllers.path_trackers.pure_pursuit",
             sha256=_source_sha256(),
             actor_id=agent,
@@ -106,11 +112,13 @@ class PurePursuitAdapter:
 def _scripted_heat(config: dict, source_hash: str):
     references = [
         CheckpointRef(
+            checkpoint_id="PURE_PURSUIT_FAST",
             algorithm="PURE_PURSUIT_FAST",
             filename="pure_pursuit.py@0.8mps",
             sha256=source_hash,
         ),
         CheckpointRef(
+            checkpoint_id="PURE_PURSUIT_SLOW",
             algorithm="PURE_PURSUIT_SLOW",
             filename="pure_pursuit.py@0.5mps",
             sha256=source_hash,
@@ -140,7 +148,9 @@ def _manifest(config: dict, repositories: dict, source_hash: str) -> dict:
             "time_trial_speed_mps": 0.8,
             "race_fast_speed_mps": 0.8,
             "race_slow_speed_mps": 0.5,
-            "race_lane_offsets_m": [0.3, -0.3],
+            "race_longitudinal_separation_m": config["track"][
+                "longitudinal_separation_m"
+            ],
         },
         "simulation_changes": [],
     }
@@ -152,7 +162,7 @@ def main(argv=None) -> None:
     )
     parser.add_argument("mode", choices=("time-trial", "head-to-head"))
     parser.add_argument("--config", type=Path, default=_source_config_path())
-    parser.add_argument("--result-dir", type=Path, required=True)
+    parser.add_argument("--result-dir", type=Path)
     arguments = parser.parse_args(argv)
 
     config = load_experiment_config(arguments.config)
@@ -179,10 +189,17 @@ def main(argv=None) -> None:
 
         repositories = _repository_states(_default_checkpoint_root())
         source_hash = _source_sha256()
-        writer = ResultWriter(arguments.result_dir)
-        manifest = writer.write_manifest(
-            _manifest(config, repositories, source_hash)
-        )
+        manifest_payload = _manifest(config, repositories, source_hash)
+        result_directory = arguments.result_dir
+        if result_directory is None:
+            result_directory = (
+                _default_result_root()
+                / f"f1tenth_marl_scripted_{manifest_id(manifest_payload)}"
+            )
+        result_directory = result_directory.expanduser().resolve()
+        print(f"Benchmark results: {result_directory}")
+        writer = ResultWriter(result_directory)
+        manifest = writer.write_manifest(manifest_payload)
         waypoints = environment.tracks[config["track"]["identifier"]]
 
         if arguments.mode == "time-trial":
@@ -193,6 +210,7 @@ def main(argv=None) -> None:
                     waypoints=waypoints,
                     speed_mps=0.8,
                     lateral_offset_m=0.0,
+                    checkpoint_id="PURE_PURSUIT",
                 )
             }
         else:
@@ -207,14 +225,16 @@ def main(argv=None) -> None:
                     agent=environment.car_name,
                     waypoints=waypoints,
                     speed_mps=0.8,
-                    lateral_offset_m=0.3,
+                    lateral_offset_m=0.0,
+                    checkpoint_id="PURE_PURSUIT_FAST",
                 ),
                 "PURE_PURSUIT_SLOW": PurePursuitAdapter(
                     environment=environment,
                     agent=opponent,
                     waypoints=waypoints,
                     speed_mps=0.5,
-                    lateral_offset_m=-0.3,
+                    lateral_offset_m=0.0,
+                    checkpoint_id="PURE_PURSUIT_SLOW",
                 ),
             }
 

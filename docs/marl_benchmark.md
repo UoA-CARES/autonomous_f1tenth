@@ -9,14 +9,17 @@ hard-coded in the repository.
 ## Supported checkpoints
 
 Put each selected checkpoint directly in `train_weights/`. Its filename must
-start with one supported algorithm name followed by an underscore:
+start with the CARES algorithm name followed by an underscore:
 
 ```text
 <ALGORITHM>_<name>.pth
 ```
 
-Supported prefixes are `MATD3`, `MAPPO`, `MASAC`, `ITD3`, `IPPO`, and `ISAC`.
-The prefix comparison is case-insensitive. Everything after the first
+The prefix comparison is case-insensitive. The benchmark does not keep a fixed
+algorithm whitelist: it takes the text before the first underscore as the
+algorithm name and asks the existing CARES configuration/factory loader to
+load it. An unknown CARES algorithm therefore fails preflight with the loader's
+exact configuration error, not during filename discovery. Everything after the first
 underscore is descriptive, so a seed is optional. Valid examples include:
 
 ```text
@@ -26,25 +29,29 @@ IPPO_agent_f1tenth_checkpoint_Seed_42.pth
 ```
 
 `ISAC.pth` is invalid because it has no underscore and descriptive suffix.
-`TD3_candidate.pth` is invalid because TD3 is not one of the supported MARL
-algorithms.
+`MADDPG_candidate.pth` and `TD3_candidate.pth` are accepted by
+discovery; whether they can be evaluated is decided by the existing CARES
+loader and MARL observation/actor-loading path.
 
 Discovery is deliberately strict:
 
 - Only direct `train_weights/*.pth` children are considered. Historical run
   directories are never searched.
-- At most one checkpoint may be present for each algorithm. Multiple files
-  with the same algorithm prefix stop the command instead of selecting one.
+- Multiple checkpoints with the same algorithm prefix are supported. Each file
+  is a distinct competitor identified by its filename stem; for example,
+  `MASAC_seed_42.pth` and `MASAC_seed_100.pth` are independently reported and
+  are also paired against each other.
 - A single checkpoint is sufficient for preflight and time trials.
-- Head-to-head evaluation requires at least two different algorithms. Put all
+- Head-to-head evaluation requires at least two distinct checkpoint files. Put all
   checkpoints participating in that race campaign in the folder together, or
-  select two from the folder with repeated `--algorithm` options.
+  select variants with repeated `--checkpoint` options.
 
 The checked-in
 `f1tenth_controllers/config/marl_benchmark.json` contains the experiment and
 simulation protocol only. It does not contain checkpoint filenames, hashes,
 file sizes, or training seeds. At invocation time the benchmark computes each
-selected file's SHA256 and size. The runtime-resolved configuration ID is recomputed from the selected set.
+selected file's SHA256 and size. The runtime-resolved configuration ID is
+recomputed from the selected set.
 Those values, the detected algorithm,
 `f1tenth` actor identity, loader architecture, dimensions, and checkpoint
 structure are written to `run_manifest.json`.
@@ -58,15 +65,19 @@ with the detected structural mismatch.
 The selected world and waypoint identifier are both `test_track_02_350`. The
 centreline is counter-clockwise and has a waypoint-polyline length of
 approximately 179.143 m. Waypoint 10 is the fixed start. Time trials use its
-centreline pose; races use equal lateral offsets of +0.30 m and -0.30 m.
+centreline pose; races use the same centreline lane with a 1.0 m
+centre-to-centre longitudinal
+separation: the declared lead car is +0.5 m ahead of the common start gate and
+the chaser is -0.5 m behind it.
 
 `test_track_01_350` is deliberately excluded: its current `waypoints.py` entry
 maps to `TEST_TRACK_02_WAYPOINTS`. Both `test_track_01_*.sdf` and
 `test_track_02_*.sdf` worlds exist; the previous `.dsf` spelling was a typo.
 
-The Gazebo smoke test observed 0.617 m between the two settled vehicle
-centres, minimum LiDAR returns of 0.547 m and 0.555 m, and no initial collision
-signal.
+The previous side-by-side smoke measurements no longer describe the active
+protocol. The 1.0 m longitudinal gap is intentionally larger than the vehicle
+wheelbase and is validated by unit tests; visually confirm settled placement in
+the scripted pilot before the final campaign.
 
 ## Build and checkpoint preflight
 
@@ -87,13 +98,22 @@ Preflight every checkpoint currently in `train_weights/`:
 ros2 run f1tenth_controllers marl_benchmark preflight
 ```
 
-If several checkpoints are present, preflight only a named algorithm with:
+If several checkpoints are present, preflight every variant of one algorithm
+with:
 
 ```bash
-ros2 run f1tenth_controllers marl_benchmark preflight --algorithm ISAC
+ros2 run f1tenth_controllers marl_benchmark preflight --algorithm MASAC
 ```
 
-Preflight loads selected actors on CPU and verifies checkpoint structure and
+To preflight one exact variant, use its filename without `.pth`:
+
+```bash
+ros2 run f1tenth_controllers marl_benchmark preflight \
+  --checkpoint MASAC_seed_42
+```
+
+`--algorithm` and `--checkpoint` are mutually exclusive. Preflight loads
+selected actors on CPU and verifies checkpoint structure and
 family, actor identity, 11 observation inputs, 2 outputs, finite actions,
 exact repeated-observation determinism, and raw actions in `[-1, 1]`. It uses
 CARES evaluation inference and applies no deployment smoothing, speed
@@ -105,8 +125,11 @@ bypass the check.
 
 ## Campaign identity and result directories
 
-Use a new result directory for each exact checkpoint set and experiment
-configuration. The manifest binds the directory to:
+By default, results are written outside the repository under
+`~/f1tenth_benchmark_results/f1tenth_marl_benchmark_<manifest-id>`. Override
+the base with `F1TENTH_BENCHMARK_RESULTS_DIR`, or the exact directory with
+`--result-dir`. Use a new result directory for each exact checkpoint set and
+experiment configuration. The manifest binds the directory to:
 
 - checkpoint filenames, hashes, sizes, and loader metadata;
 - experiment configuration and generated trial/heat IDs;
@@ -119,8 +142,9 @@ rejected. Adding, removing, replacing, or selecting a different checkpoint
 changes the manifest, so use a new result directory.
 
 For both time trials and races in one campaign, keep the same checkpoint set
-in `train_weights/` and use the same result directory for both commands. With
-only one uploaded checkpoint, run the time-trial workflow only.
+in `train_weights/`. If `--result-dir` is omitted, identical manifests resolve
+to the same default directory; if it is supplied, pass the same directory to
+both commands. With only one uploaded checkpoint, run the time-trial workflow only.
 
 ## ROS and Gazebo isolation
 
@@ -164,18 +188,18 @@ ros2 launch f1tenth_bringup sim_environment_bringup.launch.py \
   track:=test_track_02_350 num_opponents:=0 marl_env:=true
 ```
 
-Run one pilot trial per discovered algorithm in terminal 2:
+Run one pilot trial per discovered checkpoint in terminal 2:
 
 ```bash
 source install/setup.bash
 export ROS_DOMAIN_ID=77
 export F1TENTH_NUM_OPPONENTS=0
 ros2 run f1tenth_controllers marl_benchmark time-trials \
-  --pilot --result-dir /path/to/pilot_results
+  --pilot
 ```
 
 Stop terminal 1, relaunch it with `num_opponents:=1`, and then run one pilot
-heat per discovered unordered algorithm pairing:
+heat per discovered unordered checkpoint pairing:
 
 ```bash
 source install/setup.bash
@@ -189,11 +213,11 @@ source install/setup.bash
 export ROS_DOMAIN_ID=77
 export F1TENTH_NUM_OPPONENTS=1
 ros2 run f1tenth_controllers marl_benchmark head-to-head \
-  --pilot --result-dir /path/to/pilot_results
+  --pilot
 ```
 
 With one checkpoint, the first command runs one pilot trial and the race
-command intentionally refuses to start. With `N` checkpoints, the pilot has
+command intentionally refuses to start. With `N` selected checkpoints, the pilot has
 `N` time trials and `N*(N-1)/2` race heats.
 
 ## Full campaign
@@ -204,16 +228,20 @@ Launch zero opponents as in the pilot, then run:
 source install/setup.bash
 export ROS_DOMAIN_ID=77
 export F1TENTH_NUM_OPPONENTS=0
-ros2 run f1tenth_controllers marl_benchmark time-trials \
-  --result-dir /path/to/full_results
+ros2 run f1tenth_controllers marl_benchmark time-trials
 ```
 
-This schedules 10 trials for every discovered or explicitly selected
-algorithm. To evaluate only one checkpoint while several files are present:
+This schedules `trials_per_algorithm` trials for every discovered or selected
+checkpoint (the configuration key is retained for compatibility but now means
+trials per checkpoint). If fewer seeds are listed, the benchmark keeps the
+listed values and deterministically appends consecutive unused integers until
+the requested trial count is reached. Extra listed seeds are ignored.
+
+To evaluate only one checkpoint while several files are present:
 
 ```bash
 ros2 run f1tenth_controllers marl_benchmark time-trials \
-  --algorithm ISAC --result-dir /path/to/isac_results
+  --checkpoint ISAC_candidate
 ```
 
 For head-to-head, stop and relaunch Gazebo with one opponent, keep the exact
@@ -223,23 +251,22 @@ same checkpoint selection, and run:
 source install/setup.bash
 export ROS_DOMAIN_ID=77
 export F1TENTH_NUM_OPPONENTS=1
-ros2 run f1tenth_controllers marl_benchmark head-to-head \
-  --result-dir /path/to/full_results
+ros2 run f1tenth_controllers marl_benchmark head-to-head
 ```
 
-To race only two algorithms from a folder containing more files, repeat the
+To race only two exact checkpoints from a folder containing more files,
+repeat the
 selection flag and use a result directory dedicated to that pair:
 
 ```bash
 ros2 run f1tenth_controllers marl_benchmark head-to-head \
-  --algorithm ISAC --algorithm MATD3 \
-  --result-dir /path/to/isac_vs_matd3_results
+  --checkpoint MASAC_seed_42 --checkpoint MASAC_seed_100
 ```
 
-For `N` selected algorithms, the full race schedule contains
+For `N` selected checkpoints, the full race schedule contains
 `8*N*(N-1)/2` heats: every unordered pairing, two protocol seeds, both
-left/right assignments, and both primary/opponent simulator-slot assignments.
-Six algorithms therefore produce 120 heats. The opponent speed multiplier is
+lead/chaser assignments, and both primary/opponent simulator-slot assignments.
+Six checkpoints therefore produce 120 heats. The opponent speed multiplier is
 1.0 only in the benchmark configuration; the training default remains 0.9.
 
 ## Optional Gazebo visualization
@@ -252,10 +279,11 @@ source /path/to/gz/install/setup.bash
 gz sim -g
 ```
 
-The benchmark terminal prints the active time-trial algorithm or race pairing
+The benchmark terminal prints the active checkpoint ID, its algorithm, or
+race pairing
 before movement starts. In Gazebo, the model names are `f1tenth` for the
 primary simulator slot and `opponent_1` for the opponent slot. Detailed
-left/right and simulator-slot assignments are recorded in
+lead/chaser and simulator-slot assignments are recorded in
 `head_to_head_trials.csv`.
 
 Rendering can increase wall-clock duration. Official results use Gazebo
@@ -274,8 +302,7 @@ With zero opponents launched as for a time trial, run:
 source install/setup.bash
 export ROS_DOMAIN_ID=77
 export F1TENTH_NUM_OPPONENTS=0
-ros2 run f1tenth_controllers marl_benchmark_scripted time-trial \
-  --result-dir /path/to/scripted_results
+ros2 run f1tenth_controllers marl_benchmark_scripted time-trial
 ```
 
 Then relaunch with one opponent and run:
@@ -284,12 +311,11 @@ Then relaunch with one opponent and run:
 source install/setup.bash
 export ROS_DOMAIN_ID=77
 export F1TENTH_NUM_OPPONENTS=1
-ros2 run f1tenth_controllers marl_benchmark_scripted head-to-head \
-  --result-dir /path/to/scripted_results
+ros2 run f1tenth_controllers marl_benchmark_scripted head-to-head
 ```
 
-The race uses parallel +0.30 m and -0.30 m waypoint paths at 0.8 m/s and
-0.5 m/s. It verifies a faster scripted car, interpolated finish ordering, and
+The race uses the same centreline path with the configured 1.0 m longitudinal
+gap at 0.8 m/s and 0.5 m/s. It verifies a faster scripted car, interpolated finish ordering, and
 along-track lead without changing the world or vehicle physics.
 
 ## Timing and outcomes
@@ -316,7 +342,8 @@ not identify which physical body was contacted.
 
 ## Artifacts and summaries
 
-Each result directory can contain:
+Every runner prints its resolved output directory before starting. Each result
+directory can contain:
 
 - `run_manifest.json`
 - `time_trial_trials.csv`
@@ -335,7 +362,13 @@ Time-trial summaries report completion rate and DNF counts separately from
 completed-lap mean, median, sample standard deviation, and a two-sided 95%
 Student-t confidence interval. DNFs never receive artificial lap times.
 Head-to-head summaries retain outcome and pairing counts, win rates, and
-winning along-track lead statistics in metres.
+winning along-track lead statistics in metres. Summary keys and plot labels use
+checkpoint IDs, so two seeds with the same algorithm prefix are never merged.
+
+Generated results are intentionally preserved for reproducibility; the runner
+does not delete completed data. They live outside the repository by default,
+and both `/results/` and `/train_weights/` are ignored inside this
+repository to prevent accidental commits.
 
 Result directories, checkpoints, ROS build products, and temporary files must
 remain uncommitted.

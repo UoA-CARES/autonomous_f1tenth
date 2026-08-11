@@ -14,7 +14,7 @@ from f1tenth_environments.benchmark import (
     assess_crash,
     centreline_spawn_pose,
     resolve_finish_step,
-    side_by_side_spawn_poses,
+    staggered_spawn_poses,
 )
 from f1tenth_environments.benchmark.protocol import HeatSpec
 
@@ -24,6 +24,7 @@ from .results import ResultWriter, stable_id
 
 def build_trial_id(
     *,
+    checkpoint_id: str,
     algorithm: str,
     checkpoint_sha256: str,
     track: str,
@@ -34,6 +35,7 @@ def build_trial_id(
     return stable_id(
         "trial",
         {
+            "checkpoint_id": checkpoint_id,
             "algorithm": algorithm,
             "checkpoint_sha256": checkpoint_sha256,
             "track": track,
@@ -178,7 +180,7 @@ class BenchmarkRunner:
 
     def run_time_trial(
         self,
-        algorithm: str,
+        checkpoint_id: str,
         *,
         seed: int,
         repetition: int,
@@ -187,7 +189,8 @@ class BenchmarkRunner:
             raise ValueError(
                 "Time trials require a Gazebo launch with zero opponents"
             )
-        policy = self.policies[algorithm]
+        policy = self.policies[checkpoint_id]
+        algorithm = policy.spec.algorithm
         agent = self.environment.car_name
         spawn_pose = centreline_spawn_pose(self._waypoint).as_reset_dict()
         observations, _ = self.environment.reset(
@@ -263,6 +266,7 @@ class BenchmarkRunner:
         completed = finish_time is not None
         row = {
             "trial_id": build_trial_id(
+                checkpoint_id=checkpoint_id,
                 algorithm=algorithm,
                 checkpoint_sha256=policy.spec.sha256,
                 track=self.track_name,
@@ -270,6 +274,7 @@ class BenchmarkRunner:
                 repetition=repetition,
                 config_id=self.config_id,
             ),
+            "checkpoint_id": checkpoint_id,
             "algorithm": algorithm,
             "checkpoint_filename": policy.spec.filename,
             "checkpoint_sha256": policy.spec.sha256,
@@ -324,27 +329,27 @@ class BenchmarkRunner:
         opponent = next(
             agent for agent in self.environment.agents if agent != primary
         )
-        algorithms_by_agent = {
-            primary: heat.primary_algorithm,
-            opponent: heat.opponent_algorithm,
+        checkpoint_ids_by_agent = {
+            primary: heat.primary_checkpoint_id,
+            opponent: heat.opponent_checkpoint_id,
         }
-        left_agent = next(
+        lead_agent = next(
             agent
-            for agent, algorithm in algorithms_by_agent.items()
-            if algorithm == heat.left_algorithm
+            for agent, checkpoint_id in checkpoint_ids_by_agent.items()
+            if checkpoint_id == heat.lead_checkpoint_id
         )
-        right_agent = next(
-            agent for agent in algorithms_by_agent if agent != left_agent
+        chaser_agent = next(
+            agent for agent in checkpoint_ids_by_agent if agent != lead_agent
         )
-        spawn_poses = side_by_side_spawn_poses(
+        spawn_poses = staggered_spawn_poses(
             self._waypoint,
-            left_agent=left_agent,
-            right_agent=right_agent,
-            lateral_offset_m=float(
-                self.config["track"]["lateral_offset_m"]
+            lead_agent=lead_agent,
+            chaser_agent=chaser_agent,
+            longitudinal_separation_m=float(
+                self.config["track"]["longitudinal_separation_m"]
             ),
         )
-        return algorithms_by_agent, spawn_poses
+        return checkpoint_ids_by_agent, spawn_poses
 
     def _race_progress(self, monitors: dict[str, LapMonitor]) -> dict[str, float]:
         return {
@@ -353,7 +358,7 @@ class BenchmarkRunner:
         }
 
     def run_head_to_head(self, heat: HeatSpec) -> dict:
-        algorithms_by_agent, spawn_poses = self._race_assignments(heat)
+        checkpoint_ids_by_agent, spawn_poses = self._race_assignments(heat)
         observations, _ = self.environment.reset(
             seed=heat.seed,
             options={
@@ -362,10 +367,11 @@ class BenchmarkRunner:
                 "spawn_poses": spawn_poses,
             },
         )
-        initial_track_distances = {
-            agent: self._track_distance(agent)
-            for agent in self.environment.agents
-        }
+        start_gate_track_distance = (
+            self.environment.current_track_model.track_distance_from_world_coord(
+                np.asarray(self._waypoint[:2], dtype=np.float64)
+            )
+        )
         monitors: dict[str, LapMonitor] = {}
         active_agents = set(self.environment.agents)
         dnf_reasons: dict[str, str] = {}
@@ -383,7 +389,7 @@ class BenchmarkRunner:
 
         while True:
             actions = {
-                agent: self.policies[algorithms_by_agent[agent]].act(
+                agent: self.policies[checkpoint_ids_by_agent[agent]].act(
                     observations[agent]
                 )
                 for agent in active_agents
@@ -399,7 +405,7 @@ class BenchmarkRunner:
             if not monitors:
                 monitors = {
                     agent: self._lap_monitor(
-                        initial_track_distances[agent],
+                        start_gate_track_distance,
                         command_time,
                     )
                     for agent in self.environment.agents
@@ -555,38 +561,55 @@ class BenchmarkRunner:
                 outcome_time = observation_time
                 break
 
-        winner_algorithm = (
-            algorithms_by_agent[winner_agent]
+        winner_checkpoint_id = (
+            checkpoint_ids_by_agent[winner_agent]
             if winner_agent is not None
             else None
         )
+        winner_algorithm = (
+            self.policies[winner_checkpoint_id].spec.algorithm
+            if winner_checkpoint_id is not None
+            else None
+        )
         final_progress = {
-            algorithms_by_agent[agent]: monitors[agent].unwrapped_progress_m
+            checkpoint_ids_by_agent[agent]: monitors[agent].unwrapped_progress_m
             for agent in self.environment.agents
         }
+        participant_ids = [
+            checkpoint_ids_by_agent[agent]
+            for agent in crash_assessment.participants
+        ]
+        responsible_checkpoint_id = checkpoint_ids_by_agent.get(
+            crash_assessment.responsible_car,
+            crash_assessment.responsible_car,
+        )
+        responsible_algorithm = (
+            self.policies[responsible_checkpoint_id].spec.algorithm
+            if responsible_checkpoint_id in self.policies
+            else responsible_checkpoint_id
+        )
         row = {
             **asdict(heat),
+            "start_separation_m": float(
+                self.config["track"]["longitudinal_separation_m"]
+            ),
             "outcome_type": outcome_type,
-            "winner": winner_algorithm,
+            "winner_checkpoint_id": winner_checkpoint_id,
+            "winner_algorithm": winner_algorithm,
             "finish_or_crash_sim_time": outcome_time,
             "lead_m": lead_m,
             "final_progress_m": final_progress,
-            "crash_participants": [
-                algorithms_by_agent[agent]
-                for agent in crash_assessment.participants
+            "crash_participant_checkpoint_ids": participant_ids,
+            "crash_participant_algorithms": [
+                self.policies[checkpoint_id].spec.algorithm
+                for checkpoint_id in participant_ids
             ],
-            "responsible_car": (
-                algorithms_by_agent.get(
-                    crash_assessment.responsible_car,
-                    crash_assessment.responsible_car,
-                )
-            ),
-            "attribution_confidence": (
-                crash_assessment.attribution_confidence
-            ),
+            "responsible_checkpoint_id": responsible_checkpoint_id,
+            "responsible_algorithm": responsible_algorithm,
+            "attribution_confidence": crash_assessment.attribution_confidence,
             "attribution_evidence": crash_assessment.evidence,
             "dnf_reasons": {
-                algorithms_by_agent.get(agent, agent): reason
+                checkpoint_ids_by_agent.get(agent, agent): reason
                 for agent, reason in dnf_reasons.items()
             },
             "git_revisions": self.git_revisions,
@@ -600,9 +623,10 @@ class BenchmarkRunner:
                 "heat_id": heat.heat_id,
                 "sim_time": outcome_time,
                 "outcome_type": outcome_type,
-                "winner": winner_algorithm,
+                "winner_checkpoint_id": winner_checkpoint_id,
+                "winner_algorithm": winner_algorithm,
                 "monitor_evidence": {
-                    algorithms_by_agent[agent]: _monitor_evidence(update)
+                    checkpoint_ids_by_agent[agent]: _monitor_evidence(update)
                     for agent, update in final_updates.items()
                 },
                 "manifest_id": self.manifest_id,

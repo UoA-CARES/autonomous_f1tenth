@@ -19,11 +19,10 @@ from f1tenth_environments.benchmark import (
     CheckpointRef,
     build_balanced_heats,
     centreline_spawn_pose,
-    side_by_side_spawn_poses,
+    staggered_spawn_poses,
 )
 
 from .config import (
-    EXPECTED_ALGORITHMS,
     load_experiment_config,
     resolve_checkpoint_config,
     resolve_checkpoint_specs,
@@ -35,13 +34,14 @@ from .manifest import (
     git_worktree_state,
 )
 from .policy import preflight_policies
-from .results import ResultWriter
+from .results import ResultWriter, manifest_id
 from .runner import BenchmarkRunner, build_trial_id
 
 
 @dataclass(frozen=True, slots=True)
 class TrialSpec:
     trial_id: str
+    checkpoint_id: str
     algorithm: str
     seed: int
     repetition: int
@@ -82,23 +82,43 @@ def _default_checkpoint_root() -> Path:
     )
 
 
+def resolve_trial_seeds(config: dict) -> list[int]:
+    """Return exactly trials_per_algorithm deterministic seeds."""
+    count = int(config["time_trials"]["trials_per_algorithm"])
+    if count <= 0:
+        raise ValueError("trials_per_algorithm must be positive")
+    configured = [int(seed) for seed in config["time_trials"].get("seeds", [])]
+    seeds = configured[:count]
+    candidate = max(configured, default=-1) + 1
+    used = set(seeds)
+    while len(seeds) < count:
+        while candidate in used:
+            candidate += 1
+        seeds.append(candidate)
+        used.add(candidate)
+        candidate += 1
+    return seeds
+
+
+def _default_result_root() -> Path:
+    configured = os.environ.get("F1TENTH_BENCHMARK_RESULTS_DIR")
+    if configured:
+        return Path(configured).expanduser()
+    return Path.home() / "f1tenth_benchmark_results"
+
+
 def build_trial_schedule(config: dict, policies: dict) -> list[TrialSpec]:
-    seeds = [int(seed) for seed in config["time_trials"]["seeds"]]
-    expected_repetitions = int(
-        config["time_trials"]["trials_per_algorithm"]
-    )
-    if len(seeds) != expected_repetitions:
-        raise ValueError(
-            "time_trials.seeds count must match trials_per_algorithm"
-        )
+    seeds = resolve_trial_seeds(config)
 
     trials = []
-    for algorithm in sorted(policies):
-        policy = policies[algorithm]
+    for checkpoint_id in sorted(policies):
+        policy = policies[checkpoint_id]
+        algorithm = policy.spec.algorithm
         for repetition, seed in enumerate(seeds):
             trials.append(
                 TrialSpec(
                     trial_id=build_trial_id(
+                        checkpoint_id=checkpoint_id,
                         algorithm=algorithm,
                         checkpoint_sha256=policy.spec.sha256,
                         track=config["track"]["identifier"],
@@ -106,6 +126,7 @@ def build_trial_schedule(config: dict, policies: dict) -> list[TrialSpec]:
                         repetition=repetition,
                         config_id=config["config_sha256"],
                     ),
+                    checkpoint_id=checkpoint_id,
                     algorithm=algorithm,
                     seed=seed,
                     repetition=repetition,
@@ -119,11 +140,12 @@ def build_trial_schedule(config: dict, policies: dict) -> list[TrialSpec]:
 def build_heat_schedule(config: dict, policies: dict):
     checkpoints = [
         CheckpointRef(
-            algorithm=algorithm,
-            filename=policies[algorithm].spec.filename,
-            sha256=policies[algorithm].spec.sha256,
+            checkpoint_id=checkpoint_id,
+            algorithm=policies[checkpoint_id].spec.algorithm,
+            filename=policies[checkpoint_id].spec.filename,
+            sha256=policies[checkpoint_id].spec.sha256,
         )
-        for algorithm in sorted(policies)
+        for checkpoint_id in sorted(policies)
     ]
     return build_balanced_heats(
         checkpoints,
@@ -136,14 +158,14 @@ def build_heat_schedule(config: dict, policies: dict):
 def pilot_trials(trials: list[TrialSpec]) -> list[TrialSpec]:
     selected = {}
     for trial in trials:
-        selected.setdefault(trial.algorithm, trial)
+        selected.setdefault(trial.checkpoint_id, trial)
     return list(selected.values())
 
 
 def pilot_heats(heats: list) -> list:
     selected = {}
     for heat in heats:
-        pairing = (heat.algorithm_a, heat.algorithm_b)
+        pairing = (heat.checkpoint_id_a, heat.checkpoint_id_b)
         selected.setdefault(pairing, heat)
     return list(selected.values())
 
@@ -302,15 +324,15 @@ def validate_environment(
             f"{sorted(environment.tracks)}"
         )
     observation_size = environment.state_builder.policy_state_size
-    for algorithm, policy in policies.items():
+    for checkpoint_id, policy in policies.items():
         if policy.observation_size != observation_size:
             errors.append(
-                f"{algorithm} observation size {policy.observation_size} "
+                f"{checkpoint_id} observation size {policy.observation_size} "
                 f"does not match environment {observation_size}"
             )
         if policy.action_size != 2:
             errors.append(
-                f"{algorithm} action size {policy.action_size} is not 2"
+                f"{checkpoint_id} action size {policy.action_size} is not 2"
             )
 
     if errors:
@@ -321,7 +343,7 @@ def validate_environment(
 
 
 def _repository_states(checkpoint_root: Path) -> dict[str, dict]:
-    autonomous_root = checkpoint_root.resolve().parent
+    autonomous_root = Path(__file__).resolve().parents[3]
     cares_root = Path(cares_reinforcement_learning.__file__).resolve().parent.parent
     f1_root = autonomous_root.parent / "f1tenth"
     return {
@@ -341,36 +363,50 @@ def _resolved_geometry(environment, config: dict) -> tuple[dict, dict]:
         )
     waypoint = waypoints[waypoint_index]
     centre = centreline_spawn_pose(waypoint).as_reset_dict()
-    sides = side_by_side_spawn_poses(
+    starts = staggered_spawn_poses(
         waypoint,
-        left_agent="left",
-        right_agent="right",
-        lateral_offset_m=float(config["track"]["lateral_offset_m"]),
+        lead_agent="lead",
+        chaser_agent="chaser",
+        longitudinal_separation_m=float(
+            config["track"]["longitudinal_separation_m"]
+        ),
     )
-    return centre, sides
+    return centre, starts
 
 
 def select_checkpoint_specs(arguments, specs):
-    """Restrict discovery explicitly and reject unavailable selections."""
-    if not arguments.algorithm:
-        return specs
-    requested = set(arguments.algorithm)
-    available = {spec.algorithm for spec in specs}
-    missing = requested - available
-    if missing:
-        raise ValueError(
-            f"Requested checkpoints are not present: {sorted(missing)}; "
-            f"discovered {sorted(available)}"
-        )
-    return [spec for spec in specs if spec.algorithm in requested]
+    """Select all variants by algorithm or exact variants by checkpoint ID."""
+    if arguments.algorithm and arguments.checkpoint:
+        raise ValueError("Use either --algorithm or --checkpoint, not both")
+    if arguments.algorithm:
+        requested = {value.upper() for value in arguments.algorithm}
+        available = {spec.algorithm for spec in specs}
+        missing = requested - available
+        if missing:
+            raise ValueError(
+                f"Requested algorithms are not present: {sorted(missing)}; "
+                f"discovered {sorted(available)}"
+            )
+        return [spec for spec in specs if spec.algorithm in requested]
+    if arguments.checkpoint:
+        requested = set(arguments.checkpoint)
+        available = {spec.checkpoint_id for spec in specs}
+        missing = requested - available
+        if missing:
+            raise ValueError(
+                f"Requested checkpoint IDs are not present: {sorted(missing)}; "
+                f"discovered {sorted(available)}"
+            )
+        return [spec for spec in specs if spec.checkpoint_id in requested]
+    return specs
 
 
 def validate_mode_policy_count(mode: str, policies: dict) -> None:
     """Reject race modes that cannot form an algorithm pairing."""
     if mode == "head-to-head" and len(policies) < 2:
         raise ValueError(
-            "Head-to-head evaluation requires checkpoints for at least two "
-            "different algorithms in the checkpoint directory"
+            "Head-to-head evaluation requires at least two distinct "
+            "checkpoint files in the checkpoint directory"
         )
 
 
@@ -382,10 +418,10 @@ def _run_time_trials(arguments, runner, writer, all_trials) -> None:
             continue
         print(
             f"[{index}/{len(trials)}] time trial "
-            f"{trial.algorithm} seed={trial.seed}"
+            f"{trial.checkpoint_id} ({trial.algorithm}) seed={trial.seed}"
         )
         runner.run_time_trial(
-            trial.algorithm,
+            trial.checkpoint_id,
             seed=trial.seed,
             repetition=trial.repetition,
         )
@@ -405,8 +441,8 @@ def _run_head_to_head(arguments, runner, writer, all_heats) -> None:
             print(f"[{index}/{len(heats)}] skip existing {heat.heat_id}")
             continue
         print(
-            f"[{index}/{len(heats)}] {heat.algorithm_a} vs "
-            f"{heat.algorithm_b} seed={heat.seed} heat={heat.heat_id}"
+            f"[{index}/{len(heats)}] {heat.checkpoint_id_a} vs "
+            f"{heat.checkpoint_id_b} seed={heat.seed} heat={heat.heat_id}"
         )
         runner.run_head_to_head(heat)
 
@@ -429,12 +465,24 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=_default_checkpoint_root(),
     )
-    parser.add_argument("--result-dir", type=Path)
+    parser.add_argument(
+        "--result-dir",
+        type=Path,
+        help=(
+            "Output directory; defaults to a manifest-specific directory "
+            "under ~/f1tenth_benchmark_results"
+        ),
+    )
     parser.add_argument("--pilot", action="store_true")
     parser.add_argument(
         "--algorithm",
         action="append",
-        choices=sorted(EXPECTED_ALGORITHMS),
+        help="Select every checkpoint with this filename algorithm prefix",
+    )
+    parser.add_argument(
+        "--checkpoint",
+        action="append",
+        help="Select one exact checkpoint ID (filename without .pth)",
     )
     parser.add_argument("--heat-id", action="append")
     return parser
@@ -455,8 +503,8 @@ def main(argv=None) -> None:
                 {
                     "config_id": config["config_sha256"],
                     "checkpoints": {
-                        algorithm: policy.manifest_entry()
-                        for algorithm, policy in sorted(policies.items())
+                        checkpoint_id: policy.manifest_entry()
+                        for checkpoint_id, policy in sorted(policies.items())
                     },
                 },
                 indent=2,
@@ -465,8 +513,6 @@ def main(argv=None) -> None:
         )
         return
 
-    if arguments.result_dir is None:
-        parser.error("--result-dir is required for simulator runs")
     validate_mode_policy_count(arguments.mode, policies)
 
     config = resolve_runtime_config(config, pilot=arguments.pilot)
@@ -497,7 +543,7 @@ def main(argv=None) -> None:
             all_heats,
             pilot=arguments.pilot,
         )
-        centre_pose, side_poses = _resolved_geometry(environment, config)
+        centre_pose, race_poses = _resolved_geometry(environment, config)
         repository_states = _repository_states(arguments.checkpoint_dir)
         track_model = environment.track_progress_models[
             config["track"]["identifier"]
@@ -510,9 +556,17 @@ def main(argv=None) -> None:
             time_trial_ids=[trial.trial_id for trial in declared_trials],
             heat_ids=[heat.heat_id for heat in declared_heats],
             centreline_start_pose=centre_pose,
-            side_by_side_start_poses=side_poses,
+            head_to_head_start_poses=race_poses,
         )
-        writer = ResultWriter(arguments.result_dir)
+        result_directory = arguments.result_dir
+        if result_directory is None:
+            result_directory = (
+                _default_result_root()
+                / f"{config['experiment_name']}_{manifest_id(manifest)}"
+            )
+        result_directory = result_directory.expanduser().resolve()
+        print(f"Benchmark results: {result_directory}")
+        writer = ResultWriter(result_directory)
         manifest = writer.write_manifest(manifest)
         revisions = git_revisions(repository_states)
         runner = BenchmarkRunner(

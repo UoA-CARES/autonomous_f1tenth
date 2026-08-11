@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "experiment_name": "f1tenth_marl_benchmark",
   "checkpoint_discovery": {
     "filename_pattern": "<ALGORITHM>_<name>.pth",
@@ -10,7 +10,7 @@
     "identifier": "test_track_02_350",
     "direction": "counter_clockwise",
     "start_waypoint_index": 10,
-    "lateral_offset_m": 0.3
+    "longitudinal_separation_m": 1.0
   },
   "environment": {
     "max_steps": 6000,

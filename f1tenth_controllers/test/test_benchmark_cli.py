@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from f1tenth_controllers.benchmark.cli import (
+    _default_result_root,
     build_heat_schedule,
     build_trial_schedule,
     declared_campaign_schedules,
@@ -12,6 +13,7 @@ from f1tenth_controllers.benchmark.cli import (
     environment_factory_config,
     pilot_heats,
     pilot_trials,
+    resolve_trial_seeds,
     select_checkpoint_specs,
     validate_environment,
     validate_mode_policy_count,
@@ -31,7 +33,8 @@ CONFIG_PATH = (
 class FakePolicy:
     def __init__(self, algorithm: str) -> None:
         self.spec = SimpleNamespace(
-            filename=f"{algorithm}.pth",
+            algorithm=algorithm,
+            filename=f"{algorithm}_selected.pth",
             sha256=algorithm.lower().ljust(64, "0"),
         )
         self.observation_size = 11
@@ -43,6 +46,18 @@ def policies() -> dict[str, FakePolicy]:
         algorithm: FakePolicy(algorithm)
         for algorithm in ("MATD3", "MAPPO", "MASAC", "ITD3", "IPPO", "ISAC")
     }
+
+
+def test_default_results_live_under_home_and_allow_override(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    monkeypatch.delenv("F1TENTH_BENCHMARK_RESULTS_DIR", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    assert _default_result_root() == tmp_path / "f1tenth_benchmark_results"
+
+    override = tmp_path / "external_results"
+    monkeypatch.setenv("F1TENTH_BENCHMARK_RESULTS_DIR", str(override))
+    assert _default_result_root() == override
 
 
 def test_full_and_pilot_campaign_sizes_are_explicit() -> None:
@@ -92,17 +107,43 @@ def test_single_discovered_checkpoint_builds_time_trials_only() -> None:
 
 
 def test_explicit_algorithm_selection_must_be_discovered() -> None:
-    specs = [SimpleNamespace(algorithm="ISAC")]
+    specs = [SimpleNamespace(algorithm="ISAC", checkpoint_id="ISAC_seed")]
 
     selected = select_checkpoint_specs(
-        SimpleNamespace(algorithm=["ISAC"]), specs
+        SimpleNamespace(algorithm=["ISAC"], checkpoint=None), specs
     )
     assert selected == specs
 
     with pytest.raises(ValueError, match="not present"):
         select_checkpoint_specs(
-            SimpleNamespace(algorithm=["MATD3"]), specs
+            SimpleNamespace(algorithm=["MATD3"], checkpoint=None), specs
         )
+
+
+def test_short_seed_list_is_extended_deterministically() -> None:
+    config = load_experiment_config(CONFIG_PATH)
+    config["time_trials"]["trials_per_algorithm"] = 5
+    config["time_trials"]["seeds"] = [42, 100]
+
+    assert resolve_trial_seeds(config) == [42, 100, 101, 102, 103]
+
+
+def test_same_algorithm_variants_remain_distinct_competitors() -> None:
+    config = load_experiment_config(CONFIG_PATH)
+    variants = {
+        "MASAC_seed_1": FakePolicy("MASAC"),
+        "MASAC_seed_2": FakePolicy("MASAC"),
+    }
+    variants["MASAC_seed_1"].spec.filename = "MASAC_seed_1.pth"
+    variants["MASAC_seed_2"].spec.filename = "MASAC_seed_2.pth"
+    variants["MASAC_seed_1"].spec.sha256 = "1" * 64
+    variants["MASAC_seed_2"].spec.sha256 = "2" * 64
+
+    assert len(build_trial_schedule(config, variants)) == 20
+    heats = build_heat_schedule(config, variants)
+    assert len(heats) == 8
+    assert {heat.algorithm_a for heat in heats} == {"MASAC"}
+    assert {heat.lead_checkpoint_id for heat in heats} == set(variants)
 
 
 def test_pilot_timeout_has_distinct_configuration_identity() -> None:

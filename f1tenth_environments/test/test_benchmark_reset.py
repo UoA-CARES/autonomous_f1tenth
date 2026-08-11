@@ -5,7 +5,7 @@ import pytest
 
 from f1tenth_environments.benchmark.geometry import (
     centreline_spawn_pose,
-    side_by_side_spawn_poses,
+    staggered_spawn_poses,
 )
 from f1tenth_environments.multi_f1tenth_environment import (
     MultiF1TenthEnvironment,
@@ -21,20 +21,22 @@ def test_centreline_pose_uses_left_track_normal() -> None:
     assert pose.waypoint_index == 7
 
 
-def test_side_by_side_poses_have_equal_progress_and_safe_separation() -> None:
-    poses = side_by_side_spawn_poses(
+def test_staggered_poses_have_common_lane_and_safe_separation() -> None:
+    poses = staggered_spawn_poses(
         (10.0, 20.0, 0.0, 7),
-        left_agent="f1tenth",
-        right_agent="opponent_1",
-        lateral_offset_m=0.3,
+        lead_agent="f1tenth",
+        chaser_agent="opponent_1",
+        longitudinal_separation_m=1.0,
     )
 
-    left = poses["f1tenth"]
-    right = poses["opponent_1"]
-    assert left["x"] == pytest.approx(right["x"])
-    assert left["yaw"] == pytest.approx(right["yaw"])
-    assert left["y"] - right["y"] == pytest.approx(0.6)
-    assert left["waypoint_index"] == right["waypoint_index"] == 7
+    lead = poses["f1tenth"]
+    chaser = poses["opponent_1"]
+    assert lead["x"] - chaser["x"] == pytest.approx(1.0)
+    assert lead["y"] == pytest.approx(chaser["y"])
+    assert lead["yaw"] == pytest.approx(chaser["yaw"])
+    assert lead["longitudinal_offset_m"] == pytest.approx(0.5)
+    assert chaser["longitudinal_offset_m"] == pytest.approx(-0.5)
+    assert lead["waypoint_index"] == chaser["waypoint_index"] == 7
 
 
 def _reset_seam_env() -> MultiF1TenthEnvironment:

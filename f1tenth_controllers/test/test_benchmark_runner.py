@@ -12,6 +12,7 @@ from f1tenth_environments.benchmark.protocol import HeatSpec
 
 @dataclass(frozen=True)
 class FakeSpec:
+    algorithm: str
     filename: str
     sha256: str
     actor_id: str = "f1tenth"
@@ -20,6 +21,7 @@ class FakeSpec:
 class ScriptedPolicy:
     def __init__(self, algorithm: str, progress_per_step_m: float) -> None:
         self.spec = FakeSpec(
+            algorithm=algorithm,
             filename=f"{algorithm}.pth",
             sha256=algorithm.lower().ljust(64, "0"),
         )
@@ -97,10 +99,14 @@ class ScriptedEnvironment:
     def reset(self, seed=None, options=None):
         self.reset_options = options
         self.step_counter = 0
-        self.progress = {agent: 0.0 for agent in self.agents}
+        self.progress = {
+            agent: float(options["spawn_poses"][agent]["x"])
+            for agent in self.agents
+        }
         self.crashed = set()
         self.previous_state_data = {
-            agent: FakeState(0.0, 0.0) for agent in self.agents
+            agent: FakeState(self.progress[agent], 0.0)
+            for agent in self.agents
         }
         return self._observations(), {agent: {} for agent in self.agents}
 
@@ -136,7 +142,7 @@ def benchmark_config() -> dict:
             "identifier": "test_track",
             "direction": "counter_clockwise",
             "start_waypoint_index": 0,
-            "lateral_offset_m": 0.3,
+            "longitudinal_separation_m": 1.0,
         },
         "lap_monitor": {
             "sector_fractions": [0.25, 0.5, 0.75],
@@ -173,15 +179,21 @@ def make_runner(
 def make_heat() -> HeatSpec:
     return HeatSpec(
         heat_id="heat_test",
+        checkpoint_id_a="FAST",
         algorithm_a="FAST",
         checkpoint_a="FAST.pth",
         checkpoint_sha256_a="fast".ljust(64, "0"),
+        checkpoint_id_b="SLOW",
         algorithm_b="SLOW",
         checkpoint_b="SLOW.pth",
         checkpoint_sha256_b="slow".ljust(64, "0"),
-        left_algorithm="FAST",
-        right_algorithm="SLOW",
+        lead_checkpoint_id="FAST",
+        lead_algorithm="FAST",
+        chaser_checkpoint_id="SLOW",
+        chaser_algorithm="SLOW",
+        primary_checkpoint_id="FAST",
         primary_algorithm="FAST",
+        opponent_checkpoint_id="SLOW",
         opponent_algorithm="SLOW",
         seed=42,
         track="test_track",
@@ -219,13 +231,16 @@ def test_race_uses_one_observation_snapshot_and_reports_along_track_lead(
     row = runner.run_head_to_head(make_heat())
 
     assert row["outcome_type"] == "finish_win"
-    assert row["winner"] == "FAST"
-    assert row["lead_m"] == pytest.approx(1.5)
+    assert row["winner_checkpoint_id"] == "FAST"
+    assert row["lead_checkpoint_id"] == "FAST"
+    assert row["chaser_checkpoint_id"] == "SLOW"
+    assert row["start_separation_m"] == pytest.approx(1.0)
+    assert row["lead_m"] == pytest.approx(2.3125)
     assert policies["FAST"].observation_times == [0.0, 1.0, 2.0, 3.0, 4.0]
     assert policies["SLOW"].observation_times == policies["FAST"].observation_times
     assert environment.reset_options["spawn_poses"]["f1tenth"][
-        "lateral_offset_m"
-    ] == pytest.approx(0.3)
+        "longitudinal_offset_m"
+    ] == pytest.approx(0.5)
     event = (
         tmp_path / "events.jsonl"
     ).read_text(encoding="utf-8").splitlines()[-1]
@@ -258,9 +273,9 @@ def test_single_isolated_crash_produces_crash_win_with_attribution(
     row = runner.run_head_to_head(make_heat())
 
     assert row["outcome_type"] == "crash_win"
-    assert row["winner"] == "FAST"
-    assert row["crash_participants"] == ["SLOW"]
-    assert row["responsible_car"] == "SLOW"
+    assert row["winner_checkpoint_id"] == "FAST"
+    assert row["crash_participant_checkpoint_ids"] == ["SLOW"]
+    assert row["responsible_checkpoint_id"] == "SLOW"
     assert row["attribution_confidence"] == "medium"
     assert row["dnf_reasons"] == {"SLOW": "collision"}
 
@@ -291,8 +306,8 @@ def test_same_step_two_car_crash_is_double_crash_and_conservative(
     row = runner.run_head_to_head(make_heat())
 
     assert row["outcome_type"] == "double_crash"
-    assert set(row["crash_participants"]) == {"FAST", "SLOW"}
-    assert row["responsible_car"] == "indeterminate"
+    assert set(row["crash_participant_checkpoint_ids"]) == {"FAST", "SLOW"}
+    assert row["responsible_checkpoint_id"] == "indeterminate"
     assert row["attribution_confidence"] == "low"
     assert row["dnf_reasons"] == {
         "FAST": "collision",

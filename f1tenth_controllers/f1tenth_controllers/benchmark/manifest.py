@@ -45,18 +45,18 @@ def build_run_manifest(
     time_trial_ids: list[str],
     heat_ids: list[str],
     centreline_start_pose: dict,
-    side_by_side_start_poses: dict,
+    head_to_head_start_poses: dict,
 ) -> dict:
     """Build the campaign declaration shared by pilot and full invocations."""
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "experiment_name": config["experiment_name"],
         "config_id": config["config_sha256"],
         "resolved_config": config,
         "checkpoints": {
-            algorithm: policies[algorithm].manifest_entry()
-            for algorithm in sorted(policies)
+            checkpoint_id: policies[checkpoint_id].manifest_entry()
+            for checkpoint_id in sorted(policies)
         },
         "repositories": repository_states,
         "git_revisions": git_revisions(repository_states),
@@ -64,7 +64,7 @@ def build_run_manifest(
             **config["track"],
             "lap_length_m": float(lap_length_m),
             "time_trial_start_pose": centreline_start_pose,
-            "head_to_head_start_poses": side_by_side_start_poses,
+            "head_to_head_start_poses": head_to_head_start_poses,
         },
         "campaign": {
             "time_trial_ids": time_trial_ids,
@@ -84,7 +84,7 @@ def build_run_manifest(
             ],
             "evaluation_protocol_differences": [
                 {
-                    "setting": "fixed_test_track_and_exact_spawn_poses",
+                    "setting": "fixed_test_track_and_exact_lead_chaser_spawn_poses",
                     "reason": "reproducible benchmark starts",
                 },
                 {

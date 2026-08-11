@@ -10,11 +10,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
-EXPECTED_ALGORITHMS = frozenset(
-    {"MATD3", "MAPPO", "MASAC", "ITD3", "IPPO", "ISAC"}
-)
-
-
 @dataclass(frozen=True, slots=True)
 class CheckpointSpec:
     """One authoritative selected checkpoint."""
@@ -26,12 +21,19 @@ class CheckpointSpec:
     actor_id: str
 
     @property
-    def expected_family(self) -> str:
-        if self.algorithm in {"MATD3", "ITD3"}:
+    def checkpoint_id(self) -> str:
+        """Stable human-readable identity for this exact checkpoint file."""
+        return Path(self.filename).stem
+
+    @property
+    def expected_family(self) -> str | None:
+        if self.algorithm.endswith("TD3"):
             return "td3"
-        if self.algorithm in {"MAPPO", "IPPO"}:
+        if self.algorithm.endswith("PPO"):
             return "ppo"
-        return "sac"
+        if self.algorithm.endswith("SAC"):
+            return "sac"
+        return None
 
 
 def _canonical_sha256(value) -> str:
@@ -47,7 +49,7 @@ def load_experiment_config(path: Path) -> dict:
     with path.open(encoding="utf-8") as config_file:
         config = json.load(config_file)
 
-    if config.get("schema_version") != 2:
+    if config.get("schema_version") != 3:
         raise ValueError("Unsupported benchmark schema_version")
 
     discovery = config.get("checkpoint_discovery")
@@ -76,6 +78,10 @@ def load_experiment_config(path: Path) -> dict:
         raise ValueError(
             "Head-to-head position_speed_multiplier must be 1.0"
         )
+
+    separation = config.get("track", {}).get("longitudinal_separation_m")
+    if not isinstance(separation, (int, float)) or separation <= 0.0:
+        raise ValueError("track.longitudinal_separation_m must be positive")
 
     lap_monitor = config.get("lap_monitor", {})
     if lap_monitor.get("max_projection_speed_mps") != environment.get(
@@ -115,7 +121,11 @@ def resolve_checkpoint_config(
     resolved = deepcopy(config)
     resolved.pop("config_sha256", None)
     resolved["resolved_checkpoints"] = {
-        spec.algorithm: asdict(spec) for spec in specs
+        spec.checkpoint_id: {
+            **asdict(spec),
+            "checkpoint_id": spec.checkpoint_id,
+        }
+        for spec in specs
     }
     resolved["config_sha256"] = _canonical_sha256(resolved)
     return resolved
@@ -159,11 +169,6 @@ def _algorithm_from_filename(path: Path) -> str:
             f"Checkpoint filename {path.name!r} must match "
             "<ALGORITHM>_<name>.pth"
         )
-    if algorithm not in EXPECTED_ALGORITHMS:
-        raise ValueError(
-            f"Unsupported checkpoint algorithm prefix {prefix!r} in "
-            f"{path.name!r}; expected one of {sorted(EXPECTED_ALGORITHMS)}"
-        )
     return algorithm
 
 
@@ -191,27 +196,28 @@ def resolve_checkpoint_specs(
         )
 
     actor_id = config["checkpoint_discovery"]["actor_id"]
-    specs_by_algorithm = {}
+    specs = []
+    checkpoint_ids = set()
     for checkpoint_path in checkpoint_paths:
         algorithm = _algorithm_from_filename(checkpoint_path)
-        previous = specs_by_algorithm.get(algorithm)
-        if previous is not None:
+        checkpoint_id = checkpoint_path.stem
+        if checkpoint_id in checkpoint_ids:
             raise ValueError(
-                f"Multiple {algorithm} checkpoints found in {checkpoint_root}: "
-                f"{previous.filename!r} and {checkpoint_path.name!r}; keep "
-                "only the checkpoint selected for this benchmark"
+                f"Duplicate checkpoint identity {checkpoint_id!r} in "
+                f"{checkpoint_root}"
             )
         size_bytes = checkpoint_path.stat().st_size
         if size_bytes <= 0:
             raise ValueError(
                 f"Checkpoint file is empty: {checkpoint_path.name!r}"
             )
-        specs_by_algorithm[algorithm] = CheckpointSpec(
+        specs.append(CheckpointSpec(
             algorithm=algorithm,
             filename=checkpoint_path.name,
             sha256=_sha256_file(checkpoint_path),
             size_bytes=size_bytes,
             actor_id=actor_id,
-        )
+        ))
+        checkpoint_ids.add(checkpoint_id)
 
-    return [specs_by_algorithm[key] for key in sorted(specs_by_algorithm)]
+    return sorted(specs, key=lambda spec: spec.checkpoint_id.lower())

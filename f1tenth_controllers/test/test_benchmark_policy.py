@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 
 from f1tenth_controllers.benchmark.config import (
-    EXPECTED_ALGORITHMS,
     load_experiment_config,
     resolve_checkpoint_config,
     resolve_checkpoint_specs,
@@ -65,7 +64,7 @@ def test_resolved_config_identity_includes_discovered_checkpoint(
     second = resolve_checkpoint_config(config, second_specs)
 
     assert first["config_sha256"] != second["config_sha256"]
-    assert first["resolved_checkpoints"]["ISAC"]["sha256"] == (
+    assert first["resolved_checkpoints"]["ISAC_candidate"]["sha256"] == (
         first_specs[0].sha256
     )
     assert "resolved_checkpoints" not in config
@@ -81,21 +80,26 @@ def test_discovery_sorts_supported_algorithm_prefixes(tmp_path: Path) -> None:
     assert [spec.algorithm for spec in specs] == ["IPPO", "MASAC"]
 
 
-@pytest.mark.parametrize(
-    "filename, message",
-    [
-        ("ISAC.pth", "must match"),
-        ("TD3_model.pth", "Unsupported checkpoint algorithm prefix"),
-    ],
-)
-def test_discovery_rejects_ambiguous_filename(
-    tmp_path: Path, filename: str, message: str
+def test_discovery_rejects_filename_without_algorithm_separator(
+    tmp_path: Path,
 ) -> None:
     config = load_experiment_config(CONFIG_PATH)
-    (tmp_path / filename).write_bytes(b"checkpoint")
+    (tmp_path / "ISAC.pth").write_bytes(b"checkpoint")
 
-    with pytest.raises(ValueError, match=message):
+    with pytest.raises(ValueError, match="must match"):
         resolve_checkpoint_specs(config, tmp_path)
+
+
+def test_discovery_accepts_new_algorithm_prefix(
+    tmp_path: Path,
+) -> None:
+    config = load_experiment_config(CONFIG_PATH)
+    (tmp_path / "MADDPG_candidate.pth").write_bytes(b"checkpoint")
+
+    spec = resolve_checkpoint_specs(config, tmp_path)[0]
+
+    assert spec.algorithm == "MADDPG"
+    assert spec.checkpoint_id == "MADDPG_candidate"
 
 
 def test_discovery_rejects_empty_checkpoint(tmp_path: Path) -> None:
@@ -106,15 +110,20 @@ def test_discovery_rejects_empty_checkpoint(tmp_path: Path) -> None:
         resolve_checkpoint_specs(config, tmp_path)
 
 
-def test_discovery_rejects_multiple_files_for_one_algorithm(
+def test_discovery_supports_multiple_files_for_one_algorithm(
     tmp_path: Path,
 ) -> None:
     config = load_experiment_config(CONFIG_PATH)
     (tmp_path / "ISAC_first.pth").write_bytes(b"first")
     (tmp_path / "isac_second.pth").write_bytes(b"second")
 
-    with pytest.raises(ValueError, match="Multiple ISAC checkpoints"):
-        resolve_checkpoint_specs(config, tmp_path)
+    specs = resolve_checkpoint_specs(config, tmp_path)
+
+    assert [spec.algorithm for spec in specs] == ["ISAC", "ISAC"]
+    assert {spec.checkpoint_id for spec in specs} == {
+        "ISAC_first",
+        "isac_second",
+    }
 
 
 def test_discovery_does_not_search_nested_run_directories(
@@ -149,7 +158,6 @@ def test_all_discovered_checkpoints_pass_strict_preflight() -> None:
     specs = resolve_checkpoint_specs(config, CHECKPOINT_ROOT)
     adapters = preflight_policies(specs, CHECKPOINT_ROOT)
 
-    assert set(adapters).issubset(EXPECTED_ALGORITHMS)
-    assert set(adapters) == {spec.algorithm for spec in specs}
+    assert set(adapters) == {spec.checkpoint_id for spec in specs}
     assert all(adapter.observation_size == 11 for adapter in adapters.values())
     assert all(adapter.action_size == 2 for adapter in adapters.values())

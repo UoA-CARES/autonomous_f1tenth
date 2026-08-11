@@ -1,7 +1,6 @@
 """Policy loading and orchestration for the MARL benchmark."""
 
 from .config import (
-    EXPECTED_ALGORITHMS,
     CheckpointSpec,
     load_experiment_config,
     resolve_checkpoint_config,
@@ -12,7 +11,6 @@ from .results import ResultWriter
 from .runner import BenchmarkRunner
 
 __all__ = [
-    "EXPECTED_ALGORITHMS",
     "CheckpointSpec",
     "BenchmarkRunner",
     "PolicyAdapter",

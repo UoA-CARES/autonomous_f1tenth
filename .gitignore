@@ -10,8 +10,9 @@ __pycache__
 rl_logs
 .idea
 Retrain1hTrue
-results/
+/results/
 .vscode
 *.txt
 /overtaking_models
 perception_debug
+/train_weights/

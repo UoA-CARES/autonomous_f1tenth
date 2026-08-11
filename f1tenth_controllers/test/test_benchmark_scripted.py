@@ -38,6 +38,7 @@ def test_existing_pure_pursuit_adapter_returns_declared_speed() -> None:
         ],
         speed_mps=0.8,
         lateral_offset_m=0.0,
+        checkpoint_id="PURE_PURSUIT",
     )
 
     action = adapter.act(np.zeros(11, dtype=np.float32))

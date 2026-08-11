@@ -80,9 +80,9 @@ def test_lead_interpolates_loser_progress_across_wrap_boundary() -> None:
 
 def test_balanced_heat_generation_is_unique_and_counterbalanced() -> None:
     checkpoints = [
-        CheckpointRef("A", "a.pth", "a" * 64),
-        CheckpointRef("B", "b.pth", "b" * 64),
-        CheckpointRef("C", "c.pth", "c" * 64),
+        CheckpointRef("A_seed", "A", "a.pth", "a" * 64),
+        CheckpointRef("B_seed", "B", "b.pth", "b" * 64),
+        CheckpointRef("C_seed", "C", "c.pth", "c" * 64),
     ]
 
     heats = build_balanced_heats(
@@ -99,14 +99,21 @@ def test_balanced_heat_generation_is_unique_and_counterbalanced() -> None:
         for heat in heats
         if {heat.algorithm_a, heat.algorithm_b} == {"A", "B"}
     ]
-    assert {heat.left_algorithm for heat in ab_heats} == {"A", "B"}
-    assert {heat.primary_algorithm for heat in ab_heats} == {"A", "B"}
+    assert {heat.lead_algorithm for heat in ab_heats} == {"A", "B"}
+    assert {heat.lead_checkpoint_id for heat in ab_heats} == {
+        "A_seed",
+        "B_seed",
+    }
+    assert {heat.primary_checkpoint_id for heat in ab_heats} == {
+        "A_seed",
+        "B_seed",
+    }
 
 
 def test_heat_id_changes_when_an_assignment_changes() -> None:
     checkpoints = [
-        CheckpointRef("A", "a.pth", "a" * 64),
-        CheckpointRef("B", "b.pth", "b" * 64),
+        CheckpointRef("A_seed", "A", "a.pth", "a" * 64),
+        CheckpointRef("B_seed", "B", "b.pth", "b" * 64),
     ]
     heats = build_balanced_heats(checkpoints, [42], "track", "ccw")
 

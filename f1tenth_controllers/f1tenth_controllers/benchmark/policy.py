@@ -46,7 +46,7 @@ def _checkpoint_family(checkpoint: dict) -> str:
         return "ppo"
     if "target_actor" in checkpoint and "policy_noise" in checkpoint:
         return "td3"
-    raise ValueError("Unrecognised checkpoint family")
+    return "unknown"
 
 
 def _json_safe(value):
@@ -97,7 +97,7 @@ class PolicyAdapter:
                 f"{spec.algorithm} checkpoint top level must be a dictionary"
             )
         family = _checkpoint_family(checkpoint)
-        if family != spec.expected_family:
+        if spec.expected_family is not None and family != spec.expected_family:
             raise ValueError(
                 f"{spec.algorithm} expected {spec.expected_family} checkpoint "
                 f"structure, got {family}; top-level keys={sorted(checkpoint)}"
@@ -220,9 +220,9 @@ def preflight_policies(
 ) -> dict[str, PolicyAdapter]:
     """Load all declared policies without substituting another checkpoint."""
     adapters = {
-        spec.algorithm: PolicyAdapter.load(spec, checkpoint_root)
+        spec.checkpoint_id: PolicyAdapter.load(spec, checkpoint_root)
         for spec in specs
     }
     if len(adapters) != len(specs):
-        raise RuntimeError("Duplicate algorithms in checkpoint preflight")
+        raise RuntimeError("Duplicate checkpoint identities in preflight")
     return adapters

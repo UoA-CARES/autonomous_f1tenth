@@ -63,11 +63,11 @@ def _completed_lap_statistics(lap_times: list[float]) -> dict:
 def summarize_time_trials(rows: list[dict]) -> dict:
     grouped = defaultdict(list)
     for row in rows:
-        grouped[row["algorithm"]].append(row)
+        grouped[row["checkpoint_id"]].append(row)
 
-    algorithms = {}
-    for algorithm in sorted(grouped):
-        trials = grouped[algorithm]
+    competitors = {}
+    for checkpoint_id in sorted(grouped):
+        trials = grouped[checkpoint_id]
         completed = [
             row
             for row in trials
@@ -83,7 +83,9 @@ def summarize_time_trials(rows: list[dict]) -> dict:
             for row in trials
             if row["completion_status"] != "completed"
         )
-        algorithms[algorithm] = {
+        competitors[checkpoint_id] = {
+            "algorithm": trials[0]["algorithm"],
+            "checkpoint_filename": trials[0]["checkpoint_filename"],
             "trial_count": len(trials),
             "valid_lap_count": len(completed),
             "completion_rate": len(completed) / len(trials),
@@ -91,9 +93,9 @@ def summarize_time_trials(rows: list[dict]) -> dict:
             "completed_lap_time": _completed_lap_statistics(lap_times),
         }
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "trial_count": len(rows),
-        "algorithms": algorithms,
+        "competitors": competitors,
         "note": (
             "DNFs are excluded from lap-time statistics; completion rate "
             "reports reliability separately."
@@ -103,7 +105,7 @@ def summarize_time_trials(rows: list[dict]) -> dict:
 
 def summarize_head_to_head(rows: list[dict]) -> dict:
     outcome_counts = Counter(row["outcome_type"] for row in rows)
-    algorithms = defaultdict(
+    competitors = defaultdict(
         lambda: {
             "starts": 0,
             "wins": 0,
@@ -114,26 +116,28 @@ def summarize_head_to_head(rows: list[dict]) -> dict:
     winning_leads = defaultdict(list)
     pairings = defaultdict(list)
     for row in rows:
-        algorithm_a = row["algorithm_a"]
-        algorithm_b = row["algorithm_b"]
-        algorithms[algorithm_a]["starts"] += 1
-        algorithms[algorithm_b]["starts"] += 1
-        winner = row["winner"]
+        checkpoint_a = row["checkpoint_id_a"]
+        checkpoint_b = row["checkpoint_id_b"]
+        competitors[checkpoint_a]["algorithm"] = row["algorithm_a"]
+        competitors[checkpoint_b]["algorithm"] = row["algorithm_b"]
+        competitors[checkpoint_a]["starts"] += 1
+        competitors[checkpoint_b]["starts"] += 1
+        winner = row["winner_checkpoint_id"]
         if winner:
-            algorithms[winner]["wins"] += 1
+            competitors[winner]["wins"] += 1
             if row["lead_m"] != "":
                 winning_leads[winner].append(float(row["lead_m"]))
             if row["outcome_type"] == "finish_win":
-                algorithms[winner]["finish_wins"] += 1
+                competitors[winner]["finish_wins"] += 1
             elif row["outcome_type"] == "crash_win":
-                algorithms[winner]["crash_wins"] += 1
-        pairing = tuple(sorted((algorithm_a, algorithm_b)))
+                competitors[winner]["crash_wins"] += 1
+        pairing = tuple(sorted((checkpoint_a, checkpoint_b)))
         pairings[pairing].append(row)
 
-    algorithm_summary = {}
-    for algorithm, values in sorted(algorithms.items()):
-        leads = winning_leads[algorithm]
-        algorithm_summary[algorithm] = {
+    competitor_summary = {}
+    for checkpoint_id, values in sorted(competitors.items()):
+        leads = winning_leads[checkpoint_id]
+        competitor_summary[checkpoint_id] = {
             **values,
             "win_rate": (
                 values["wins"] / values["starts"]
@@ -164,17 +168,17 @@ def summarize_head_to_head(rows: list[dict]) -> dict:
             "winner_counts": dict(
                 sorted(
                     Counter(
-                        row["winner"] or "none" for row in pairing_rows
+                        row["winner_checkpoint_id"] or "none" for row in pairing_rows
                     ).items()
                 )
             ),
         }
 
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "heat_count": len(rows),
         "outcome_counts": dict(sorted(outcome_counts.items())),
-        "algorithms": algorithm_summary,
+        "competitors": competitor_summary,
         "pairings": pairing_summary,
     }
 
@@ -185,13 +189,13 @@ def _plot_time_trials(summary: dict, path: Path) -> None:
     matplotlib.use("Agg", force=True)
     import matplotlib.pyplot as plt
 
-    algorithms = list(summary["algorithms"])
+    competitors = list(summary["competitors"])
     completion_rates = [
-        summary["algorithms"][algorithm]["completion_rate"]
-        for algorithm in algorithms
+        summary["competitors"][competitor]["completion_rate"]
+        for competitor in competitors
     ]
     figure, axis = plt.subplots(figsize=(8, 4.5))
-    axis.bar(algorithms, completion_rates)
+    axis.bar(competitors, completion_rates)
     axis.set_ylim(0.0, 1.0)
     axis.set_ylabel("Valid-lap completion rate")
     axis.set_title("MARL time-trial reliability")
@@ -206,13 +210,13 @@ def _plot_head_to_head(summary: dict, path: Path) -> None:
     matplotlib.use("Agg", force=True)
     import matplotlib.pyplot as plt
 
-    algorithms = list(summary["algorithms"])
+    competitors = list(summary["competitors"])
     wins = [
-        summary["algorithms"][algorithm]["wins"]
-        for algorithm in algorithms
+        summary["competitors"][competitor]["wins"]
+        for competitor in competitors
     ]
     figure, axis = plt.subplots(figsize=(8, 4.5))
-    axis.bar(algorithms, wins)
+    axis.bar(competitors, wins)
     axis.set_ylabel("Pilot/full heat wins")
     axis.set_title("MARL head-to-head wins")
     figure.tight_layout()

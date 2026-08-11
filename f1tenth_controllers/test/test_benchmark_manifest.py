@@ -55,9 +55,9 @@ def test_manifest_records_provenance_schedule_and_fidelity_differences() -> None
         time_trial_ids=["trial_1"],
         heat_ids=["heat_1", "heat_2"],
         centreline_start_pose={"x": 1.0},
-        side_by_side_start_poses={
-            "left": {"lateral_offset_m": 0.3},
-            "right": {"lateral_offset_m": -0.3},
+        head_to_head_start_poses={
+            "lead": {"longitudinal_offset_m": 0.5},
+            "chaser": {"longitudinal_offset_m": -0.5},
         },
     )
 
@@ -74,7 +74,7 @@ def test_manifest_records_provenance_schedule_and_fidelity_differences() -> None
         "evaluation_protocol_differences"
     ]
     assert {difference["setting"] for difference in differences} == {
-        "fixed_test_track_and_exact_spawn_poses",
+        "fixed_test_track_and_exact_lead_chaser_spawn_poses",
         "position_speed_multiplier",
         "episode_limit",
         "evaluation_service_timeout_wall_seconds",
