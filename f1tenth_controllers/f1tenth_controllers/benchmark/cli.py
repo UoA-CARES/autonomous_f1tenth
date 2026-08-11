@@ -25,6 +25,7 @@ from f1tenth_environments.benchmark import (
 from .config import (
     EXPECTED_ALGORITHMS,
     load_experiment_config,
+    resolve_checkpoint_config,
     resolve_checkpoint_specs,
     resolve_runtime_config,
 )
@@ -349,18 +350,32 @@ def _resolved_geometry(environment, config: dict) -> tuple[dict, dict]:
     return centre, sides
 
 
-def _selected_algorithms(arguments) -> set[str]:
+def select_checkpoint_specs(arguments, specs):
+    """Restrict discovery explicitly and reject unavailable selections."""
     if not arguments.algorithm:
-        return set(EXPECTED_ALGORITHMS)
-    return set(arguments.algorithm)
+        return specs
+    requested = set(arguments.algorithm)
+    available = {spec.algorithm for spec in specs}
+    missing = requested - available
+    if missing:
+        raise ValueError(
+            f"Requested checkpoints are not present: {sorted(missing)}; "
+            f"discovered {sorted(available)}"
+        )
+    return [spec for spec in specs if spec.algorithm in requested]
+
+
+def validate_mode_policy_count(mode: str, policies: dict) -> None:
+    """Reject race modes that cannot form an algorithm pairing."""
+    if mode == "head-to-head" and len(policies) < 2:
+        raise ValueError(
+            "Head-to-head evaluation requires checkpoints for at least two "
+            "different algorithms in the checkpoint directory"
+        )
 
 
 def _run_time_trials(arguments, runner, writer, all_trials) -> None:
     trials = pilot_trials(all_trials) if arguments.pilot else all_trials
-    selected_algorithms = _selected_algorithms(arguments)
-    trials = [
-        trial for trial in trials if trial.algorithm in selected_algorithms
-    ]
     for index, trial in enumerate(trials, start=1):
         if writer.has_time_trial(trial.trial_id):
             print(f"[{index}/{len(trials)}] skip existing {trial.trial_id}")
@@ -378,15 +393,6 @@ def _run_time_trials(arguments, runner, writer, all_trials) -> None:
 
 def _run_head_to_head(arguments, runner, writer, all_heats) -> None:
     heats = pilot_heats(all_heats) if arguments.pilot else all_heats
-    selected_algorithms = _selected_algorithms(arguments)
-    heats = [
-        heat
-        for heat in heats
-        if {
-            heat.algorithm_a,
-            heat.algorithm_b,
-        }.issubset(selected_algorithms)
-    ]
     if arguments.heat_id:
         selected_heat_ids = set(arguments.heat_id)
         unknown = selected_heat_ids - {heat.heat_id for heat in all_heats}
@@ -407,7 +413,7 @@ def _run_head_to_head(arguments, runner, writer, all_heats) -> None:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Evaluate the six selected F1TENTH MARL checkpoints"
+        description="Evaluate discovered F1TENTH MARL checkpoints"
     )
     parser.add_argument(
         "mode",
@@ -438,7 +444,9 @@ def main(argv=None) -> None:
     parser = _build_parser()
     arguments = parser.parse_args(argv)
     config = load_experiment_config(arguments.config)
-    specs = resolve_checkpoint_specs(config)
+    specs = resolve_checkpoint_specs(config, arguments.checkpoint_dir)
+    specs = select_checkpoint_specs(arguments, specs)
+    config = resolve_checkpoint_config(config, specs)
     policies = preflight_policies(specs, arguments.checkpoint_dir)
 
     if arguments.mode == "preflight":
@@ -459,6 +467,7 @@ def main(argv=None) -> None:
 
     if arguments.result_dir is None:
         parser.error("--result-dir is required for simulator runs")
+    validate_mode_policy_count(arguments.mode, policies)
 
     config = resolve_runtime_config(config, pilot=arguments.pilot)
     validate_runtime_environment(config)

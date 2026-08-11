@@ -12,7 +12,9 @@ from f1tenth_controllers.benchmark.cli import (
     environment_factory_config,
     pilot_heats,
     pilot_trials,
+    select_checkpoint_specs,
     validate_environment,
+    validate_mode_policy_count,
     validate_runtime_environment,
 )
 from f1tenth_controllers.benchmark.config import (
@@ -72,6 +74,35 @@ def test_full_and_pilot_campaign_sizes_are_explicit() -> None:
     )
     assert full_trials is trials
     assert full_heats is heats
+
+
+def test_single_discovered_checkpoint_builds_time_trials_only() -> None:
+    config = load_experiment_config(CONFIG_PATH)
+    single_policy = {"ISAC": FakePolicy("ISAC")}
+
+    trials = build_trial_schedule(config, single_policy)
+    heats = build_heat_schedule(config, single_policy)
+
+    assert len(trials) == 10
+    assert len(pilot_trials(trials)) == 1
+    assert heats == []
+    validate_mode_policy_count("time-trials", single_policy)
+    with pytest.raises(ValueError, match="at least two"):
+        validate_mode_policy_count("head-to-head", single_policy)
+
+
+def test_explicit_algorithm_selection_must_be_discovered() -> None:
+    specs = [SimpleNamespace(algorithm="ISAC")]
+
+    selected = select_checkpoint_specs(
+        SimpleNamespace(algorithm=["ISAC"]), specs
+    )
+    assert selected == specs
+
+    with pytest.raises(ValueError, match="not present"):
+        select_checkpoint_specs(
+            SimpleNamespace(algorithm=["MATD3"]), specs
+        )
 
 
 def test_pilot_timeout_has_distinct_configuration_identity() -> None:

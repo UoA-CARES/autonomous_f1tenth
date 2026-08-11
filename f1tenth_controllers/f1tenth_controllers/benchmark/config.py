@@ -1,4 +1,4 @@
-"""Strict loading for the checked-in benchmark experiment configuration."""
+"""Strict loading for the benchmark configuration and local checkpoints."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import hashlib
 import json
 import math
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
@@ -47,17 +47,21 @@ def load_experiment_config(path: Path) -> dict:
     with path.open(encoding="utf-8") as config_file:
         config = json.load(config_file)
 
-    if config.get("schema_version") != 1:
+    if config.get("schema_version") != 2:
         raise ValueError("Unsupported benchmark schema_version")
 
-    checkpoints = config.get("checkpoints")
-    if not isinstance(checkpoints, dict):
-        raise ValueError("Benchmark config must contain checkpoint mappings")
-    algorithms = set(checkpoints)
-    if algorithms != EXPECTED_ALGORITHMS:
+    discovery = config.get("checkpoint_discovery")
+    if not isinstance(discovery, dict):
         raise ValueError(
-            "Checkpoint mapping must contain exactly "
-            f"{sorted(EXPECTED_ALGORITHMS)}; got {sorted(algorithms)}"
+            "Benchmark config must contain checkpoint_discovery settings"
+        )
+    if discovery.get("filename_pattern") != "<ALGORITHM>_<name>.pth":
+        raise ValueError("Unsupported checkpoint filename_pattern")
+    actor_id = str(discovery.get("actor_id", "")).strip()
+    if actor_id != "f1tenth":
+        raise ValueError(
+            "checkpoint_discovery.actor_id must preserve the training "
+            "actor identity 'f1tenth'"
         )
 
     environment = config.get("environment", {})
@@ -104,6 +108,19 @@ def load_experiment_config(path: Path) -> dict:
     return config
 
 
+def resolve_checkpoint_config(
+    config: dict, specs: list[CheckpointSpec]
+) -> dict:
+    """Bind runtime-discovered checkpoint identities to the configuration."""
+    resolved = deepcopy(config)
+    resolved.pop("config_sha256", None)
+    resolved["resolved_checkpoints"] = {
+        spec.algorithm: asdict(spec) for spec in specs
+    }
+    resolved["config_sha256"] = _canonical_sha256(resolved)
+    return resolved
+
+
 def resolve_runtime_config(config: dict, *, pilot: bool) -> dict:
     """Resolve a pilot without allowing its rows into the full campaign."""
     if not pilot:
@@ -126,34 +143,75 @@ def resolve_runtime_config(config: dict, *, pilot: bool) -> dict:
     return resolved
 
 
-def resolve_checkpoint_specs(config: dict) -> list[CheckpointSpec]:
-    """Convert the explicit mapping into validated immutable specifications."""
-    specs = []
-    for algorithm in sorted(EXPECTED_ALGORITHMS):
-        values = config["checkpoints"][algorithm]
-        filename = str(values["filename"])
-        if Path(filename).name != filename:
-            raise ValueError(
-                f"Checkpoint filename for {algorithm} must not contain a path"
-            )
-        sha256 = str(values["sha256"]).lower()
-        if len(sha256) != 64 or any(
-            character not in "0123456789abcdef" for character in sha256
-        ):
-            raise ValueError(f"Invalid SHA256 for {algorithm}")
-        size_bytes = int(values["size_bytes"])
-        if size_bytes <= 0:
-            raise ValueError(f"Invalid checkpoint size for {algorithm}")
-        actor_id = str(values["actor_id"]).strip()
-        if not actor_id:
-            raise ValueError(f"Missing actor_id for {algorithm}")
-        specs.append(
-            CheckpointSpec(
-                algorithm=algorithm,
-                filename=filename,
-                sha256=sha256,
-                size_bytes=size_bytes,
-                actor_id=actor_id,
-            )
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as checkpoint_file:
+        for chunk in iter(lambda: checkpoint_file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _algorithm_from_filename(path: Path) -> str:
+    prefix, separator, remainder = path.stem.partition("_")
+    algorithm = prefix.upper()
+    if path.suffix.lower() != ".pth" or not separator or not remainder:
+        raise ValueError(
+            f"Checkpoint filename {path.name!r} must match "
+            "<ALGORITHM>_<name>.pth"
         )
-    return specs
+    if algorithm not in EXPECTED_ALGORITHMS:
+        raise ValueError(
+            f"Unsupported checkpoint algorithm prefix {prefix!r} in "
+            f"{path.name!r}; expected one of {sorted(EXPECTED_ALGORITHMS)}"
+        )
+    return algorithm
+
+
+def resolve_checkpoint_specs(
+    config: dict, checkpoint_root: Path
+) -> list[CheckpointSpec]:
+    """Discover direct child checkpoints and record their immutable identity."""
+    checkpoint_root = Path(checkpoint_root).expanduser()
+    if not checkpoint_root.is_dir():
+        raise FileNotFoundError(
+            f"Checkpoint directory does not exist: {checkpoint_root}"
+        )
+
+    checkpoint_paths = sorted(
+        (
+            path
+            for path in checkpoint_root.iterdir()
+            if path.is_file() and path.suffix.lower() == ".pth"
+        ),
+        key=lambda path: path.name.lower(),
+    )
+    if not checkpoint_paths:
+        raise FileNotFoundError(
+            f"No .pth checkpoints found directly in {checkpoint_root}"
+        )
+
+    actor_id = config["checkpoint_discovery"]["actor_id"]
+    specs_by_algorithm = {}
+    for checkpoint_path in checkpoint_paths:
+        algorithm = _algorithm_from_filename(checkpoint_path)
+        previous = specs_by_algorithm.get(algorithm)
+        if previous is not None:
+            raise ValueError(
+                f"Multiple {algorithm} checkpoints found in {checkpoint_root}: "
+                f"{previous.filename!r} and {checkpoint_path.name!r}; keep "
+                "only the checkpoint selected for this benchmark"
+            )
+        size_bytes = checkpoint_path.stat().st_size
+        if size_bytes <= 0:
+            raise ValueError(
+                f"Checkpoint file is empty: {checkpoint_path.name!r}"
+            )
+        specs_by_algorithm[algorithm] = CheckpointSpec(
+            algorithm=algorithm,
+            filename=checkpoint_path.name,
+            sha256=_sha256_file(checkpoint_path),
+            size_bytes=size_bytes,
+            actor_id=actor_id,
+        )
+
+    return [specs_by_algorithm[key] for key in sorted(specs_by_algorithm)]
