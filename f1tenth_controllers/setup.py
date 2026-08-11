@@ -38,6 +38,7 @@ setup(
             "state_machine = f1tenth_controllers.state_machine:main",
             "marl_benchmark = f1tenth_controllers.benchmark.cli:main",
             "marl_benchmark_summary = f1tenth_controllers.benchmark.summary:main",
+            "marl_benchmark_scripted = f1tenth_controllers.benchmark.scripted:main",
         ],
     },
 )

@@ -117,6 +117,36 @@ ros2 run f1tenth_controllers marl_benchmark head-to-head \
   --pilot --result-dir /path/to/pilot_results
 ```
 
+## Scripted Gazebo integration checks
+
+The separate scripted command adapts the repository's unchanged
+`PurePursuit` class to the same synchronous environment and lap/race runner.
+It is verification tooling, not a trained-policy action-processing stage.
+
+With zero opponents launched as for a time trial, run:
+
+```bash
+source install/setup.bash
+export ROS_DOMAIN_ID=77
+export F1TENTH_NUM_OPPONENTS=0
+ros2 run f1tenth_controllers marl_benchmark_scripted time-trial \
+  --result-dir /path/to/scripted_results
+```
+
+Then relaunch with one opponent and run:
+
+```bash
+source install/setup.bash
+export ROS_DOMAIN_ID=77
+export F1TENTH_NUM_OPPONENTS=1
+ros2 run f1tenth_controllers marl_benchmark_scripted head-to-head \
+  --result-dir /path/to/scripted_results
+```
+
+The race uses parallel +0.30 m and -0.30 m waypoint paths at 0.8 m/s and
+0.5 m/s. It verifies a faster scripted car, interpolated finish ordering,
+and along-track lead without changing the world or vehicle physics.
+
 ## Full campaign
 
 Use a new, empty result directory. Launch zero opponents as above. In the
