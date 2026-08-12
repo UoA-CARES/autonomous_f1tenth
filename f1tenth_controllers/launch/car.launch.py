@@ -34,6 +34,9 @@ def _create_controller_launch(context):
     tracking = LaunchConfiguration("tracking").perform(context).lower() == "true"
     car_name = LaunchConfiguration("car_name").perform(context)
 
+    ftg_min_velocity = float(LaunchConfiguration("ftg_min_velocity").perform(context))
+    ftg_max_velocity = float(LaunchConfiguration("ftg_max_velocity").perform(context))
+
     if tracking:
         return [
             Node(
@@ -57,8 +60,8 @@ def _create_controller_launch(context):
                 parameters=[
                     {"car_name": car_name},
                     {"drive_topic": f"/{car_name}/rl_drive"},
-                    {"min_velocity": LaunchConfiguration("ftg_min_velocity")},
-                    {"max_velocity": LaunchConfiguration("ftg_max_velocity")},
+                    {"min_velocity": ftg_min_velocity},
+                    {"max_velocity": ftg_max_velocity},
                 ],
             ),
             Node(
