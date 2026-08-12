@@ -141,7 +141,10 @@ def generate_launch_description():
     cares_python_path_arg = DeclareLaunchArgument(
         "cares_python_path",
         default_value=".",
-        description="Path containing the cares_reinforcement_learning package to add to PYTHONPATH for algorithm:=rl.",
+        description=(
+            "Path containing the cares_reinforcement_learning package to add "
+            "to PYTHONPATH for algorithm:=rl."
+        ),
     )
     rl_algorithm_arg = DeclareLaunchArgument(
         "rl_algorithm",
@@ -161,7 +164,10 @@ def generate_launch_description():
     marl_agent_ids_arg = DeclareLaunchArgument(
         "marl_agent_ids",
         default_value="",
-        description="Comma-separated MARL agent ids used during training. Defaults to controlled_agent_id.",
+        description=(
+            "Comma-separated MARL agent ids used during training. Defaults "
+            "to controlled_agent_id."
+        ),
     )
     marl_teams_arg = DeclareLaunchArgument(
         "marl_teams",
