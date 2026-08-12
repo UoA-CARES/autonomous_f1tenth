@@ -204,7 +204,7 @@ def assess_crash(
             participants=(car,),
             responsible_car=car,
             attribution_confidence="medium",
-            evidence=("isolated_collision_or_flip_signal", "cars_separated"),
+            evidence=("isolated_crash_signal", "cars_separated"),
         )
 
     participants = tuple(sorted(crash_signals))

@@ -64,11 +64,12 @@ with the detected structural mismatch.
 
 The selected world and waypoint identifier are both `test_track_02_350`. The
 centreline is counter-clockwise and has a waypoint-polyline length of
-approximately 179.143 m. Waypoint 10 is the fixed start. Time trials use its
-centreline pose; races use the same centreline lane with a 1.0 m
-centre-to-centre longitudinal
-separation: the declared lead car is +0.5 m ahead of the common start gate and
-the chaser is -0.5 m behind it.
+approximately 179.143 m. Each protocol seed is hashed with the configured salt
+and mapped to a waypoint, producing varied but reproducible starts. Every
+checkpoint receives the same time-trial start for a given seed. Race heats with
+the same seed share a centreline start gate and retain the 1.0 m
+centre-to-centre longitudinal separation: the declared lead car is +0.5 m ahead
+of the gate and the chaser is -0.5 m behind it.
 
 `test_track_01_350` is deliberately excluded: its current `waypoints.py` entry
 maps to `TEST_TRACK_02_WAYPOINTS`. Both `test_track_01_*.sdf` and
@@ -293,9 +294,9 @@ export F1TENTH_NUM_OPPONENTS=0
 ros2 run f1tenth_controllers marl_benchmark time-trials
 ```
 
-This schedules `trials_per_algorithm` trials for every discovered or selected
-checkpoint (the configuration key is retained for compatibility but now means
-trials per checkpoint). If fewer seeds are listed, the benchmark keeps the
+The configuration now sets `trials_per_algorithm` to 100 for every
+discovered or selected checkpoint (the key is retained for compatibility but
+now means trials per checkpoint). If fewer seeds are listed, the benchmark keeps the
 listed values and deterministically appends consecutive unused integers until
 the requested trial count is reached. Extra listed seeds are ignored.
 
@@ -326,10 +327,10 @@ ros2 run f1tenth_controllers marl_benchmark head-to-head \
 ```
 
 For `N` selected checkpoints, the full race schedule contains
-`8*N*(N-1)/2` heats: every unordered pairing, two protocol seeds, both
-lead/chaser assignments, and both primary/opponent simulator-slot assignments.
-Six checkpoints therefore produce 120 heats. The opponent speed multiplier is
-1.0 only in the benchmark configuration; the training default remains 0.9.
+`32*N*(N-1)/2` heats: every unordered pairing, eight protocol seeds,
+both lead/chaser assignments, and both primary/opponent simulator-slot
+assignments. Six checkpoints therefore produce 480 heats. The opponent speed
+multiplier is 1.0 only in the benchmark configuration; the training default remains 0.9.
 
 ## Optional Gazebo visualization
 
@@ -345,8 +346,9 @@ The benchmark terminal prints the active checkpoint ID, its algorithm, or
 race pairing
 before movement starts. In Gazebo, the model names are `f1tenth` for the
 primary simulator slot and `opponent_1` for the opponent slot. Detailed
-lead/chaser and simulator-slot assignments are recorded in
-`head_to_head_trials.csv`.
+lead/chaser and simulator-slot assignments, including the seeded start waypoint, are recorded in `head_to_head_trials.csv`. Time-trial rows
+record the same start field, while `run_manifest.json` resolves every seed to
+its exact pose before the campaign begins.
 
 Rendering can increase wall-clock duration. Official results use Gazebo
 simulator time, but headless execution remains preferable for the final
@@ -387,10 +389,12 @@ immediately before the first joint command publication after reset and fresh
 sensor readiness. Finish time is interpolated between synchronized samples.
 
 A valid lap must pass 25%, 50%, and 75% virtual sectors in order, accumulate a
-full forward lap, cross in the correct direction, and avoid projection jumps
-above the declared 1.0 m projection slack plus the 5.0 m/s training physical
-speed limit multiplied by the actual simulator-time sample delta. Backward
-crossings and repeated finish crossings are not accepted.
+full forward lap, and cross in the correct direction. A projected step above
+the declared 1.0 m slack plus the 5.0 m/s physical limit times the actual
+simulator delta is discarded without awarding progress; the monitor reanchors
+and the simulation continues. If world-space odometry itself moves beyond that
+same generous bound, the car is classified as a `teleport` DNF/crash.
+Backward crossings and repeated finish crossings are not accepted.
 
 Race actions are computed sequentially in one process from the same
 observation dictionary, then passed together to one environment step. Finish

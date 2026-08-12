@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 from dataclasses import asdict, dataclass
 
@@ -20,6 +21,30 @@ class SpawnPose:
 
     def as_reset_dict(self) -> dict[str, float | int]:
         return asdict(self)
+
+
+def seeded_waypoint_index(
+    seed: int,
+    waypoint_count: int,
+    *,
+    salt: str,
+) -> int:
+    """Map a protocol seed to a stable pseudo-random waypoint index."""
+    count = int(waypoint_count)
+    if count <= 0:
+        raise ValueError("waypoint_count must be positive")
+    selection_salt = str(salt).strip()
+    if not selection_salt:
+        raise ValueError("salt must not be empty")
+    payload = f"{selection_salt}:{int(seed)}".encode("utf-8")
+    digest = hashlib.sha256(payload).digest()
+    return int.from_bytes(digest[:8], byteorder="big") % count
+
+
+def seeded_waypoint(waypoints, seed: int, *, salt: str):
+    """Select the reproducible waypoint assigned to one protocol seed."""
+    index = seeded_waypoint_index(seed, len(waypoints), salt=salt)
+    return waypoints[index]
 
 
 def centreline_spawn_pose(

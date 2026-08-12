@@ -61,7 +61,7 @@ def test_sector_sequence_rejects_incorrect_order() -> None:
     assert not sectors.complete
 
 
-def test_projection_teleport_invalidates_monitor() -> None:
+def test_projection_jump_is_discarded_without_invalidating_monitor() -> None:
     monitor = LapMonitor(
         LapMonitorConfig(lap_length_m=40.0, max_projection_jump_m=2.0),
         start_track_distance_m=0.0,
@@ -70,9 +70,18 @@ def test_projection_teleport_invalidates_monitor() -> None:
 
     update = monitor.update(10.0, 1.0)
 
-    assert not update.accepted
-    assert update.reason == "projection_jump"
-    assert not monitor.valid
+    assert update.accepted
+    assert update.reason == "projection_jump_discarded"
+    assert update.sample_discarded
+    assert update.unwrapped_progress_m == pytest.approx(0.0)
+    assert monitor.valid
+    assert monitor.projection_jump_count == 1
+
+    recovered = monitor.update(11.0, 2.0)
+
+    assert recovered.accepted
+    assert not recovered.sample_discarded
+    assert recovered.unwrapped_progress_m == pytest.approx(1.0)
 
 
 def test_projection_limit_scales_with_actual_simulator_time() -> None:
@@ -92,7 +101,7 @@ def test_projection_limit_scales_with_actual_simulator_time() -> None:
     assert accepted.max_allowed_step_m == pytest.approx(3.0)
 
 
-def test_projection_limit_rejects_motion_above_physical_bound() -> None:
+def test_projection_limit_discards_motion_above_projection_bound() -> None:
     monitor = LapMonitor(
         LapMonitorConfig(
             lap_length_m=40.0,
@@ -103,11 +112,12 @@ def test_projection_limit_rejects_motion_above_physical_bound() -> None:
         start_sim_time=0.0,
     )
 
-    rejected = monitor.update(3.1, 1.0)
+    discarded = monitor.update(3.1, 1.0)
 
-    assert not rejected.accepted
-    assert rejected.reason == "projection_jump"
-    assert rejected.max_allowed_step_m == pytest.approx(3.0)
+    assert discarded.accepted
+    assert discarded.sample_discarded
+    assert discarded.reason == "projection_jump_discarded"
+    assert discarded.max_allowed_step_m == pytest.approx(3.0)
 
 
 def test_multiple_finish_crossings_emit_only_one_finish_event() -> None:

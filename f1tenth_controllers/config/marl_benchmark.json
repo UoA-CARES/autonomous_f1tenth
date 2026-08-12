@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "experiment_name": "f1tenth_marl_benchmark",
   "checkpoint_discovery": {
     "filename_pattern": "<ALGORITHM>_<name>.pth",
@@ -9,7 +9,8 @@
     "world": "test_track_02_350",
     "identifier": "test_track_02_350",
     "direction": "counter_clockwise",
-    "start_waypoint_index": 10,
+    "start_waypoint_selection": "seeded_sha256_modulo",
+    "start_waypoint_seed_salt": "f1tenth-benchmark-start-v1",
     "longitudinal_separation_m": 1.0
   },
   "environment": {
@@ -39,14 +40,16 @@
   "lap_monitor": {
     "sector_fractions": [0.25, 0.5, 0.75],
     "max_projection_jump_m": 1.0,
-    "max_projection_speed_mps": 5.0
+    "max_projection_speed_mps": 5.0,
+    "projection_jump_policy": "discard_progress_and_reanchor",
+    "teleport_policy": "world_displacement_exceeds_projection_bound"
   },
   "race": {
     "tie_tolerance_s": 0.001,
     "crash_event_window_s": 0.1,
     "possible_contact_distance_m": 0.5,
     "rear_end_closing_speed_mps": 0.2,
-    "seeds": [42, 100]
+    "seeds": [42, 100, 101, 102, 103, 104, 105, 106]
   },
   "pilot": {
     "timeout_sim_seconds": 30.0
@@ -56,7 +59,7 @@
     "evaluation_service_timeout_wall_seconds": 5.0
   },
   "time_trials": {
-    "trials_per_algorithm": 10,
+    "trials_per_algorithm": 100,
     "seeds": [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009]
   }
 }

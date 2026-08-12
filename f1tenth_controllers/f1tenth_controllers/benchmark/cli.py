@@ -19,6 +19,7 @@ from f1tenth_environments.benchmark import (
     CheckpointRef,
     build_balanced_heats,
     centreline_spawn_pose,
+    seeded_waypoint,
     staggered_spawn_poses,
 )
 
@@ -344,7 +345,11 @@ def validate_environment(
 
 def _repository_states(checkpoint_root: Path) -> dict[str, dict]:
     autonomous_root = Path(__file__).resolve().parents[3]
-    cares_root = Path(cares_reinforcement_learning.__file__).resolve().parent.parent
+    cares_root = (
+        Path(cares_reinforcement_learning.__file__)
+        .resolve()
+        .parent.parent
+    )
     f1_root = autonomous_root.parent / "f1tenth"
     return {
         "autonomous_f1tenth": git_worktree_state(autonomous_root),
@@ -353,25 +358,49 @@ def _repository_states(checkpoint_root: Path) -> dict[str, dict]:
     }
 
 
-def _resolved_geometry(environment, config: dict) -> tuple[dict, dict]:
+def _resolved_start_geometry(
+    environment,
+    config: dict,
+    trials: list[TrialSpec],
+    heats: list,
+) -> dict:
+    """Resolve and record every seed-based campaign start location."""
     track_name = config["track"]["identifier"]
-    waypoint_index = int(config["track"]["start_waypoint_index"])
     waypoints = environment.tracks[track_name]
-    if not 0 <= waypoint_index < len(waypoints):
-        raise ValueError(
-            f"Start waypoint {waypoint_index} outside {track_name}"
-        )
-    waypoint = waypoints[waypoint_index]
-    centre = centreline_spawn_pose(waypoint).as_reset_dict()
-    starts = staggered_spawn_poses(
-        waypoint,
-        lead_agent="lead",
-        chaser_agent="chaser",
-        longitudinal_separation_m=float(
-            config["track"]["longitudinal_separation_m"]
-        ),
-    )
-    return centre, starts
+    salt = config["track"]["start_waypoint_seed_salt"]
+
+    def centre_pose(seed: int) -> dict:
+        waypoint = seeded_waypoint(waypoints, seed, salt=salt)
+        return centreline_spawn_pose(waypoint).as_reset_dict()
+
+    time_trial_starts = {
+        str(seed): centre_pose(seed)
+        for seed in sorted({trial.seed for trial in trials})
+    }
+    head_to_head_starts = {}
+    for seed in sorted({heat.seed for heat in heats}):
+        waypoint = seeded_waypoint(waypoints, seed, salt=salt)
+        head_to_head_starts[str(seed)] = {
+            "centreline_start_pose": (
+                centreline_spawn_pose(waypoint).as_reset_dict()
+            ),
+            "spawn_poses": staggered_spawn_poses(
+                waypoint,
+                lead_agent="lead",
+                chaser_agent="chaser",
+                longitudinal_separation_m=float(
+                    config["track"]["longitudinal_separation_m"]
+                ),
+            ),
+        }
+
+    return {
+        "strategy": "sha256_seed_salt_modulo_waypoint_count",
+        "seed_salt": salt,
+        "waypoint_count": len(waypoints),
+        "time_trials_by_seed": time_trial_starts,
+        "head_to_head_by_seed": head_to_head_starts,
+    }
 
 
 def select_checkpoint_specs(arguments, specs):
@@ -394,7 +423,8 @@ def select_checkpoint_specs(arguments, specs):
         missing = requested - available
         if missing:
             raise ValueError(
-                f"Requested checkpoint IDs are not present: {sorted(missing)}; "
+                "Requested checkpoint IDs are not present: "
+                f"{sorted(missing)}; "
                 f"discovered {sorted(available)}"
             )
         return [spec for spec in specs if spec.checkpoint_id in requested]
@@ -543,7 +573,12 @@ def main(argv=None) -> None:
             all_heats,
             pilot=arguments.pilot,
         )
-        centre_pose, race_poses = _resolved_geometry(environment, config)
+        start_resolution = _resolved_start_geometry(
+            environment,
+            config,
+            declared_trials,
+            declared_heats,
+        )
         repository_states = _repository_states(arguments.checkpoint_dir)
         track_model = environment.track_progress_models[
             config["track"]["identifier"]
@@ -555,8 +590,7 @@ def main(argv=None) -> None:
             lap_length_m=track_model.waypoint_lap_length,
             time_trial_ids=[trial.trial_id for trial in declared_trials],
             heat_ids=[heat.heat_id for heat in declared_heats],
-            centreline_start_pose=centre_pose,
-            head_to_head_start_poses=race_poses,
+            start_resolution=start_resolution,
         )
         result_directory = arguments.result_dir
         if result_directory is None:

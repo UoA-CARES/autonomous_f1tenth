@@ -5,6 +5,8 @@ import pytest
 
 from f1tenth_environments.benchmark.geometry import (
     centreline_spawn_pose,
+    seeded_waypoint,
+    seeded_waypoint_index,
     staggered_spawn_poses,
 )
 from f1tenth_environments.multi_f1tenth_environment import (
@@ -19,6 +21,33 @@ def test_centreline_pose_uses_left_track_normal() -> None:
     assert pose.y == pytest.approx(20.0)
     assert pose.yaw == pytest.approx(math.pi / 2.0)
     assert pose.waypoint_index == 7
+
+
+def test_seeded_waypoint_selection_is_reproducible_and_varied() -> None:
+    waypoints = [
+        (float(index), 0.0, 0.0, index) for index in range(64)
+    ]
+    seeds = range(1000, 1100)
+    indices = [
+        seeded_waypoint_index(seed, len(waypoints), salt="test-starts")
+        for seed in seeds
+    ]
+
+    assert indices == [
+        seeded_waypoint_index(seed, len(waypoints), salt="test-starts")
+        for seed in seeds
+    ]
+    assert len(set(indices)) > 1
+    assert seeded_waypoint(
+        waypoints, 1000, salt="test-starts"
+    ) == waypoints[indices[0]]
+
+
+def test_seeded_waypoint_selection_rejects_invalid_inputs() -> None:
+    with pytest.raises(ValueError, match="waypoint_count"):
+        seeded_waypoint_index(1, 0, salt="test-starts")
+    with pytest.raises(ValueError, match="salt"):
+        seeded_waypoint_index(1, 10, salt="")
 
 
 def test_staggered_poses_have_common_lane_and_safe_separation() -> None:

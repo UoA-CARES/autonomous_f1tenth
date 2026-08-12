@@ -141,7 +141,8 @@ def benchmark_config() -> dict:
         "track": {
             "identifier": "test_track",
             "direction": "counter_clockwise",
-            "start_waypoint_index": 0,
+            "start_waypoint_selection": "seeded_sha256_modulo",
+            "start_waypoint_seed_salt": "test-starts",
             "longitudinal_separation_m": 1.0,
         },
         "lap_monitor": {
@@ -216,6 +217,41 @@ def test_time_trial_uses_first_command_time_and_interpolated_finish(
     assert row["lap_time"] == pytest.approx(5.0)
     assert row["distance_completed_m"] == pytest.approx(4.0)
     assert environment.reset_options["evaluation"] is True
+    assert row["start_waypoint_index"] == 0
+
+
+def test_time_trial_classifies_impossible_world_motion_as_teleport(
+    tmp_path: Path,
+) -> None:
+    environment = ScriptedEnvironment(["f1tenth"])
+    policy = ScriptedPolicy("FAST", 7.0)
+    runner = make_runner(tmp_path, environment, {"FAST": policy})
+
+    row = runner.run_time_trial("FAST", seed=7, repetition=0)
+
+    assert row["completion_status"] == "dnf"
+    assert row["dnf_reason"] == "teleport"
+    assert row["teleport"] is True
+    assert row["collision"] is False
+
+
+def test_race_treats_impossible_world_motion_as_a_crash(
+    tmp_path: Path,
+) -> None:
+    environment = ScriptedEnvironment(["f1tenth", "opponent_0"])
+    policies = {
+        "FAST": ScriptedPolicy("FAST", 7.0),
+        "SLOW": ScriptedPolicy("SLOW", 0.5),
+    }
+    runner = make_runner(tmp_path, environment, policies)
+
+    row = runner.run_head_to_head(make_heat())
+
+    assert row["outcome_type"] == "crash_win"
+    assert row["winner_checkpoint_id"] == "SLOW"
+    assert row["teleport_checkpoint_ids"] == ["FAST"]
+    assert row["crash_participant_checkpoint_ids"] == ["FAST"]
+    assert row["dnf_reasons"] == {"FAST": "teleport"}
 
 
 def test_race_uses_one_observation_snapshot_and_reports_along_track_lead(
@@ -235,9 +271,13 @@ def test_race_uses_one_observation_snapshot_and_reports_along_track_lead(
     assert row["lead_checkpoint_id"] == "FAST"
     assert row["chaser_checkpoint_id"] == "SLOW"
     assert row["start_separation_m"] == pytest.approx(1.0)
+    assert row["start_waypoint_index"] == 0
     assert row["lead_m"] == pytest.approx(2.3125)
     assert policies["FAST"].observation_times == [0.0, 1.0, 2.0, 3.0, 4.0]
-    assert policies["SLOW"].observation_times == policies["FAST"].observation_times
+    assert (
+        policies["SLOW"].observation_times
+        == policies["FAST"].observation_times
+    )
     assert environment.reset_options["spawn_poses"]["f1tenth"][
         "longitudinal_offset_m"
     ] == pytest.approx(0.5)

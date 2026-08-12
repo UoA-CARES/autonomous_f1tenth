@@ -6,6 +6,7 @@ import pytest
 
 from f1tenth_controllers.benchmark.cli import (
     _default_result_root,
+    _resolved_start_geometry,
     build_heat_schedule,
     build_trial_schedule,
     declared_campaign_schedules,
@@ -67,11 +68,11 @@ def test_full_and_pilot_campaign_sizes_are_explicit() -> None:
     trials = build_trial_schedule(config, all_policies)
     heats = build_heat_schedule(config, all_policies)
 
-    assert len(trials) == 60
-    assert len({trial.trial_id for trial in trials}) == 60
+    assert len(trials) == 600
+    assert len({trial.trial_id for trial in trials}) == 600
     assert len(pilot_trials(trials)) == 6
-    assert len(heats) == 120
-    assert len({heat.heat_id for heat in heats}) == 120
+    assert len(heats) == 480
+    assert len({heat.heat_id for heat in heats}) == 480
     assert len(pilot_heats(heats)) == 15
 
     declared_trials, declared_heats = declared_campaign_schedules(
@@ -91,6 +92,50 @@ def test_full_and_pilot_campaign_sizes_are_explicit() -> None:
     assert full_heats is heats
 
 
+def test_start_geometry_is_seeded_shared_and_centreline_staggered() -> None:
+    config = load_experiment_config(CONFIG_PATH)
+    selected_policies = {
+        key: value
+        for key, value in policies().items()
+        if key in {"MATD3", "MASAC"}
+    }
+    trials = build_trial_schedule(config, selected_policies)
+    heats = build_heat_schedule(config, selected_policies)
+    waypoints = [
+        (float(index), 0.0, 0.0, index) for index in range(64)
+    ]
+    environment = SimpleNamespace(
+        tracks={config["track"]["identifier"]: waypoints}
+    )
+
+    starts = _resolved_start_geometry(
+        environment, config, trials, heats
+    )
+
+    assert len(starts["time_trials_by_seed"]) == 100
+    seeds_by_checkpoint = {
+        checkpoint_id: tuple(
+            trial.seed
+            for trial in trials
+            if trial.checkpoint_id == checkpoint_id
+        )
+        for checkpoint_id in selected_policies
+    }
+    assert len(set(seeds_by_checkpoint.values())) == 1
+    assert len(starts["head_to_head_by_seed"]) == 8
+    trial_indices = {
+        pose["waypoint_index"]
+        for pose in starts["time_trials_by_seed"].values()
+    }
+    assert len(trial_indices) > 1
+    race_start = starts["head_to_head_by_seed"]["42"]
+    lead = race_start["spawn_poses"]["lead"]
+    chaser = race_start["spawn_poses"]["chaser"]
+    assert lead["waypoint_index"] == chaser["waypoint_index"]
+    assert lead["y"] == pytest.approx(chaser["y"])
+    assert lead["x"] - chaser["x"] == pytest.approx(1.0)
+
+
 def test_single_discovered_checkpoint_builds_time_trials_only() -> None:
     config = load_experiment_config(CONFIG_PATH)
     single_policy = {"ISAC": FakePolicy("ISAC")}
@@ -98,7 +143,7 @@ def test_single_discovered_checkpoint_builds_time_trials_only() -> None:
     trials = build_trial_schedule(config, single_policy)
     heats = build_heat_schedule(config, single_policy)
 
-    assert len(trials) == 10
+    assert len(trials) == 100
     assert len(pilot_trials(trials)) == 1
     assert heats == []
     validate_mode_policy_count("time-trials", single_policy)
@@ -139,9 +184,9 @@ def test_same_algorithm_variants_remain_distinct_competitors() -> None:
     variants["MASAC_seed_1"].spec.sha256 = "1" * 64
     variants["MASAC_seed_2"].spec.sha256 = "2" * 64
 
-    assert len(build_trial_schedule(config, variants)) == 20
+    assert len(build_trial_schedule(config, variants)) == 200
     heats = build_heat_schedule(config, variants)
-    assert len(heats) == 8
+    assert len(heats) == 32
     assert {heat.algorithm_a for heat in heats} == {"MASAC"}
     assert {heat.lead_checkpoint_id for heat in heats} == set(variants)
 
@@ -224,7 +269,8 @@ def test_runtime_fidelity_validation_accepts_exact_environment() -> None:
     )
 
 
-def test_runtime_fidelity_validation_rejects_competition_disadvantage() -> None:
+def test_runtime_fidelity_validation_rejects_competition_disadvantage(
+) -> None:
     config = load_experiment_config(CONFIG_PATH)
     environment = fake_environment(config)
     environment.position_speed_multiplier = 0.9

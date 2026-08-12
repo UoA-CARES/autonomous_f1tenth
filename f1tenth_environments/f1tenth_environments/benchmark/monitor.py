@@ -66,6 +66,7 @@ class LapUpdate:
     unwrapped_progress_m: float
     signed_step_m: float
     max_allowed_step_m: float = 0.0
+    sample_discarded: bool = False
     passed_sector_indices: tuple[int, ...] = ()
     finish_crossed: bool = False
     finish_sim_time: float | None = None
@@ -84,6 +85,7 @@ class LapMonitor:
     sectors: SectorSequence = field(init=False)
     invalid_reason: str | None = field(init=False, default=None)
     finish_sim_time: float | None = field(init=False, default=None)
+    projection_jump_count: int = field(init=False, default=0)
 
     def __post_init__(self) -> None:
         self.last_track_distance_m = (
@@ -180,12 +182,23 @@ class LapMonitor:
 
         signed_step = self._signed_step(track_distance_m)
         if abs(signed_step) > max_allowed_step_m:
-            return self._invalid_update(
-                reason="projection_jump",
-                track_distance_m=track_distance_m,
+            previous_time = self.last_sim_time
+            previous_progress = self.unwrapped_progress_m
+            self.projection_jump_count += 1
+            self.last_track_distance_m = (
+                float(track_distance_m) % self.config.lap_length_m
+            )
+            self.last_sim_time = sim_time
+            return LapUpdate(
+                accepted=True,
+                reason="projection_jump_discarded",
+                previous_sim_time=previous_time,
                 sim_time=sim_time,
+                previous_unwrapped_progress_m=previous_progress,
+                unwrapped_progress_m=previous_progress,
                 signed_step_m=signed_step,
                 max_allowed_step_m=max_allowed_step_m,
+                sample_discarded=True,
             )
 
         previous_time = self.last_sim_time

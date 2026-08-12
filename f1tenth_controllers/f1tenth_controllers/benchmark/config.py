@@ -49,7 +49,7 @@ def load_experiment_config(path: Path) -> dict:
     with path.open(encoding="utf-8") as config_file:
         config = json.load(config_file)
 
-    if config.get("schema_version") != 3:
+    if config.get("schema_version") != 4:
         raise ValueError("Unsupported benchmark schema_version")
 
     discovery = config.get("checkpoint_discovery")
@@ -79,7 +79,18 @@ def load_experiment_config(path: Path) -> dict:
             "Head-to-head position_speed_multiplier must be 1.0"
         )
 
-    separation = config.get("track", {}).get("longitudinal_separation_m")
+    track = config.get("track", {})
+    if track.get("start_waypoint_selection") != "seeded_sha256_modulo":
+        raise ValueError(
+            "track.start_waypoint_selection must be seeded_sha256_modulo"
+        )
+    start_salt = track.get("start_waypoint_seed_salt")
+    if not isinstance(start_salt, str) or not start_salt.strip():
+        raise ValueError(
+            "track.start_waypoint_seed_salt must be a non-empty string"
+        )
+
+    separation = track.get("longitudinal_separation_m")
     if not isinstance(separation, (int, float)) or separation <= 0.0:
         raise ValueError("track.longitudinal_separation_m must be positive")
 
@@ -90,6 +101,22 @@ def load_experiment_config(path: Path) -> dict:
         raise ValueError(
             "lap_monitor.max_projection_speed_mps must match the "
             "training environment max_speed"
+        )
+    if (
+        lap_monitor.get("projection_jump_policy")
+        != "discard_progress_and_reanchor"
+    ):
+        raise ValueError(
+            "lap_monitor.projection_jump_policy must discard progress "
+            "and reanchor"
+        )
+    if (
+        lap_monitor.get("teleport_policy")
+        != "world_displacement_exceeds_projection_bound"
+    ):
+        raise ValueError(
+            "lap_monitor.teleport_policy must use the world displacement "
+            "projection bound"
         )
 
     runtime = config.get("runtime")
@@ -175,7 +202,7 @@ def _algorithm_from_filename(path: Path) -> str:
 def resolve_checkpoint_specs(
     config: dict, checkpoint_root: Path
 ) -> list[CheckpointSpec]:
-    """Discover direct child checkpoints and record their immutable identity."""
+    """Discover child checkpoints and record immutable identity."""
     checkpoint_root = Path(checkpoint_root).expanduser()
     if not checkpoint_root.is_dir():
         raise FileNotFoundError(

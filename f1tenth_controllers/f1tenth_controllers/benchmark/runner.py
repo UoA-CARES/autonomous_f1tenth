@@ -14,6 +14,7 @@ from f1tenth_environments.benchmark import (
     assess_crash,
     centreline_spawn_pose,
     resolve_finish_step,
+    seeded_waypoint,
     staggered_spawn_poses,
 )
 from f1tenth_environments.benchmark.protocol import HeatSpec
@@ -66,6 +67,7 @@ def _dnf_reason(
     flip: bool,
     stall: bool,
     timeout: bool,
+    teleport: bool = False,
     monitor_reason: str | None = None,
 ) -> str | None:
     if monitor_reason is not None:
@@ -76,11 +78,35 @@ def _dnf_reason(
         return "collision"
     if flip:
         return "flip"
+    if teleport:
+        return "teleport"
     if stall:
         return "stall"
     if timeout:
         return "timeout"
     return None
+
+
+def _world_motion_evidence(
+    previous_position_xy: np.ndarray,
+    current_position_xy: np.ndarray,
+    simulator_delta_s: float,
+    monitor_config: dict,
+) -> dict:
+    """Classify impossible world-pose motion independently of projection."""
+    displacement_m = float(
+        np.linalg.norm(current_position_xy - previous_position_xy)
+    )
+    max_allowed_m = (
+        float(monitor_config["max_projection_jump_m"])
+        + float(monitor_config["max_projection_speed_mps"])
+        * max(float(simulator_delta_s), 0.0)
+    )
+    return {
+        "displacement_m": displacement_m,
+        "max_allowed_m": max_allowed_m,
+        "teleport": displacement_m > max_allowed_m,
+    }
 
 
 def _monitor_evidence(update) -> dict:
@@ -94,6 +120,7 @@ def _monitor_evidence(update) -> dict:
         "progress_m": update.unwrapped_progress_m,
         "signed_step_m": update.signed_step_m,
         "max_allowed_step_m": update.max_allowed_step_m,
+        "sample_discarded": update.sample_discarded,
     }
 
 
@@ -120,16 +147,13 @@ class BenchmarkRunner:
         self.direction = config["track"]["direction"]
         self.config_id = config["config_sha256"]
 
-    @property
-    def _waypoint(self):
-        waypoint_index = int(self.config["track"]["start_waypoint_index"])
+    def _waypoint_for_seed(self, seed: int):
         waypoints = self.environment.tracks[self.track_name]
-        if not 0 <= waypoint_index < len(waypoints):
-            raise ValueError(
-                f"Start waypoint {waypoint_index} is outside "
-                f"{self.track_name} with {len(waypoints)} waypoints"
-            )
-        return waypoints[waypoint_index]
+        return seeded_waypoint(
+            waypoints,
+            seed,
+            salt=self.config["track"]["start_waypoint_seed_salt"],
+        )
 
     def _lap_monitor(
         self,
@@ -158,7 +182,8 @@ class BenchmarkRunner:
 
     def _track_distance(self, agent: str) -> float:
         position = self.environment.previous_state_data[agent].position_xy()
-        return self.environment.current_track_model.track_distance_from_world_coord(
+        track_model = self.environment.current_track_model
+        return track_model.track_distance_from_world_coord(
             np.asarray(position, dtype=np.float64)
         )
 
@@ -170,7 +195,9 @@ class BenchmarkRunner:
         command_time = self.environment.last_command_sim_time_s
         observation_time = self.environment.last_observation_sim_time_s
         if command_time is None or observation_time is None:
-            raise RuntimeError("Environment did not expose simulator timestamps")
+            raise RuntimeError(
+                "Environment did not expose simulator timestamps"
+            )
         if command_time < 0.0 or observation_time < command_time:
             raise RuntimeError(
                 "Invalid simulator timestamp pair: "
@@ -192,7 +219,8 @@ class BenchmarkRunner:
         policy = self.policies[checkpoint_id]
         algorithm = policy.spec.algorithm
         agent = self.environment.car_name
-        spawn_pose = centreline_spawn_pose(self._waypoint).as_reset_dict()
+        waypoint = self._waypoint_for_seed(seed)
+        spawn_pose = centreline_spawn_pose(waypoint).as_reset_dict()
         observations, _ = self.environment.reset(
             seed=seed,
             options={
@@ -202,10 +230,19 @@ class BenchmarkRunner:
             },
         )
         initial_track_distance = self._track_distance(agent)
+        previous_position = np.asarray(
+            self.environment.previous_state_data[agent].position_xy(),
+            dtype=np.float64,
+        )
+        world_motion = {
+            "displacement_m": 0.0,
+            "max_allowed_m": 0.0,
+            "teleport": False,
+        }
         monitor = None
         start_sim_time = None
         speeds: list[float] = []
-        collision = flip = stall = timeout = False
+        collision = flip = stall = timeout = teleport = False
         dnf_reason = None
         finish_time = None
 
@@ -226,10 +263,36 @@ class BenchmarkRunner:
                     start_sim_time,
                 )
 
+            current_position = np.asarray(
+                self.environment.previous_state_data[agent].position_xy(),
+                dtype=np.float64,
+            )
+            world_motion = _world_motion_evidence(
+                previous_position,
+                current_position,
+                observation_time - monitor.last_sim_time,
+                self.config["lap_monitor"],
+            )
+            previous_position = current_position
+            teleport = bool(world_motion["teleport"])
             update = monitor.update(
                 self._track_distance(agent),
                 observation_time,
             )
+            if update.sample_discarded:
+                self.result_writer.write_event(
+                    {
+                        "event": "projection_sample_discarded",
+                        "scope": "time_trial",
+                        "checkpoint_id": checkpoint_id,
+                        "seed": seed,
+                        "repetition": repetition,
+                        "sim_time": observation_time,
+                        "monitor_evidence": _monitor_evidence(update),
+                        "world_motion_evidence": world_motion,
+                        "manifest_id": self.manifest_id,
+                    }
+                )
             speed = abs(
                 self.environment.previous_state_data[agent].linear_velocity()
             )
@@ -248,6 +311,9 @@ class BenchmarkRunner:
                 >= self.config["environment"]["max_steps"]
             )
 
+            if teleport:
+                dnf_reason = "teleport"
+                break
             if update.finish_crossed:
                 finish_time = update.finish_sim_time
                 break
@@ -260,6 +326,7 @@ class BenchmarkRunner:
                     flip=flip,
                     stall=stall,
                     timeout=timeout,
+                    teleport=teleport,
                 )
                 break
 
@@ -282,6 +349,7 @@ class BenchmarkRunner:
             "track": self.track_name,
             "direction": self.direction,
             "seed": seed,
+            "start_waypoint_index": spawn_pose["waypoint_index"],
             "start_sim_time": start_sim_time,
             "finish_sim_time": finish_time,
             "lap_time": (
@@ -299,6 +367,8 @@ class BenchmarkRunner:
             "maximum_speed_mps": max(speeds, default=0.0),
             "collision": collision,
             "flip": flip,
+            "teleport": teleport,
+            "projection_jumps_discarded": monitor.projection_jump_count,
             "stall": stall,
             "timeout": timeout,
             "git_revisions": self.git_revisions,
@@ -308,11 +378,16 @@ class BenchmarkRunner:
         self.result_writer.write_time_trial(row)
         self.result_writer.write_event(
             {
-                "event": "time_trial_finish" if completed else "time_trial_dnf",
+                "event": (
+                    "time_trial_finish"
+                    if completed
+                    else "time_trial_dnf"
+                ),
                 "trial_id": row["trial_id"],
                 "sim_time": finish_time or observation_time,
                 "reason": row["dnf_reason"],
                 "monitor_evidence": _monitor_evidence(update),
+                "world_motion_evidence": world_motion,
                 "manifest_id": self.manifest_id,
             }
         )
@@ -320,7 +395,7 @@ class BenchmarkRunner:
 
     def _race_assignments(
         self, heat: HeatSpec
-    ) -> tuple[dict[str, str], dict[str, dict]]:
+    ) -> tuple[dict[str, str], dict[str, dict], tuple]:
         if len(self.environment.agents) != 2:
             raise ValueError(
                 "Head-to-head heats require exactly one Gazebo opponent"
@@ -341,24 +416,29 @@ class BenchmarkRunner:
         chaser_agent = next(
             agent for agent in checkpoint_ids_by_agent if agent != lead_agent
         )
+        waypoint = self._waypoint_for_seed(heat.seed)
         spawn_poses = staggered_spawn_poses(
-            self._waypoint,
+            waypoint,
             lead_agent=lead_agent,
             chaser_agent=chaser_agent,
             longitudinal_separation_m=float(
                 self.config["track"]["longitudinal_separation_m"]
             ),
         )
-        return checkpoint_ids_by_agent, spawn_poses
+        return checkpoint_ids_by_agent, spawn_poses, waypoint
 
-    def _race_progress(self, monitors: dict[str, LapMonitor]) -> dict[str, float]:
+    def _race_progress(
+        self, monitors: dict[str, LapMonitor]
+    ) -> dict[str, float]:
         return {
             agent: monitor.unwrapped_progress_m
             for agent, monitor in monitors.items()
         }
 
     def run_head_to_head(self, heat: HeatSpec) -> dict:
-        checkpoint_ids_by_agent, spawn_poses = self._race_assignments(heat)
+        checkpoint_ids_by_agent, spawn_poses, waypoint = (
+            self._race_assignments(heat)
+        )
         observations, _ = self.environment.reset(
             seed=heat.seed,
             options={
@@ -367,12 +447,29 @@ class BenchmarkRunner:
                 "spawn_poses": spawn_poses,
             },
         )
+        track_model = self.environment.current_track_model
         start_gate_track_distance = (
-            self.environment.current_track_model.track_distance_from_world_coord(
-                np.asarray(self._waypoint[:2], dtype=np.float64)
+            track_model.track_distance_from_world_coord(
+                np.asarray(waypoint[:2], dtype=np.float64)
             )
         )
         monitors: dict[str, LapMonitor] = {}
+        previous_positions = {
+            agent: np.asarray(
+                self.environment.previous_state_data[agent].position_xy(),
+                dtype=np.float64,
+            )
+            for agent in self.environment.agents
+        }
+        world_motion_evidence = {
+            agent: {
+                "displacement_m": 0.0,
+                "max_allowed_m": 0.0,
+                "teleport": False,
+            }
+            for agent in self.environment.agents
+        }
+        teleporters: set[str] = set()
         active_agents = set(self.environment.agents)
         dnf_reasons: dict[str, str] = {}
         outcome_type = "invalid_heat"
@@ -411,6 +508,29 @@ class BenchmarkRunner:
                     for agent in self.environment.agents
                 }
 
+            current_positions = {
+                agent: np.asarray(
+                    self.environment.previous_state_data[agent].position_xy(),
+                    dtype=np.float64,
+                )
+                for agent in self.environment.agents
+            }
+            world_motion_evidence = {
+                agent: _world_motion_evidence(
+                    previous_positions[agent],
+                    current_positions[agent],
+                    observation_time - monitors[agent].last_sim_time,
+                    self.config["lap_monitor"],
+                )
+                for agent in self.environment.agents
+            }
+            teleporters = {
+                agent
+                for agent, evidence in world_motion_evidence.items()
+                if evidence["teleport"]
+            }
+            previous_positions = current_positions
+
             final_updates = {
                 agent: monitors[agent].update(
                     self._track_distance(agent),
@@ -418,6 +538,21 @@ class BenchmarkRunner:
                 )
                 for agent in self.environment.agents
             }
+            for agent, update in final_updates.items():
+                if not update.sample_discarded:
+                    continue
+                self.result_writer.write_event(
+                    {
+                        "event": "projection_sample_discarded",
+                        "scope": "head_to_head",
+                        "heat_id": heat.heat_id,
+                        "checkpoint_id": checkpoint_ids_by_agent[agent],
+                        "sim_time": observation_time,
+                        "monitor_evidence": _monitor_evidence(update),
+                        "world_motion_evidence": world_motion_evidence[agent],
+                        "manifest_id": self.manifest_id,
+                    }
+                )
             if any(not update.accepted for update in final_updates.values()):
                 outcome_type = "invalid_heat"
                 for agent, update in final_updates.items():
@@ -431,7 +566,7 @@ class BenchmarkRunner:
                 self.environment.current_track_model.waypoint_lap_length,
                 float(self.config["race"]["tie_tolerance_s"]),
             )
-            if finish is not None:
+            if finish is not None and not teleporters:
                 outcome_type = finish.outcome_type
                 winner_agent = finish.winner
                 outcome_time = finish.finish_sim_time
@@ -442,6 +577,11 @@ class BenchmarkRunner:
                 agent: _state_flags(self.environment, agent)
                 for agent in self.environment.agents
             }
+            for agent, agent_flags in flags.items():
+                agent_flags["teleport"] = agent in teleporters
+                agent_flags["crash"] = bool(
+                    agent_flags["crash"] or agent_flags["teleport"]
+                )
             crashers = {
                 agent
                 for agent in active_agents
@@ -454,6 +594,7 @@ class BenchmarkRunner:
                         flip=flags[agent]["flip"],
                         stall=False,
                         timeout=False,
+                        teleport=flags[agent]["teleport"],
                     ) or "crash"
                 positions = {
                     agent: np.asarray(
@@ -572,7 +713,9 @@ class BenchmarkRunner:
             else None
         )
         final_progress = {
-            checkpoint_ids_by_agent[agent]: monitors[agent].unwrapped_progress_m
+            checkpoint_ids_by_agent[agent]: (
+                monitors[agent].unwrapped_progress_m
+            )
             for agent in self.environment.agents
         }
         participant_ids = [
@@ -590,6 +733,7 @@ class BenchmarkRunner:
         )
         row = {
             **asdict(heat),
+            "start_waypoint_index": int(waypoint[3]),
             "start_separation_m": float(
                 self.config["track"]["longitudinal_separation_m"]
             ),
@@ -599,6 +743,16 @@ class BenchmarkRunner:
             "finish_or_crash_sim_time": outcome_time,
             "lead_m": lead_m,
             "final_progress_m": final_progress,
+            "projection_jumps_discarded": {
+                checkpoint_ids_by_agent[agent]: (
+                    monitors[agent].projection_jump_count
+                )
+                for agent in self.environment.agents
+            },
+            "teleport_checkpoint_ids": [
+                checkpoint_ids_by_agent[agent]
+                for agent in sorted(teleporters)
+            ],
             "crash_participant_checkpoint_ids": participant_ids,
             "crash_participant_algorithms": [
                 self.policies[checkpoint_id].spec.algorithm
@@ -628,6 +782,10 @@ class BenchmarkRunner:
                 "monitor_evidence": {
                     checkpoint_ids_by_agent[agent]: _monitor_evidence(update)
                     for agent, update in final_updates.items()
+                },
+                "world_motion_evidence": {
+                    checkpoint_ids_by_agent[agent]: evidence
+                    for agent, evidence in world_motion_evidence.items()
                 },
                 "manifest_id": self.manifest_id,
             }

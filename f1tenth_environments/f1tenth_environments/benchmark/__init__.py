@@ -3,6 +3,8 @@
 from .geometry import (
     SpawnPose,
     centreline_spawn_pose,
+    seeded_waypoint,
+    seeded_waypoint_index,
     staggered_spawn_poses,
 )
 from .monitor import LapMonitor, LapMonitorConfig, LapUpdate
@@ -29,5 +31,7 @@ __all__ = [
     "build_balanced_heats",
     "centreline_spawn_pose",
     "resolve_finish_step",
+    "seeded_waypoint",
+    "seeded_waypoint_index",
     "staggered_spawn_poses",
 ]

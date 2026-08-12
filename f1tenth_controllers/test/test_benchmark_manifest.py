@@ -17,13 +17,22 @@ class FakePolicy:
         }
 
 
-def test_manifest_records_provenance_schedule_and_fidelity_differences() -> None:
+def test_manifest_records_provenance_schedule_and_fidelity_differences(
+) -> None:
     config = {
         "experiment_name": "benchmark",
         "config_sha256": "config_hash",
         "track": {"identifier": "test_track_02_350"},
+        "lap_monitor": {
+            "projection_jump_policy": "discard_progress_and_reanchor",
+            "teleport_policy": (
+                "world_displacement_exceeds_projection_bound"
+            ),
+        },
         "environment": {
-            "action_pipeline": "training_raw_policy_output_direct_to_environment_clip",
+            "action_pipeline": (
+                "training_raw_policy_output_direct_to_environment_clip"
+            ),
             "simulator_seed_supported": False,
             "position_speed_multiplier": 1.0,
             "max_steps": 6000,
@@ -54,10 +63,10 @@ def test_manifest_records_provenance_schedule_and_fidelity_differences() -> None
         lap_length_m=179.0,
         time_trial_ids=["trial_1"],
         heat_ids=["heat_1", "heat_2"],
-        centreline_start_pose={"x": 1.0},
-        head_to_head_start_poses={
-            "lead": {"longitudinal_offset_m": 0.5},
-            "chaser": {"longitudinal_offset_m": -0.5},
+        start_resolution={
+            "strategy": "sha256_seed_salt_modulo_waypoint_count",
+            "time_trials_by_seed": {"1000": {"waypoint_index": 7}},
+            "head_to_head_by_seed": {"42": {"waypoint_index": 12}},
         },
     )
 
@@ -69,12 +78,17 @@ def test_manifest_records_provenance_schedule_and_fidelity_differences() -> None
     }
     assert manifest["checkpoints"]["ISAC"]["observation_size"] == 11
     assert manifest["track_resolution"]["lap_length_m"] == 179.0
+    assert (
+        manifest["track_resolution"]["start_resolution"]["strategy"]
+        == "sha256_seed_salt_modulo_waypoint_count"
+    )
     assert not manifest["simulation_fidelity"]["gazebo_physics_changed"]
     differences = manifest["simulation_fidelity"][
         "evaluation_protocol_differences"
     ]
     assert {difference["setting"] for difference in differences} == {
-        "fixed_test_track_and_exact_lead_chaser_spawn_poses",
+        "seeded_random_centreline_and_lead_chaser_spawn_poses",
+        "projection_jump_handling",
         "position_speed_multiplier",
         "episode_limit",
         "evaluation_service_timeout_wall_seconds",

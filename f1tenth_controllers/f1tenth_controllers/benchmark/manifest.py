@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 def git_worktree_state(path: Path) -> dict:
-    """Return the exact revision and dirty state for one required repository."""
+    """Return revision and dirty state for one required repository."""
     path = Path(path).expanduser().resolve()
 
     def git(*arguments: str) -> str:
@@ -44,12 +44,11 @@ def build_run_manifest(
     lap_length_m: float,
     time_trial_ids: list[str],
     heat_ids: list[str],
-    centreline_start_pose: dict,
-    head_to_head_start_poses: dict,
+    start_resolution: dict,
 ) -> dict:
     """Build the campaign declaration shared by pilot and full invocations."""
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "experiment_name": config["experiment_name"],
         "config_id": config["config_sha256"],
@@ -63,8 +62,7 @@ def build_run_manifest(
         "track_resolution": {
             **config["track"],
             "lap_length_m": float(lap_length_m),
-            "time_trial_start_pose": centreline_start_pose,
-            "head_to_head_start_poses": head_to_head_start_poses,
+            "start_resolution": start_resolution,
         },
         "campaign": {
             "time_trial_ids": time_trial_ids,
@@ -84,8 +82,27 @@ def build_run_manifest(
             ],
             "evaluation_protocol_differences": [
                 {
-                    "setting": "fixed_test_track_and_exact_lead_chaser_spawn_poses",
-                    "reason": "reproducible benchmark starts",
+                    "setting": (
+                        "seeded_random_centreline_and_"
+                        "lead_chaser_spawn_poses"
+                    ),
+                    "reason": (
+                        "reproducible varied benchmark starts shared "
+                        "across algorithms"
+                    ),
+                },
+                {
+                    "setting": "projection_jump_handling",
+                    "benchmark_value": config["lap_monitor"][
+                        "projection_jump_policy"
+                    ],
+                    "teleport_policy": config["lap_monitor"][
+                        "teleport_policy"
+                    ],
+                    "reason": (
+                        "discard projection-only outliers without progress; "
+                        "classify impossible world-pose motion as teleport"
+                    ),
                 },
                 {
                     "setting": "position_speed_multiplier",
@@ -103,8 +120,8 @@ def build_run_manifest(
                         "timeout_sim_seconds"
                     ],
                     "reason": (
-                        "permit a full selected-track lap with the preserved raw MARL "
-                        "action pipeline"
+                        "permit a full selected-track lap with the "
+                        "preserved raw MARL action pipeline"
                     ),
                 },
                 {
@@ -126,7 +143,8 @@ def build_run_manifest(
                 "progress, velocity, collision, flip, and termination state."
             ),
             "seed_limitation": (
-                "Protocol seeds are recorded and passed through reset, but the "
+                "Protocol seeds are recorded and passed through "
+                "reset, but the "
                 "existing Gazebo launch exposes no simulator physics seed."
             ),
         },
