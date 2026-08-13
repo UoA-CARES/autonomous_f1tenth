@@ -93,6 +93,15 @@ def generate_launch_description():
         default_value="",
         description="Optional independent-MARL team identity conditioning flag from training.",
     )
+    marl_action_scaling_arg = DeclareLaunchArgument(
+        "marl_action_scaling",
+        default_value="legacy_direct",
+        description=(
+            "MARL actor action scaling: legacy_direct matches existing CARES F1Tenth "
+            "checkpoints; normalized is for checkpoints trained with [-1, 1] "
+            "action denormalisation."
+        ),
+    )
     max_speed_arg = DeclareLaunchArgument("max_speed", default_value=DEFAULT_MAX_SPEED)
     training_max_speed_arg = DeclareLaunchArgument(
         "training_max_speed", default_value="5.0"
@@ -135,6 +144,7 @@ def generate_launch_description():
                 ),
                 "marl_use_agent_id": LaunchConfiguration("marl_use_agent_id"),
                 "marl_use_team_id": LaunchConfiguration("marl_use_team_id"),
+                "marl_action_scaling": LaunchConfiguration("marl_action_scaling"),
                 "max_speed": LaunchConfiguration("max_speed"),
                 "training_max_speed": LaunchConfiguration("training_max_speed"),
                 "max_turn": LaunchConfiguration("max_turn"),
@@ -195,6 +205,7 @@ def generate_launch_description():
             marl_parameter_sharing_scope_arg,
             marl_use_agent_id_arg,
             marl_use_team_id_arg,
+            marl_action_scaling_arg,
             max_speed_arg,
             training_max_speed_arg,
             max_turn_arg,

@@ -318,6 +318,19 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         opponent_x, opponent_y, opponent_yaw, _ = self.current_waypoints[opponent_index]
         return opponent_x, opponent_y, opponent_yaw
 
+    def _get_training_spawn_indices(
+        self, base_spawn_index: int
+    ) -> dict[str, int]:
+        """Randomly assign agent identities to the existing start slots."""
+        slot_indices = [base_spawn_index]
+        slot_indices.extend(
+            self._get_opponent_spawn_index(base_spawn_index, opponent_order)
+            for opponent_order in range(len(self.opponent_car_names))
+        )
+        randomised_agents = list(self.agents)
+        random.shuffle(randomised_agents)
+        return dict(zip(randomised_agents, slot_indices))
+
     def _get_agent_race_position(self, agent: str, state_data: StateData) -> float:
         track_distance = self.current_track_model.track_distance_from_world_coord(
             np.asarray(state_data.position_xy(), dtype=np.float64)
@@ -416,40 +429,37 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             self.spawn_index = self.spawn_indices[self.car_name]
             return
 
-        # Spawn main car
+        # Select the episode's physical start slots. Evaluation preserves the
+        # historical fixed identity order; training randomises which identity
+        # occupies each slot so the ego is not always the trailing car.
         if self.is_eval:
-            index = min(10, len(self.current_waypoints) - 1)
+            base_spawn_index = min(10, len(self.current_waypoints) - 1)
+            spawn_indices = {self.car_name: base_spawn_index}
+            spawn_indices.update(
+                {
+                    opponent: self._get_opponent_spawn_index(
+                        base_spawn_index, opponent_order
+                    )
+                    for opponent_order, opponent in enumerate(
+                        self.opponent_car_names
+                    )
+                }
+            )
         else:
-            index = random.randrange(len(self.current_waypoints))
-        car_x, car_y, car_yaw, _ = self.current_waypoints[index]
+            base_spawn_index = random.randrange(len(self.current_waypoints))
+            spawn_indices = self._get_training_spawn_indices(base_spawn_index)
 
-        self.spawn_index = index  # keep for base class compatibility
-        self.spawn_indices = {self.car_name: index}
-
-        self._set_model_pose(
-            model_name=self.car_name,
-            x=float(car_x),
-            y=float(car_y),
-            z=0.0,
-            yaw=float(car_yaw),
-        )
-
-        # Spawn opponents
-        for opponent_order, opponent_car_name in enumerate(self.opponent_car_names):
-            opponent_index = self._get_opponent_spawn_index(
-                self.spawn_index, opponent_order
-            )
-            opponent_x, opponent_y, opponent_yaw = self._get_opponent_spawn_pose(
-                self.spawn_index, opponent_order
-            )
-            self.spawn_indices[opponent_car_name] = opponent_index
-
+        self.spawn_indices = spawn_indices
+        self.spawn_index = self.spawn_indices[self.car_name]
+        for agent in self.agents:
+            agent_index = self.spawn_indices[agent]
+            agent_x, agent_y, agent_yaw, _ = self.current_waypoints[agent_index]
             self._set_model_pose(
-                model_name=opponent_car_name,
-                x=float(opponent_x),
-                y=float(opponent_y),
+                model_name=agent,
+                x=float(agent_x),
+                y=float(agent_y),
                 z=0.0,
-                yaw=float(opponent_yaw),
+                yaw=float(agent_yaw),
             )
 
     def reset(self, seed=None, options=None) -> dict:

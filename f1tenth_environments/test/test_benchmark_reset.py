@@ -86,6 +86,85 @@ def _reset_seam_env() -> MultiF1TenthEnvironment:
     return env
 
 
+def _automatic_reset_env() -> MultiF1TenthEnvironment:
+    env = MultiF1TenthEnvironment.__new__(MultiF1TenthEnvironment)
+    env.car_name = "f1tenth"
+    env.opponent_car_names = ["opponent_1", "opponent_2", "opponent_3"]
+    env.agents = [env.car_name, *env.opponent_car_names]
+    env.tracks = {
+        "track_a": [
+            (float(index), float(index + 100), 0.1 * index, index)
+            for index in range(32)
+        ]
+    }
+    env.track_progress_models = {"track_a": object()}
+    env._select_track_name = lambda: "track_a"
+    env.set_pose_calls = []
+    env._set_model_pose = lambda **kwargs: env.set_pose_calls.append(kwargs)
+    return env
+
+
+def test_training_reset_randomly_assigns_agents_to_existing_slots(
+    monkeypatch,
+) -> None:
+    env = _automatic_reset_env()
+    env.is_eval = False
+    monkeypatch.setattr(
+        "f1tenth_environments.multi_f1tenth_environment.random.randrange",
+        lambda _waypoint_count: 3,
+    )
+
+    def fixed_shuffle(agent_ids) -> None:
+        agent_ids[:] = [
+            "opponent_2",
+            "f1tenth",
+            "opponent_3",
+            "opponent_1",
+        ]
+
+    monkeypatch.setattr(
+        "f1tenth_environments.multi_f1tenth_environment.random.shuffle",
+        fixed_shuffle,
+    )
+
+    env._reset_positions()
+
+    assert env.spawn_indices == {
+        "opponent_2": 3,
+        "f1tenth": 11,
+        "opponent_3": 15,
+        "opponent_1": 19,
+    }
+    assert env.spawn_index == 11
+    assert [call["model_name"] for call in env.set_pose_calls] == env.agents
+    assert [call["x"] for call in env.set_pose_calls] == [11.0, 19.0, 3.0, 15.0]
+
+
+def test_automatic_evaluation_reset_retains_fixed_agent_order(
+    monkeypatch,
+) -> None:
+    env = _automatic_reset_env()
+    env.is_eval = True
+
+    def unexpected_shuffle(_agent_ids) -> None:
+        raise AssertionError("evaluation must not randomise agent identities")
+
+    monkeypatch.setattr(
+        "f1tenth_environments.multi_f1tenth_environment.random.shuffle",
+        unexpected_shuffle,
+    )
+
+    env._reset_positions()
+
+    assert env.spawn_indices == {
+        "f1tenth": 10,
+        "opponent_1": 18,
+        "opponent_2": 22,
+        "opponent_3": 26,
+    }
+    assert env.spawn_index == 10
+
+
 def test_evaluation_reset_positions_use_exact_track_and_world_poses() -> None:
     env = _reset_seam_env()
     poses = {

@@ -208,7 +208,7 @@ Multi-agent training:
 F1TENTH_TRACK=multi_track_01 F1TENTH_NUM_OPPONENTS=3 cares-rl train cli multi_f1tenth --task MultiCarRace MATD3
 ```
 
-For MARL, use the `multi_f1tenth` gym with `MultiCarRace`. Using `multi_f1tenth --task CarRace` creates the single-car environment and MARL algorithms will fail because the environment has no multi-agent `agents` metadata. `F1TENTH_NUM_OPPONENTS` must match the simulation launch argument. MARL resets choose one loaded sub-track per episode and spawn all agents on that same sub-track, with opponents placed ahead of the agent. Set `F1TENTH_ACTIVE_TRACK=<track_key>` to lock training to one sub-track. `F1TENTH_OPPONENT_START_GAP` and `F1TENTH_OPPONENT_GAP` tune how many waypoints ahead opponents spawn; defaults place three opponents at +8, +12, and +16 waypoints.
+For MARL, use the `multi_f1tenth` gym with `MultiCarRace`. Using `multi_f1tenth --task CarRace` creates the single-car environment and MARL algorithms will fail because the environment has no multi-agent `agents` metadata. `F1TENTH_NUM_OPPONENTS` must match the simulation launch argument. MARL training resets choose one loaded sub-track per episode and randomly assign all agent identities to the available start slots, so the primary car can start in any race position. Set `F1TENTH_ACTIVE_TRACK=<track_key>` to lock training to one sub-track. `F1TENTH_OPPONENT_START_GAP` and `F1TENTH_OPPONENT_GAP` tune the start-slot spacing; defaults use the base waypoint followed by +8, +12, and +16 waypoints. Evaluation resets retain their deterministic ordering.
 
 For reproducible evaluation of user-supplied MARL checkpoints, see
 [the MARL benchmark runbook](docs/marl_benchmark.md).

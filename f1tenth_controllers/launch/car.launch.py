@@ -106,6 +106,7 @@ def _create_controller_launch(context):
                 ),
                 "marl_use_agent_id": LaunchConfiguration("marl_use_agent_id"),
                 "marl_use_team_id": LaunchConfiguration("marl_use_team_id"),
+                "marl_action_scaling": LaunchConfiguration("marl_action_scaling"),
                 "max_speed": LaunchConfiguration("max_speed"),
                 "training_max_speed": LaunchConfiguration("training_max_speed"),
                 "max_turn": LaunchConfiguration("max_turn"),
@@ -189,6 +190,14 @@ def generate_launch_description():
         default_value="",
         description="Optional independent-MARL team identity conditioning flag from training.",
     )
+    marl_action_scaling_arg = DeclareLaunchArgument(
+        "marl_action_scaling",
+        default_value="legacy_direct",
+        description=(
+            "MARL actor action scaling: legacy_direct matches existing CARES F1Tenth "
+            "checkpoints; normalized is for retrained checkpoints."
+        ),
+    )
     ftg_min_velocity_arg = DeclareLaunchArgument(
         "ftg_min_velocity",
         default_value="0.3",
@@ -254,6 +263,7 @@ def generate_launch_description():
             marl_parameter_sharing_scope_arg,
             marl_use_agent_id_arg,
             marl_use_team_id_arg,
+            marl_action_scaling_arg,
             ftg_min_velocity_arg,
             ftg_max_velocity_arg,
             max_speed_arg,

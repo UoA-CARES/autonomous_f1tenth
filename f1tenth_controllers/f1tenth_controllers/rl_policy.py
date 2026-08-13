@@ -149,6 +149,7 @@ def _configure_actor_from_checkpoint(
 
     algorithm = algorithm.upper()
     is_sac = algorithm in {"SAC", "PERSAC", "LAPSAC", "LA3PSAC"}
+    is_ppo = algorithm in {"PPO", "MAPPO", "IPPO"}
 
     if is_sac:
         mean_weight = actor_state.get("mean_linear.weight")
@@ -179,11 +180,12 @@ def _configure_actor_from_checkpoint(
         if not is_output_layer:
             layer_args["out_features"] = out_features
         layers.append(configurations_module.TrainableLayer(**layer_args))
-        layers.append(
-            configurations_module.FunctionLayer(
-                layer_type="Tanh" if is_output_layer else "ReLU"
+        if not (is_ppo and is_output_layer):
+            layers.append(
+                configurations_module.FunctionLayer(
+                    layer_type="Tanh" if is_output_layer else "ReLU"
+                )
             )
-        )
 
     network_config.actor_config = configurations_module.MLPConfig(layers=layers)
     observation_size = int(trunk_weights[0][1].shape[1])
@@ -203,6 +205,7 @@ MARL_ALGORITHMS = {
     "IPPO",
 }
 INDEPENDENT_MARL_ALGORITHMS = {"IDDPG", "ITD3", "ISAC", "IPPO"}
+MARL_ACTION_SCALING_MODES = {"legacy_direct", "normalized"}
 
 
 def _resolve_algorithm_name(configured_algorithm: str) -> tuple[str, str]:
@@ -371,7 +374,8 @@ def _configure_actor_from_checkpoint(
         raise ValueError("Actor checkpoint contains no recognizable linear weights.")
 
     algorithm = algorithm.upper()
-    is_sac = algorithm in {"SAC", "PERSAC", "LAPSAC", "LA3PSAC"}
+    is_sac = algorithm in {"SAC", "PERSAC", "LAPSAC", "LA3PSAC", "MASAC", "ISAC"}
+    is_ppo = algorithm in {"PPO", "MAPPO", "IPPO"}
 
     if is_sac:
         mean_weight = actor_state.get("mean_linear.weight")
@@ -396,11 +400,12 @@ def _configure_actor_from_checkpoint(
         if not is_output_layer:
             layer_args["out_features"] = out_features
         layers.append(configurations_module.TrainableLayer(**layer_args))
-        layers.append(
-            configurations_module.FunctionLayer(
-                layer_type="Tanh" if is_output_layer else "ReLU"
+        if not (is_ppo and is_output_layer):
+            layers.append(
+                configurations_module.FunctionLayer(
+                    layer_type="Tanh" if is_output_layer else "ReLU"
+                )
             )
-        )
 
     network_config.actor_config = configurations_module.MLPConfig(layers=layers)
     observation_size = int(trunk_weights[0][1].shape[1])
@@ -594,6 +599,29 @@ def _marl_action(agent, agent_id: str, state: np.ndarray):
     return learning_unit.act(SARLObservation(vector_state=obs), evaluation=True).action
 
 
+def _prepare_action_for_controller(
+    action: np.ndarray,
+    *,
+    is_marl: bool,
+    marl_action_scaling: str,
+    policy_max_actions: np.ndarray,
+    min_actions: np.ndarray,
+    max_actions: np.ndarray,
+) -> np.ndarray:
+    """Convert an actor output into the command sent to the car.
+
+    Existing CARES MARL F1Tenth checkpoints were trained with actor outputs passed
+    directly to the environment and clipped to its physical bounds. Preserve
+    those semantics by default so deployment matches CARES test. The
+    normalized mode is available for checkpoints trained with explicit
+    [-1, 1] action denormalisation.
+    """
+    command = np.asarray(action, dtype=np.float32)
+    if not is_marl or marl_action_scaling == "normalized":
+        command = denormalize(command, policy_max_actions, min_actions)
+    return np.clip(command, min_actions, max_actions)
+
+
 def _filter_sac_family_steering(
     action: np.ndarray,
     previous_steering: float,
@@ -647,6 +675,7 @@ def main():
             ("marl_parameter_sharing_scope", ""),
             ("marl_use_agent_id", ""),
             ("marl_use_team_id", ""),
+            ("marl_action_scaling", "legacy_direct"),
             ("max_speed", 5.0),
             ("training_max_speed", 5.0),
             ("masac_min_corner_speed", 0.75),
@@ -670,6 +699,7 @@ def main():
         "marl_parameter_sharing_scope",
         "marl_use_agent_id",
         "marl_use_team_id",
+        "marl_action_scaling",
         "max_speed",
         "training_max_speed",
         "masac_min_corner_speed",
@@ -691,6 +721,12 @@ def main():
     algorithm, checkpoint_name = _resolve_algorithm_name(configured_algorithm)
     is_marl = algorithm in MARL_ALGORITHMS
     controlled_agent_id = str(params["controlled_agent_id"] or params["car_name"])
+    marl_action_scaling = str(params["marl_action_scaling"]).strip().lower()
+    if marl_action_scaling not in MARL_ACTION_SCALING_MODES:
+        raise ValueError(
+            f"Unsupported marl_action_scaling={marl_action_scaling!r}; expected one "
+            f"of {sorted(MARL_ACTION_SCALING_MODES)}."
+        )
 
     deployment_max_speed = float(params["max_speed"])
     training_max_speed = float(params["training_max_speed"])
@@ -838,7 +874,7 @@ def main():
             f"Successfully loaded MARL actor: algorithm={algorithm}, "
             f"controlled_agent_id={controlled_agent_id}, "
             f"observation_size={raw_observation_size}, lidar_points={lidar_points}, "
-            f"actions={action_num}"
+            f"actions={action_num}, action_scaling={marl_action_scaling}"
         )
     else:
         checkpoint = _load_actor_checkpoint(checkpoint_path)
@@ -873,7 +909,14 @@ def main():
                 vector_state=np.asarray(state, dtype=np.float32)
             )
             action = agent.act(observation, evaluation=True).action
-        action = denormalize(action, MAX_CONFIG_ACTIONS, MIN_CONFIG_ACTIONS)
+        action = _prepare_action_for_controller(
+            action,
+            is_marl=is_marl,
+            marl_action_scaling=marl_action_scaling,
+            policy_max_actions=MAX_CONFIG_ACTIONS,
+            min_actions=MIN_CONFIG_ACTIONS,
+            max_actions=MAX_ACTIONS,
+        )
         if algorithm == "MASAC":
             action = _filter_sac_family_steering(action, previous_sac_steering)
             previous_sac_steering = float(action[1])
