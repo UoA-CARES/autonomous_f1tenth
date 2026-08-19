@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 import numpy as np
@@ -107,6 +108,32 @@ def _default_result_root() -> Path:
     if configured:
         return Path(configured).expanduser()
     return Path.home() / "f1tenth_benchmark_results"
+
+
+def resolve_default_result_directory(
+    result_root: Path, experiment_name: str, resolved_manifest_id: str
+) -> Path:
+    """Return the default (no `--result-dir`) directory for this manifest.
+
+    Named `<run-date>_<experiment_name>_<manifest-id>` so past campaigns sort
+    and scan chronologically under the results root. The date is fixed to
+    whenever the campaign *first* ran: if a directory already ends in
+    `_<experiment_name>_<manifest-id>` (any date prefix), it is reused as-is
+    rather than dated again with today's date - otherwise resuming an
+    interrupted campaign on a later day would compute a new, empty directory
+    instead of continuing the original one.
+    """
+    suffix = f"{experiment_name}_{resolved_manifest_id}"
+    if result_root.is_dir():
+        existing = sorted(
+            path
+            for path in result_root.iterdir()
+            if path.is_dir() and path.name.endswith(f"_{suffix}")
+        )
+        if existing:
+            return existing[0]
+    run_date = date.today().isoformat()
+    return result_root / f"{run_date}_{suffix}"
 
 
 def build_trial_schedule(config: dict, policies: dict) -> list[TrialSpec]:
@@ -607,9 +634,10 @@ def main(argv=None) -> None:
         )
         result_directory = arguments.result_dir
         if result_directory is None:
-            result_directory = (
-                _default_result_root()
-                / f"{config['experiment_name']}_{manifest_id(manifest)}"
+            result_directory = resolve_default_result_directory(
+                _default_result_root(),
+                config["experiment_name"],
+                manifest_id(manifest),
             )
         result_directory = result_directory.expanduser().resolve()
         print(f"Benchmark results: {result_directory}")

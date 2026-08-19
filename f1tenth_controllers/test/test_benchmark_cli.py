@@ -1,3 +1,4 @@
+from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -14,6 +15,7 @@ from f1tenth_controllers.benchmark.cli import (
     environment_factory_config,
     pilot_heats,
     pilot_trials,
+    resolve_default_result_directory,
     resolve_trial_seeds,
     select_checkpoint_specs,
     validate_environment,
@@ -60,6 +62,48 @@ def test_default_results_live_under_home_and_allow_override(
     override = tmp_path / "external_results"
     monkeypatch.setenv("F1TENTH_BENCHMARK_RESULTS_DIR", str(override))
     assert _default_result_root() == override
+
+
+def test_default_result_directory_is_dated_for_a_new_campaign(
+    tmp_path: Path,
+) -> None:
+    result_directory = resolve_default_result_directory(
+        tmp_path, "f1tenth_marl_benchmark", "manifest_abc123"
+    )
+
+    today = date.today().isoformat()
+    assert result_directory == (
+        tmp_path / f"{today}_f1tenth_marl_benchmark_manifest_abc123"
+    )
+    assert not result_directory.exists()
+
+
+def test_default_result_directory_reuses_existing_dated_directory_on_resume(
+    tmp_path: Path,
+) -> None:
+    original = tmp_path / "2024-01-01_f1tenth_marl_benchmark_manifest_abc123"
+    original.mkdir()
+
+    result_directory = resolve_default_result_directory(
+        tmp_path, "f1tenth_marl_benchmark", "manifest_abc123"
+    )
+
+    assert result_directory == original
+
+
+def test_default_result_directory_does_not_collide_across_manifests(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "2024-01-01_f1tenth_marl_benchmark_manifest_abc123").mkdir()
+
+    result_directory = resolve_default_result_directory(
+        tmp_path, "f1tenth_marl_benchmark", "manifest_xyz789"
+    )
+
+    today = date.today().isoformat()
+    assert result_directory == (
+        tmp_path / f"{today}_f1tenth_marl_benchmark_manifest_xyz789"
+    )
 
 
 def test_full_and_pilot_campaign_sizes_are_explicit() -> None:

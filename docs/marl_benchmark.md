@@ -127,10 +127,13 @@ bypass the check.
 ## Campaign identity and result directories
 
 By default, results are written outside the repository under
-`~/f1tenth_benchmark_results/f1tenth_marl_benchmark_<manifest-id>`. Override
-the base with `F1TENTH_BENCHMARK_RESULTS_DIR`, or the exact directory with
-`--result-dir`. Use a new result directory for each exact checkpoint set and
-experiment configuration. The manifest binds the directory to:
+`~/f1tenth_benchmark_results/<run-date>_f1tenth_marl_benchmark_<manifest-id>`,
+where `<run-date>` is the `YYYY-MM-DD` date the campaign first ran - so past
+campaigns sort and scan chronologically by folder name instead of needing to
+be opened to find out when they were run. Override the base with
+`F1TENTH_BENCHMARK_RESULTS_DIR`, or the exact directory with `--result-dir`.
+Use a new result directory for each exact checkpoint set and experiment
+configuration. The manifest binds the directory to:
 
 - checkpoint filenames, hashes, sizes, and loader metadata;
 - experiment configuration and generated trial/heat IDs;
@@ -144,8 +147,13 @@ changes the manifest, so use a new result directory.
 
 For both time trials and races in one campaign, keep the same checkpoint set
 in `train_weights/`. If `--result-dir` is omitted, identical manifests resolve
-to the same default directory; if it is supplied, pass the same directory to
-both commands. With only one uploaded checkpoint, run the time-trial workflow only.
+to the same default directory even across a resumed campaign that spans a
+day boundary: the benchmark looks for an existing
+`*_f1tenth_marl_benchmark_<manifest-id>` directory under the results root
+before dating a new one, so it reuses the original run's date rather than
+forking a second, empty directory dated today. If `--result-dir` is supplied,
+pass the same directory to both commands. With only one uploaded checkpoint,
+run the time-trial workflow only.
 
 ## Docker: make results visible on the host PC
 
