@@ -279,6 +279,15 @@ ros2 run f1tenth_controllers marl_benchmark head-to-head \
   --pilot
 ```
 
+command to open results
+```bash
+docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Image}}"
+mkdir -p "$HOME/f1tenth_benchmark_results"
+docker cp f1_dev:/home/anyone/f1tenth_benchmark_results/. \
+  "$HOME/f1tenth_benchmark_results/"
+xdg-open "$HOME/f1tenth_benchmark_results"
+```
+
 With one checkpoint, the first command runs one pilot trial and the race
 command intentionally refuses to start. With `N` selected checkpoints, the pilot has
 `N` time trials and `N*(N-1)/2` race heats.
@@ -306,6 +315,19 @@ To evaluate only one checkpoint while several files are present:
 ros2 run f1tenth_controllers marl_benchmark time-trials \
   --checkpoint ISAC_candidate
 ```
+
+To override the configured trial count (for example, to run a quick 10-trial
+smoke check instead of the full 100 per checkpoint) without editing
+`marl_benchmark.json`:
+
+```bash
+ros2 run f1tenth_controllers marl_benchmark time-trials \
+  --trials-per-algorithm 10
+```
+
+This changes the declared configuration identity (`config_sha256`), so
+results from a `--trials-per-algorithm` override land in their own manifest
+directory rather than mixing with the default 100-trial campaign.
 
 For head-to-head, stop and relaunch Gazebo with one opponent, keep the exact
 same checkpoint selection, and run:
@@ -415,7 +437,30 @@ directory can contain:
 - `time_trial_trials.csv`
 - `head_to_head_trials.csv`
 - `events.jsonl`
+- `trajectory_data/<checkpoint-id>/<trial-id>.npz` (raw per-trial XY samples)
+- `trajectory_plots/<checkpoint-id>.png` (time trials, one per checkpoint)
+- `trajectory_plots/<heat-id>.png` (head-to-head, one per heat)
 - regenerated JSON summaries and PNG plots
+
+Every time trial and head-to-head heat automatically records each car's world
+XY position after every simulator step, and every plot overlays those paths on
+the track centreline and, where the track's collision mesh can be resolved and
+sliced, the real wall boundary.
+
+Head-to-head plots are still one PNG per heat -
+`trajectory_plots/<heat-id>.png` - with circles marking starts and crosses
+marking final positions, since each heat is a specific, meaningful matchup.
+Time trials instead accumulate: each trial's raw XY samples are stashed under
+`trajectory_data/<checkpoint-id>/`, and after every trial the single
+`trajectory_plots/<checkpoint-id>.png` for that checkpoint is rewritten from
+every stashed trial (including ones from an earlier, resumed process) - so an
+N-trial campaign against six checkpoints produces six trajectory images, not
+one per trial. Completed and DNF/crash runs are colour-coded, with completion
+counts in the title and legend.
+
+The matching terminal event in `events.jsonl` records the relevant plot's
+relative path (the per-checkpoint aggregate for time trials, the per-heat plot
+for head-to-head).
 
 Generate summaries with:
 

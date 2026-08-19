@@ -218,6 +218,15 @@ def test_time_trial_uses_first_command_time_and_interpolated_finish(
     assert row["distance_completed_m"] == pytest.approx(4.0)
     assert environment.reset_options["evaluation"] is True
     assert row["start_waypoint_index"] == 0
+    # One PNG per checkpoint (not per trial): trials for the same checkpoint
+    # accumulate into a single, repeatedly-overwritten aggregate plot.
+    trajectory_plot = tmp_path / "trajectory_plots" / "FAST.png"
+    assert trajectory_plot.is_file()
+    assert trajectory_plot.stat().st_size > 0
+    trajectory_sample = (
+        tmp_path / "trajectory_data" / "FAST" / f"{row['trial_id']}.npz"
+    )
+    assert trajectory_sample.is_file()
 
 
 def test_time_trial_classifies_impossible_world_motion_as_teleport(
@@ -285,6 +294,10 @@ def test_race_uses_one_observation_snapshot_and_reports_along_track_lead(
         tmp_path / "events.jsonl"
     ).read_text(encoding="utf-8").splitlines()[-1]
     assert '"monitor_evidence"' in event
+    assert '"trajectory_plot":"trajectory_plots/heat_test.png"' in event
+    trajectory_plot = tmp_path / "trajectory_plots" / "heat_test.png"
+    assert trajectory_plot.is_file()
+    assert trajectory_plot.stat().st_size > 0
 
 
 def test_single_isolated_crash_produces_crash_win_with_attribution(

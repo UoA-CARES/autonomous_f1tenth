@@ -504,13 +504,22 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             ]
             self.agent_goals[agent] = (wx, wy)
 
+        world_positions = {
+            agent: tuple(
+                float(value) for value in all_state_data[agent].position_xy()
+            )
+            for agent in self.agents
+        }
         obs = {}
         infos = {}
         for agent in self.agents:
             self.overtake_counts[agent] = 0
             self.previous_state_data[agent] = all_state_data[agent]
             obs[agent] = all_state_data[agent].state
-            infos[agent] = {}
+            infos[agent] = {
+                "position_xy": world_positions[agent],
+                "positions_xy": world_positions,
+            }
 
         self.race_origin_track_distance = (
             self.current_track_model.track_distance_from_world_coord(
@@ -605,6 +614,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         race_positions: dict[str, float],
         terminated: bool,
         truncated: bool,
+        world_positions: dict[str, tuple[float, float]],
     ) -> dict:
         self.total_linear_velocity[agent] += current_state.linear_velocity()
         avg_linear_velocity = (
@@ -637,10 +647,19 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             "agent_overtakes": live_overtakes,
             "overtakes_live": live_overtakes,
             "goals_reached": self.goals_reached[agent],
+            # World-frame XY of every car this step, for plotting racing
+            # lines / stitching a video of the cars racing (not track-relative
+            # like agent_track_position above).
+            "position_xy": world_positions[agent],
+            "positions_xy": world_positions,
         }
         for other_agent, opponent_distance in distance_to_opponents.items():
             info[f"distance_to_{other_agent}"] = opponent_distance
             info[f"{other_agent}_track_position"] = race_positions[other_agent]
+        for other_agent, other_xy in world_positions.items():
+            if other_agent == agent:
+                continue
+            info[f"{other_agent}_position_xy"] = other_xy
 
         return info
 
@@ -716,6 +735,12 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         if any(terminateds.values()):
             terminateds = {agent: True for agent in self.agents}
 
+        world_positions = {
+            agent: tuple(
+                float(value) for value in all_state_data[agent].position_xy()
+            )
+            for agent in self.agents
+        }
         for agent in self.agents:
             infos[agent].update(
                 self._build_agent_metric_info(
@@ -724,6 +749,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
                     race_positions,
                     terminateds[agent],
                     truncateds[agent],
+                    world_positions,
                 )
             )
 

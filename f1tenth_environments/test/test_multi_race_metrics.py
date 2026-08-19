@@ -250,6 +250,7 @@ def test_metric_info_uses_race_positions_for_exact_reported_keys() -> None:
         race_positions,
         True,
         False,
+        {"f1tenth": (0.0, 0.0), "opponent_0": (4.5, 0.0), "opponent_1": (1.5, 0.0)},
     )
 
     assert info["agent_track_position"] == pytest.approx(3.0)
@@ -282,6 +283,7 @@ def test_metric_info_reports_live_overtakes_before_episode_end() -> None:
         race_positions,
         False,
         False,
+        {"f1tenth": (0.0, 0.0), "opponent_0": (4.5, 0.0), "opponent_1": (1.5, 0.0)},
     )
 
     assert info["overtakes"] == 2
@@ -295,6 +297,7 @@ def test_single_agent_transition_keeps_overtakes_terminal_only() -> None:
     env = F1tenthEnvironment.__new__(F1tenthEnvironment)
     env.car_name = "f1tenth"
     env.opponent_car_names = ["opponent_0"]
+    env.latest_opponent_odometries = {}
     env.previous_state_data = FakeStateData(0.0, 0.0)
     env.previous_race_positions = {"f1tenth": 1.0, "opponent_0": 2.0}
     env.overtakes_per_episode = 1

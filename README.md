@@ -133,6 +133,24 @@ The CARES RL package provides the primary set of training algorithms and tools f
 
 Follow the instructions to install the CARES Reinforcement Learning package from the main installation instructions: [CARES RL v3.1.0](https://github.com/UoA-CARES/cares_reinforcement_learning/tree/V3.1.0).
 
+### Car positions in `step`/`reset` info (for racing-line video)
+
+Every `step()` and `reset()` call (single-agent `F1tenthEnvironment` and
+multi-agent `MultiF1TenthEnvironment` alike) includes each car's world-frame
+XY position - subscribed from the same simulator odometry already used for
+race-position tracking - in the returned `info` dict:
+
+- `info["position_xy"]`: the agent's own `(x, y)` in world metres.
+- `info["positions_xy"]`: `{car_name: (x, y), ...}` for every car in the race.
+- `info["<other_car>_position_xy"]`: the same per-opponent, flattened -
+  mirrors the existing `distance_to_<other_car>` convention.
+
+These are world-frame (not track-relative like `agent_track_position`), so a
+consumer can plot each car's raw racing line directly and step through it
+frame-by-frame to build a video of the race, the way `drone_gym`'s
+`episode_positions` feeds its own video generation. This repo only exposes
+the positions; plotting/video assembly is intentionally left to the RL side.
+
 ## Package Installation
 Follow these instructions to run/test this repository on your local machine. Ensure you have installed the dependencies outlined above.
 

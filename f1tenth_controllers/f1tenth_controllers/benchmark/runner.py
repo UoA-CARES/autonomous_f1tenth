@@ -21,6 +21,11 @@ from f1tenth_environments.benchmark.protocol import HeatSpec
 
 from .policy import PolicyAdapter
 from .results import ResultWriter, stable_id
+from .trajectory import (
+    write_checkpoint_trajectory_plot,
+    write_trajectory_sample,
+    write_xy_trajectory_plot,
+)
 
 
 def build_trial_id(
@@ -219,6 +224,15 @@ class BenchmarkRunner:
         policy = self.policies[checkpoint_id]
         algorithm = policy.spec.algorithm
         agent = self.environment.car_name
+        trial_id = build_trial_id(
+            checkpoint_id=checkpoint_id,
+            algorithm=algorithm,
+            checkpoint_sha256=policy.spec.sha256,
+            track=self.track_name,
+            seed=seed,
+            repetition=repetition,
+            config_id=self.config_id,
+        )
         waypoint = self._waypoint_for_seed(seed)
         spawn_pose = centreline_spawn_pose(waypoint).as_reset_dict()
         observations, _ = self.environment.reset(
@@ -234,6 +248,9 @@ class BenchmarkRunner:
             self.environment.previous_state_data[agent].position_xy(),
             dtype=np.float64,
         )
+        trajectories = {
+            agent: [tuple(float(value) for value in previous_position)]
+        }
         world_motion = {
             "displacement_m": 0.0,
             "max_allowed_m": 0.0,
@@ -266,6 +283,9 @@ class BenchmarkRunner:
             current_position = np.asarray(
                 self.environment.previous_state_data[agent].position_xy(),
                 dtype=np.float64,
+            )
+            trajectories[agent].append(
+                tuple(float(value) for value in current_position)
             )
             world_motion = _world_motion_evidence(
                 previous_position,
@@ -332,15 +352,7 @@ class BenchmarkRunner:
 
         completed = finish_time is not None
         row = {
-            "trial_id": build_trial_id(
-                checkpoint_id=checkpoint_id,
-                algorithm=algorithm,
-                checkpoint_sha256=policy.spec.sha256,
-                track=self.track_name,
-                seed=seed,
-                repetition=repetition,
-                config_id=self.config_id,
-            ),
+            "trial_id": trial_id,
             "checkpoint_id": checkpoint_id,
             "algorithm": algorithm,
             "checkpoint_filename": policy.spec.filename,
@@ -376,6 +388,31 @@ class BenchmarkRunner:
             "config_id": self.config_id,
         }
         self.result_writer.write_time_trial(row)
+        write_trajectory_sample(
+            self.result_writer.result_directory
+            / "trajectory_data"
+            / checkpoint_id
+            / f"{trial_id}.npz",
+            trajectory=trajectories[agent],
+            completed=completed,
+            dnf_reason=row["dnf_reason"],
+            trial_id=trial_id,
+            seed=seed,
+        )
+        trajectory_plot = write_checkpoint_trajectory_plot(
+            self.result_writer.result_directory
+            / "trajectory_plots"
+            / f"{checkpoint_id}.png",
+            track_waypoints=self.environment.tracks[self.track_name],
+            trajectory_sample_directory=(
+                self.result_writer.result_directory
+                / "trajectory_data"
+                / checkpoint_id
+            ),
+            checkpoint_id=checkpoint_id,
+            algorithm=algorithm,
+            track_name=self.track_name,
+        )
         self.result_writer.write_event(
             {
                 "event": (
@@ -388,6 +425,11 @@ class BenchmarkRunner:
                 "reason": row["dnf_reason"],
                 "monitor_evidence": _monitor_evidence(update),
                 "world_motion_evidence": world_motion,
+                "trajectory_plot": str(
+                    trajectory_plot.relative_to(
+                        self.result_writer.result_directory
+                    )
+                ),
                 "manifest_id": self.manifest_id,
             }
         )
@@ -461,6 +503,10 @@ class BenchmarkRunner:
             )
             for agent in self.environment.agents
         }
+        trajectories = {
+            agent: [tuple(float(value) for value in position)]
+            for agent, position in previous_positions.items()
+        }
         world_motion_evidence = {
             agent: {
                 "displacement_m": 0.0,
@@ -515,6 +561,10 @@ class BenchmarkRunner:
                 )
                 for agent in self.environment.agents
             }
+            for agent, position in current_positions.items():
+                trajectories[agent].append(
+                    tuple(float(value) for value in position)
+                )
             world_motion_evidence = {
                 agent: _world_motion_evidence(
                     previous_positions[agent],
@@ -771,6 +821,25 @@ class BenchmarkRunner:
             "config_id": self.config_id,
         }
         self.result_writer.write_head_to_head(row)
+        trajectory_labels = {}
+        for agent in self.environment.agents:
+            agent_checkpoint_id = checkpoint_ids_by_agent[agent]
+            agent_algorithm = self.policies[
+                agent_checkpoint_id
+            ].spec.algorithm
+            trajectory_labels[agent] = (
+                f"{agent_checkpoint_id} ({agent_algorithm})"
+            )
+        trajectory_plot = write_xy_trajectory_plot(
+            self.result_writer.result_directory
+            / "trajectory_plots"
+            / f"{heat.heat_id}.png",
+            track_waypoints=self.environment.tracks[self.track_name],
+            trajectories=trajectories,
+            labels=trajectory_labels,
+            title=f"Head-to-head: {heat.heat_id} - {outcome_type}",
+            track_name=self.track_name,
+        )
         self.result_writer.write_event(
             {
                 "event": "head_to_head_result",
@@ -787,6 +856,11 @@ class BenchmarkRunner:
                     checkpoint_ids_by_agent[agent]: evidence
                     for agent, evidence in world_motion_evidence.items()
                 },
+                "trajectory_plot": str(
+                    trajectory_plot.relative_to(
+                        self.result_writer.result_directory
+                    )
+                ),
                 "manifest_id": self.manifest_id,
             }
         )

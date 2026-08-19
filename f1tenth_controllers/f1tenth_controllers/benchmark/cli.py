@@ -28,6 +28,7 @@ from .config import (
     resolve_checkpoint_config,
     resolve_checkpoint_specs,
     resolve_runtime_config,
+    resolve_time_trial_count,
 )
 from .manifest import (
     build_run_manifest,
@@ -505,6 +506,15 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--pilot", action="store_true")
     parser.add_argument(
+        "--trials-per-algorithm",
+        type=int,
+        default=None,
+        help=(
+            "Override time_trials.trials_per_algorithm from the config: "
+            "the number of time-trial repetitions run per checkpoint"
+        ),
+    )
+    parser.add_argument(
         "--algorithm",
         action="append",
         help="Select every checkpoint with this filename algorithm prefix",
@@ -546,6 +556,9 @@ def main(argv=None) -> None:
     validate_mode_policy_count(arguments.mode, policies)
 
     config = resolve_runtime_config(config, pilot=arguments.pilot)
+    config = resolve_time_trial_count(
+        config, trials_per_algorithm=arguments.trials_per_algorithm
+    )
     validate_runtime_environment(config)
     expected_agents = 1 if arguments.mode == "time-trials" else 2
     environment = None

@@ -557,6 +557,29 @@ class F1tenthEnvironment(Node, ABC):
             if opponent_car_name in race_positions
         }
 
+    def _get_world_positions(
+        self, current_state_data: StateData
+    ) -> dict[str, tuple[float, float]]:
+        """World-frame XY of every car, from the odometry already subscribed to.
+
+        Fed into `info` so a training/eval consumer can plot the cars' racing
+        lines (and stitch a video from them) without re-deriving position from
+        track progress, which is track-relative rather than world-frame.
+        """
+        positions = {
+            self.car_name: tuple(
+                float(value) for value in current_state_data.position_xy()
+            )
+        }
+        for opponent_car_name in self.opponent_car_names:
+            odom = self.latest_opponent_odometries.get(opponent_car_name)
+            if odom is not None:
+                positions[opponent_car_name] = (
+                    float(odom.pose.pose.position.x),
+                    float(odom.pose.pose.position.y),
+                )
+        return positions
+
     def _calculate_progress_reward(
         self,
         step_progress: float,
@@ -733,6 +756,7 @@ class F1tenthEnvironment(Node, ABC):
         episode_done = terminated or truncated
         episode_overtakes = self.overtakes_per_episode
         agent_track_position = race_positions.get(self.car_name, 0.0)
+        world_positions = self._get_world_positions(current_state_data)
 
         info = {
             "linear_velocity": current_state_data.linear_velocity(),
@@ -745,12 +769,18 @@ class F1tenthEnvironment(Node, ABC):
             "time_in_pole_position": self.pole_position_steps,
             "agent_track_position": agent_track_position,
             "agent_track_position_m": agent_track_position,
+            "position_xy": world_positions[self.car_name],
+            "positions_xy": world_positions,
         }
         for opponent_car_name, opponent_distance in distance_to_opponents.items():
             info[f"distance_to_{opponent_car_name}"] = opponent_distance
             opponent_track_position = race_positions[opponent_car_name]
             info[f"{opponent_car_name}_track_position"] = opponent_track_position
             info[f"{opponent_car_name}_track_position_m"] = opponent_track_position
+        for opponent_car_name, opponent_xy in world_positions.items():
+            if opponent_car_name == self.car_name:
+                continue
+            info[f"{opponent_car_name}_position_xy"] = opponent_xy
         info.update(reward_info)
 
         self.previous_state_data = current_state_data

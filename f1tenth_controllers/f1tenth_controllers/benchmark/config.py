@@ -180,6 +180,23 @@ def resolve_runtime_config(config: dict, *, pilot: bool) -> dict:
     return resolved
 
 
+def resolve_time_trial_count(
+    config: dict, *, trials_per_algorithm: int | None
+) -> dict:
+    """Override how many time-trial repetitions run per checkpoint."""
+    if trials_per_algorithm is None:
+        return config
+
+    if trials_per_algorithm <= 0:
+        raise ValueError("--trials-per-algorithm must be positive")
+
+    resolved = deepcopy(config)
+    resolved.pop("config_sha256", None)
+    resolved["time_trials"]["trials_per_algorithm"] = trials_per_algorithm
+    resolved["config_sha256"] = _canonical_sha256(resolved)
+    return resolved
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as checkpoint_file:

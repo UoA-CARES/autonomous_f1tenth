@@ -23,6 +23,7 @@ from f1tenth_controllers.benchmark.cli import (
 from f1tenth_controllers.benchmark.config import (
     load_experiment_config,
     resolve_runtime_config,
+    resolve_time_trial_count,
 )
 
 
@@ -189,6 +190,22 @@ def test_same_algorithm_variants_remain_distinct_competitors() -> None:
     assert len(heats) == 32
     assert {heat.algorithm_a for heat in heats} == {"MASAC"}
     assert {heat.lead_checkpoint_id for heat in heats} == set(variants)
+
+
+def test_trials_per_algorithm_override_changes_schedule_and_identity() -> None:
+    full = load_experiment_config(CONFIG_PATH)
+    overridden = resolve_time_trial_count(full, trials_per_algorithm=5)
+
+    assert full["time_trials"]["trials_per_algorithm"] == 100
+    assert overridden["time_trials"]["trials_per_algorithm"] == 5
+    assert overridden["config_sha256"] != full["config_sha256"]
+    assert resolve_time_trial_count(full, trials_per_algorithm=None) is full
+
+    trials = build_trial_schedule(overridden, {"ISAC": FakePolicy("ISAC")})
+    assert len(trials) == 5
+
+    with pytest.raises(ValueError, match="must be positive"):
+        resolve_time_trial_count(full, trials_per_algorithm=0)
 
 
 def test_pilot_timeout_has_distinct_configuration_identity() -> None:
