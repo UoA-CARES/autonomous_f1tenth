@@ -46,15 +46,13 @@ Discovery is deliberately strict:
   checkpoints participating in that race campaign in the folder together, or
   select variants with repeated `--checkpoint` options.
 
-The checked-in
-`f1tenth_controllers/config/marl_benchmark.json` contains the experiment and
-simulation protocol only. It does not contain checkpoint filenames, hashes,
-file sizes, or training seeds. At invocation time the benchmark computes each
-selected file's SHA256 and size. The runtime-resolved configuration ID is
-recomputed from the selected set.
-Those values, the detected algorithm,
-`f1tenth` actor identity, loader architecture, dimensions, and checkpoint
-structure are written to `run_manifest.json`.
+The checked-in `f1tenth_controllers/config/marl_benchmark.json` contains the
+experiment and simulation protocol only. It does not contain checkpoint
+filenames, hashes, file sizes, or training seeds. At invocation time the
+benchmark computes each selected file's SHA256 and size, and recomputes the
+runtime-resolved configuration ID from the selected set. Those values, the
+detected algorithm, `f1tenth` actor identity, loader architecture, dimensions,
+and checkpoint structure are written to `run_manifest.json`.
 
 A filename prefix does not override checkpoint validation. For example, a
 file named `ISAC_candidate.pth` whose structure is TD3-like fails preflight
@@ -176,8 +174,15 @@ docker cp <container_name>:/home/anyone/f1tenth_benchmark_results/. \
 ```
 
 Replace `<container_name>` with the F1TENTH/VS Code container name shown by
-`docker ps`. Copy existing results before mounting because a bind mount hides
-the old container directory while the mount is active.
+`docker ps` (for example `f1_dev` when using the README `docker run`
+command), then open the copied results with:
+
+```bash
+xdg-open "$HOME/f1tenth_benchmark_results"
+```
+
+Copy existing results before mounting because a bind mount hides the old
+container directory while the mount is active.
 
 For future runs, bind the host folder to the benchmark default container path.
 For Docker Compose, add this entry under the F1TENTH service `volumes` section:
@@ -287,15 +292,6 @@ ros2 run f1tenth_controllers marl_benchmark head-to-head \
   --pilot
 ```
 
-command to open results
-```bash
-docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Image}}"
-mkdir -p "$HOME/f1tenth_benchmark_results"
-docker cp f1_dev:/home/anyone/f1tenth_benchmark_results/. \
-  "$HOME/f1tenth_benchmark_results/"
-xdg-open "$HOME/f1tenth_benchmark_results"
-```
-
 With one checkpoint, the first command runs one pilot trial and the race
 command intentionally refuses to start. With `N` selected checkpoints, the pilot has
 `N` time trials and `N*(N-1)/2` race heats.
@@ -347,9 +343,8 @@ export F1TENTH_NUM_OPPONENTS=1
 ros2 run f1tenth_controllers marl_benchmark head-to-head
 ```
 
-To race only two exact checkpoints from a folder containing more files,
-repeat the
-selection flag and use a result directory dedicated to that pair:
+To race only two exact checkpoints from a folder containing more files, repeat
+the selection flag and use a result directory dedicated to that pair:
 
 ```bash
 ros2 run f1tenth_controllers marl_benchmark head-to-head \
@@ -372,9 +367,8 @@ source /path/to/gz/install/setup.bash
 gz sim -g
 ```
 
-The benchmark terminal prints the active checkpoint ID, its algorithm, or
-race pairing
-before movement starts. In Gazebo, the model names are `f1tenth` for the
+The benchmark terminal prints the active checkpoint ID, its algorithm, or race
+pairing before movement starts. In Gazebo, the model names are `f1tenth` for the
 primary simulator slot and `opponent_1` for the opponent slot. Detailed
 lead/chaser and simulator-slot assignments, including the seeded start waypoint, are recorded in `head_to_head_trials.csv`. Time-trial rows
 record the same start field, while `run_manifest.json` resolves every seed to
