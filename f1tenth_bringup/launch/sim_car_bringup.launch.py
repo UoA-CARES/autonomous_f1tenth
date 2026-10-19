@@ -121,7 +121,7 @@ def generate_launch_description():
                 name="y", description="y position of robot", default_value="3.0"
             ),
             DeclareLaunchArgument(
-                name="z", description="z position of robot", default_value="3.0"
+                name="z", description="z position of robot", default_value="0.0"
             ),
             DeclareLaunchArgument(
                 name="R", description="roll of robot", default_value="0.0"

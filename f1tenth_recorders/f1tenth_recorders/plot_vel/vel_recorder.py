@@ -10,16 +10,15 @@ class CmdVelRecorder(Node):
     def __init__(self):
         super().__init__('recorder')
         
-        self.declare_parameter('onSim')
-        self.onSim = self.get_parameter('onSim').value
+        self.declare_parameter('onSim', False)
+        self.onSim = bool(self.get_parameter('onSim').value)
         
         self.filename = f"record_{'sim' if self.onSim else 'drive'}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.txt"
         
         ament_path = os.environ["AMENT_PREFIX_PATH"].split(":")[0]
         workspace_dir = os.path.dirname(ament_path)
-        path = os.path.join(workspace_dir, "..", "recordings", "vel_records")
-        if not os.path.exists(path):
-            os.mkdir(path)
+        path = os.path.abspath(os.path.join(workspace_dir, "..", "recordings", "vel_records"))
+        os.makedirs(path, exist_ok=True)
         self.file_path = os.path.join(path, self.filename)
         
         if self.onSim:

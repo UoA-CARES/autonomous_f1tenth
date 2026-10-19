@@ -9,9 +9,16 @@ setup(
     version="0.0.0",
     packages=find_packages(exclude=["test"]),
     data_files=[
-        ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
+        (
+            "share/ament_index/resource_index/packages",
+            ["resource/" + package_name],
+        ),
         ("share/" + package_name, ["package.xml"]),
-        (os.path.join("share", package_name), glob("launch/*launch.[pxy][yma]*")),
+        (
+            os.path.join("share", package_name),
+            glob("launch/*launch.[pxy][yma]*"),
+        ),
+        (os.path.join("share", package_name, "config"), glob("config/*")),
     ],
     install_requires=["setuptools"],
     zip_safe=True,
@@ -29,6 +36,9 @@ setup(
             "load_path = f1tenth_controllers.load_path:main",
             "planner = f1tenth_controllers.planner:main",
             "state_machine = f1tenth_controllers.state_machine:main",
+            "marl_benchmark = f1tenth_controllers.benchmark.cli:main",
+            "marl_benchmark_summary = f1tenth_controllers.benchmark.summary:main",
+            "marl_benchmark_scripted = f1tenth_controllers.benchmark.scripted:main",
         ],
     },
 )

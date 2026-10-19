@@ -189,13 +189,29 @@ Example (agent car + 2 opponents = 3 cars total):
 ros2 launch f1tenth_bringup sim_environment_bringup.launch.py track:=multi_track num_opponents:=2 marl_env:=false
 ```
 
+MARL example (agent car + 3 learned opponents = 4 cars total):
+```
+ros2 launch f1tenth_bringup sim_environment_bringup.launch.py track:=multi_track_01 num_opponents:=3 marl_env:=true
+```
+
 **2. Start RL training:**
 
 The RL agent (e.g., CARES RL) will instantiate the environment using EnvironmentFactory and pass all RL/environment parameters via the config argument. 
 
+Single-agent training:
 ```
 cares-rl train cli f1tenth --task CarRace SAC
 ```
+
+Multi-agent training:
+```
+F1TENTH_TRACK=multi_track_01 F1TENTH_NUM_OPPONENTS=3 cares-rl train cli multi_f1tenth --task MultiCarRace MATD3
+```
+
+For MARL, use the `multi_f1tenth` gym with `MultiCarRace`. Using `multi_f1tenth --task CarRace` creates the single-car environment and MARL algorithms will fail because the environment has no multi-agent `agents` metadata. `F1TENTH_NUM_OPPONENTS` must match the simulation launch argument. MARL training resets choose one loaded sub-track per episode and randomly assign all agent identities to the available start slots, so the primary car can start in any race position. Set `F1TENTH_ACTIVE_TRACK=<track_key>` to lock training to one sub-track. `F1TENTH_OPPONENT_START_GAP` and `F1TENTH_OPPONENT_GAP` tune the start-slot spacing; defaults use the base waypoint followed by +8, +12, and +16 waypoints. Evaluation resets retain their deterministic ordering.
+
+For reproducible evaluation of user-supplied MARL checkpoints, see
+[the MARL benchmark runbook](docs/marl_benchmark.md).
 
 **3. (Optional) View simulation in Gazebo:**
 
@@ -217,6 +233,26 @@ f1tenth_bringup/rviz/f1tenth.rviz
 ```
 You can customize this file to suit your visualization needs.
 
+
+## Car positions in `step`/`reset` info
+
+Every `step()` call (single-agent `F1tenthEnvironment` and multi-agent
+`MultiF1TenthEnvironment` alike) includes each car's world-frame XY position,
+taken from the same simulator odometry used for race-position tracking, in the
+returned `info` dict:
+
+- `info["position_xy"]`: the agent's own `(x, y)` in world metres.
+- `info["positions_xy"]`: `{car_name: (x, y), ...}` for every car in the race.
+- `info["<other_car>_position_xy"]`: the same per-opponent, flattened -
+  mirrors the existing `distance_to_<other_car>` convention.
+
+`MultiF1TenthEnvironment.reset()` also returns `position_xy` and
+`positions_xy` in each agent's info.
+
+These are world-frame (not track-relative like `agent_track_position`), so a
+consumer can plot each car's racing line directly or step through it
+frame-by-frame to build a video of the race. This repository only exposes the
+positions; plotting and video assembly are left to the RL side.
 
 ## Running Multiple Instances in Parallel
 

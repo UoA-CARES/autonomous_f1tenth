@@ -10,7 +10,7 @@ from launch.actions import (
 )
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 
 
@@ -31,7 +31,11 @@ def generate_launch_description():
     mux_config = LaunchConfiguration("mux_config")
     ekf_config = LaunchConfiguration("ekf_config")
     joy_config = LaunchConfiguration("joy_config")
+    device_id = LaunchConfiguration("device_id")
     rmw_implementation = LaunchConfiguration("rmw_implementation")
+    ros_domain_id = LaunchConfiguration("ros_domain_id")
+    ros_localhost_only = LaunchConfiguration("ros_localhost_only")
+    ros_discovery_server = LaunchConfiguration("ros_discovery_server")
 
     launch_arguments = [
         DeclareLaunchArgument(
@@ -43,6 +47,21 @@ def generate_launch_description():
             "rmw_implementation",
             default_value="rmw_fastrtps_cpp",
             description="ROS middleware implementation used by all launched nodes.",
+        ),
+        DeclareLaunchArgument(
+            "ros_domain_id",
+            default_value=EnvironmentVariable("ROS_DOMAIN_ID", default_value="0"),
+            description="ROS domain ID used by all launched nodes.",
+        ),
+        DeclareLaunchArgument(
+            "ros_localhost_only",
+            default_value="0",
+            description="Set ROS_LOCALHOST_ONLY for launched nodes; use 0 for multi-machine control.",
+        ),
+        DeclareLaunchArgument(
+            "ros_discovery_server",
+            default_value=EnvironmentVariable("ROS_DISCOVERY_SERVER", default_value=""),
+            description="Fast DDS discovery server address, for example 192.168.1.10:11811.",
         ),
         DeclareLaunchArgument(
             "vesc_config",
@@ -68,6 +87,11 @@ def generate_launch_description():
             "joy_config",
             default_value=default_joy_config,
             description="Joy and joy_teleop parameter file.",
+        ),
+        DeclareLaunchArgument(
+            "device_id",
+            default_value="0",
+            description="Joystick device id passed to joy_node when launch_joy is true.",
         ),
         DeclareLaunchArgument(
             "launch_joy",
@@ -157,7 +181,11 @@ def generate_launch_description():
         ),
         launch_arguments={
             "joy_config": joy_config,
+            "device_id": device_id,
             "rmw_implementation": rmw_implementation,
+            "ros_domain_id": ros_domain_id,
+            "ros_localhost_only": ros_localhost_only,
+            "ros_discovery_server": ros_discovery_server,
         }.items(),
         condition=IfCondition(LaunchConfiguration("launch_joy")),
     )
@@ -166,8 +194,20 @@ def generate_launch_description():
         launch_arguments
         + [
             SetEnvironmentVariable(
+                "ROS_DOMAIN_ID",
+                ros_domain_id,
+            ),
+            SetEnvironmentVariable(
+                "ROS_LOCALHOST_ONLY",
+                ros_localhost_only,
+            ),
+            SetEnvironmentVariable(
                 "RMW_IMPLEMENTATION",
                 rmw_implementation,
+            ),
+            SetEnvironmentVariable(
+                "ROS_DISCOVERY_SERVER",
+                ros_discovery_server,
             ),
             robot_state_publisher,
             vesc_driver,

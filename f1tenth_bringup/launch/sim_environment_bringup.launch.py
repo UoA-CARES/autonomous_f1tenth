@@ -7,6 +7,7 @@ from launch.actions import (
     IncludeLaunchDescription,
     OpaqueFunction,
     SetEnvironmentVariable,
+    TimerAction,
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -21,36 +22,40 @@ def spawn_cars(context, *args, **kwargs):
     num_cars = 1 + num_opponents
 
     car_nodes = []
+    spawn_delay = 3.0
+
     for i in range(num_cars):
         if i == 0:
             car_name = "f1tenth"
             controller = ""
         else:
             car_name = f"opponent_{i}"
-            if not marl_env:
-                controller = "ftg"
+            controller = "" if marl_env else "ftg"
         x_pos = 3.0 + 2.0 * i
         y_pos = 3.0
-        # print(f"Spawning car {car_name} at position ({x_pos}, {y_pos}) with controller '{controller}'")
 
-        car_nodes.append(
-            IncludeLaunchDescription(
-                launch_description_source=PythonLaunchDescriptionSource(
-                    os.path.join(pkg_bringup, "sim_car_bringup.launch.py")
-                ),
-                launch_arguments={
-                    "name": car_name,
-                    "world": "empty",
-                    "x": str(x_pos),
-                    "y": str(y_pos),
-                    "z": "1.0",
-                    "R": "0.0",
-                    "P": "0.0",
-                    "Y": "0.0",
-                    "controller": controller,
-                }.items(),
-            )
+        car_launch = IncludeLaunchDescription(
+            launch_description_source=PythonLaunchDescriptionSource(
+                os.path.join(pkg_bringup, "sim_car_bringup.launch.py")
+            ),
+            launch_arguments={
+                "name": car_name,
+                "world": "empty",
+                "x": str(x_pos),
+                "y": str(y_pos),
+                "z": "0.0",
+                "R": "0.0",
+                "P": "0.0",
+                "Y": "0.0",
+                "controller": controller,
+            }.items(),
         )
+
+        delayed_spawn = TimerAction(
+            period=float(i * spawn_delay),
+            actions=[car_launch],
+        )
+        car_nodes.append(delayed_spawn)
     return car_nodes
 
 

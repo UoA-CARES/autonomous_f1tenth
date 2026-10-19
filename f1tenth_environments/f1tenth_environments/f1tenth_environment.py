@@ -203,7 +203,6 @@ class F1tenthEnvironment(Node, ABC):
             for name in self.opponent_car_names
         }
         self.previous_race_positions: dict[str, float] = {}
-        self.race_origin_spline_coord = 0.0
         self.race_origin_track_distance = 0.0
         self.overtake_rear_margin_m = 0.25
         self.overtake_front_margin_m = 0.25
@@ -227,12 +226,10 @@ class F1tenthEnvironment(Node, ABC):
             if match is None:
                 continue
 
-            car_index = int(match.group(1))
             if car_name == self.car_name:
                 continue
 
             discovered_names.add(car_name)
-            # print(f"Discovered opponent car: {car_name} from topic {topic_name}")
 
         def _car_sort_key(name: str) -> int:
             match = name_pattern.match(name)
@@ -332,6 +329,8 @@ class F1tenthEnvironment(Node, ABC):
     def _reset(self) -> np.ndarray:
         self._reset_positions()
 
+        self.latest_data = None
+        self._next_build_clear_existing = False
         self._set_simulation_paused(paused=False)
         state_data = self._build_state_data()
         self.previous_state_data = state_data
@@ -371,9 +370,12 @@ class F1tenthEnvironment(Node, ABC):
     def _message_filter_callback(self, odom: Odometry, lidar: LaserScan) -> None:
         self.latest_data = (odom, lidar)
 
-    def _get_data(self, timeout: float = 5.0) -> tuple[Odometry, LaserScan]:
+    def _get_data(
+        self, timeout: float = 5.0, clear_existing: bool = True
+    ) -> tuple[Odometry, LaserScan]:
         # Drain anything stale
-        self.latest_data = None
+        if clear_existing:
+            self.latest_data = None
         end_time = self.get_clock().now().nanoseconds + int(timeout * 1e9)
         spin_timeout_sec = 0.01
 
@@ -411,16 +413,14 @@ class F1tenthEnvironment(Node, ABC):
             or self.step_counter >= self.max_steps
         )
 
-    def _build_state_data(self) -> StateData:
-        odom_msg, lidar_msg = self._get_data()
+    def _build_state_data(self, clear_existing: bool | None = None) -> StateData:
+        if clear_existing is None:
+            clear_existing = getattr(self, "_next_build_clear_existing", True)
+            self._next_build_clear_existing = True
+        odom_msg, lidar_msg = self._get_data(clear_existing=clear_existing)
         state_data = self.state_builder.build_state(odom_msg, lidar_msg)
         self.state_scan_pub.publish(state_data.lidar_state_scan)
         return state_data
-
-    def _spline_coord_from_position(self, position_xy: tuple[float, float]) -> float:
-        return self.current_track_model.world_coord_to_spline_coord(
-            np.asarray(position_xy, dtype=np.float64)
-        )
 
     def _track_distance_from_position(self, position_xy: tuple[float, float]) -> float:
         return self.current_track_model.track_distance_from_world_coord(
@@ -548,6 +548,29 @@ class F1tenthEnvironment(Node, ABC):
             for opponent_car_name in self.opponent_car_names
             if opponent_car_name in race_positions
         }
+
+    def _get_world_positions(
+        self, current_state_data: StateData
+    ) -> dict[str, tuple[float, float]]:
+        """World-frame XY of every car, from the odometry already subscribed to.
+
+        Fed into `info` so a training/eval consumer can plot the cars' racing
+        lines (and stitch a video from them) without re-deriving position from
+        track progress, which is track-relative rather than world-frame.
+        """
+        positions = {
+            self.car_name: tuple(
+                float(value) for value in current_state_data.position_xy()
+            )
+        }
+        for opponent_car_name in self.opponent_car_names:
+            odom = self.latest_opponent_odometries.get(opponent_car_name)
+            if odom is not None:
+                positions[opponent_car_name] = (
+                    float(odom.pose.pose.position.x),
+                    float(odom.pose.pose.position.y),
+                )
+        return positions
 
     def _calculate_progress_reward(
         self,
@@ -725,6 +748,7 @@ class F1tenthEnvironment(Node, ABC):
         episode_done = terminated or truncated
         episode_overtakes = self.overtakes_per_episode
         agent_track_position = race_positions.get(self.car_name, 0.0)
+        world_positions = self._get_world_positions(current_state_data)
 
         info = {
             "linear_velocity": current_state_data.linear_velocity(),
@@ -737,12 +761,18 @@ class F1tenthEnvironment(Node, ABC):
             "time_in_pole_position": self.pole_position_steps,
             "agent_track_position": agent_track_position,
             "agent_track_position_m": agent_track_position,
+            "position_xy": world_positions[self.car_name],
+            "positions_xy": world_positions,
         }
         for opponent_car_name, opponent_distance in distance_to_opponents.items():
             info[f"distance_to_{opponent_car_name}"] = opponent_distance
             opponent_track_position = race_positions[opponent_car_name]
             info[f"{opponent_car_name}_track_position"] = opponent_track_position
             info[f"{opponent_car_name}_track_position_m"] = opponent_track_position
+        for opponent_car_name, opponent_xy in world_positions.items():
+            if opponent_car_name == self.car_name:
+                continue
+            info[f"{opponent_car_name}_position_xy"] = opponent_xy
         info.update(reward_info)
 
         self.previous_state_data = current_state_data
@@ -763,8 +793,29 @@ class F1tenthEnvironment(Node, ABC):
         request = ControlWorld.Request()
         request.world_control.pause = paused
         future = self.world_control_client.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
+        self._wait_for_evaluation_service(
+            future,
+            operation="world control",
+        )
         return future.result()
+
+    def _wait_for_evaluation_service(self, future, *, operation: str) -> None:
+        timeout_s = getattr(
+            self,
+            "evaluation_service_timeout_s",
+            None,
+        )
+        rclpy.spin_until_future_complete(
+            self,
+            future,
+            timeout_sec=timeout_s,
+        )
+        if timeout_s is not None and not future.done():
+            future.cancel()
+            raise TimeoutError(
+                f"Gazebo {operation} service did not respond within "
+                f"{timeout_s:.1f} wall seconds"
+            )
 
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict]:
         """
@@ -790,6 +841,8 @@ class F1tenthEnvironment(Node, ABC):
             np.asarray(action, dtype=np.float32), self.min_actions, self.max_actions
         )
         lin_vel, steering_angle = clipped_action
+        self.latest_data = None
+        self._next_build_clear_existing = False
         self._set_simulation_paused(paused=False)
         if self.command_latency_ms > 0.0:
             self._sleep(self.command_latency_ms)
@@ -819,7 +872,10 @@ class F1tenthEnvironment(Node, ABC):
             yaw=yaw,
         )
         future = self.set_pose_client.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
+        self._wait_for_evaluation_service(
+            future,
+            operation=f"set pose for {model_name}",
+        )
         return future.result()
 
     def set_seed(self, seed: int) -> None:

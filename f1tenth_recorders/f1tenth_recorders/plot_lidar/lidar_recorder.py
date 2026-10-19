@@ -12,6 +12,8 @@ import time
 class LidarPlotter(Node):
     def __init__(self):
         super().__init__('lidar_plotter')
+        self.car_position = np.zeros(2)
+        self.car_orientation = 0.0
         self.lidar_topic_name = '/f1tenth/scan'
         self.processed_lidar_topic_name = '/f1tenth/processed_scan'
         self.odom_topic_name = '/f1tenth/odometry'
@@ -38,9 +40,8 @@ class LidarPlotter(Node):
         
         ament_path = os.environ["AMENT_PREFIX_PATH"].split(":")[0]
         workspace_dir = os.path.dirname(ament_path)
-        path = os.path.join(workspace_dir, "..", "recordings", "lidar_records")
-        if not os.path.exists(path):
-            os.mkdir(path)
+        path = os.path.abspath(os.path.join(workspace_dir, "..", "recordings", "lidar_records"))
+        os.makedirs(path, exist_ok=True)
         file_creation_time = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
         self.raw_file_path = os.path.join(path, f"lidar_{file_creation_time}.csv")
         with open(self.raw_file_path, 'w') as f:
