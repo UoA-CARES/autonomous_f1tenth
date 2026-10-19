@@ -1,10 +1,9 @@
 """Headless XY trajectory plots for benchmark trials and heats.
 
-Colours follow the CARES/Claude dataviz validated default palette
-(references/palette.md): categorical slots for per-car identity in
-head-to-head plots, and the fixed status pair (good/critical) for
-completed-vs-DNF runs in per-checkpoint aggregate plots, since completion is
-a pass/fail state rather than an arbitrary series.
+Head-to-head plots use fixed categorical colours for per-car identity.
+Per-checkpoint aggregate plots use a good/critical status pair for
+completed-vs-DNF runs, since completion is a pass/fail state rather than an
+arbitrary series.
 """
 
 from __future__ import annotations
@@ -244,10 +243,9 @@ def write_checkpoint_trajectory_plot(
 ) -> Path | None:
     """Render every stashed time trial for one checkpoint into a single PNG.
 
-    Replaces the old one-PNG-per-trial output: for N trials this writes (or
-    overwrites, as more trials land) exactly one file, so a 6-checkpoint
-    campaign produces 6 trajectory images no matter how many trials each ran.
-    Returns None if no trials have been stashed yet.
+    For N trials this writes (or overwrites, as more trials land) exactly one
+    file, so a 6-checkpoint campaign produces 6 trajectory images no matter
+    how many trials each ran. Returns None if no trials have been stashed yet.
     """
     samples = _load_trajectory_samples(Path(trajectory_sample_directory))
     if not samples:

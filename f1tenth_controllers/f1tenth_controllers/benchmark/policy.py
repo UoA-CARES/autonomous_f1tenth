@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -21,15 +20,7 @@ from f1tenth_controllers.rl_policy import (
     _marl_action,
 )
 
-from .config import CheckpointSpec
-
-
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as checkpoint_file:
-        for chunk in iter(lambda: checkpoint_file.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+from .config import CheckpointSpec, _sha256_file
 
 
 def _checkpoint_family(checkpoint: dict) -> str:

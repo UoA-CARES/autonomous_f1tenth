@@ -143,9 +143,8 @@ def build_run_manifest(
                 "progress, velocity, collision, flip, and termination state."
             ),
             "seed_limitation": (
-                "Protocol seeds are recorded and passed through "
-                "reset, but the "
-                "existing Gazebo launch exposes no simulator physics seed."
+                "Protocol seeds are recorded and passed through reset, but "
+                "the existing Gazebo launch exposes no simulator physics seed."
             ),
         },
     }
