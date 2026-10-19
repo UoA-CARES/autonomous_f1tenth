@@ -203,7 +203,6 @@ class F1tenthEnvironment(Node, ABC):
             for name in self.opponent_car_names
         }
         self.previous_race_positions: dict[str, float] = {}
-        self.race_origin_spline_coord = 0.0
         self.race_origin_track_distance = 0.0
         self.overtake_rear_margin_m = 0.25
         self.overtake_front_margin_m = 0.25
@@ -227,12 +226,10 @@ class F1tenthEnvironment(Node, ABC):
             if match is None:
                 continue
 
-            car_index = int(match.group(1))
             if car_name == self.car_name:
                 continue
 
             discovered_names.add(car_name)
-            # print(f"Discovered opponent car: {car_name} from topic {topic_name}")
 
         def _car_sort_key(name: str) -> int:
             match = name_pattern.match(name)
@@ -424,11 +421,6 @@ class F1tenthEnvironment(Node, ABC):
         state_data = self.state_builder.build_state(odom_msg, lidar_msg)
         self.state_scan_pub.publish(state_data.lidar_state_scan)
         return state_data
-
-    def _spline_coord_from_position(self, position_xy: tuple[float, float]) -> float:
-        return self.current_track_model.world_coord_to_spline_coord(
-            np.asarray(position_xy, dtype=np.float64)
-        )
 
     def _track_distance_from_position(self, position_xy: tuple[float, float]) -> float:
         return self.current_track_model.track_distance_from_world_coord(

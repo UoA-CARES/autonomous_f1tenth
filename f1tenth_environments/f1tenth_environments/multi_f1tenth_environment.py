@@ -3,22 +3,22 @@ import os
 import random
 import re
 import time
-from .f1tenth_environment import F1tenthEnvironment
-import rclpy
 
-from pettingzoo import ParallelEnv
+import numpy as np
+import rclpy
 from geometry_msgs.msg import Twist
 from gymnasium import spaces
 from nav_msgs.msg import Odometry
+from pettingzoo import ParallelEnv
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, qos_profile_sensor_data
 from ros_gz_interfaces.srv import ControlWorld, SetEntityPose
 from sensor_msgs.msg import LaserScan
 
-import numpy as np
-
-from . import geometry_utils, lidar_processor, msg_utils, track_utils, waypoints
+from . import geometry_utils, track_utils
+from .f1tenth_environment import F1tenthEnvironment
 from .state_builder import LidarMode, OdomMode, StateBuilder, StateData
+
 
 class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
     """Multi-agent F1Tenth environment using PettingZoo API."""
@@ -46,7 +46,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         position_speed_multiplier: float,
         command_latency_ms: float = 0.0,
     ):
-        # Intialize ROS2 node
+        # Initialize ROS2 node
         Node.__init__(self, f"{env_name}_multi_environment")
 
         # Initialize initial parameters
@@ -74,7 +74,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             configured_num_opponents
         )
         self.wheelbase_m = 0.325
-        
+
         # Setup Tracks and Waypoints for tracking car progress
         self.tracks = self._load_tracks(track)
         self.track_progress_models = track_utils.get_track_progress_models(self.tracks)
@@ -140,7 +140,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
         self.spawn_indices = {agent: 0 for agent in self.agents}
         self.action_num = {agent: 2 for agent in self.agents}
-        
+
         self.stall_counters = {agent: 0 for agent in self.agents}
         self.latest_data = {agent: None for agent in self.agents}
         self.agent_goals = {agent: (0.0, 0.0) for agent in self.agents}
@@ -179,8 +179,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         if lidar_mode == "raw":
             _, lidar_data = self._get_data(self.car_name)
             lidar_state_size = len(lidar_data.ranges)
-    
-    
+
     def _get_configured_num_opponents(self) -> int | None:
         env_value = os.environ.get("F1TENTH_NUM_OPPONENTS")
         default_value = -1
@@ -331,6 +330,22 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         random.shuffle(randomised_agents)
         return dict(zip(randomised_agents, slot_indices))
 
+    def _agent_max_speed(self, agent: str) -> float:
+        """Opponents are capped at position_speed_multiplier times the primary max speed."""
+        if agent == self.car_name:
+            return self.max_actions[0]
+        return self.max_actions[0] * self.position_speed_multiplier
+
+    def _world_positions_from_state(
+        self, all_state_data: dict[str, StateData]
+    ) -> dict[str, tuple[float, float]]:
+        return {
+            agent: tuple(
+                float(value) for value in all_state_data[agent].position_xy()
+            )
+            for agent in self.agents
+        }
+
     def _get_agent_race_position(self, agent: str, state_data: StateData) -> float:
         track_distance = self.current_track_model.track_distance_from_world_coord(
             np.asarray(state_data.position_xy(), dtype=np.float64)
@@ -469,7 +484,6 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         self.last_reset_seed = seed
         self.last_command_sim_time_s = None
         self.last_observation_sim_time_s = None
-        self._last_track_distances = {agent: 0.0 for agent in self.agents}
 
         self._set_simulation_paused(paused=True)
 
@@ -504,12 +518,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             ]
             self.agent_goals[agent] = (wx, wy)
 
-        world_positions = {
-            agent: tuple(
-                float(value) for value in all_state_data[agent].position_xy()
-            )
-            for agent in self.agents
-        }
+        world_positions = self._world_positions_from_state(all_state_data)
         obs = {}
         infos = {}
         for agent in self.agents:
@@ -530,49 +539,8 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             )
         )
         self.previous_race_positions = self._get_race_positions(all_state_data)
-        self._last_track_distances = dict(self.previous_race_positions)
 
         return obs, infos
-
-    def _get_track_distance(self, agent: str) -> float:
-        if self.latest_data[agent] is None:
-            return float(self.goals_reached[agent])
-        
-        odom, _ = self.latest_data[agent]
-        x = odom.pose.pose.position.x
-        y = odom.pose.pose.position.y
-        goal_x, goal_y = self.agent_goals[agent]
-
-        total_waypoints = len(self.current_waypoints)
-        laps_completed = self.goals_reached[agent] // total_waypoints
-        waypoints_this_lap = self.goals_reached[agent] % total_waypoints
-
-        dist_to_next_goal = math.dist((x, y), (goal_x, goal_y))
-        max_dist = self.goal_reach_radius_m * 2.0
-        fraction = float(np.clip(1.0 - (dist_to_next_goal / max_dist), 0.0, 1.0))
-
-        return float(laps_completed * total_waypoints + waypoints_this_lap + fraction)
-    
-    def _get_track_distance_from_state(self, agent: str, state_data: StateData) -> float:
-        x, y = state_data.position_xy()
-        goal_x, goal_y = self.agent_goals[agent]
-
-        total_waypoints = len(self.current_waypoints)
-        laps_completed = self.goals_reached[agent] // total_waypoints
-        waypoints_this_lap = self.goals_reached[agent] % total_waypoints
-
-        dist_to_next_goal = math.dist((x, y), (goal_x, goal_y))
-        
-        current_wp_idx = (self.spawn_indices[agent] + self.goals_reached[agent]) % total_waypoints
-        next_wp_idx = (current_wp_idx + 1) % total_waypoints
-        prev_x, prev_y, _, _ = self.current_waypoints[current_wp_idx]
-        next_x, next_y, _, _ = self.current_waypoints[next_wp_idx]
-        waypoint_spacing = math.dist((prev_x, prev_y), (next_x, next_y))
-        max_dist = max(waypoint_spacing, 0.1)
-
-        fraction = float(np.clip(1.0 - (dist_to_next_goal / max_dist), 0.0, 1.0))
-
-        return float(laps_completed * total_waypoints + waypoints_this_lap + fraction)
 
     def _get_opponent_distance_info(
         self,
@@ -672,14 +640,8 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
         self.last_command_sim_time_s = self._sim_time_seconds()
         for agent, action in actions.items():
-            agent_max_speed = (
-                self.max_actions[0]
-                if agent == self.car_name
-                else self.max_actions[0] * self.position_speed_multiplier
-            )
-
             agent_max_actions = np.array(
-                [agent_max_speed, self.max_actions[1]],
+                [self._agent_max_speed(agent), self.max_actions[1]],
                 dtype=np.float32,
             )
             clipped = np.clip(
@@ -735,12 +697,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         if any(terminateds.values()):
             terminateds = {agent: True for agent in self.agents}
 
-        world_positions = {
-            agent: tuple(
-                float(value) for value in all_state_data[agent].position_xy()
-            )
-            for agent in self.agents
-        }
+        world_positions = self._world_positions_from_state(all_state_data)
         for agent in self.agents:
             infos[agent].update(
                 self._build_agent_metric_info(
@@ -754,14 +711,13 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             )
 
         self.previous_race_positions = race_positions
-        self._last_track_distances = dict(race_positions)
 
         return obs, rewards, terminateds, truncateds, infos
 
     def _sim_time_seconds(self) -> float:
         """Return the active ROS/Gazebo clock without changing simulation state."""
         return self.get_clock().now().nanoseconds / 1e9
-    
+
     # override for multi agents
     def _get_required_data_topic_names(self) -> list[str]:
         topic_names = []
@@ -837,7 +793,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             agent: self.state_builder.build_state(odom, lidar)
             for agent, (odom, lidar) in data.items()
         }
-    
+
     def _is_truncated(self, agent: str) -> bool:
         return (
             self.stall_counters[agent] >= self.stall_limit_steps
@@ -859,7 +815,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
         normalized_progress = step_progress / max_progress_per_step_m
         return float(np.clip(normalized_progress, 0.0, 1.0))
-    
+
     def _compute_reward(
         self,
         previous_state_data: StateData,
@@ -867,12 +823,9 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         agent: str,
     ) -> tuple[float, dict]:
         track_progress = self._compute_step_progress(previous_state_data, current_state_data)
-        effective_max_speed = (
-            self.max_actions[0]
-            if agent == self.car_name
-            else self.max_actions[0] * self.position_speed_multiplier
+        progress_reward = self._calculate_progress_reward(
+            track_progress, agent, self._agent_max_speed(agent)
         )
-        progress_reward = self._calculate_progress_reward(track_progress, agent, effective_max_speed)
 
         prev_angular_velocity = previous_state_data.angular_velocity()
         curr_angular_velocity = current_state_data.angular_velocity()
@@ -907,7 +860,7 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             "turn_discount": turn_discount,
             "collision": float(collision),
         }
-    
+
     @property
     def observation_size(self):
         per_agent_obs_size = int(self.state_builder.policy_state_size)
@@ -916,14 +869,14 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
         for agent in self.agents:
             team = agent.rsplit("_", 1)[0]
             teams.setdefault(team, []).append(agent)
-        
+
         return {
             "obs": {agent: per_agent_obs_size for agent in self.agents},
             "state": per_agent_obs_size * num_agents,
             "num_agents": num_agents,
             "teams": teams,
         }
-    
+
     @property
     def observation_spaces(self) -> dict:
         return {

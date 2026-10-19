@@ -5,6 +5,7 @@ import rclpy
 from .f1tenth_environment import F1tenthEnvironment
 from .multi_f1tenth_environment import MultiF1TenthEnvironment
 
+
 class EnvironmentFactory:
     def __init__(self):
         if not rclpy.ok():
@@ -63,10 +64,10 @@ class EnvironmentFactory:
                 collision_range_m=collision_range_m,
                 goal_reach_radius_m=goal_reach_radius_m,
                 stall_progress_threshold_m=stall_progress_threshold_m,
-                stall_limit_steps=stall_limit_steps
+                stall_limit_steps=stall_limit_steps,
             )
 
-        elif task == "MultiCarRace":
+        if task == "MultiCarRace":
             return MultiF1TenthEnvironment(
                 env_name=task,
                 track=track,
@@ -87,7 +88,7 @@ class EnvironmentFactory:
                 goal_reach_radius_m=goal_reach_radius_m,
                 stall_progress_threshold_m=stall_progress_threshold_m,
                 stall_limit_steps=stall_limit_steps,
-                position_speed_multiplier=position_speed_multiplier
+                position_speed_multiplier=position_speed_multiplier,
             )
 
         raise ValueError(f"EnvironmentFactory: Environment not found {task}")
