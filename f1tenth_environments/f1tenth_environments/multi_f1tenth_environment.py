@@ -510,7 +510,10 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             x, y = all_state_data[agent].position_xy()
             nearest_idx = min(
                 range(len(self.current_waypoints)),
-                key=lambda i: math.dist((x, y), (self.current_waypoints[i][0], self.current_waypoints[i][1]))
+                key=lambda i: math.dist(
+                    (x, y),
+                    (self.current_waypoints[i][0], self.current_waypoints[i][1]),
+                ),
             )
             self.spawn_indices[agent] = nearest_idx
             wx, wy, _, _ = self.current_waypoints[
@@ -800,7 +803,9 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
             or self.step_counter >= self.max_steps
         )
 
-    def _calculate_progress_reward(self, step_progress: float, agent: str, effective_max_speed: float) -> float:
+    def _calculate_progress_reward(
+        self, step_progress: float, agent: str, effective_max_speed: float
+    ) -> float:
         if step_progress < self.stall_progress_threshold_m:
             self.stall_counters[agent] += 1
         else:
@@ -838,7 +843,9 @@ class MultiF1TenthEnvironment(F1tenthEnvironment, ParallelEnv, Node):
 
         turn_threshold_rads = 0.5
         turn_k = 15.0
-        turn_factor = 1.0 / (1.0 + np.exp(-turn_k * (angular_velocity_change - turn_threshold_rads)))
+        turn_factor = 1.0 / (
+            1.0 + np.exp(-turn_k * (angular_velocity_change - turn_threshold_rads))
+        )
 
         wall_discount = 1.0 - (wall_factor * self.wall_proximity_reward_weight)
         turn_discount = 1.0 - (turn_factor * self.turn_reward_weight)
