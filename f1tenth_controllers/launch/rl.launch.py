@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from launch import LaunchDescription
@@ -5,7 +6,7 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction, SetEnvironment
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-algorithm = "TD3"
+DEFAULT_ALGORITHM = "TD3"
 DEFAULT_MAX_SPEED = "3.0"
 DEFAULT_MIN_SPEED = "0.5"
 DEFAULT_MAX_TURN = "0.434"
@@ -13,7 +14,7 @@ DEFAULT_MIN_TURN = "-0.434"
 
 
 def _prepend_pythonpath(path: Path) -> str:
-    existing = __import__("os").environ.get("PYTHONPATH", "")
+    existing = os.environ.get("PYTHONPATH", "")
     return f"{path}:{existing}" if existing else str(path)
 
 
@@ -38,7 +39,7 @@ def _set_cares_pythonpath(context):
 
 def generate_launch_description():
     car_name_arg = DeclareLaunchArgument("car_name", default_value="f1tenth")
-    algorithm_arg = DeclareLaunchArgument("algorithm", default_value=algorithm)
+    algorithm_arg = DeclareLaunchArgument("algorithm", default_value=DEFAULT_ALGORITHM)
     rmw_implementation_arg = DeclareLaunchArgument(
         "rmw_implementation",
         default_value="rmw_fastrtps_cpp",
@@ -158,7 +159,6 @@ def generate_launch_description():
             }
         ],
     )
-
 
     deadman = Node(
         package="f1tenth_controllers",

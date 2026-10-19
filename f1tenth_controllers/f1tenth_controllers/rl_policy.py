@@ -107,6 +107,7 @@ def _load_network_config(algorithm: str):
 
     return config_class()
 
+
 def _checkpoint_algorithm(algorithm: str, actor_state: dict) -> str:
     configured_algorithm = algorithm.upper()
     has_mean_head = "mean_linear.weight" in actor_state
@@ -127,70 +128,6 @@ def _checkpoint_algorithm(algorithm: str, actor_state: dict) -> str:
         return "SAC"
 
     return configured_algorithm
-
-
-def _configure_actor_from_checkpoint(
-    algorithm: str, network_config, actor_state: dict
-):
-    configurations_module = importlib.import_module(
-        "cares_reinforcement_learning.algorithm.configurations"
-    )
-
-    trunk_weights = [
-        (name, tensor)
-        for name, tensor in actor_state.items()
-        if name.startswith("act_net.model.")
-        and name.endswith("weight")
-        and getattr(tensor, "ndim", 0) == 2
-    ]
-    trunk_weights.sort(key=lambda item: int(item[0].split(".")[2]))
-    if not trunk_weights:
-        raise ValueError("Actor checkpoint contains no act_net linear weights.")
-
-    algorithm = algorithm.upper()
-    is_sac = algorithm in {"SAC", "PERSAC", "LAPSAC", "LA3PSAC"}
-    is_ppo = algorithm in {"PPO", "MAPPO", "IPPO"}
-
-    if is_sac:
-        mean_weight = actor_state.get("mean_linear.weight")
-        log_std_weight = actor_state.get("log_std_linear.weight")
-        if mean_weight is None or log_std_weight is None:
-            raise ValueError(
-                f"{algorithm} checkpoint must contain mean_linear and "
-                "log_std_linear actor heads."
-            )
-        if tuple(mean_weight.shape) != tuple(log_std_weight.shape):
-            raise ValueError(
-                "SAC mean and log-std actor head shapes do not match: "
-                f"{tuple(mean_weight.shape)} vs {tuple(log_std_weight.shape)}."
-            )
-        action_num = int(mean_weight.shape[0])
-    else:
-        action_num = int(trunk_weights[-1][1].shape[0])
-
-    layers = []
-    for index, (_, weight) in enumerate(trunk_weights):
-        in_features = int(weight.shape[1])
-        out_features = int(weight.shape[0])
-        is_output_layer = not is_sac and index == len(trunk_weights) - 1
-
-        layer_args = {"layer_type": "Linear"}
-        if index > 0:
-            layer_args["in_features"] = in_features
-        if not is_output_layer:
-            layer_args["out_features"] = out_features
-        layers.append(configurations_module.TrainableLayer(**layer_args))
-        if not (is_ppo and is_output_layer):
-            layers.append(
-                configurations_module.FunctionLayer(
-                    layer_type="Tanh" if is_output_layer else "ReLU"
-                )
-            )
-
-    network_config.actor_config = configurations_module.MLPConfig(layers=layers)
-    observation_size = int(trunk_weights[0][1].shape[1])
-    return observation_size, action_num
-
 
 
 MARL_ALGORITHMS = {
@@ -229,6 +166,7 @@ def _resolve_algorithm_name(configured_algorithm: str) -> tuple[str, str]:
             return known_algorithm, checkpoint_name
 
     return algorithm_name, checkpoint_name
+
 
 def _parse_csv(value: str) -> list[str]:
     return [item.strip() for item in str(value).split(",") if item.strip()]
@@ -411,6 +349,7 @@ def _configure_actor_from_checkpoint(
     observation_size = int(trunk_weights[0][1].shape[1])
     return observation_size, action_num
 
+
 def _configure_actor_from_any_checkpoint(
     algorithm: str,
     network_config,
@@ -425,6 +364,7 @@ def _configure_actor_from_any_checkpoint(
         actor_state,
     )
     return observation_size, action_num, actor_checkpoint_path
+
 
 def _identity_extra_size(config, agent_ids: list[str], teams: dict[str, list[str]]) -> int:
     if len(agent_ids) <= 1:

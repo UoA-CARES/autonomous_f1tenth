@@ -7,7 +7,7 @@ from launch.actions import (
     IncludeLaunchDescription,
     OpaqueFunction,
     SetEnvironmentVariable,
-    TimerAction
+    TimerAction,
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -33,7 +33,6 @@ def spawn_cars(context, *args, **kwargs):
             controller = "" if marl_env else "ftg"
         x_pos = 3.0 + 2.0 * i
         y_pos = 3.0
-        # print(f"Spawning car {car_name} at position ({x_pos}, {y_pos}) with controller '{controller}'")
 
         car_launch = IncludeLaunchDescription(
             launch_description_source=PythonLaunchDescriptionSource(
@@ -54,12 +53,9 @@ def spawn_cars(context, *args, **kwargs):
 
         delayed_spawn = TimerAction(
             period=float(i * spawn_delay),
-            actions=[car_launch]
+            actions=[car_launch],
         )
-
-        car_nodes.append(
-            delayed_spawn
-        )
+        car_nodes.append(delayed_spawn)
     return car_nodes
 
 
